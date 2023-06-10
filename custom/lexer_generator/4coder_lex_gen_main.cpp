@@ -3670,7 +3670,7 @@ gen_contiguous_control_flow_lexer(Arena *scratch, Token_Kind_Set tokens, Lexer_M
          flag = flag->next){
         Flag_Reset_Rule reset_rule = flag->reset_rule;
         Flag_Bind_Property bind_property =
-            (flag->emit_flags != 0)?FlagBindProperty_Bound:FlagBindProperty_Free;
+        (flag->emit_flags != 0)?FlagBindProperty_Bound:FlagBindProperty_Free;
         
         Flag_Bucket *bucket = &bucket_set.buckets[bind_property][reset_rule];
         Flag_Ptr_Node *node = push_array(scratch, Flag_Ptr_Node, 1);

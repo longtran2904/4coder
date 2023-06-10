@@ -24,7 +24,29 @@
 // 971 parse operator overloading
 // 973 parse macro define
 // 986 parse property/getter/setter
+// 1032 parse namespace and generic types, functions, and arguments
 using UnityEngine;
+
+int test_global_1, test_global_2;
+{
+    int test_local_1, test_local_2;
+}
+
+struct MyGenericType<T>
+{
+    public int a;
+    public T b;
+    public void DoShit(int someArg) { }
+    public T DoGenericShit<U>(T a, U b) { return a; }
+}
+
+void GenericFunc<T>(int arg)
+{
+    T a;
+    int test_local_1;
+    int test_global_1;
+    a = test_local_1 + test_global_1;
+}
 
 struct TesStruct;
 enum TestSingleEnum;
@@ -35,6 +57,28 @@ enum EnumTest
     B = 5,
     C = fjldasd
 }
+
+namespace TestNamespace
+{
+    int Namespace;
+}
+namespace TestNamespace.A.B.C
+{
+    void Namespace();
+}
+namespace TestNamespace.A;
+namespace TestNamespace.A.B { class Namespace; }
+
+//string verbatimStr1 = @"C:\Users\scoleridge\Documents\";
+//string verbatimStr2 = @"My pensive SARA ! thy soft cheek reclined
+//Thus on mine arm, most soothing sweet it is
+//To sit beside our Cot,...";
+string verbatimStr3 = @"Her name was ""Sara.""";
+string interpolStr = $"{ new StringBuilder(){ } + "Something" } this is string";
+string normalStr = "{";
+
+TestNamespace.Namespace = 10;
+TestNamespace.A.B.C.Namespace();
 
 #define TEST_MACRO
 #if TEST_MACRO
@@ -87,6 +131,11 @@ public class Test
     (int, float[][][][]) Function(int someInt, float someFloat);
     (Generic<Test>, SomeOtherType<Array[]>) Function2(int, float);
     
+    public Test()
+    {
+        
+    }
+    
     public int property
     {
         get => SomeFunc(_ => int a = 0);
@@ -127,8 +176,11 @@ public class Test
         }
         
         {
-            void DoStuff() { }
+            void DoStuff() { int a, int b; }
             DoStuff();
+            Test.Something();
+            VeryLongFunction(Function(a, d), SomeOtherThing(Test.DoStuff));
+            VeryLongFunction;
         }
         
         {
@@ -143,7 +195,7 @@ public class Test
         }
         
         {
-            Test t;
+            Test t = new Test();
             t.DoStuff = 10;
             t.Something();
             CreateTest().Something();
@@ -159,6 +211,8 @@ public class Test
     
     void SomeOtherThing(int DoStuff)
     {
+        Test.DoStuff;
+        int a = 0;
         DoStuff = 0;
     }
     
@@ -223,7 +277,7 @@ public class Optional<T>
     
     void SomeFunc1(int a) => { int a = 5, b = 10; }
     void SomeFunc2(int a) => int b = 5;
-    A<T>*[] GenericFunc(int a) { }
+    A<T>[] GenericFunc(int a) { }
     
     public static Optional DoStuff(Optional[] args)
     {

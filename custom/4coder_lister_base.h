@@ -22,7 +22,7 @@ struct Lister_Node{
     String_Const_u8 string;
     union{
         String_Const_u8 status;
-        i32 index;
+        //i32 index;
     };
     void *user_data;
     i32 raw_index;

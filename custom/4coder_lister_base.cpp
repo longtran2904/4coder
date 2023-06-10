@@ -175,6 +175,8 @@ lister_zero_scroll(Lister *lister){
     block_zero_struct(&lister->scroll);
 }
 
+function String8 Long_Lister_GetHeaderString(Application_Links* app, Arena* arena, Lister_Node* node);
+
 function void
 lister_render(Application_Links *app, Frame_Info frame_info, View_ID view){
     Scratch_Block scratch(app);
@@ -222,8 +224,8 @@ lister_render(Application_Links *app, Frame_Info frame_info, View_ID view){
     {
         Vec2_f32 p = V2f32(text_field_rect.x0 + 3.f, text_field_rect.y0);
         Fancy_Line text_field = {};
-        push_fancy_string(scratch, &text_field, fcolor_id(defcolor_pop1),
-                          lister->query.string);
+        push_fancy_string(scratch, &text_field, fcolor_id(defcolor_pop1), lister->query.string);
+        push_fancy_stringf(scratch, &text_field, fcolor_id(defcolor_pop1), " (%d)", lister->filtered.count);
         push_fancy_stringf(scratch, &text_field, " ");
         p = draw_fancy_line(app, face_id, fcolor_zero(), &text_field, p);
         
@@ -329,6 +331,7 @@ lister_render(Application_Links *app, Frame_Info frame_info, View_ID view){
         draw_rectangle_fcolor(app, item_inner, roundness, get_item_margin_color(highlight, 1));
         
         Fancy_Line line = {};
+        push_fancy_string(scratch, &line, fcolor_id(defcolor_pop1), Long_Lister_GetHeaderString(app, scratch, node));
         push_fancy_string(scratch, &line, fcolor_id(defcolor_text_default), node->string);
         push_fancy_stringf(scratch, &line, " ");
         push_fancy_string(scratch, &line, fcolor_id(defcolor_pop2), node->status);
@@ -358,7 +361,7 @@ lister_get_user_data(Lister *lister, i32 index){
 }
 
 function Lister_Filtered
-lister_get_filtered(Arena *arena, Lister *lister){
+lister_get_filtered(Application_Links* app, Arena *arena, Lister *lister){
     i32 node_count = lister->options.count;
     
     Lister_Filtered filtered = {};
@@ -380,9 +383,8 @@ lister_get_filtered(Arena *arena, Lister *lister){
     string_list_push(&absolutes, &splits);
     string_list_push(arena, &absolutes, string_u8_litexpr(""));
     
-    // NOTE(long): /tag: or, ~tag: not
+    // NOTE(long): /inclusive_tag: or, ~exclusive_tag: not
     
-#define LONG_LISTER_FILTER_TAG 1
 #if LONG_LISTER_FILTER_TAG
     String8List include_tags = {};
     {
@@ -391,7 +393,7 @@ lister_get_filtered(Arena *arena, Lister *lister){
         {
             String8Node* next = node->next;
             String8 string = node->string;
-            if (string.size > 1 && string.str[0] == '\\')
+            if (string.size >= 1 && string.str[0] == '\\')
             {
                 string_list_push(&include_tags, node);
                 node->string = string_skip(node->string, 1);
@@ -421,6 +423,25 @@ lister_get_filtered(Arena *arena, Lister *lister){
             node = next;
         }
     }
+    
+    String8List header_filters = {};
+    {
+        String8Node** prev = &absolutes.first->next;
+        for (String8Node* node = absolutes.first; node;)
+        {
+            String8Node* next = node->next;
+            String8 string = node->string;
+            if (string.size > 1 && string.str[0] == '`')
+            {
+                string_list_push(&header_filters, node);
+                node->string = string_skip(node->string, 1);
+                (*prev) = next;
+                absolutes.node_count--;
+            }
+            else prev = &node->next;
+            node = next;
+        }
+    }
 #endif
     
     for (Lister_Node *node = lister->options.first;
@@ -430,19 +451,30 @@ lister_get_filtered(Arena *arena, Lister *lister){
         {
             b32 has_tag = true;
             for (String8Node* tag = include_tags.first; tag; tag = tag->next)
-                if (has_tag = string_has_substr(node->status, tag->string, StringMatch_CaseInsensitive))
-                break;
+            if (!(has_tag = string_has_substr(node->status, tag->string, StringMatch_CaseInsensitive)))
+            break;
             if (!has_tag)
-                continue;
+            continue;
         }
         
         {
             b32 has_tag = false;
             for (String8Node* tag = exclude_tags.first; tag; tag = tag->next)
-                if (has_tag = string_has_substr(node->status, tag->string, StringMatch_CaseInsensitive))
-                break;
+            if (has_tag = string_has_substr(node->status, tag->string, StringMatch_CaseInsensitive))
+            break;
             if (has_tag)
-                continue;
+            continue;
+        }
+        
+        {
+            Scratch_Block scratch(app, arena);
+            String8 header = Long_Lister_GetHeaderString(app, scratch, node);
+            b32 has_tag = true;
+            for (String8Node* tag = header_filters.first; tag; tag = tag->next)
+            if (has_tag = string_has_substr(header, tag->string, StringMatch_CaseInsensitive))
+            break;
+            if (!has_tag)
+            continue;
         }
 #endif
         
@@ -486,7 +518,7 @@ lister_update_filtered_list(Application_Links *app, Lister *lister){
     Arena *arena = lister->arena;
     Scratch_Block scratch(app, arena);
     
-    Lister_Filtered filtered = lister_get_filtered(scratch, lister);
+    Lister_Filtered filtered = lister_get_filtered(app, scratch, lister);
     
     Lister_Node_Ptr_Array node_ptr_arrays[] = {
         filtered.exact_matches,

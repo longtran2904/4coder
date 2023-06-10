@@ -471,7 +471,7 @@ CUSTOM_DOC("Sets up a blank 4coder project provided some user folder.")
         path_bar.prompt = string_u8_litexpr("Absolute Path To Project Folder: ");
         path_bar.string = SCu8(project_folder_absolute, (u64)0);
         path_bar.string_capacity = sizeof(project_folder_absolute);
-        if(query_user_string(app, &path_bar))
+        if(query_user_string(app, &path_bar) && path_bar.string.size)
         {
             String_Const_u8 full_file_name = push_u8_stringf(scratch, "%.*s/",
                                                              string_expand(path_bar.string));
@@ -558,7 +558,7 @@ CUSTOM_DOC("Sets up a blank 4coder project provided some user folder.")
         }
     }
     
-    load_project(app);
+    //load_project(app);
 }
 
 function i64

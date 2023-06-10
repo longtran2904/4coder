@@ -28,6 +28,7 @@ struct Prj_Pattern_List{
 typedef u32 Prj_Open_File_Flags;
 enum{
     PrjOpenFileFlag_Recursive = 1,
+    PrjOpenFileFlag_ReadOnly = 2,
 };
 
 ///////////////////////////////

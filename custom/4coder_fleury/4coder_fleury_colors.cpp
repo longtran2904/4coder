@@ -142,8 +142,8 @@ F4_GetColor(Application_Links *app, ColorCtx ctx)
         {
             case TokenBaseKind_Identifier:
             {
-#if LONG_INDEX
-                F4_Index_Note *note = Long_Index_LookupBestNote(app, ctx.buffer, ctx.array, &ctx.token);
+#if LONG_INDEX_GET_COLOR
+                F4_Index_Note* note = Long_Index_LookupBestNote(app, ctx.buffer, ctx.array, &ctx.token);
 #else
                 String_Const_u8 string = push_buffer_range(app, scratch, ctx.buffer, Ii64(&ctx.token));
                 F4_Index_Note *note = F4_Index_LookupNote(string);
@@ -287,9 +287,9 @@ F4_SyntaxHighlight(Application_Links *app, Text_Layout_ID text_layout_id, Token_
         }
         
         if (token->kind == TokenBaseKind_ScopeOpen)
-            scope_nest++;
+        scope_nest++;
         else if (token->kind == TokenBaseKind_ScopeClose)
-            scope_nest--;
+        scope_nest--;
         
         ARGB_Color argb = F4_GetColor(app, ColorCtx_Token(*token, buffer, array));
         paint_text_color(app, text_layout_id, Ii64_size(token->pos, token->size), argb);

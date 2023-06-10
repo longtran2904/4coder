@@ -1,4 +1,11 @@
 
+function b32 Long_Index_MatchNote(Application_Links* app, F4_Index_Note* note, Range_i64 range, String8 match)
+{
+    Scratch_Block scratch(app);
+    String8 string = push_buffer_range(app, scratch, note->file->buffer, range);
+    return string_match(string, match);
+}
+
 function b32 Long_Index_IsMatch(F4_Index_ParseCtx* ctx, Token* token, String8* array, u64 count)
 {
     return Long_Index_IsMatch(ctx, Ii64(token), array, count);
@@ -12,9 +19,17 @@ function b32 Long_Index_IsMatch(F4_Index_ParseCtx* ctx, Range_i64 range, String8
     {
         result = string_match(string, array[i]);
         if (result)
-            break;
+        break;
     }
     return result;
+}
+
+function b32 Long_Index_IsMatch(String8 string, String8* array, u64 count)
+{
+    for (u64 i = 0; i < count; ++i)
+    if (string_match(string, array[i]))
+    return true;
+    return false;
 }
 
 function b32 Long_Index_SkipExpression(F4_Index_ParseCtx* ctx, i16 seperator, i16 terminator)
@@ -43,10 +58,10 @@ function b32 Long_Index_SkipExpression(F4_Index_ParseCtx* ctx, i16 seperator, i1
         }
         
         if (paren_nest < 0 || scope_nest < 0)
-            done = true;
+        done = true;
         
         if (done)
-            break;
+        break;
         F4_Index_ParseCtx_Inc(ctx, F4_Index_TokenSkipFlag_SkipWhitespace);
     }
     
@@ -55,7 +70,7 @@ function b32 Long_Index_SkipExpression(F4_Index_ParseCtx* ctx, i16 seperator, i1
 
 function b32 Long_Index_SkipBody(F4_Index_ParseCtx* ctx, b32 dec, b32 exit_early)
 {
-    return Long_Index_SkipBody(ctx->app, &ctx->it, ctx->file->buffer, dec);
+    return Long_Index_SkipBody(ctx->app, &ctx->it, ctx->file->buffer, dec, exit_early);
 }
 
 function b32 Long_Index_SkipBody(Application_Links* app, Token_Iterator_Array* it, Buffer_ID buffer, b32 dec, b32 exit_early)
@@ -109,24 +124,25 @@ function b32 Long_Index_SkipBody(Application_Links* app, Token_Iterator_Array* i
             if (exit_early)
             {
                 if (nest_found)
-                    next_token(it);
+                next_token(it);
                 break;
             }
             
             if (!nest_found)
-                break;
+            break;
         }
         
         if (!next_token(it))
-            break;
+        break;
     }
     
     return paren_nest == 0 && scope_nest == 0 && gener_nest == 0 && (dec ? (final_nest >= 0) : (final_nest <= 0));
 }
 
-// NOTE(long): This function was ripped from F4_Index_ParsePattern and modified so that it takes a va_list and %k output a Range_i64
+// NOTE(long): This function was ripped from F4_Index_ParsePattern and modified so that it takes a va_list and output a Range_i64
 function b32 _Long_Index_ParsePattern(F4_Index_ParseCtx* ctx, char* fmt, va_list _args)
 {
+    ProfileScope(ctx->app, "[Long] Parse Pattern");
     b32 parsed = 1;
     
     F4_Index_ParseCtx ctx_restore = *ctx;
@@ -154,14 +170,17 @@ function b32 _Long_Index_ParsePattern(F4_Index_ParseCtx* ctx, char* fmt, va_list
                     Token* token = 0;
                     parsed = parsed && F4_Index_RequireTokenKind(ctx, kind, &token, flags);
                     if (parsed && output_range)
-                        *output_range = Ii64(token);
+                    *output_range = Ii64(token);
                 }break;
                 
                 case 'b':
                 {
                     i16 kind = (i16)va_arg(args, int);
-                    Token **output_token = va_arg(args, Token **);
-                    parsed = parsed && F4_Index_RequireTokenSubKind(ctx, kind, output_token, flags);
+                    Range_i64* output_range = va_arg(args, Range_i64*);
+                    Token* token = 0;
+                    parsed = parsed && F4_Index_RequireTokenSubKind(ctx, kind, &token, flags);
+                    if (parsed && output_range)
+                    *output_range = Ii64(token);
                 }break;
                 
                 case 'n':
@@ -220,7 +239,7 @@ function b32 _Long_Index_ParsePattern(F4_Index_ParseCtx* ctx, char* fmt, va_list
     va_end(args);
     
     if (!parsed)
-        *ctx = ctx_restore;
+    *ctx = ctx_restore;
     return parsed;
 }
 
@@ -246,8 +265,9 @@ function F4_Index_Note* Long_Index_MakeNote(F4_Index_ParseCtx* ctx, Range_i64 ba
 {
     F4_Index_Note* note = F4_Index_MakeNote(ctx, range, kind, 0);
     note->base_range = base_range;
+    note->base_string = push_string_copy(&ctx->file->arena, F4_Index_StringFromRange(ctx, base_range));
     if (push_parent)
-        F4_Index_PushParent(ctx, note);
+    F4_Index_PushParent(ctx, note);
     return note;
 }
 
@@ -270,7 +290,7 @@ function F4_Index_Note* Long_Index_LookupNote(String_Const_u8 string)
 function F4_Index_Note* Long_Index_LookupChild(F4_Index_Note* parent, String8 name)
 {
     F4_Index_Note* result = 0;
-    for (F4_Index_Note* child = parent->first_child; child; child = child->next_sibling)
+    for (F4_Index_Note* child = parent ? parent->first_child : 0; child; child = child->next_sibling)
     {
         if (string_match(child->string, name))
         {
@@ -285,7 +305,7 @@ function F4_Index_Note* Long_Index_LookupChild(F4_Index_Note* parent, i32 index)
 {
     F4_Index_Note* result = 0;
     i32 i = 0;
-    for (F4_Index_Note* child = parent->first_child; child; child = child->next_sibling)
+    for (F4_Index_Note* child = parent ? parent->first_child : 0; child; child = child->next_sibling)
     {
         if (i == index)
         {
@@ -299,12 +319,18 @@ function F4_Index_Note* Long_Index_LookupChild(F4_Index_Note* parent, i32 index)
 
 function F4_Index_Note* Long_Index_LookupRef(Application_Links* app, Token_Array* array, F4_Index_Note* note)
 {
-    Token* token = token_from_pos(array, note->base_range.max - 1);
-    F4_Index_Note* result = Long_Index_LookupBestNote(app, note->file->buffer, array, token);
+    F4_Index_Note* result = 0;
+    if (note && range_size(note->base_range))
+    {
+        Token* token = token_from_pos(array, note->base_range.max - 1);
+        if (token->kind == TokenBaseKind_Identifier)
+        result = Long_Index_LookupBestNote(app, note->file->buffer, array, token);
+    }
     return result;
 }
 
-function void _Long_Index_ParseSelection(Application_Links* app, Arena* arena, Token_Iterator_Array* it, Buffer_ID buffer, String8List* list)
+function void
+_Long_Index_ParseSelection(Application_Links* app, Arena* arena, Token_Iterator_Array* it, Buffer_ID buffer, String8List* list)
 {
     Long_Index_SkipBody(app, it, buffer, true);
     Token* current = token_it_read(it);
@@ -319,69 +345,205 @@ function void _Long_Index_ParseSelection(Application_Links* app, Arena* arena, T
         list->node_count += 1;
         list->total_size += string.size;
         
-        if (token_it_dec(it) && Long_CS_IsTokenSelection(token_it_read(it)) && token_it_dec(it))
+        if (token_it_dec(it))
+        {
+            b32 is_selection = 0;
+            // TODO(long): Abstract selection function out
+            {
+                Scratch_Block scratch(app);
+                String8 selections[] = { S8Lit("."), S8Lit("->"), S8Lit("?.") };
+                String8 lexeme = push_token_lexeme(app, scratch, buffer, it->ptr);
+                is_selection = Long_Index_IsMatch(lexeme, ExpandArray(selections));
+            }
+            if (is_selection && token_it_dec(it))
             _Long_Index_ParseSelection(app, arena, it, buffer, list);
+        }
     }
 }
 
-// 2400 no decl
-// 2526 no generic and array
-// 2555 no this
-// 2565 no initializer list
+#define LONG_INDEX_CACHING 0
 
-// TODO(long):
-// Handle initializer list and constructor
-// Handle inheritant
-function F4_Index_Note* Long_Index_LookupBestNote(Application_Links* app, Buffer_ID buffer, Token_Array* array, Token* token, b32 preferNewNote)
+#if LONG_INDEX_CACHING
+struct Long_Index_Table
+{
+    F4_Index_Note* table[16384];
+    Buffer_ID buffers[16384];
+    i64 locations[16384];
+};
+
+global Long_Index_Table long_table = {};
+
+#define LONG_TABLE_PROBING 1
+function i32 Long_Index_LookupTable(Application_Links* app, Buffer_ID buffer, Token* token)
+{
+    ProfileScope(app, "[Long] Lookup Table");
+    i64 pos = token->pos;
+    Tiny_Jump key = { buffer, pos };
+    u64 slot = table_hash(&key, sizeof(key), 1) % ArrayCount(long_table.table);
+#if LONG_TABLE_PROBING
+    u64 original = slot;
+    while (long_table.buffers[slot])
+    {
+        if (long_table.buffers[slot] == buffer && long_table.locations[slot] == pos)
+        return (i32)slot;
+        slot = clamp_loop(slot + 1, ArrayCount(long_table.table));
+        if (slot == original)
+        break;
+    }
+#else
+    if (long_table.buffers[slot] == buffer && long_table.locations[slot] == pos)
+    return (i32)slot;
+#endif
+    return -1;
+}
+
+function void Long_Index_AddTable(Application_Links* app, Buffer_ID buffer, Token* token, F4_Index_Note* note)
+{
+    ProfileScope(app, "[Long] Update Table");
+    i64 pos = token->pos;
+    Tiny_Jump key = { buffer, pos };
+    u64 slot = table_hash(&key, sizeof(key), 1) % ArrayCount(long_table.table);
+#if LONG_TABLE_PROBING
+    u64 original = slot;
+    while (long_table.buffers[slot])
+    {
+        slot = clamp_loop(slot + 1, ArrayCount(long_table.table));
+        if (slot == original)
+        break;
+    }
+#endif
+    long_table.buffers[slot] = buffer;
+    long_table.locations[slot] = pos;
+    long_table.table[slot] = note;
+}
+
+function void Long_Index_ClearTable()
+{
+    memset(long_table.buffers, 0, sizeof(long_table.buffers));
+}
+#else
+function void Long_Index_ClearTable() {}
+#endif
+
+function F4_Index_Note* Long_Index_LookupNoteTree(F4_Index_Note* note, String8 string)
+{
+    for (F4_Index_Note* parent = note && note->first_child ? note->first_child : note; parent; parent = parent->parent)
+    {
+        while (parent->prev_sibling)
+        parent = parent->prev_sibling;
+        
+        for (F4_Index_Note* sibling = parent; sibling; sibling = sibling->next_sibling)
+        if (string_match(sibling->string, string))
+        return sibling;
+    }
+    
+    for (F4_Index_Note* global_note = Long_Index_LookupNote(string); global_note; global_note = global_note->next_sibling)
+    if (!global_note->parent)
+    return global_note;
+    
+    return 0;
+}
+
+function F4_Index_Note* Long_Index_LookupScope(F4_Index_Note* note, i64 pos)
 {
     F4_Index_Note* result = 0;
+    
+    if (note->range.min == pos)
+    result = note;
+    else if (note->scope_range.max && (range_contains(note->scope_range, pos) ||
+                                       range_contains(Range_i64{ note->range.max, note->scope_range.min }, pos)))
+    {
+        for (F4_Index_Note* child = note->first_child; child; child = child->next_sibling)
+        if (result = Long_Index_LookupScope(child, pos))
+        break;
+        
+        if (!result)
+        result = note;
+    }
+    return result;
+}
+
+function F4_Index_Note* Long_Index_GetScopeNote(Application_Links* app, Buffer_ID buffer, i64 pos)
+{
+    F4_Index_Note* result = 0;
+    F4_Index_File* file = F4_Index_LookupFile(app, buffer);
+    for (F4_Index_Note* note = file ? file->first_note : 0; note; note = note->next_sibling)
+    if (result = Long_Index_LookupScope(note, pos))
+    break;
+    return result;
+}
+
+// TODO(long):
+// Handle initializer lists and constructors
+// Handle inheritance
+// Handle generic base types
+function F4_Index_Note*
+Long_Index_LookupBestNote(Application_Links* app, Buffer_ID buffer, Token_Array* array, Token* token)
+{
+    ProfileScope(app, "[Long] Lookup Best Note");
+    F4_Index_Note* result = 0;
+    
     Range_i64 range = Ii64(token);
-    Token_Iterator_Array it = token_iterator_pos(0, array, range.start);
+    i64 pos = range.min;
+    Token_Iterator_Array it = token_iterator_pos(0, array, pos);
     Scratch_Block scratch(app);
     String8List names = {};
+    
     _Long_Index_ParseSelection(app, scratch, &it, buffer, &names);
     if (!names.first || !names.total_size || !names.node_count)
-        return result;
+    return result;
     
-#define MAX_DUPLICATE_NOTE_COUNT 128
+    Buffer_Cursor cursor = buffer_compute_cursor(app, buffer, seek_pos(pos));
+    cursor = cursor;
+    
+#if LONG_INDEX_CACHING
+    i32 slot = Long_Index_LookupTable(app, buffer, token);
+    if (slot >= 0)
+    return long_table.table[slot];
+#endif
+    
+#define LONG_INDEX_LOOKUP_SCOPE 1
+    
+#define MAX_DUPLICATE_NOTE_COUNT 64
+#if !LONG_INDEX_LOOKUP_SCOPE
     F4_Index_Note** duplicateNotes   = push_array_zero(scratch, F4_Index_Note*, MAX_DUPLICATE_NOTE_COUNT);
     F4_Index_Note** duplicateParents = push_array_zero(scratch, F4_Index_Note*, MAX_DUPLICATE_NOTE_COUNT);
     int count = 0;
+#endif
     
-    // NOTE(long): C# specific crap
-    //b32 preferType = token_it_read(&it)->sub_kind == TokenCsKind_This;
-    b32 preferType = string_match(push_token_lexeme(app, scratch, buffer, token), S8Lit("this"));
+    // TODO(long): C# specific crap - Abstract this out for other languages
+    b32 preferType = string_match(push_token_lexeme(app, scratch, buffer, it.ptr), S8Lit("this"));
     
-    for (F4_Index_Note* note = Long_Index_LookupNote(names.first->string); note; note = note->next)
+#if 1
+    F4_Index_Note* firstNote = Long_Index_LookupNote(names.first->string);
+    for (F4_Index_Note* note = firstNote; note; note = note->next)
     {
-        if (count == MAX_DUPLICATE_NOTE_COUNT)
-            break;
-        
-        if (note->range == Ii64(token))
+        if (note->range == range)
         {
-            if (preferNewNote)
-                continue;
             result = note;
+            /*if (preferNewNote)
+            result = note->next ? note->next : firstNote;*/
             goto DONE;
         }
         
+#if !LONG_INDEX_LOOKUP_SCOPE
         if (preferType && !(note->file->buffer == buffer && note->parent && note->parent->kind == F4_Index_NoteKind_Type))
-            continue;
+        continue;
         
         F4_Index_Note* duplicateParent = 0;
         
         if (note->file->buffer == buffer)
         {
-            if (range_contains(note->scope_range, token->pos))
-                duplicateParent = note;
-            else if (note->parent && range_contains(note->parent->scope_range, token->pos))
-                duplicateParent = note->parent;
+            if (range_contains(note->scope_range, pos))
+            duplicateParent = note;
+            else if (note->parent && range_contains(note->parent->scope_range, pos))
+            duplicateParent = note->parent;
         }
         
         if (!note->parent || duplicateParent)
         {
+            ProfileBlock(app, "[Long] Get Notes");
             F4_Index_Note* child = note;
-            
             for (String8Node* name = names.first->next; name; name = name->next)
             {
                 F4_Index_Note* parent = child;
@@ -390,12 +552,9 @@ function F4_Index_Note* Long_Index_LookupBestNote(Application_Links* app, Buffer
                 if (!child)
                 {
                     F4_Index_Note* ref = Long_Index_LookupRef(app, array, parent);
-                    if (ref)
-                        child = Long_Index_LookupChild(ref, name->string);
+                    if (ref)     child = Long_Index_LookupChild(ref, name->string);
+                    if (!child) break;
                 }
-                
-                if (!child)
-                    break;
             }
             
             if (child)
@@ -405,8 +564,44 @@ function F4_Index_Note* Long_Index_LookupBestNote(Application_Links* app, Buffer
                 count++;
             }
         }
+        
+        if (count == MAX_DUPLICATE_NOTE_COUNT)
+        break;
+#endif
     }
+#endif
     
+#if LONG_INDEX_LOOKUP_SCOPE
+    F4_Index_Note* surrounding_note = Long_Index_GetScopeNote(app, buffer, pos);
+    if (preferType)
+    while (surrounding_note && surrounding_note->kind != F4_Index_NoteKind_Type)
+    surrounding_note = surrounding_note->parent;
+    F4_Index_Note* note = Long_Index_LookupNoteTree(surrounding_note, names.first->string);
+    
+    // NOTE(long): Choose parent types over the child functions when they have the same name (constructors, conversion operators, etc)
+    if (note && note->parent)
+    if (note->kind == F4_Index_NoteKind_Function && note->parent->kind == F4_Index_NoteKind_Type)
+    if (string_match(note->string, note->parent->string)) 
+    note = note->parent;
+    
+    if (note)
+    {
+        F4_Index_Note* child = note;
+        for (String8Node* name = names.first->next; name; name = name->next)
+        {
+            F4_Index_Note* parent = child;
+            child = Long_Index_LookupChild(parent, name->string);
+            
+            if (!child)
+            {
+                F4_Index_Note* ref = Long_Index_LookupRef(app, array, parent);
+                if (ref)     child = Long_Index_LookupChild(ref, name->string);
+                if (!child) break;
+            }
+        }
+        result = child;
+    }
+#else
     {
         int resultIndex = 0;
         for (i32 i = 1; i < count; ++i)
@@ -414,29 +609,77 @@ function F4_Index_Note* Long_Index_LookupBestNote(Application_Links* app, Buffer
             // NOTE(long): Prioritize parent->scope_range > note->scope_range > !parent
             if (duplicateParents[i])
             {
+                // NOTE(long): check if both parents are null, if it's true compare the children, if not compare the parents
                 F4_Index_Note** notes = duplicateParents[i] == duplicateParents[resultIndex] ? duplicateNotes : duplicateParents;
                 if (!duplicateParents[resultIndex] || notes[i]->scope_range.min > notes[resultIndex]->scope_range.min)
-                    resultIndex = i;
+                resultIndex = i;
             }
         }
         result = duplicateNotes[resultIndex];
+        
+        // TODO(long): Pick def before prototype
     }
+#endif
     
     DONE:
+#if LONG_INDEX_CACHING
+    Long_Index_AddTable(app, buffer, token, result);
+#endif
+    
     return result;
 }
 
 function String8 Long_GetStringAdvance(Application_Links* app, Face_ID face, String8 string, Token* token, i64 startPos, f32* advance)
 {
-    String8 result = string_substring(string, Ii64_size(token->pos - startPos, token->size));
+    Range_i64 range = Ii64_size(token->pos - startPos, token->size);
+    String8 result = string_substring(string, range);
     *advance += get_string_advance(app, face, result);
     return result;
 }
 
-#define Long_IterateRanges(tokens, ranges, count, foreach, callback) \
+function Rect_f32 Long_Index_DrawNote(Application_Links* app, Range_i64_Array ranges, Buffer_ID buffer,
+                                      Face_ID face, f32 line_height, f32 padding, ARGB_Color color,
+                                      Vec2_f32 tooltip_position, Range_f32 max_range_x,
+                                      ARGB_Color highlight_color, Range_i64 highlight_range)
+{
+    // NOTE(long): When fading an undo action, the draw function will run before the index function, making the note tree outdated.
+    // Ex: Create a comment in between functions's arguments and then undo that comment
+    // If the index function get run (default_tick inside F4_Tick), the global_buffer_modified_set will be cleared
+    for (Buffer_Modified_Node* node = global_buffer_modified_set.first; node; node = node->next)
+    if (node->buffer == buffer)
+    return {};
+    
+    Token_Array* array = 0;
+    {
+        Token_Array _array = get_token_array_from_buffer(app, buffer);
+        array = &_array;
+    }
+    
+    i64 max_range_pos = ranges.ranges[ranges.count - 1].max;
+    if (!max_range_pos)
+    system_error_box("The last range of the note is incorrect");
+    {
+        Token_Iterator_Array it = token_iterator_pos(0, array, max_range_pos - 1);
+        Token* token = token_it_read(&it);
+        if (token->kind == TokenBaseKind_Whitespace)
+        max_range_pos = token->pos;
+    }
+    Range_i64 total_range = { ranges.ranges[0].min, max_range_pos };
+    
+    Scratch_Block scratch(app);
+    String_Const_u8 string = push_buffer_range(app, scratch, buffer, total_range);
+    {
+        Range_i64 range = buffer_range(app, buffer);
+        Assert(range_union(range, total_range) == range);
+        Assert(string.str && string.size);
+    }
+    f32 space_size = get_string_advance(app, face, S8Lit(" "));
+    Vec2_f32 needed_size = { 0, line_height };
+    
+#define Long_IterateRanges(tokens, ranges, foreach, callback) \
 do { \
-Range_i64* _ranges_ = (ranges); \
-i64 _count_ = (count); \
+Range_i64* _ranges_ = (ranges).ranges; \
+i64 _count_ = (ranges).count; \
 for (i32 i = 0; i < _count_; ++i) \
 { \
 { foreach; } \
@@ -448,34 +691,12 @@ if (token->pos >= _ranges_[i].max) break; \
 } while (token_it_inc_all(&it)); \
 } \
 } while (0)
-
-function Rect_f32 Long_Index_DrawNote(Application_Links* app, Token_Array* array, F4_Index_Note* note,
-                                      Face_ID face, f32 line_height, f32 padding, ARGB_Color color,
-                                      Vec2_f32 tooltip_position, Range_f32 max_range_x,
-                                      ARGB_Color highlight_color, Range_i64 highlight_range)
-{
-    Range_i64 total_range = { note->base_range.min, note->scope_range.min ? note->scope_range.min : note->range.max };
-    {
-        Token_Iterator_Array it = token_iterator_pos(0, array, total_range.max - 1);
-        Token* token = token_it_read(&it);
-        if (token->kind == TokenBaseKind_Whitespace)
-            total_range.max = token->pos;
-    }
-    
-    Scratch_Block scratch(app);
-    String_Const_u8 string = push_buffer_range(app, scratch, note->file->buffer, total_range);
-    f32 space_size = get_string_advance(app, face, S8Lit(" "));
-    Vec2_f32 needed_size = { -space_size, line_height };
-    Range_i64 ranges[] =
-    {
-        note->base_range,
-        { note->range.min, total_range.max },
-    };
     
     {
-        Vec2_f32 maxP = { 0, line_height };
+        Vec2_f32 maxP = needed_size;
         b32 was_whitespace = 0;
-        Long_IterateRanges(array, ranges, ArrayCount(ranges), needed_size.x += space_size,
+        // TODO(long): Maybe skip comment?
+        Long_IterateRanges(array, ranges, needed_size.x += (needed_size.x ? space_size : 0),
                            f32 size_x = needed_size.x;
                            if (token->kind == TokenBaseKind_Whitespace) needed_size.x += space_size;
                            else Long_GetStringAdvance(app, face, string, token, total_range.min, &needed_size.x);
@@ -483,13 +704,13 @@ function Rect_f32 Long_Index_DrawNote(Application_Links* app, Token_Array* array
                            {
                                needed_size.x = 0;
                                if (was_whitespace)
-                                   size_x -= space_size;
+                               size_x -= space_size;
                                maxP.x = Max(maxP.x, size_x);
                                maxP.y += line_height;
                            }
                            was_whitespace = token->kind == TokenBaseKind_Whitespace);
         if (maxP.x)
-            needed_size = maxP;
+        needed_size = maxP;
     }
     
     Rect_f32 draw_rect =
@@ -510,8 +731,7 @@ function Rect_f32 Long_Index_DrawNote(Application_Links* app, Token_Array* array
     
     Vec2_f32 text_position = draw_rect.p0 + Vec2_f32{ padding, padding };
     f32 start_x = text_position.x;
-    text_position.x -= space_size;
-    Long_IterateRanges(array, ranges, ArrayCount(ranges), text_position.x += space_size,
+    Long_IterateRanges(array, ranges, text_position.x += (text_position.x != start_x) ? space_size : 0,
                        if (token->kind == TokenBaseKind_Whitespace) text_position.x += space_size;
                        else
                        {
@@ -525,17 +745,34 @@ function Rect_f32 Long_Index_DrawNote(Application_Links* app, Token_Array* array
                            }
                            draw_string(app, face, token_string, pos, color);
                            if (range_contains(highlight_range, token->pos))
-                               draw_rectangle(app, Rf32(pos.x, pos.y + line_height, text_position.x, pos.y + line_height + 2), 1, color);
+                           {
+                               Rect_f32 rect = Rf32(pos.x, pos.y + line_height, text_position.x, pos.y + line_height + 2);
+                               draw_rectangle(app, rect, 1, highlight_color);
+                           }
                        });
+#undef Long_IterateRanges
     
     return draw_rect;
 }
 
-function void Long_Index_DrawTooltip(Application_Links* app, View_ID view, Token_Array* array, F4_Index_Note* note, i32 index, Vec2_f32* tooltip_offset)
+function Range_i64_Array Long_Index_GetNoteRanges(Application_Links* app, Arena* arena, F4_Index_Note* note, Range_i64 range)
 {
-    Face_ID face = global_small_code_face;
-    f32 line_height = get_face_metrics(app, face).line_height;
-    f32 padding = 4.f;
+    // NOTE(long): I need an array of ranges for handling trailing decl: int a = ..., b = ..., c = ...;
+    // if I want to display b, I needs to draw `int b = ...`
+    Range_i64_Array result = { push_array_zero(arena, Range_i64, 3), 0 };
+    
+    if (note->base_range.max)
+    result.ranges[result.count++] = note->base_range;
+    result.ranges[result.count++] = { note->range.min, Max(note->range.max, note->scope_range.min) };
+    if (range.max)
+    result.ranges[result.count++] = range;
+    
+    return result;
+}
+
+function void Long_Index_DrawTooltip(Application_Links* app, Rect_f32 screen_rect, Token_Array* array, Vec2_f32* tooltip_offset,
+                                     F4_Index_Note* note, i32 index, Range_i64 range, Range_i64 highlight_range)
+{
     Vec2_f32 tooltip_position =
     {
         global_cursor_rect.x0,
@@ -544,55 +781,145 @@ function void Long_Index_DrawTooltip(Application_Links* app, View_ID view, Token
     Vec2_f32 offset = tooltip_offset ? *tooltip_offset : Vec2_f32{};
     tooltip_position += offset;
     offset = tooltip_position;
+    
+    Face_ID face = global_small_code_face;
+    f32 padding = 4.f;
+    f32 line_height = get_face_metrics(app, face).line_height;
     ARGB_Color color = finalize_color(defcolor_text_default, 0);
     ARGB_Color highlight_color = finalize_color(fleury_color_token_highlight, 0);
-    Rect_f32 screen_rect = view_get_screen_rect(app, view);
     Range_f32 screen_x = { screen_rect.x0 + padding * 4, screen_rect.x1 - padding * 4 };
-    Range_i64 highlight_range = {};
     
-    /*if (display_ref)
-    {
-        note = Long_Index_LookupRef(app, array, note);
-        if (note && note->kind == F4_Index_NoteKind_Type)
-        {
-            for (F4_Index_Note* member = note->first_child; member; member = member->next_sibling)
-            {
-                Rect_f32 rect = Long_Index_DrawNote(app, array, member, face, line_height, padding, color, tooltip_position, screen_x);
-                tooltip_position.y += rect.y1 - rect.y0;
-            }
-        }
-    }
-    else
-    {
-        Rect_f32 rect = Long_Index_DrawNote(app, array, note, face, line_height, padding, color, tooltip_position, screen_x);
-        tooltip_position.y += rect.y1 - rect.y0;
-    }*/
+    Scratch_Block scratch(app);
     
     if (note->kind == F4_Index_NoteKind_Decl && index)
+    {
         note = Long_Index_LookupRef(app, array, note);
+        if (!note)
+        return;
+    }
     
     if (note->kind == F4_Index_NoteKind_Type && index)
     {
-        for (F4_Index_Note* member = note->first_child; member; member = member->next_sibling)
+        //for (F4_Index_Note* member = note->first_child; member; member = member->next_sibling)
+        for (note = note->first_child; note; note = note->next_sibling)
         {
-            Rect_f32 rect = Long_Index_DrawNote(app, array, member, face, line_height, padding, color,
+            if (note->kind == F4_Index_NoteKind_Scope)
+            continue;
+            //Range_i64_Array ranges = Long_Index_GetNoteRanges(app, scratch, member, range);
+            Range_i64_Array ranges = Long_Index_GetNoteRanges(app, scratch, note, range);
+            Rect_f32 rect = Long_Index_DrawNote(app, ranges, note->file->buffer,
+                                                face, line_height, padding, color,
                                                 tooltip_position, screen_x, highlight_color, highlight_range);
             tooltip_position.y += rect.y1 - rect.y0;
         }
     }
     else
     {
-        if (note->kind == F4_Index_NoteKind_Function)
+        if (note->kind == F4_Index_NoteKind_Function && index != -1)
         {
             F4_Index_Note* argument = Long_Index_LookupChild(note, index);
-            if (argument)
-                highlight_range = { argument->base_range.min, argument->scope_range.min };
+            if (argument && argument->kind == F4_Index_NoteKind_Decl)
+            // NOTE(long): The CS parser always parses base_range and scope_range for decl, while the CPP parser never parses decl
+            // so I don't need to check these ranges
+            highlight_range = { argument->base_range.min, argument->scope_range.min };
         }
-        Rect_f32 rect = Long_Index_DrawNote(app, array, note, face, line_height, padding, color,
+        Rect_f32 rect = Long_Index_DrawNote(app, Long_Index_GetNoteRanges(app, scratch, note, range), note->file->buffer,
+                                            face, line_height, padding, color,
                                             tooltip_position, screen_x, highlight_color, highlight_range);
         tooltip_position.y += rect.y1 - rect.y0;
     }
     
     if (tooltip_offset)
-        *tooltip_offset += tooltip_position - offset;
+    *tooltip_offset += tooltip_position - offset;
+}
+
+function void Long_Index_DrawPosContext(Application_Links* app, View_ID view, Token_Array* array, F4_Language_PosContextData* first_ctx)
+{
+    Vec2_f32 offset = {};
+    Rect_f32 screen = view_get_screen_rect(app, view);
+    for (F4_Language_PosContextData* ctx = first_ctx; ctx; ctx = ctx->next)
+    {
+        if (ctx->relevant_note)
+        Long_Index_DrawTooltip(app, screen, array, &offset,
+                               ctx->relevant_note, ctx->argument_index, ctx->range, ctx->highlight_range);
+    }
+}
+
+#define LONG_INDEX_DRAW_PARTIAL 0
+
+function void Long_Index_DrawCodePeek(Application_Links* app, View_ID view)
+{
+    if (!global_code_peek_open)
+    return;
+    
+    F4_Index_Note* note = 0;
+    {
+        View_ID active_view = get_active_view(app, Access_Always);
+        i64 pos = view_get_cursor_pos(app, active_view);
+        Buffer_ID buffer = view_get_buffer(app, active_view, Access_Always);
+        Token* token = get_token_from_pos(app, buffer, pos);
+        if (token != 0 && token->size > 0 && token->kind == TokenBaseKind_Identifier)
+        {
+            Token_Array array = get_token_array_from_buffer(app, buffer);
+            note = Long_Index_LookupBestNote(app, buffer, &array, token);
+            if (note && note->range.min == token->pos && (note->flags & F4_Index_NoteFlag_Prototype))
+            {
+                F4_Index_Note* first_note = Long_Index_LookupNote(note->string);
+                for (F4_Index_Note* def = note->next ? note->next : first_note; def != note; def = def->next ? def->next : first_note)
+                if (def->parent == note->parent && !(def->flags & F4_Index_NoteFlag_Prototype))
+                note = def;
+            }
+        }
+    }
+    
+    if (!note)
+    return;
+    
+    Buffer_ID buffer = note->file->buffer;
+    Range_i64 range = note->range;
+#if LONG_INDEX_DRAW_PARTIAL
+    range = {
+        note-> base_range.max ? note-> base_range.min : note->range.min,
+        note->scope_range.max ? note->scope_range.max : note->range.max,
+    };
+    range.max += 1;
+#endif
+    
+    Rect_f32 view_rect = view_get_screen_rect(app, view);
+    i32 peek_count = 1;
+    f32 peek_height = (f32)((view_rect.y1 - view_rect.y0) * (0.5f + 0.4f*(clamp_top(peek_count / 4, 1)))) / peek_count;
+    Rect_f32 rect = {0};
+    {
+        rect.x0 = view_rect.x0;
+        rect.x1 = view_rect.x1;
+        rect.y0 = view_rect.y1 - peek_height*peek_count;
+        rect.y1 = rect.y0 + peek_height;
+    }
+    Rect_f32 inner_rect = rect_inner(rect, 30);
+    
+    F4_DrawTooltipRect(app, rect);
+    
+    Buffer_Point buffer_point = { get_line_number_from_pos(app, buffer, range.min) };
+    range.max = clamp_bot(range.max, get_line_end(app, buffer, buffer_point.line_number).pos);
+    Text_Layout_ID text_layout_id = text_layout_create(app, buffer, inner_rect, buffer_point);
+    
+    Rect_f32 prev_prev_clip = draw_set_clip(app, inner_rect);
+    {
+        Token_Array array = get_token_array_from_buffer(app, buffer);
+        if(array.tokens != 0)
+        {
+            F4_SyntaxHighlight(app, text_layout_id, &array);
+#if LONG_INDEX_DRAW_PARTIAL
+            Range_i64 visible_range = text_layout_get_visible_range(app, text_layout_id);
+            if (visible_range.max > range.max)
+            paint_text_color(app, text_layout_id, Ii64(range.max, visible_range.max), 0);
+#endif
+        }
+        else
+            paint_text_color_fcolor(app, text_layout_id, range, fcolor_id(defcolor_text_default));
+        
+        draw_text_layout_default(app, text_layout_id);
+    }
+    draw_set_clip(app, prev_prev_clip);
+    text_layout_free(app, text_layout_id);
 }

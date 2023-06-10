@@ -389,6 +389,21 @@ typedef int socklen_t;
 #endif
 // }
 
+// NOTE(long): Macros for all my modifications in the 4coder and fleury layer
+#define LONG_INDEX 1
+#define LONG_INDEX_GET_COLOR 1
+#define LONG_INDEX_INDENT_PAREN 0
+#define LONG_INDEX_CODE_PEEK 1
+#define LONG_INDEX_POS_CONTEXT 1
+
+#define LONG_CS_LEXER 1
+#if LONG_CS_LEXER
+#define LONG_CS_INDENT_ATTRIBUTE 1
+#endif
+
+#define LONG_LISTER_FILTER_TAG 1
+#define LONG_ENABLE_PROFILE 0
+
 //~ NOTE(rjf): Macros and pragmase stuff that have to be put here for various
 // reasons
 #include <stdlib.h>

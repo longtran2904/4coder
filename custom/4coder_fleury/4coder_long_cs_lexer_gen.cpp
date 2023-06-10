@@ -72,9 +72,6 @@ build_language_model(void){
     sm_direct_token_kind("LiteralStringUTF16Raw");
     sm_direct_token_kind("LiteralStringUTF32Raw");
 	
-	sm_direct_token_kind("LiteralStringVerbatim");
-	sm_direct_token_kind("LiteralStringInterpolation");
-	
     sm_direct_token_kind("LiteralCharacter");
     sm_direct_token_kind("LiteralCharacterWide");
     sm_direct_token_kind("LiteralCharacterUTF8");
@@ -101,7 +98,7 @@ build_language_model(void){
     sm_op("]");
     sm_select_base_kind(TokenBaseKind_StatementClose);
     sm_op(";");
-    sm_op(":");
+    sm_op(":"); // NOTE(long): ":" is statement-close for label and cases
     sm_select_base_kind(TokenBaseKind_Operator);
     
     sm_op("...");
@@ -252,22 +249,7 @@ build_language_model(void){
 	sm_key("Yield");
 	sm_key("Where");
 	
-	// C# keywords that I hardly use
-	/*
--- KEYWORDS --
-	checked
-	decimal
-	fixed
-	internal
-	is
-	lock
-	readonly
-	sealed
-	stackalloc
-	unchecked
-	unsafe
-
---CONTEXTUAL --
+	/* C# contextual keywords that I hardly use
 add
 and
 alias
@@ -354,8 +336,7 @@ with
     Flag *is_utf8  = sm_add_flag(FlagResetRule_AutoZero);
     Flag *is_utf16 = sm_add_flag(FlagResetRule_AutoZero);
     Flag *is_utf32 = sm_add_flag(FlagResetRule_AutoZero);
-	Flag* is_verb  = sm_add_flag(FlagResetRule_AutoZero);
-	Flag* is_inter  = sm_add_flag(FlagResetRule_AutoZero);
+	Flag* is_inter = sm_add_flag(FlagResetRule_AutoZero);
     Flag *is_char  = sm_add_flag(FlagResetRule_AutoZero);
     
     Flag *is_pp_body      = sm_add_flag(FlagResetRule_KeepState);
@@ -407,7 +388,6 @@ with
     AddState(pre_U);
     AddState(pre_u8);
     AddState(pre_R);
-	AddState(pre_verb);
 	AddState(pre_inter);
     
     AddState(character);
@@ -424,6 +404,8 @@ with
     AddState(string_esc_universal_3);
     AddState(string_esc_universal_2);
     AddState(string_esc_universal_1);
+    
+    AddState(inter_string);
     
     AddState(raw_string);
     AddState(raw_string_get_delim);
@@ -465,7 +447,6 @@ with
     sm_case("u", pre_u);
     sm_case("U", pre_U);
     sm_case("R", pre_R);
-	sm_case("@", pre_verb);
 	sm_case("$", pre_inter);
     
     sm_case_flagged(is_error_body, true, " \r\t\f\v", error_body);
@@ -941,20 +922,10 @@ with
     
     ////
     
-	sm_select_state(pre_verb);
-	sm_set_flag(is_verb, true);
-	sm_case("\"", string);
-	sm_case("@", pre_verb);
-	sm_case("$", pre_inter);
-	sm_fallback_peek(identifier);
-	
-    ////
-    
 	sm_select_state(pre_inter);
 	sm_set_flag(is_inter, true);
 	sm_case("\"", string);
-	sm_case("$", pre_inter);
-	sm_case("@", pre_verb);
+	sm_case("@", pre_inter);
 	sm_fallback_peek(identifier);
 	
 	////
@@ -972,9 +943,6 @@ with
 		sm_emit_handler_direct(is_utf8 , "LiteralStringUTF8");
 		sm_emit_handler_direct(is_utf16, "LiteralStringUTF16");
 		sm_emit_handler_direct(is_utf32, "LiteralStringUTF32");
-		
-		sm_emit_handler_direct(is_verb, "LiteralStringVerbatim");
-		sm_emit_handler_direct(is_inter, "LiteralStringInterpolation");
 		
 		sm_emit_handler_direct("LiteralString");
 		sm_case_flagged(is_char, false, "\"", emit);
@@ -999,6 +967,7 @@ with
 		sm_emit_handler_direct("LexError");
 		sm_case_eof_peek(emit);
 	}
+    sm_case_flagged(is_inter, true, "{", inter_string);
 	sm_case_flagged(is_char, true, "\"", string);
 	sm_case_flagged(is_char, false, "\'", string);
 	sm_fallback(string);
@@ -1090,6 +1059,12 @@ with
 	sm_fallback_peek(string);
 	
 	////
+    
+    sm_select_state(inter_string);
+    sm_case("}", string);
+    sm_fallback(inter_string);
+	
+	////
 	
 	sm_select_state(raw_string);
 	sm_delim_mark_first();
@@ -1127,80 +1102,80 @@ with
 		sm_case_eof_peek(emit);
 	}
 	sm_fallback(raw_string_find_close);
-	
-	////
-	
-	sm_select_state(raw_string_try_delim);
-	sm_match_delim(raw_string_try_quote, raw_string_find_close);
-	
-	////
-	
-	sm_select_state(raw_string_try_quote);
-	{
-		Emit_Rule *emit = sm_emit_rule();
-		sm_emit_handler_direct(is_wide, "LiteralStringWideRaw");
-		sm_emit_handler_direct(is_utf8 , "LiteralStringUTF8Raw");
-		sm_emit_handler_direct(is_utf16, "LiteralStringUTF16Raw");
-		sm_emit_handler_direct(is_utf32, "LiteralStringUTF32Raw");
-		sm_emit_handler_direct("LiteralStringRaw");
-		sm_case("\"", emit);
-	}
-	sm_fallback_peek(raw_string_find_close);
-	
-	////
-	
-	sm_select_state(comment_block);
-	sm_case("*", comment_block_try_close);
-	sm_case("\n", comment_block_newline);
-	{
-		Emit_Rule *emit = sm_emit_rule();
-		sm_emit_handler_direct("BlockComment");
-		sm_case_eof_peek(emit);
-	}
-	sm_fallback(comment_block);
-	
-	////
-	
-	sm_select_state(comment_block_try_close);
-	{
-		Emit_Rule *emit = sm_emit_rule();
-		sm_emit_handler_direct("BlockComment");
-		sm_case("/", emit);
-	}
-	{
-		Emit_Rule *emit = sm_emit_rule();
-		sm_emit_handler_direct("BlockComment");
-		sm_case_eof_peek(emit);
-	}
-	sm_case("*", comment_block_try_close);
-	sm_fallback(comment_block);
-	
-	////
-	
-	sm_select_state(comment_block_newline);
-	sm_set_flag(is_pp_body, false);
-	sm_set_flag(is_include_body, false);
-	sm_fallback_peek(comment_block);
-	
-	////
-	
-	sm_select_state(comment_line);
-	{
-		Emit_Rule *emit = sm_emit_rule();
-		sm_emit_handler_direct("LineComment");
-		sm_case_peek("\n", emit);
-	}
-	{
-		Emit_Rule *emit = sm_emit_rule();
-		sm_emit_handler_direct("LineComment");
-		sm_case_eof_peek(emit);
-	}
-	sm_case("\\", comment_line_backslashing);
-	sm_fallback(comment_line);
-	
-	sm_select_state(comment_line_backslashing);
-	sm_case("\r", comment_line_backslashing);
-	sm_fallback(comment_line);
+    
+    ////
+    
+    sm_select_state(raw_string_try_delim);
+    sm_match_delim(raw_string_try_quote, raw_string_find_close);
+    
+    ////
+    
+    sm_select_state(raw_string_try_quote);
+    {
+        Emit_Rule *emit = sm_emit_rule();
+        sm_emit_handler_direct(is_wide, "LiteralStringWideRaw");
+        sm_emit_handler_direct(is_utf8 , "LiteralStringUTF8Raw");
+        sm_emit_handler_direct(is_utf16, "LiteralStringUTF16Raw");
+        sm_emit_handler_direct(is_utf32, "LiteralStringUTF32Raw");
+        sm_emit_handler_direct("LiteralStringRaw");
+        sm_case("\"", emit);
+    }
+    sm_fallback_peek(raw_string_find_close);
+    
+    ////
+    
+    sm_select_state(comment_block);
+    sm_case("*", comment_block_try_close);
+    sm_case("\n", comment_block_newline);
+    {
+        Emit_Rule *emit = sm_emit_rule();
+        sm_emit_handler_direct("BlockComment");
+        sm_case_eof_peek(emit);
+    }
+    sm_fallback(comment_block);
+    
+    ////
+    
+    sm_select_state(comment_block_try_close);
+    {
+        Emit_Rule *emit = sm_emit_rule();
+        sm_emit_handler_direct("BlockComment");
+        sm_case("/", emit);
+    }
+    {
+        Emit_Rule *emit = sm_emit_rule();
+        sm_emit_handler_direct("BlockComment");
+        sm_case_eof_peek(emit);
+    }
+    sm_case("*", comment_block_try_close);
+    sm_fallback(comment_block);
+    
+    ////
+    
+    sm_select_state(comment_block_newline);
+    sm_set_flag(is_pp_body, false);
+    sm_set_flag(is_include_body, false);
+    sm_fallback_peek(comment_block);
+    
+    ////
+    
+    sm_select_state(comment_line);
+    {
+        Emit_Rule *emit = sm_emit_rule();
+        sm_emit_handler_direct("LineComment");
+        sm_case_peek("\n", emit);
+    }
+    {
+        Emit_Rule *emit = sm_emit_rule();
+        sm_emit_handler_direct("LineComment");
+        sm_case_eof_peek(emit);
+    }
+    sm_case("\\", comment_line_backslashing);
+    sm_fallback(comment_line);
+    
+    sm_select_state(comment_line_backslashing);
+    sm_case("\r", comment_line_backslashing);
+    sm_fallback(comment_line);
 }
 
 // BOTTOM

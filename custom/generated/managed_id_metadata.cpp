@@ -81,5 +81,9 @@ fleury_color_comment_user_name = managed_id_declare(app, string_u8_litexpr("colo
 fleury_color_lego_grab = managed_id_declare(app, string_u8_litexpr("colors"), string_u8_litexpr("fleury_color_lego_grab"));
 fleury_color_lego_splat = managed_id_declare(app, string_u8_litexpr("colors"), string_u8_litexpr("fleury_color_lego_splat"));
 fleury_color_error_annotation = managed_id_declare(app, string_u8_litexpr("colors"), string_u8_litexpr("fleury_color_error_annotation"));
+long_color_index_field = managed_id_declare(app, string_u8_litexpr("colors"), string_u8_litexpr("long_color_index_field"));
+long_color_index_local = managed_id_declare(app, string_u8_litexpr("colors"), string_u8_litexpr("long_color_index_local"));
+long_color_index_param = managed_id_declare(app, string_u8_litexpr("colors"), string_u8_litexpr("long_color_index_param"));
 f4_recentfiles_viewstate = managed_id_declare(app, string_u8_litexpr("attachment"), string_u8_litexpr("f4_recentfiles_viewstate"));
+long_point_stacks = managed_id_declare(app, string_u8_litexpr("attachment"), string_u8_litexpr("long_point_stacks"));
 }

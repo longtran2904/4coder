@@ -499,7 +499,75 @@ internal F4_LANGUAGE_POSCONTEXT(F4_CPP_PosContext)
                     Token *name = token_it_read(&it);
                     if(name && name->kind == TokenBaseKind_Identifier)
                     {
+#if 0
                         F4_Language_PosContext_PushData_Call(arena, &first, &last, push_buffer_range(app, arena, buffer, Ii64(name)), arg_idx);
+#else
+                        F4_Index_Note* note = Long_Index_LookupBestNote(app, buffer, &tokens, token);
+                        F4_Language_PosContext_PushData(arena, &first, &last, note, 0, arg_idx);
+                        if (note)
+                        {
+                            Token_Array note_array = get_token_array_from_buffer(app, note->file->buffer);
+                            Token_Iterator_Array note_iter = token_iterator_pos(0, &note_array, note->range.max);
+                            if (note_iter.ptr->kind == TokenBaseKind_Whitespace || note_iter.ptr->kind == TokenBaseKind_Comment)
+                                token_it_inc(&note_iter);
+                            
+                            Range_i64 range = {};
+                            Range_i64 highlight_range = {};
+                            {
+                                i32 paren_nest = 0;
+                                i32 index = arg_idx;
+                                range.start = note_iter.ptr->pos;
+                                
+                                while (true)
+                                {
+                                    Token* token = token_it_read(&note_iter);
+                                    
+                                    switch (token->kind)
+                                    {
+                                        case TokenBaseKind_ParentheticalOpen:  { paren_nest++; } break;
+                                        case TokenBaseKind_ParentheticalClose: { paren_nest--; } break;
+                                        
+                                        case TokenBaseKind_StatementClose:
+                                        {
+                                            if (token->sub_kind == TokenCppKind_Comma && !highlight_range.max)
+                                            {
+                                                if (index > 0)
+                                                {
+                                                    index--;
+                                                    highlight_range.min = 0;
+                                                }
+                                                else
+                                                    highlight_range.max = token->pos;
+                                            }
+                                        } break;
+                                        
+                                        case TokenBaseKind_Identifier:
+                                        {
+                                            if (!highlight_range.min)
+                                                highlight_range.min = token->pos;
+                                        } break;
+                                    }
+                                    
+                                    if (paren_nest == 0)
+                                    {
+                                        if (index == 0 && !highlight_range.max && highlight_range.min)
+                                            highlight_range.max = token->pos;
+                                        range.end = token->pos + token->size;
+                                        break;
+                                    }
+                                    
+                                    if (!token_it_inc(&note_iter))
+                                        break;
+                                }
+                            }
+                            
+                            if (range.end)
+                            {
+                                last->highlight_range = highlight_range;
+                                last->range = range;
+                            }
+                        }
+#endif
                         count += 1;
                         arg_idx = 0;
                     }

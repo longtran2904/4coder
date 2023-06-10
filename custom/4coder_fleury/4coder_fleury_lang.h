@@ -24,8 +24,10 @@ struct F4_Language_PosContextData
 {
     F4_Language_PosContextData *next;
     F4_Index_Note *relevant_note;
-    //Token *query_token;
+    Token *query_token;
     int argument_index;
+    Range_i64 range;
+    Range_i64 highlight_range;
 };
 
 #define F4_LANGUAGE_POSCONTEXT(name) F4_Language_PosContextData * name(Application_Links *app, Arena *arena, Buffer_ID buffer, i64 pos)

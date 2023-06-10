@@ -88,7 +88,7 @@ F4_Language_PosContext_PushData(Arena *arena,
     F4_Language_PosContextData *last = *last_ptr;
     F4_Language_PosContextData *func = push_array_zero(arena, F4_Language_PosContextData, 1);
     func->relevant_note = note;
-    //func->query_token = query;
+    func->query_token = query;
     func->argument_index = arg_index;
     if(last == 0)
     {

@@ -50,6 +50,7 @@ struct F4_Index_Note
     // NOTE(long): These are the only new fields that I add
     Range_i64 scope_range;
     Range_i64 base_range;
+    String8 base_string;
 };
 
 struct F4_Index_File

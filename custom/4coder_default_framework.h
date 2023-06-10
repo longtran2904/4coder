@@ -55,7 +55,7 @@ struct ID_Pos_Jump_Location_Array{
 
 ////////////////////////////////
 
-#define POINT_STACK_DEPTH 20
+#define POINT_STACK_DEPTH 100
 
 struct Point_Stack_Slot{
     Buffer_ID buffer;

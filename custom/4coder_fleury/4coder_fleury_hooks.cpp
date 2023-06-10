@@ -256,7 +256,13 @@ F4_RenderBuffer(Application_Links *app, View_ID view_id, Face_ID face_id,
     {
         // NOTE(rjf): Position context helper
         {
+#if LONG_INDEX_POS_CONTEXT
+            F4_Language* language = F4_LanguageFromBuffer(app, buffer);
+            if (language)
+            Long_Index_DrawPosContext(app, view_id, &token_array, language->PosContext(app, scratch, buffer, cursor_pos));
+#else
             F4_PosContext_Render(app, view_id, buffer, text_layout_id, cursor_pos);
+#endif
         }
         
         // NOTE(rjf): Draw tooltip list.
@@ -315,7 +321,11 @@ F4_RenderBuffer(Application_Links *app, View_ID view_id, Face_ID face_id,
         if(!view_get_is_passive(app, view_id) &&
            !is_active_view)
         {
+#if LONG_INDEX_CODE_PEEK
+            Long_Index_DrawCodePeek(app, view_id);
+#else
             F4_CodePeek_Render(app, view_id, face_id, buffer, frame_info);
+#endif
         }
     }
     

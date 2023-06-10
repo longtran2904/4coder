@@ -30,11 +30,6 @@
 #include "generated/command_metadata.h"
 #endif
 
-#define LONG_CS_LEXER 1
-#define LONG_CS_INDENT_ATTRIBUTE 1
-#define LONG_INDEX 1
-#define LONG_INDEX_INDENT_PAREN 0
-
 #include "4coder_token.h"
 #include "generated/lexer_cpp.h"
 #if LONG_CS_LEXER

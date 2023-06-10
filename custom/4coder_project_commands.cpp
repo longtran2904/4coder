@@ -137,7 +137,15 @@ prj_open_files_pattern_filter__rec(Application_Links *app, String8 path, Prj_Pat
                 continue;
             }
             String8 full_path = push_u8_stringf(scratch, "%.*s%.*s", string_expand(path), string_expand(file_name));
-            create_buffer(app, full_path, 0);
+            Buffer_ID buffer = create_buffer(app, full_path, 0);
+            String8 content = push_whole_buffer(app, scratch, buffer);
+            
+            // NOTE(long): Load reference code
+            if (flags & PrjOpenFileFlag_ReadOnly)
+            buffer_set_setting(app, buffer, BufferSetting_ReadOnly|BufferSetting_Unimportant, true);
+            
+            int fuckingDebugger = 0;
+            fuckingDebugger = 5 + 10;
         }
     }
 }
@@ -959,6 +967,29 @@ CUSTOM_DOC("Looks for a project.4coder file in the current directory and tries t
         }
         
         prj_open_files_pattern_filter(app, file_dir, whitelist, blacklist, flags);
+    }
+    
+    // NOTE(long): This must use the v2 project file format
+    {
+        Variable_Handle reference_path_var = vars_read_key(prj_var, vars_save_string_lit("reference_paths"));
+        u32 flags = PrjOpenFileFlag_Recursive|PrjOpenFileFlag_ReadOnly;
+        for (Vars_Children(path_var, reference_path_var))
+        {
+            String8 path = vars_string_from_var(scratch, path_var);
+            if (file_exists_and_is_folder(app, path))
+            prj_open_files_pattern_filter(app, path, whitelist, blacklist, flags);
+            else if (file_exists_and_is_file(app, path))
+            {
+                Buffer_ID buffer = create_buffer(app, path, 0);
+                push_whole_buffer(app, scratch, buffer);
+                buffer_set_setting(app, buffer, BufferSetting_ReadOnly|BufferSetting_Unimportant, true);
+            }
+            else
+            {
+                String8 message = push_stringf(scratch, "Error: Path \"%.*s\" doesn't exists\n", string_expand(path));
+                print_message(app, message);
+            }
+        }
     }
     
     // NOTE(allen): Set Window Title

@@ -255,7 +255,6 @@ F4_Index_InsertNote(F4_Index_ParseCtx *ctx, F4_Index_Note *note, Range_i64 name_
         
         // NOTE(rjf): Push to duplicate chain.
         {
-            //F4_Index_Note *list_head = F4_Index_LookupNote(string);
             F4_Index_Note *list_head = Long_Index_LookupNote(string);
             F4_Index_Note *list_tail = list_head;
             for(F4_Index_Note *note = list_tail; note; list_tail = note, note = note->next);
@@ -403,10 +402,10 @@ F4_Index_ParseCtx_Inc(F4_Index_ParseCtx *ctx, F4_Index_TokenSkipFlags flags)
                 if (token->kind == TokenBaseKind_Comment)
                 {
                     if (!Long_Index_CtxCompare(ctx, last_child) || ctx->active_parent->last_child->range.max != Ii64(token).max)
-                        F4_Index_ParseComment(ctx, token);
+                    F4_Index_ParseComment(ctx, token);
                 }
                 if (token->kind == TokenBaseKind_Comment || token->kind == TokenBaseKind_Whitespace)
-                    goto repeat;
+                goto repeat;
             }
             result = true;
         }
@@ -700,6 +699,8 @@ F4_Index_ParsePattern(F4_Index_ParseCtx *ctx, char *fmt, ...)
     return parsed;
 }
 
+function void Long_Index_ClearTable(void);
+
 function void
 F4_Index_Tick(Application_Links *app)
 {
@@ -720,6 +721,7 @@ F4_Index_Tick(Application_Links *app)
             ProfileScope(app, "[f] reparse");
             F4_Index_ClearFile(file);
             F4_Index_ParseFile(app, file, contents, tokens);
+            Long_Index_ClearTable();
         }
         F4_Index_Unlock();
         buffer_clear_layout_cache(app, buffer_id);
