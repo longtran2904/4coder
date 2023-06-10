@@ -1,0 +1,2739 @@
+[NULL] TesStruct { type [def] [product] }
+[NULL] TestSingleEnum { type [def] [product] }
+[NULL] EnumTest { type [def] [product] }
+[EnumTest] A { constant }
+[EnumTest] B { constant }
+[EnumTest] C { constant }
+[NULL] TEST_MACRO { macro }
+[NULL] TEST_MACRO { macro }
+[NULL] handsome { declaration [type: int] [global] }
+[NULL] Test { type [def] [product] }
+[NULL] testDecl1 { declaration [type: Test] [global] }
+[NULL] Test { type [def] [product] }
+[Test] Stuff { type [def] [product] }
+[NULL] testDecl2 { declaration [type: Test.Stuff] [global] }
+[NULL] Test { type [def] [product] }
+[NULL] CreateTest { function [def] }
+[CreateTest] a { declaration [type: int] [argument] }
+[CreateTest] b { declaration [type: int] [argument] }
+[CreateTest] c { declaration [type: float] [argument] }
+[NULL] Test { type [def] [product] }
+[Test] Stuff { type [def] [product] }
+[NULL] VeryLongFunction { function [def] }
+[NULL] Test { type [def] [product] }
+[Test] Stuff { type [def] [product] }
+[VeryLongFunction] something { declaration [type: Test.Stuff] [argument] }
+[VeryLongFunction] someOtherThing { declaration [type: int] [argument] }
+[VeryLongFunction] fl { declaration [type: float] [argument] }
+[NULL] Optional { type [def] [product] }
+[VeryLongFunction] optionals { declaration [type: Optional[]] [argument] }
+[NULL] OtherTest { type [def] [product] }
+[VeryLongFunction] others { declaration [type: OtherTest[]] [argument] }
+[VeryLongFunction] veryLongArg { declaration [type: int[][][]] [argument] }
+[NULL] Entity { type [def] [product] }
+[VeryLongFunction] anotherLongArg { declaration [type: Entity. A . EntityAbility] [argument] }
+[VeryLongFunction] values { declaration [type: bool[][][][][][][]] [argument] }
+[VeryLongFunction] a { declaration [type: Generic<Type<T>>] [argument] }
+[VeryLongFunction] type { declaration [type: SomeOtherType] [argument] }
+[VeryLongFunction] otherType { declaration [type: System.Type] [argument] }
+[NULL] EnumTest { type [def] [product] }
+[VeryLongFunction] enumTest { declaration [type: EnumTest] [argument] }
+[VeryLongFunction] testStruct { declaration [type: TestStruct] [argument] }
+[NULL] TestSingleEnum { type [def] [product] }
+[VeryLongFunction] senum { declaration [type: TestSingleEnum] [argument] }
+[VeryLongFunction] arg { declaration [type: AnotherArg] [argument] }
+[NULL] handsome { declaration [type: int] [global] }
+[NULL] Vector2 { type [def] [product] }
+[Vector2] Vector2 { operator [def] }
+[Vector2] Vector2 { operator [def] }
+[+] a { declaration [type: Vector2] [argument] }
+[Vector2] Vector2 { operator [def] }
+[+] b { declaration [type: Vector2] [argument] }
+[Vector2] Vector2 { operator [def] }
+[Vector2] Vector2 { operator [def] }
+[-] a { declaration [type: Vector2] [argument] }
+[Vector2] Vector2 { operator [def] }
+[Vector2] Vector2 { operator [def] }
+[-] a { declaration [type: Vector2] [argument] }
+[Vector2] Vector2 { operator [def] }
+[-] b { declaration [type: Vector2] [argument] }
+[Vector2] Vector2 { operator [def] }
+[*] d { declaration [type: float] [argument] }
+[Vector2] Vector2 { operator [def] }
+[*] a { declaration [type: Vector2] [argument] }
+[Vector2] Vector2 { operator [def] }
+[Vector2] Vector2 { operator [def] }
+[*] a { declaration [type: Vector2] [argument] }
+[*] d { declaration [type: float] [argument] }
+[Vector2] Vector2 { operator [def] }
+[Vector2] Vector2 { operator [def] }
+[*] a { declaration [type: Vector2] [argument] }
+[Vector2] Vector2 { operator [def] }
+[*] b { declaration [type: Vector2] [argument] }
+[Vector2] Vector2 { operator [def] }
+[Vector2] Vector2 { operator [def] }
+[/] a { declaration [type: Vector2] [argument] }
+[/] d { declaration [type: float] [argument] }
+[Vector2] Vector2 { operator [def] }
+[Vector2] Vector2 { operator [def] }
+[/] a { declaration [type: Vector2] [argument] }
+[Vector2] Vector2 { operator [def] }
+[/] b { declaration [type: Vector2] [argument] }
+[Vector2] Vector2 { operator [def] }
+[==] lhs { declaration [type: Vector2] [argument] }
+[Vector2] Vector2 { operator [def] }
+[==] rhs { declaration [type: Vector2] [argument] }
+[Vector2] Vector2 { operator [def] }
+[!=] lhs { declaration [type: Vector2] [argument] }
+[Vector2] Vector2 { operator [def] }
+[!=] rhs { declaration [type: Vector2] [argument] }
+[Vector2] Vector2 { operator [def] }
+[Vector2] Vector3 { operator [def] }
+[Vector2] v { declaration [type: Vector3] [argument] }
+[Vector2] Vector3 { operator [def] }
+[Vector2] Vector2 { operator [def] }
+[Vector3] v { declaration [type: Vector2] [argument] }
+[NULL] Test { type [def] [product] }
+[Test] DoStuff { declaration [type: int] [field] }
+[NULL] B { macro }
+[Test] d { declaration [type: A<B<C>>] [field] }
+[Test] a { declaration [type: Some<Other<Thing<I<Hate>>>>] [field] }
+[Test] a { declaration [type: int] [field] }
+[Test] b { declaration [type: int] [field] }
+[Test] c { declaration [type: int] [field] }
+[Test] d { declaration [type: int] [field] }
+[Test] f { declaration [type: int] [field] }
+[Test] h { declaration [type: float] [field] }
+[Test] efldsfjsl { declaration [type: float] [field] }
+[Test] a { declaration [type: float] [field] }
+[Test] c { declaration [type: float] [field] }
+[Test] tupple { declaration [type: (int, float)] [field] }
+[Test] Function { function [def] }
+[Function] someInt { declaration [type: int] [argument] }
+[Function] someFloat { declaration [type: float] [argument] }
+[NULL] Test { type [def] [product] }
+[Test] Function2 { function [def] }
+[Test] property { declaration [type: int] [property] }
+[property] get { getter [def] }
+[] _ { declaration [type: NULL] [argument] }
+[] a { declaration [type: int] [local] }
+[property] set { setter [def] }
+[set] b { declaration [type: int] [local] }
+[] x { declaration [type: NULL] [argument] }
+[] y { declaration [type: NULL] [argument] }
+[] z { declaration [type: NULL] [argument] }
+[Test] Something { function [def] }
+[Something] a { declaration [type: int] [local] }
+[Something] b { declaration [type: System.Action] [local] }
+[] e { declaration [type: NULL] [argument] }
+[] f { declaration [type: NULL] [argument] }
+[] g { declaration [type: NULL] [argument] }
+[Something] a { declaration [type: int] [local] }
+[Something] b { declaration [type: System.Action] [local] }
+[{] b { declaration [type: int] [local] }
+[] e { declaration [type: NULL] [argument] }
+[] f { declaration [type: NULL] [argument] }
+[] g { declaration [type: NULL] [argument] }
+[Test] DoStuff { declaration [type: int] [field] }
+[{] b { declaration [type: int] [local] }
+[Something] c { declaration [type: System.Action] [local] }
+[{] Stuff { function [def] }
+[{] Stuff { function [def] }
+[NULL] Test { type [def] [product] }
+[Test] Stuff { type [def] [product] }
+[{] a { declaration [type: Test.Stuff] [local] }
+[{] DoStuff { declaration [type: int] [local] }
+[{] DoStuff { declaration [type: int] [local] }
+[{] DoStuff { declaration [type: int] [local] }
+[{] DoStuff { declaration [type: int] [local] }
+[{] DoStuff { function [def] }
+[{] DoStuff { function [def] }
+[NULL] Test { type [def] [product] }
+[Test] Stuff { type [def] [product] }
+[{] stuff { declaration [type: Test->Stuff] [local] }
+[{] stuff { declaration [type: Test->Stuff] [local] }
+[Stuff] DoStuff { function [def] }
+[NULL] Test { type [def] [product] }
+[{] t { declaration [type: Test] [local] }
+[{] t { declaration [type: Test] [local] }
+[Test] DoStuff { declaration [type: int] [field] }
+[{] t { declaration [type: Test] [local] }
+[Test] Something { function [def] }
+[NULL] CreateTest { function [def] }
+[Test] Something { function [def] }
+[NULL] Vector2 { type [def] [product] }
+[Test] DoStuff { declaration [type: int] [field] }
+[NULL] Test { type [def] [product] }
+[Test] DoStuff { declaration [type: int] [field] }
+[Test] Stuff { type [def] [product] }
+[Stuff] DoStuff { function [def] }
+[NULL] OtherTest { type [def] [product] }
+[OtherTest] DoStuff { function [def] }
+[Test] SomeOtherThing { function [def] }
+[SomeOtherThing] DoStuff { declaration [type: int] [argument] }
+[SomeOtherThing] DoStuff { declaration [type: int] [argument] }
+[Test] Stuff { type [def] [product] }
+[Stuff] DoStuff { function [def] }
+[DoStuff] DoStuff { function [def] }
+[DoStuff] DoStuff { function [def] }
+[Stuff] DoStuff { function [def] }
+[Test] Stuff { type [def] [product] }
+[Stuff] DoStuff { function [def] }
+[DoStuff] DoStuff { function [def] }
+[DoStuff] DoStuff { function [def] }
+[Stuff] DoStuff { function [def] }
+[NULL] OtherTest { type [def] [product] }
+[OtherTest] DoStuff { function [def] }
+[NULL] Stuff { type [def] [product] }
+[Stuff] DoStuff { declaration [type: int] [field] }
+[NULL] Optional { type [def] [product] }
+[Optional] enabled { declaration [type: bool] [field] }
+[Optional] T { operator [def] }
+[Optional] value { declaration [type: T] [field] }
+[Optional] some { declaration [type: int] [field] }
+[Optional] something { declaration [type: Something] [field] }
+[Optional] ConstantNumber { declaration [type: int] [field] }
+[Optional] SmoothFunc { type [def] [product] }
+[SmoothFunc] a { declaration [type: float] [argument] }
+[SmoothFunc] b { declaration [type: float] [argument] }
+[Optional] SomeOtherDelegate { type [def] [product] }
+[SomeOtherDelegate] arr { declaration [type: float[]] [argument] }
+[Optional] T { operator [def] }
+[SomeOtherDelegate] c { declaration [type: Generic<T>] [argument] }
+[SomeOtherDelegate] d { declaration [type: int] [argument] }
+[Optional] Optional { constructor [def] }
+[Optional] T { operator [def] }
+[Optional] initValue { declaration [type: T] [argument] }
+[Optional] enabled { declaration [type: bool] [field] }
+[Optional] value { declaration [type: T] [field] }
+[Optional] initValue { declaration [type: T] [argument] }
+[Optional] Optional { constructor [def] }
+[Optional] enabled { declaration [type: bool] [field] }
+[Optional] T { operator [def] }
+[Optional] Optional { constructor [def] }
+[Optional] T { operator [def] }
+[T] optional { declaration [type: Optional<T>] [argument] }
+[Optional] a { declaration [type: int] [field] }
+[T] c { declaration [type: a < b && b >] [local] }
+[T] optional { declaration [type: Optional<T>] [argument] }
+[Optional] SomeFunc1 { function [def] }
+[SomeFunc1] a { declaration [type: int] [argument] }
+[SomeFunc1] a { declaration [type: int] [local] }
+[SomeFunc1] b { declaration [type: int] [local] }
+[Optional] SomeFunc2 { function [def] }
+[SomeFunc2] a { declaration [type: int] [argument] }
+[SomeFunc2] b { declaration [type: int] [local] }
+[Optional] T { operator [def] }
+[Optional] a { declaration [type: int] [field] }
+[Optional] Optional { constructor [def] }
+[Optional] DoStuff { function [def] }
+[Optional] Optional { constructor [def] }
+[DoStuff] args { declaration [type: Optional[]] [argument] }
+[Optional] DoStuff { function [def] }
+[DoStuff] args { declaration [type: Optional[]] [argument] }
+[Optional] Optional { constructor [def] }
+[Optional] DoStuff { function [def] }
+[NULL] Test { type [def] [product] }
+[Test] DoStuff { declaration [type: int] [field] }
+[NULL] Property { type [def] [product] }
+[Property] serializedEnumNames { declaration [type: string[]] [field] }
+[Property] properties { declaration [type: ulong] [field] }
+[Property] enumNames { declaration [type: string[]] [property] }
+[Property] System { declaration [type: string[]] [field] }
+[Property] Property { constructor [def] }
+[Property] properties { declaration [type: T[]] [argument] }
+[Property] properties { declaration [type: T[]] [argument] }
+[NULL] Optional { type [def] [product] }
+[Optional] DoStuff { function [def] }
+[Property] names { declaration [type: string[]] [local] }
+[Property] enumNames { declaration [type: string[]] [property] }
+[Property] names { declaration [type: string[]] [local] }
+[Property] names { declaration [type: string[]] [local] }
+[Property] properties { declaration [type: T[]] [argument] }
+[Property] names { declaration [type: string[]] [local] }
+[Property] properties { declaration [type: T[]] [argument] }
+[Property] SetProperties { function [def] }
+[Property] properties { declaration [type: T[]] [argument] }
+[Property] Stuff { function [def] }
+[Property] HasProperty { function [def] }
+[HasProperty] property { declaration [type: T] [argument] }
+[HasProperty] p { declaration [type: int] [local] }
+[Property] System { declaration [type: string[]] [field] }
+[HasProperty] property { declaration [type: T] [argument] }
+[Property] properties { declaration [type: ulong] [field] }
+[HasProperty] p { declaration [type: int] [local] }
+[Property] SetProperty { function [def] }
+[SetProperty] property { declaration [type: T] [argument] }
+[SetProperty] set { declaration [type: bool] [argument] }
+[SetProperty] p { declaration [type: int] [local] }
+[Property] System { declaration [type: string[]] [field] }
+[SetProperty] property { declaration [type: T] [argument] }
+[Property] properties { declaration [type: ulong] [field] }
+[Property] properties { declaration [type: ulong] [field] }
+[SetProperty] p { declaration [type: int] [local] }
+[SetProperty] set { declaration [type: bool] [argument] }
+[Property] SetProperties { function [def] }
+[SetProperties] properties { declaration [type: T[]] [argument] }
+[SetProperties] properties { declaration [type: T[]] [argument] }
+[SetProperties] property { declaration [type: T] [local] }
+[SetProperties] properties { declaration [type: T[]] [argument] }
+[Property] SetProperty { function [def] }
+[SetProperties] property { declaration [type: T] [local] }
+[Property] ToString { function [def] }
+[Property] properties { declaration [type: ulong] [field] }
+[Property] OnBeforeSerialize { function [def] }
+[Property] OnAfterDeserialize { function [def] }
+[OnAfterDeserialize] enumNames { declaration [type: string[]] [local] }
+[Property] enumNames { declaration [type: string[]] [property] }
+[OnAfterDeserialize] enumNames { declaration [type: string[]] [local] }
+[OnAfterDeserialize] enumNames { declaration [type: string[]] [local] }
+[OnAfterDeserialize] enumNames { declaration [type: string[]] [local] }
+[Property] serializedEnumNames { declaration [type: string[]] [field] }
+[Property] serializedEnumNames { declaration [type: string[]] [field] }
+[Property] serializedEnumNames { declaration [type: string[]] [field] }
+[OnAfterDeserialize] enumNames { declaration [type: string[]] [local] }
+[OnAfterDeserialize] sets { declaration [type: bool[]] [local] }
+[OnAfterDeserialize] enumNames { declaration [type: string[]] [local] }
+[OnAfterDeserialize] i { declaration [type: int] [local] }
+[OnAfterDeserialize] i { declaration [type: int] [local] }
+[OnAfterDeserialize] enumNames { declaration [type: string[]] [local] }
+[OnAfterDeserialize] i { declaration [type: int] [local] }
+[{] currentValue { declaration [type: bool] [local] }
+[Property] properties { declaration [type: ulong] [field] }
+[OnAfterDeserialize] i { declaration [type: int] [local] }
+[{] currentName { declaration [type: string] [local] }
+[OnAfterDeserialize] enumNames { declaration [type: string[]] [local] }
+[OnAfterDeserialize] i { declaration [type: int] [local] }
+[OnAfterDeserialize] i { declaration [type: int] [local] }
+[Property] serializedEnumNames { declaration [type: string[]] [field] }
+[{] currentName { declaration [type: string] [local] }
+[Property] serializedEnumNames { declaration [type: string[]] [field] }
+[OnAfterDeserialize] i { declaration [type: int] [local] }
+[{] findOldIndex { declaration [type: bool] [local] }
+[{] oldIndex { declaration [type: int] [local] }
+[{] oldIndex { declaration [type: int] [local] }
+[Property] serializedEnumNames { declaration [type: string[]] [field] }
+[{] oldIndex { declaration [type: int] [local] }
+[Property] serializedEnumNames { declaration [type: string[]] [field] }
+[{] oldIndex { declaration [type: int] [local] }
+[{] currentName { declaration [type: string] [local] }
+[{] currentValue { declaration [type: bool] [local] }
+[Property] properties { declaration [type: ulong] [field] }
+[{] oldIndex { declaration [type: int] [local] }
+[{] findOldIndex { declaration [type: bool] [local] }
+[{] currentValue { declaration [type: bool] [local] }
+[Property] serializedEnumNames { declaration [type: string[]] [field] }
+[{] oldIndex { declaration [type: int] [local] }
+[OnAfterDeserialize] i { declaration [type: int] [local] }
+[{] findOldIndex { declaration [type: bool] [local] }
+[{] msg { declaration [type: string] [local] }
+[{] currentName { declaration [type: string] [local] }
+[OnAfterDeserialize] i { declaration [type: int] [local] }
+[OnAfterDeserialize] i { declaration [type: int] [local] }
+[Property] serializedEnumNames { declaration [type: string[]] [field] }
+[{] msg { declaration [type: string] [local] }
+[Property] serializedEnumNames { declaration [type: string[]] [field] }
+[OnAfterDeserialize] i { declaration [type: int] [local] }
+[{] currentValue { declaration [type: bool] [local] }
+[{] msg { declaration [type: string] [local] }
+[{] msg { declaration [type: string] [local] }
+[{] currentValue { declaration [type: bool] [local] }
+[OnAfterDeserialize] sets { declaration [type: bool[]] [local] }
+[OnAfterDeserialize] i { declaration [type: int] [local] }
+[{] currentValue { declaration [type: bool] [local] }
+[OnAfterDeserialize] i { declaration [type: int] [local] }
+[OnAfterDeserialize] i { declaration [type: int] [local] }
+[OnAfterDeserialize] sets { declaration [type: bool[]] [local] }
+[OnAfterDeserialize] i { declaration [type: int] [local] }
+[Property] properties { declaration [type: ulong] [field] }
+[Property] properties { declaration [type: ulong] [field] }
+[OnAfterDeserialize] i { declaration [type: int] [local] }
+[OnAfterDeserialize] sets { declaration [type: bool[]] [local] }
+[OnAfterDeserialize] i { declaration [type: int] [local] }
+[Property] serializedEnumNames { declaration [type: string[]] [field] }
+[OnAfterDeserialize] enumNames { declaration [type: string[]] [local] }
+[NULL] RangedInt { type [def] [product] }
+[RangedInt] min { declaration [type: int] [field] }
+[RangedInt] max { declaration [type: int] [field] }
+[RangedInt] RangedInt { constructor [def] }
+[RangedInt] min { declaration [type: int] [argument] }
+[RangedInt] max { declaration [type: int] [argument] }
+[RangedInt] min { declaration [type: int] [field] }
+[RangedInt] min { declaration [type: int] [argument] }
+[RangedInt] max { declaration [type: int] [field] }
+[RangedInt] max { declaration [type: int] [argument] }
+[RangedInt] randomValue { declaration [type: int] [property] }
+[RangedInt] Random { declaration [type: int] [field] }
+[RangedInt] min { declaration [type: int] [field] }
+[RangedInt] max { declaration [type: int] [field] }
+[NULL] RangedFloat { type [def] [product] }
+[RangedFloat] min { declaration [type: float] [field] }
+[RangedFloat] max { declaration [type: float] [field] }
+[RangedFloat] RangedFloat { constructor [def] }
+[RangedFloat] min { declaration [type: float] [argument] }
+[RangedFloat] max { declaration [type: float] [argument] }
+[RangedFloat] min { declaration [type: float] [field] }
+[RangedFloat] min { declaration [type: float] [argument] }
+[RangedFloat] max { declaration [type: float] [field] }
+[RangedFloat] max { declaration [type: float] [argument] }
+[RangedFloat] randomValue { declaration [type: float] [property] }
+[randomValue] get { getter [def] }
+[RangedFloat] min { declaration [type: float] [field] }
+[RangedFloat] max { declaration [type: float] [field] }
+[RangedFloat] min { declaration [type: float] [field] }
+[RangedFloat] min { declaration [type: float] [field] }
+[RangedFloat] max { declaration [type: float] [field] }
+[RangedFloat] range { declaration [type: float] [property] }
+[RangedFloat] max { declaration [type: float] [field] }
+[RangedFloat] min { declaration [type: float] [field] }
+[NULL] IntReference { type [def] [product] }
+[IntReference] useConstant { declaration [type: bool] [field] }
+[IntReference] constantValue { declaration [type: int] [field] }
+[IntReference] variable { declaration [type: IntVariable] [field] }
+[IntReference] value { declaration [type: int] [property] }
+[value] get { getter [def] }
+[IntReference] useConstant { declaration [type: bool] [field] }
+[IntReference] constantValue { declaration [type: int] [field] }
+[IntReference] variable { declaration [type: IntVariable] [field] }
+[value] set { setter [def] }
+[IntReference] useConstant { declaration [type: bool] [field] }
+[IntReference] constantValue { declaration [type: int] [field] }
+[IntReference] value { declaration [type: int] [property] }
+[IntReference] variable { declaration [type: IntVariable] [field] }
+[IntReference] value { declaration [type: int] [property] }
+[IntReference] IntReference { constructor [def] }
+[IntReference] value { declaration [type: int] [argument] }
+[IntReference] useConstant { declaration [type: bool] [field] }
+[IntReference] constantValue { declaration [type: int] [field] }
+[IntReference] value { declaration [type: int] [argument] }
+[IntReference] IntReference { constructor [def] }
+[int] reference { declaration [type: IntReference] [argument] }
+[int] reference { declaration [type: IntReference] [argument] }
+[IntReference] value { declaration [type: int] [argument] }
+[NULL] GameMode { type [def] [product] }
+[GameMode] None { constant }
+[GameMode] Quit { constant }
+[GameMode] Main { constant }
+[GameMode] Play { constant }
+[GameMode] Count { constant }
+[NULL] GameManager { type [def] [product] }
+[NULL] GameMode { type [def] [product] }
+[GameManager] startMode { declaration [type: GameMode] [field] }
+[GameManager] mainMode { declaration [type: GameObject] [field] }
+[GameManager] playMode { declaration [type: GameObject] [field] }
+[GameManager] levels { declaration [type: LevelData[]] [field] }
+[GameManager] currentLevel { declaration [type: int] [field] }
+[GameManager] playerPos { declaration [type: Vector3Variable] [field] }
+[NULL] Entity { type [def] [product] }
+[GameManager] cameraEntity { declaration [type: Entity] [field] }
+[GameManager] overrideGameUI { declaration [type: bool] [field] }
+[GameManager] gameMenu { declaration [type: GameMenu] [field] }
+[GameManager] audios { declaration [type: Audio[]] [field] }
+[GameManager] firstMusic { declaration [type: AudioType] [field] }
+[GameManager] sourceCount { declaration [type: int] [field] }
+[GameManager] pools { declaration [type: Pool[]] [field] }
+[GameManager] rooms { declaration [type: List<RoomInstance>] [field] }
+[GameManager] currentRoom { declaration [type: int] [field] }
+[NULL] Entity { type [def] [product] }
+[GameManager] player { declaration [type: Entity] [field] }
+[GameManager] mainCam { declaration [type: Camera] [field] }
+[GameManager] gameUI { declaration [type: GameUI] [field] }
+[GameManager] Bounds { type [def] [product] }
+[GameManager] defaultBounds { declaration [type: Bounds] [field] }
+[GameManager] tilemap { declaration [type: Tilemap] [field] }
+[GameManager] Bounds { type [def] [product] }
+[Bounds] a { declaration [type: int] [field] }
+[Bounds] b { declaration [type: int] [field] }
+[Bounds] c { declaration [type: int] [field] }
+[GameManager] FindAllEntityProperties { function [def] }
+[FindAllEntityProperties] generateFile { declaration [type: bool] [argument] }
+[FindAllEntityProperties] watch { declaration [type: var] [local] }
+[FindAllEntityProperties] watch { declaration [type: var] [local] }
+[FindAllEntityProperties] builder { declaration [type: StringBuilder] [local] }
+[FindAllEntityProperties] SaveEntityProperties { function [def] }
+[FindAllEntityProperties] builder { declaration [type: StringBuilder] [local] }
+[] assets { declaration [type: string[]] [local] }
+[NULL] Entity { type [def] [product] }
+[] entities { declaration [type: List<Entity>] [local] }
+[NULL] Entity { type [def] [product] }
+[] assets { declaration [type: string[]] [local] }
+[] asset { declaration [type: string] [local] }
+[] assets { declaration [type: string[]] [local] }
+[{] path { declaration [type: string] [local] }
+[] asset { declaration [type: string] [local] }
+[NULL] Entity { type [def] [product] }
+[{] entity { declaration [type: Entity] [local] }
+[NULL] Entity { type [def] [product] }
+[{] path { declaration [type: string] [local] }
+[{] entity { declaration [type: Entity] [local] }
+[] entities { declaration [type: List<Entity>] [local] }
+[{] entity { declaration [type: Entity] [local] }
+[] entities { declaration [type: List<Entity>] [local] }
+[FindAllEntityProperties] SaveEntityProperties { function [def] }
+[FindAllEntityProperties] builder { declaration [type: StringBuilder] [local] }
+[NULL] Entity { type [def] [product] }
+[] assets { declaration [type: Entity[]] [local] }
+[NULL] Entity { type [def] [product] }
+[NULL] Entity { type [def] [product] }
+[] entities { declaration [type: List<Entity>] [local] }
+[NULL] Entity { type [def] [product] }
+[] assets { declaration [type: Entity[]] [local] }
+[] entities { declaration [type: List<Entity>] [local] }
+[] assets { declaration [type: Entity[]] [local] }
+[] entities { declaration [type: List<Entity>] [local] }
+[FindAllEntityProperties] message { declaration [type: string] [local] }
+[FindAllEntityProperties] context { declaration [type: UnityEngine.Object] [local] }
+[FindAllEntityProperties] generateFile { declaration [type: bool] [argument] }
+[{] path { declaration [type: string] [local] }
+[{] path { declaration [type: string] [local] }
+[FindAllEntityProperties] builder { declaration [type: StringBuilder] [local] }
+[FindAllEntityProperties] message { declaration [type: string] [local] }
+[{] path { declaration [type: string] [local] }
+[FindAllEntityProperties] context { declaration [type: UnityEngine.Object] [local] }
+[{] path { declaration [type: string] [local] }
+[FindAllEntityProperties] watch { declaration [type: var] [local] }
+[FindAllEntityProperties] message { declaration [type: string] [local] }
+[FindAllEntityProperties] context { declaration [type: UnityEngine.Object] [local] }
+[FindAllEntityProperties] SaveEntityProperties { function [def] }
+[SaveEntityProperties] builder { declaration [type: StringBuilder] [argument] }
+[SaveEntityProperties] title { declaration [type: string] [argument] }
+[NULL] Entity { type [def] [product] }
+[SaveEntityProperties] getEntities { declaration [type: Func<List<Entity>>] [argument] }
+[NULL] Entity { type [def] [product] }
+[SaveEntityProperties] entities { declaration [type: List<Entity>] [local] }
+[SaveEntityProperties] getEntities { declaration [type: Func<List<Entity>>] [argument] }
+[SaveEntityProperties] entities { declaration [type: List<Entity>] [local] }
+[SaveEntityProperties] builder { declaration [type: StringBuilder] [argument] }
+[NULL] Entity { type [def] [product] }
+[SaveEntityProperties] entity { declaration [type: Entity] [local] }
+[SaveEntityProperties] entities { declaration [type: List<Entity>] [local] }
+[{] startIndex { declaration [type: int] [local] }
+[SaveEntityProperties] builder { declaration [type: StringBuilder] [argument] }
+[SaveEntityProperties] entity { declaration [type: Entity] [local] }
+[SaveEntityProperties] builder { declaration [type: StringBuilder] [argument] }
+[FindAllEntityProperties] SerializeType { function [def] }
+[SaveEntityProperties] entity { declaration [type: Entity] [local] }
+[SaveEntityProperties] builder { declaration [type: StringBuilder] [argument] }
+[SaveEntityProperties] builder { declaration [type: StringBuilder] [argument] }
+[{] startIndex { declaration [type: int] [local] }
+[SaveEntityProperties] builder { declaration [type: StringBuilder] [argument] }
+[{] startIndex { declaration [type: int] [local] }
+[SaveEntityProperties] entity { declaration [type: Entity] [local] }
+[SaveEntityProperties] builder { declaration [type: StringBuilder] [argument] }
+[FindAllEntityProperties] PrintProperty { function [def] }
+[PrintProperty] obj { declaration [type: object] [argument] }
+[PrintProperty] fieldName { declaration [type: string] [argument] }
+[PrintProperty] builder { declaration [type: StringBuilder] [argument] }
+[PrintProperty] indentLevel { declaration [type: int] [argument] }
+[PrintProperty] property { declaration [type: ulong] [local] }
+[PrintProperty] obj { declaration [type: object] [argument] }
+[PrintProperty] names { declaration [type: string[]] [local] }
+[PrintProperty] obj { declaration [type: object] [argument] }
+[PrintProperty] builder { declaration [type: StringBuilder] [argument] }
+[PrintProperty] fieldName { declaration [type: string] [argument] }
+[PrintProperty] indentLevel { declaration [type: int] [argument] }
+[PrintProperty] builder { declaration [type: StringBuilder] [argument] }
+[PrintProperty] indentLevel { declaration [type: int] [argument] }
+[PrintProperty] fieldName { declaration [type: string] [argument] }
+[PrintProperty] property { declaration [type: ulong] [local] }
+[PrintProperty] property { declaration [type: ulong] [local] }
+[PrintProperty] setNames { declaration [type: List<string>] [local] }
+[PrintProperty] names { declaration [type: string[]] [local] }
+[PrintProperty] i { declaration [type: int] [local] }
+[PrintProperty] i { declaration [type: int] [local] }
+[PrintProperty] names { declaration [type: string[]] [local] }
+[PrintProperty] i { declaration [type: int] [local] }
+[PrintProperty] property { declaration [type: ulong] [local] }
+[PrintProperty] i { declaration [type: int] [local] }
+[PrintProperty] setNames { declaration [type: List<string>] [local] }
+[PrintProperty] names { declaration [type: string[]] [local] }
+[PrintProperty] i { declaration [type: int] [local] }
+[PrintProperty] setNames { declaration [type: List<string>] [local] }
+[PrintProperty] indentLevel { declaration [type: int] [argument] }
+[PrintProperty] builder { declaration [type: StringBuilder] [argument] }
+[PrintProperty] builder { declaration [type: StringBuilder] [argument] }
+[PrintProperty] names { declaration [type: string[]] [local] }
+[PrintProperty] indentLevel { declaration [type: int] [argument] }
+[] name { declaration [type: NULL] [argument] }
+[] i { declaration [type: NULL] [argument] }
+[] name { declaration [type: NULL] [argument] }
+[PrintProperty] property { declaration [type: ulong] [local] }
+[] i { declaration [type: NULL] [argument] }
+[PrintProperty] builder { declaration [type: StringBuilder] [argument] }
+[PrintProperty] builder { declaration [type: StringBuilder] [argument] }
+[FindAllEntityProperties] SerializeType { function [def] }
+[SerializeType] obj { declaration [type: object] [argument] }
+[SerializeType] builder { declaration [type: StringBuilder] [argument] }
+[SerializeType] fieldName { declaration [type: string] [argument] }
+[SerializeType] obj { declaration [type: object] [argument] }
+[] data { declaration [type: NULL] [argument] }
+[] data { declaration [type: NULL] [argument] }
+[] data { declaration [type: NULL] [argument] }
+[NULL] Property { type [def] [product] }
+[] data { declaration [type: NULL] [argument] }
+[] property { declaration [type: object] [local] }
+[] data { declaration [type: NULL] [argument] }
+[] name { declaration [type: string] [local] }
+[SerializeType] fieldName { declaration [type: string] [argument] }
+[] data { declaration [type: NULL] [argument] }
+[{] isArrayElement { declaration [type: bool] [local] }
+[] data { declaration [type: NULL] [argument] }
+[{] isParentArrayElement { declaration [type: bool] [local] }
+[] data { declaration [type: NULL] [argument] }
+[{] isArrayElement { declaration [type: bool] [local] }
+[{] isParentArrayElement { declaration [type: bool] [local] }
+[{] isParentArrayElement { declaration [type: bool] [local] }
+[] data { declaration [type: NULL] [argument] }
+[] data { declaration [type: NULL] [argument] }
+[] name { declaration [type: string] [local] }
+[] data { declaration [type: NULL] [argument] }
+[{] isArrayElement { declaration [type: bool] [local] }
+[{] isParentArrayElement { declaration [type: bool] [local] }
+[] name { declaration [type: string] [local] }
+[FindAllEntityProperties] PrintProperty { function [def] }
+[] property { declaration [type: object] [local] }
+[] name { declaration [type: string] [local] }
+[SerializeType] builder { declaration [type: StringBuilder] [argument] }
+[] data { declaration [type: NULL] [argument] }
+[] data { declaration [type: NULL] [argument] }
+[] data { declaration [type: NULL] [argument] }
+[] data { declaration [type: NULL] [argument] }
+[] data { declaration [type: NULL] [argument] }
+[] recursive { declaration [type: NULL] [argument] }
+[] recursive { declaration [type: NULL] [argument] }
+[GameManager] InitTilemap { function [def] }
+[InitTilemap] rooms { declaration [type: List<RoomInstance>] [argument] }
+[InitTilemap] tilemap { declaration [type: Tilemap] [argument] }
+[InitTilemap] ruleTile { declaration [type: TileBase] [argument] }
+[InitTilemap] room { declaration [type: var] [local] }
+[InitTilemap] rooms { declaration [type: List<RoomInstance>] [argument] }
+[{] door { declaration [type: var] [local] }
+[InitTilemap] room { declaration [type: var] [local] }
+[{] door { declaration [type: var] [local] }
+[{] dir { declaration [type: Vector3Int] [local] }
+[{] door { declaration [type: var] [local] }
+[InitTilemap] tilemap { declaration [type: Tilemap] [argument] }
+[{] door { declaration [type: var] [local] }
+[InitTilemap] room { declaration [type: var] [local] }
+[{] dir { declaration [type: Vector3Int] [local] }
+[InitTilemap] ruleTile { declaration [type: TileBase] [argument] }
+[InitTilemap] tilemap { declaration [type: Tilemap] [argument] }
+[{] door { declaration [type: var] [local] }
+[InitTilemap] room { declaration [type: var] [local] }
+[{] dir { declaration [type: Vector3Int] [local] }
+[InitTilemap] ruleTile { declaration [type: TileBase] [argument] }
+[{] doorTile { declaration [type: Vector3Int] [local] }
+[{] door { declaration [type: var] [local] }
+[{] pos { declaration [type: Vector3Int] [local] }
+[{] doorTile { declaration [type: Vector3Int] [local] }
+[InitTilemap] room { declaration [type: var] [local] }
+[InitTilemap] tilemap { declaration [type: Tilemap] [argument] }
+[{] pos { declaration [type: Vector3Int] [local] }
+[{] Remove { function [def] }
+[InitTilemap] tilemap { declaration [type: Tilemap] [argument] }
+[{] pos { declaration [type: Vector3Int] [local] }
+[{] door { declaration [type: var] [local] }
+[{] Remove { function [def] }
+[Remove] tilemap { declaration [type: Tilemap] [argument] }
+[Remove] pos { declaration [type: Vector3Int] [argument] }
+[Remove] removeDir { declaration [type: Vector3Int] [argument] }
+[Remove] pos { declaration [type: Vector3Int] [argument] }
+[Remove] removeDir { declaration [type: Vector3Int] [argument] }
+[Remove] tilemap { declaration [type: Tilemap] [argument] }
+[Remove] pos { declaration [type: Vector3Int] [argument] }
+[Remove] tilemap { declaration [type: Tilemap] [argument] }
+[Remove] pos { declaration [type: Vector3Int] [argument] }
+[{] Remove { function [def] }
+[Remove] tilemap { declaration [type: Tilemap] [argument] }
+[Remove] pos { declaration [type: Vector3Int] [argument] }
+[Remove] removeDir { declaration [type: Vector3Int] [argument] }
+[InitTilemap] tilemap { declaration [type: Tilemap] [argument] }
+[GameManager] rooms { declaration [type: List<RoomInstance>] [field] }
+[InitTilemap] rooms { declaration [type: List<RoomInstance>] [argument] }
+[NULL] GameManager { type [def] [product] }
+[GameManager] tilemap { declaration [type: Tilemap] [field] }
+[InitTilemap] tilemap { declaration [type: Tilemap] [argument] }
+[InitTilemap] tilemap { declaration [type: Tilemap] [argument] }
+[GameManager] GetTilemapFromRoom { function [def] }
+[GetTilemapFromRoom] roomTransform { declaration [type: Transform] [argument] }
+[GetTilemapFromRoom] roomTransform { declaration [type: Transform] [argument] }
+[GameManager] Bounds { type [def] [product] }
+[GameManager] GetBoundsFromTilemap { function [def] }
+[GetBoundsFromTilemap] tilemap { declaration [type: Tilemap] [argument] }
+[GameManager] Bounds { type [def] [product] }
+[GetBoundsFromTilemap] bounds { declaration [type: Bounds] [local] }
+[GetBoundsFromTilemap] tilemap { declaration [type: Tilemap] [argument] }
+[GetBoundsFromTilemap] bounds { declaration [type: Bounds] [local] }
+[GetBoundsFromTilemap] tilemap { declaration [type: Tilemap] [argument] }
+[GetBoundsFromTilemap] bounds { declaration [type: Bounds] [local] }
+[GameManager] Bounds { type [def] [product] }
+[GameManager] GetBoundsFromRoom { function [def] }
+[GetBoundsFromRoom] roomTransform { declaration [type: Transform] [argument] }
+[GetBoundsFromRoom] roomTransform { declaration [type: Transform] [argument] }
+[GameManager] GetBoundsFromTilemap { function [def] }
+[GameManager] GetTilemapFromRoom { function [def] }
+[GetBoundsFromRoom] roomTransform { declaration [type: Transform] [argument] }
+[GameManager] defaultBounds { declaration [type: Bounds] [field] }
+[GameManager] GetGroundPos { function [def] }
+[NULL] Vector2 { type [def] [product] }
+[GetGroundPos] pos { declaration [type: Vector2] [argument] }
+[NULL] Vector2 { type [def] [product] }
+[GetGroundPos] extents { declaration [type: Vector2] [argument] }
+[GetGroundPos] dirY { declaration [type: float] [argument] }
+[GetGroundPos] groundPos { declaration [type: Vector3Int] [argument] }
+[GetGroundPos] emptyPos { declaration [type: Vector3Int] [argument] }
+[GetGroundPos] hitInfo { declaration [type: RaycastHit2D] [local] }
+[GetGroundPos] pos { declaration [type: Vector2] [argument] }
+[GetGroundPos] extents { declaration [type: Vector2] [argument] }
+[GetGroundPos] dirY { declaration [type: float] [argument] }
+[GetGroundPos] groundPos { declaration [type: Vector3Int] [argument] }
+[GetGroundPos] emptyPos { declaration [type: Vector3Int] [argument] }
+[GetGroundPos] hitInfo { declaration [type: RaycastHit2D] [local] }
+[{] hitPosCeil { declaration [type: Vector3Int] [local] }
+[GameManager] QueryTiles { function [def] }
+[GameManager] tilemap { declaration [type: Tilemap] [field] }
+[GetGroundPos] hitInfo { declaration [type: RaycastHit2D] [local] }
+[GetGroundPos] dirY { declaration [type: float] [argument] }
+[{] hitPosFloor { declaration [type: Vector3Int] [local] }
+[GameManager] QueryTiles { function [def] }
+[GameManager] tilemap { declaration [type: Tilemap] [field] }
+[GetGroundPos] hitInfo { declaration [type: RaycastHit2D] [local] }
+[GetGroundPos] dirY { declaration [type: float] [argument] }
+[GetGroundPos] groundPos { declaration [type: Vector3Int] [argument] }
+[{] hitPosFloor { declaration [type: Vector3Int] [local] }
+[GetGroundPos] hitInfo { declaration [type: RaycastHit2D] [local] }
+[{] hitPosCeil { declaration [type: Vector3Int] [local] }
+[GetGroundPos] hitInfo { declaration [type: RaycastHit2D] [local] }
+[{] hitPosFloor { declaration [type: Vector3Int] [local] }
+[{] hitPosCeil { declaration [type: Vector3Int] [local] }
+[GetGroundPos] emptyPos { declaration [type: Vector3Int] [argument] }
+[GetGroundPos] groundPos { declaration [type: Vector3Int] [argument] }
+[GetGroundPos] dirY { declaration [type: float] [argument] }
+[GetGroundPos] hitInfo { declaration [type: RaycastHit2D] [local] }
+[GameManager] CalculateMoveRegion { function [def] }
+[NULL] Vector2 { type [def] [product] }
+[CalculateMoveRegion] pos { declaration [type: Vector2] [argument] }
+[NULL] Vector2 { type [def] [product] }
+[CalculateMoveRegion] extents { declaration [type: Vector2] [argument] }
+[CalculateMoveRegion] dirY { declaration [type: float] [argument] }
+[CalculateMoveRegion] result { declaration [type: Rect] [local] }
+[CalculateMoveRegion] dirY { declaration [type: float] [argument] }
+[CalculateMoveRegion] dirY { declaration [type: float] [argument] }
+[CalculateMoveRegion] dirY { declaration [type: float] [argument] }
+[GameManager] GetGroundPos { function [def] }
+[CalculateMoveRegion] pos { declaration [type: Vector2] [argument] }
+[CalculateMoveRegion] extents { declaration [type: Vector2] [argument] }
+[CalculateMoveRegion] dirY { declaration [type: float] [argument] }
+[CalculateMoveRegion] hitPos { declaration [type: Vector3Int] [local] }
+[CalculateMoveRegion] empPos { declaration [type: Vector3Int] [local] }
+[{] minGroundPos { declaration [type: Vector3Int] [local] }
+[GameManager] QueryTiles { function [def] }
+[GameManager] tilemap { declaration [type: Tilemap] [field] }
+[CalculateMoveRegion] hitPos { declaration [type: Vector3Int] [local] }
+[{] maxGroundPos { declaration [type: Vector3Int] [local] }
+[GameManager] QueryTiles { function [def] }
+[GameManager] tilemap { declaration [type: Tilemap] [field] }
+[CalculateMoveRegion] hitPos { declaration [type: Vector3Int] [local] }
+[{] minWallPos { declaration [type: Vector3Int] [local] }
+[GameManager] QueryTiles { function [def] }
+[GameManager] tilemap { declaration [type: Tilemap] [field] }
+[CalculateMoveRegion] empPos { declaration [type: Vector3Int] [local] }
+[{] maxWallPos { declaration [type: Vector3Int] [local] }
+[GameManager] QueryTiles { function [def] }
+[GameManager] tilemap { declaration [type: Tilemap] [field] }
+[CalculateMoveRegion] empPos { declaration [type: Vector3Int] [local] }
+[CalculateMoveRegion] dirY { declaration [type: float] [argument] }
+[{] minGroundPos { declaration [type: Vector3Int] [local] }
+[{] maxGroundPos { declaration [type: Vector3Int] [local] }
+[CalculateMoveRegion] dirY { declaration [type: float] [argument] }
+[{] minWallPos { declaration [type: Vector3Int] [local] }
+[{] maxWallPos { declaration [type: Vector3Int] [local] }
+[NULL] Vector2 { type [def] [product] }
+[{] minPos { declaration [type: Vector2] [local] }
+[{] minGroundPos { declaration [type: Vector3Int] [local] }
+[{] minWallPos { declaration [type: Vector3Int] [local] }
+[NULL] Vector2 { type [def] [product] }
+[NULL] Vector2 { type [def] [product] }
+[{] maxPos { declaration [type: Vector2] [local] }
+[{] maxGroundPos { declaration [type: Vector3Int] [local] }
+[{] maxWallPos { declaration [type: Vector3Int] [local] }
+[CalculateMoveRegion] result { declaration [type: Rect] [local] }
+[{] minPos { declaration [type: Vector2] [local] }
+[CalculateMoveRegion] extents { declaration [type: Vector2] [argument] }
+[NULL] Vector2 { type [def] [product] }
+[CalculateMoveRegion] dirY { declaration [type: float] [argument] }
+[{] maxPos { declaration [type: Vector2] [local] }
+[CalculateMoveRegion] extents { declaration [type: Vector2] [argument] }
+[NULL] Vector2 { type [def] [product] }
+[CalculateMoveRegion] dirY { declaration [type: float] [argument] }
+[CalculateMoveRegion] result { declaration [type: Rect] [local] }
+[{] minGroundPos { declaration [type: Vector3Int] [local] }
+[{] maxGroundPos { declaration [type: Vector3Int] [local] }
+[{] minWallPos { declaration [type: Vector3Int] [local] }
+[{] maxWallPos { declaration [type: Vector3Int] [local] }
+[CalculateMoveRegion] result { declaration [type: Rect] [local] }
+[GameManager] QueryTiles { function [def] }
+[QueryTiles] tilemap { declaration [type: Tilemap] [argument] }
+[QueryTiles] startPos { declaration [type: Vector3Int] [argument] }
+[QueryTiles] breakCondition { declaration [type: bool] [argument] }
+[QueryTiles] advanceX { declaration [type: int] [argument] }
+[QueryTiles] advanceY { declaration [type: int] [argument] }
+[QueryTiles] pos { declaration [type: Vector3Int] [local] }
+[QueryTiles] startPos { declaration [type: Vector3Int] [argument] }
+[QueryTiles] tilemap { declaration [type: Tilemap] [argument] }
+[QueryTiles] pos { declaration [type: Vector3Int] [local] }
+[QueryTiles] breakCondition { declaration [type: bool] [argument] }
+[QueryTiles] pos { declaration [type: Vector3Int] [local] }
+[QueryTiles] advanceX { declaration [type: int] [argument] }
+[QueryTiles] advanceY { declaration [type: int] [argument] }
+[QueryTiles] pos { declaration [type: Vector3Int] [local] }
+[GameManager] Start { function [def] }
+[GameManager] pools { declaration [type: Pool[]] [field] }
+[GameManager] audios { declaration [type: Audio[]] [field] }
+[GameManager] firstMusic { declaration [type: AudioType] [field] }
+[GameManager] sourceCount { declaration [type: int] [field] }
+[GameManager] gameUI { declaration [type: GameUI] [field] }
+[GameManager] mainCam { declaration [type: Camera] [field] }
+[GameManager] cameraEntity { declaration [type: Entity] [field] }
+[GameManager] mainCam { declaration [type: Camera] [field] }
+[NULL] Entity { type [def] [product] }
+[GameManager] StartGameMode { function [def] }
+[GameManager] startMode { declaration [type: GameMode] [field] }
+[NULL] RangedFloat { type [def] [product] }
+[] value { declaration [type: NULL] [argument] }
+[] dir { declaration [type: NULL] [argument] }
+[] value { declaration [type: NULL] [argument] }
+[] dir { declaration [type: NULL] [argument] }
+[] mode { declaration [type: NULL] [argument] }
+[] mode { declaration [type: NULL] [argument] }
+[] mode { declaration [type: NULL] [argument] }
+[NULL] RangedFloat { type [def] [product] }
+[] value { declaration [type: NULL] [argument] }
+[] dir { declaration [type: NULL] [argument] }
+[] value { declaration [type: NULL] [argument] }
+[] dir { declaration [type: NULL] [argument] }
+[] scale { declaration [type: NULL] [argument] }
+[] scale { declaration [type: NULL] [argument] }
+[] _ { declaration [type: NULL] [argument] }
+[NULL] Vector2 { type [def] [product] }
+[GameManager] player { declaration [type: Entity] [field] }
+[Entity] TestPlayerVFX { function [def] }
+[GameManager] Update { function [def] }
+[GameManager] rooms { declaration [type: List<RoomInstance>] [field] }
+[GameManager] levels { declaration [type: LevelData[]] [field] }
+[GameManager] currentLevel { declaration [type: int] [field] }
+[GameManager] cameraEntity { declaration [type: Entity] [field] }
+[Entity] CompleteCycle { function [def] }
+[GameManager] currentRoom { declaration [type: int] [field] }
+[GameManager] rooms { declaration [type: List<RoomInstance>] [field] }
+[{] aspectRatio { declaration [type: float] [local] }
+[{] roomTransform { declaration [type: Transform] [local] }
+[GameManager] rooms { declaration [type: List<RoomInstance>] [field] }
+[GameManager] currentRoom { declaration [type: int] [field] }
+[GameManager] Bounds { type [def] [product] }
+[{] bounds { declaration [type: Bounds] [local] }
+[GameManager] GetBoundsFromRoom { function [def] }
+[{] roomTransform { declaration [type: Transform] [local] }
+[{] ratio { declaration [type: float] [local] }
+[{] bounds { declaration [type: Bounds] [local] }
+[{] bounds { declaration [type: Bounds] [local] }
+[GameManager] mainCam { declaration [type: Camera] [field] }
+[{] ratio { declaration [type: float] [local] }
+[{] aspectRatio { declaration [type: float] [local] }
+[{] bounds { declaration [type: Bounds] [local] }
+[{] aspectRatio { declaration [type: float] [local] }
+[{] bounds { declaration [type: Bounds] [local] }
+[{] roomTransform { declaration [type: Transform] [local] }
+[{] i { declaration [type: int] [local] }
+[{] i { declaration [type: int] [local] }
+[GameManager] rooms { declaration [type: List<RoomInstance>] [field] }
+[{] i { declaration [type: int] [local] }
+[{] i { declaration [type: int] [local] }
+[GameManager] currentRoom { declaration [type: int] [field] }
+[{] roomRect { declaration [type: Rect] [local] }
+[GameManager] GetBoundsFromRoom { function [def] }
+[GameManager] rooms { declaration [type: List<RoomInstance>] [field] }
+[{] i { declaration [type: int] [local] }
+[NULL] Vector2 { type [def] [product] }
+[NULL] Vector2 { type [def] [product] }
+[{] roomRect { declaration [type: Rect] [local] }
+[GameManager] player { declaration [type: Entity] [field] }
+[GameManager] rooms { declaration [type: List<RoomInstance>] [field] }
+[{] i { declaration [type: int] [local] }
+[GameManager] currentRoom { declaration [type: int] [field] }
+[{] i { declaration [type: int] [local] }
+[GameManager] StartGameMode { function [def] }
+[NULL] GameMode { type [def] [product] }
+[StartGameMode] mode { declaration [type: GameMode] [argument] }
+[StartGameMode] mode { declaration [type: GameMode] [argument] }
+[NULL] GameMode { type [def] [product] }
+[GameMode] None { constant }
+[StartGameMode] mode { declaration [type: GameMode] [argument] }
+[NULL] GameMode { type [def] [product] }
+[GameMode] Count { constant }
+[StartGameMode] mode { declaration [type: GameMode] [argument] }
+[NULL] GameMode { type [def] [product] }
+[GameMode] Quit { constant }
+[GameManager] rooms { declaration [type: List<RoomInstance>] [field] }
+[GameManager] gameMenu { declaration [type: GameMenu] [field] }
+[{] isMainMode { declaration [type: bool] [local] }
+[StartGameMode] mode { declaration [type: GameMode] [argument] }
+[NULL] GameMode { type [def] [product] }
+[GameMode] Main { constant }
+[GameManager] mainMode { declaration [type: GameObject] [field] }
+[GameManager] mainMode { declaration [type: GameObject] [field] }
+[{] isMainMode { declaration [type: bool] [local] }
+[GameManager] playMode { declaration [type: GameObject] [field] }
+[{] isMainMode { declaration [type: bool] [local] }
+[StartGameMode] mode { declaration [type: GameMode] [argument] }
+[NULL] GameMode { type [def] [product] }
+[GameMode] Main { constant }
+[NULL] GameMode { type [def] [product] }
+[GameMode] Play { constant }
+[{] i { declaration [type: int] [local] }
+[{] i { declaration [type: int] [local] }
+[GameManager] levels { declaration [type: LevelData[]] [field] }
+[{] i { declaration [type: int] [local] }
+[GameManager] levels { declaration [type: LevelData[]] [field] }
+[{] i { declaration [type: int] [local] }
+[{] i { declaration [type: int] [local] }
+[GameManager] currentLevel { declaration [type: int] [field] }
+[GameManager] overrideGameUI { declaration [type: bool] [field] }
+[GameManager] gameUI { declaration [type: GameUI] [field] }
+[GameManager] gameUI { declaration [type: GameUI] [field] }
+[GameManager] gameUI { declaration [type: GameUI] [field] }
+[GameManager] gameUI { declaration [type: GameUI] [field] }
+[GameManager] gameUI { declaration [type: GameUI] [field] }
+[GameManager] levels { declaration [type: LevelData[]] [field] }
+[GameManager] currentLevel { declaration [type: int] [field] }
+[GameManager] gameUI { declaration [type: GameUI] [field] }
+[GameManager] levels { declaration [type: LevelData[]] [field] }
+[GameManager] currentLevel { declaration [type: int] [field] }
+[{] level { declaration [type: LevelData] [local] }
+[GameManager] levels { declaration [type: LevelData[]] [field] }
+[GameManager] currentLevel { declaration [type: int] [field] }
+[GameManager] cameraEntity { declaration [type: Entity] [field] }
+[Entity] properties { declaration [type: Property<EntityProperty>] [field] }
+[Property] SetProperty { function [def] }
+[NULL] EntityProperty { type [def] [product] }
+[EntityProperty] CustomInit { constant }
+[GameManager] cameraEntity { declaration [type: Entity] [field] }
+[Entity] CustomInit { function [def] }
+[GameManager] cameraEntity { declaration [type: Entity] [field] }
+[Entity] InitCamera { function [def] }
+[{] level { declaration [type: LevelData] [local] }
+[{] level { declaration [type: LevelData] [local] }
+[{] level { declaration [type: LevelData] [local] }
+[{] level { declaration [type: LevelData] [local] }
+[{] level { declaration [type: LevelData] [local] }
+[{] levelGenerated { declaration [type: bool] [local] }
+[{] count { declaration [type: int] [local] }
+[{] level { declaration [type: LevelData] [local] }
+[{] generator { declaration [type: DungeonGenerator] [local] }
+[{] level { declaration [type: LevelData] [local] }
+[{] generator { declaration [type: DungeonGenerator] [local] }
+[{] levelGenerated { declaration [type: bool] [local] }
+[{] count { declaration [type: int] [local] }
+[{] generator { declaration [type: DungeonGenerator] [local] }
+[{] levelGenerated { declaration [type: bool] [local] }
+[{] count { declaration [type: int] [local] }
+[{] level { declaration [type: LevelData] [local] }
+[GameManager] currentRoom { declaration [type: int] [field] }
+[] room { declaration [type: NULL] [argument] }
+[GameManager] LockRoom { function [def] }
+[] room { declaration [type: NULL] [argument] }
+[] room { declaration [type: NULL] [argument] }
+[GameManager] LockRoom { function [def] }
+[] room { declaration [type: NULL] [argument] }
+[{] level { declaration [type: LevelData] [local] }
+[GameManager] currentRoom { declaration [type: int] [field] }
+[{] player { declaration [type: PlayerController] [local] }
+[{] player { declaration [type: PlayerController] [local] }
+[{] player { declaration [type: PlayerController] [local] }
+[GameManager] tilemap { declaration [type: Tilemap] [field] }
+[{] level { declaration [type: LevelData] [local] }
+[GameManager] defaultBounds { declaration [type: Bounds] [field] }
+[{] level { declaration [type: LevelData] [local] }
+[GameManager] defaultBounds { declaration [type: Bounds] [field] }
+[GameManager] Bounds { type [def] [product] }
+[{] level { declaration [type: LevelData] [local] }
+[GameManager] mainCam { declaration [type: Camera] [field] }
+[GameManager] player { declaration [type: Entity] [field] }
+[NULL] Entity { type [def] [product] }
+[GameManager] LockRoom { function [def] }
+[LockRoom] room { declaration [type: Transform] [argument] }
+[LockRoom] lockRoom { declaration [type: bool] [argument] }
+[LockRoom] disableEnemies { declaration [type: bool] [argument] }
+[LockRoom] lockRoom { declaration [type: bool] [argument] }
+[LockRoom] disableEnemies { declaration [type: bool] [argument] }
+[{] spawner { declaration [type: EnemySpawner] [local] }
+[LockRoom] room { declaration [type: Transform] [argument] }
+[{] spawner { declaration [type: EnemySpawner] [local] }
+[{] spawner { declaration [type: EnemySpawner] [local] }
+[LockRoom] doorHolder { declaration [type: Transform] [local] }
+[LockRoom] room { declaration [type: Transform] [argument] }
+[LockRoom] doorHolder { declaration [type: Transform] [local] }
+[LockRoom] lockRoom { declaration [type: bool] [argument] }
+[LockRoom] doorHolder { declaration [type: Transform] [local] }
+[LockRoom] doorHolder { declaration [type: Transform] [local] }
+[{] door { declaration [type: Transform] [local] }
+[LockRoom] doorHolder { declaration [type: Transform] [local] }
+[{] doorAnim { declaration [type: Animator] [local] }
+[{] door { declaration [type: Transform] [local] }
+[{] doorAnim { declaration [type: Animator] [local] }
+[LockRoom] lockRoom { declaration [type: bool] [argument] }
+[GameManager] OnAudioFilterRead { function [def] }
+[OnAudioFilterRead] data { declaration [type: float[]] [argument] }
+[OnAudioFilterRead] channels { declaration [type: int] [argument] }
+[OnAudioFilterRead] data { declaration [type: float[]] [argument] }
+[OnAudioFilterRead] channels { declaration [type: int] [argument] }
+[NULL] SCRIPTABLE_VFX { macro }
+[NULL] EntityProperty { type [def] [product] }
+[EntityProperty] CanJump { constant }
+[EntityProperty] CanBeHurt { constant }
+[EntityProperty] DamageWhenCollide { constant }
+[EntityProperty] DieWhenCollide { constant }
+[EntityProperty] DieAfterMoveTime { constant }
+[EntityProperty] SpawnCellWhenDie { constant }
+[EntityProperty] SpawnDamagePopup { constant }
+[EntityProperty] ClampToMoveRegion { constant }
+[EntityProperty] StartAtMinMoveRegion { constant }
+[EntityProperty] IsCritical { constant }
+[EntityProperty] UsePooling { constant }
+[EntityProperty] CustomInit { constant }
+[EntityProperty] AddMoneyWhenCollide { constant }
+[EntityProperty] FallingOnSpawn { constant }
+[EntityProperty] IsGrounded { constant }
+[EntityProperty] IsReloading { constant }
+[EntityProperty] AtEndOfMoveRegion { constant }
+[EntityProperty] Count { constant }
+[NULL] EntityState { type [def] [product] }
+[EntityState] None { constant }
+[EntityState] Jumping { constant }
+[EntityState] Falling { constant }
+[EntityState] Landing { constant }
+[EntityState] StartMoving { constant }
+[EntityState] StopMoving { constant }
+[EntityState] StartAttack { constant }
+[EntityState] StartCooldown { constant }
+[EntityState] OnSpawn { constant }
+[EntityState] OnHit { constant }
+[EntityState] OnDeath { constant }
+[NULL] Entity { type [def] [product] }
+[Entity] AbilityType { type [def] [product] }
+[AbilityType] None { constant }
+[AbilityType] Move { constant }
+[AbilityType] Teleport { constant }
+[AbilityType] Explode { constant }
+[AbilityType] Jump { constant }
+[Entity] AbilityFlag { type [def] [product] }
+[AbilityFlag] Interuptible { constant }
+[AbilityFlag] AwayFromPlayer { constant }
+[AbilityFlag] LockOnPlayerForEternity { constant }
+[AbilityFlag] ExecuteWhenLowHealth { constant }
+[AbilityFlag] ExecuteWhenInRange { constant }
+[AbilityFlag] ExecuteWhenInRangeY { constant }
+[AbilityFlag] ExecuteWhenOutOfMoveRegion { constant }
+[AbilityFlag] OrCombine { constant }
+[AbilityFlag] CanExecute { constant }
+[Entity] EntityAbility { type [def] [product] }
+[NULL] Property { type [def] [product] }
+[Entity] AbilityFlag { type [def] [product] }
+[EntityAbility] flags { declaration [type: Property<AbilityFlag>] [field] }
+[Entity] EntityVFX { type [def] [product] }
+[EntityAbility] vfx { declaration [type: EntityVFX] [field] }
+[Entity] AbilityType { type [def] [product] }
+[EntityAbility] type { declaration [type: AbilityType] [field] }
+[EntityAbility] healthToExecute { declaration [type: int] [field] }
+[EntityAbility] distanceToExecute { declaration [type: float] [field] }
+[EntityAbility] distanceToExecuteY { declaration [type: float] [field] }
+[EntityAbility] cooldownTime { declaration [type: float] [field] }
+[EntityAbility] interuptibleTime { declaration [type: float] [field] }
+[EntityAbility] chargeTime { declaration [type: float] [field] }
+[EntityAbility] duration { declaration [type: float] [field] }
+[EntityAbility] range { declaration [type: float] [field] }
+[EntityAbility] damage { declaration [type: int] [field] }
+[Entity] CanUseAbility { function [def] }
+[Entity] EntityAbility { type [def] [product] }
+[CanUseAbility] ability { declaration [type: EntityAbility] [argument] }
+[NULL] Property { type [def] [product] }
+[Entity] AbilityFlag { type [def] [product] }
+[CanUseAbility] flags { declaration [type: Property<AbilityFlag>] [local] }
+[CanUseAbility] ability { declaration [type: EntityAbility] [argument] }
+[EntityAbility] flags { declaration [type: Property<AbilityFlag>] [field] }
+[NULL] Vector2 { type [def] [product] }
+[CanUseAbility] pos { declaration [type: Vector2] [local] }
+[NULL] GameManager { type [def] [product] }
+[GameManager] player { declaration [type: Entity] [field] }
+[CanUseAbility] lowHealth { declaration [type: bool] [local] }
+[CanUseAbility] flags { declaration [type: Property<AbilityFlag>] [local] }
+[Property] HasProperty { function [def] }
+[Entity] AbilityFlag { type [def] [product] }
+[AbilityFlag] ExecuteWhenLowHealth { constant }
+[Entity] health { declaration [type: int] [field] }
+[CanUseAbility] ability { declaration [type: EntityAbility] [argument] }
+[EntityAbility] healthToExecute { declaration [type: int] [field] }
+[CanUseAbility] isInRange { declaration [type: bool] [local] }
+[CanUseAbility] flags { declaration [type: Property<AbilityFlag>] [local] }
+[Property] HasProperty { function [def] }
+[Entity] AbilityFlag { type [def] [product] }
+[AbilityFlag] ExecuteWhenInRange { constant }
+[Entity] IsInRange { function [def] }
+[CanUseAbility] ability { declaration [type: EntityAbility] [argument] }
+[EntityAbility] distanceToExecute { declaration [type: float] [field] }
+[CanUseAbility] pos { declaration [type: Vector2] [local] }
+[CanUseAbility] isInRangeY { declaration [type: bool] [local] }
+[CanUseAbility] flags { declaration [type: Property<AbilityFlag>] [local] }
+[Property] HasProperty { function [def] }
+[Entity] AbilityFlag { type [def] [product] }
+[AbilityFlag] ExecuteWhenInRangeY { constant }
+[Entity] IsInRangeY { function [def] }
+[CanUseAbility] ability { declaration [type: EntityAbility] [argument] }
+[EntityAbility] distanceToExecuteY { declaration [type: float] [field] }
+[CanUseAbility] pos { declaration [type: Vector2] [local] }
+[CanUseAbility] moveRegion { declaration [type: bool] [local] }
+[CanUseAbility] flags { declaration [type: Property<AbilityFlag>] [local] }
+[Property] HasProperty { function [def] }
+[Entity] AbilityFlag { type [def] [product] }
+[AbilityFlag] ExecuteWhenOutOfMoveRegion { constant }
+[Entity] HasProperty { function [def] }
+[NULL] EntityProperty { type [def] [product] }
+[EntityProperty] AtEndOfMoveRegion { constant }
+[CanUseAbility] result { declaration [type: bool] [local] }
+[CanUseAbility] Check { function [def] }
+[CanUseAbility] ability { declaration [type: EntityAbility] [argument] }
+[EntityAbility] flags { declaration [type: Property<AbilityFlag>] [field] }
+[Property] HasProperty { function [def] }
+[Entity] AbilityFlag { type [def] [product] }
+[AbilityFlag] OrCombine { constant }
+[CanUseAbility] lowHealth { declaration [type: bool] [local] }
+[CanUseAbility] isInRange { declaration [type: bool] [local] }
+[CanUseAbility] isInRangeY { declaration [type: bool] [local] }
+[CanUseAbility] moveRegion { declaration [type: bool] [local] }
+[CanUseAbility] result { declaration [type: bool] [local] }
+[CanUseAbility] Check { function [def] }
+[Check] condition { declaration [type: bool] [argument] }
+[Check] values { declaration [type: bool[]] [argument] }
+[Check] b { declaration [type: bool] [local] }
+[Check] values { declaration [type: bool[]] [argument] }
+[Check] b { declaration [type: bool] [local] }
+[Check] condition { declaration [type: bool] [argument] }
+[Check] condition { declaration [type: bool] [argument] }
+[Check] condition { declaration [type: bool] [argument] }
+[Entity] UseAbility { function [def] }
+[Entity] EntityAbility { type [def] [product] }
+[UseAbility] ability { declaration [type: EntityAbility] [argument] }
+[Entity] MoveType { type [def] [product] }
+[UseAbility] moveType { declaration [type: MoveType] [argument] }
+[Entity] TargetType { type [def] [product] }
+[UseAbility] targetType { declaration [type: TargetType] [argument] }
+[UseAbility] speed { declaration [type: float] [argument] }
+[UseAbility] ability { declaration [type: EntityAbility] [argument] }
+[EntityAbility] flags { declaration [type: Property<AbilityFlag>] [field] }
+[Property] SetProperty { function [def] }
+[Entity] AbilityFlag { type [def] [product] }
+[AbilityFlag] CanExecute { constant }
+[UseAbility] cooldownTime { declaration [type: float] [local] }
+[Entity] moveType { declaration [type: MoveType] [field] }
+[Entity] MoveType { type [def] [product] }
+[MoveType] None { constant }
+[UseAbility] timer { declaration [type: float] [local] }
+[UseAbility] ability { declaration [type: EntityAbility] [argument] }
+[EntityAbility] vfx { declaration [type: EntityVFX] [field] }
+[EntityVFX] canStop { declaration [type: System.Func<bool>] [field] }
+[UseAbility] ability { declaration [type: EntityAbility] [argument] }
+[EntityAbility] flags { declaration [type: Property<AbilityFlag>] [field] }
+[Property] HasProperty { function [def] }
+[Entity] AbilityFlag { type [def] [product] }
+[AbilityFlag] CanExecute { constant }
+[Entity] PlayVFX { function [def] }
+[UseAbility] ability { declaration [type: EntityAbility] [argument] }
+[EntityAbility] vfx { declaration [type: EntityVFX] [field] }
+[UseAbility] timer { declaration [type: float] [local] }
+[UseAbility] ability { declaration [type: EntityAbility] [argument] }
+[EntityAbility] interuptibleTime { declaration [type: float] [field] }
+[UseAbility] ability { declaration [type: EntityAbility] [argument] }
+[EntityAbility] flags { declaration [type: Property<AbilityFlag>] [field] }
+[Property] HasProperty { function [def] }
+[Entity] AbilityFlag { type [def] [product] }
+[AbilityFlag] Interuptible { constant }
+[Entity] CanUseAbility { function [def] }
+[UseAbility] ability { declaration [type: EntityAbility] [argument] }
+[UseAbility] timer { declaration [type: float] [local] }
+[Entity] targetType { declaration [type: TargetType] [field] }
+[Entity] TargetType { type [def] [product] }
+[TargetType] None { constant }
+[UseAbility] ability { declaration [type: EntityAbility] [argument] }
+[EntityAbility] chargeTime { declaration [type: float] [field] }
+[UseAbility] ability { declaration [type: EntityAbility] [argument] }
+[EntityAbility] interuptibleTime { declaration [type: float] [field] }
+[UseAbility] ability { declaration [type: EntityAbility] [argument] }
+[EntityAbility] type { declaration [type: AbilityType] [field] }
+[Entity] AbilityType { type [def] [product] }
+[AbilityType] Move { constant }
+[Entity] moveType { declaration [type: MoveType] [field] }
+[UseAbility] moveType { declaration [type: MoveType] [argument] }
+[Entity] speed { declaration [type: float] [field] }
+[UseAbility] ability { declaration [type: EntityAbility] [argument] }
+[EntityAbility] range { declaration [type: float] [field] }
+[UseAbility] ability { declaration [type: EntityAbility] [argument] }
+[EntityAbility] duration { declaration [type: float] [field] }
+[Entity] targetType { declaration [type: TargetType] [field] }
+[UseAbility] targetType { declaration [type: TargetType] [argument] }
+[Entity] damage { declaration [type: int] [field] }
+[UseAbility] ability { declaration [type: EntityAbility] [argument] }
+[EntityAbility] damage { declaration [type: int] [field] }
+[UseAbility] ability { declaration [type: EntityAbility] [argument] }
+[EntityAbility] flags { declaration [type: Property<AbilityFlag>] [field] }
+[Property] HasProperty { function [def] }
+[Entity] AbilityFlag { type [def] [product] }
+[AbilityFlag] AwayFromPlayer { constant }
+[Entity] targetDir { declaration [type: Vector2] [field] }
+[Entity] targetPos { declaration [type: Vector2] [field] }
+[NULL] Vector2 { type [def] [product] }
+[NULL] Vector2 { type [def] [product] }
+[UseAbility] ability { declaration [type: EntityAbility] [argument] }
+[EntityAbility] flags { declaration [type: Property<AbilityFlag>] [field] }
+[Property] HasProperty { function [def] }
+[Entity] AbilityFlag { type [def] [product] }
+[AbilityFlag] LockOnPlayerForEternity { constant }
+[Entity] testProperties { declaration [type: Property<VFXProperty>[]] [field] }
+[Property] SetProperty { function [def] }
+[Entity] VFXProperty { type [def] [product] }
+[VFXProperty] StartTrailing { constant }
+[Entity] StartFalling { function [def] }
+[Entity] AbilityType { type [def] [product] }
+[AbilityType] Teleport { constant }
+[{] playerUp { declaration [type: float] [local] }
+[NULL] GameManager { type [def] [product] }
+[GameManager] player { declaration [type: Entity] [field] }
+[{] destination { declaration [type: Vector3] [local] }
+[{] destination { declaration [type: Vector3] [local] }
+[NULL] GameManager { type [def] [product] }
+[GameManager] player { declaration [type: Entity] [field] }
+[{] destination { declaration [type: Vector3] [local] }
+[Entity] spriteExtents { declaration [type: Vector2] [field] }
+[NULL] GameManager { type [def] [product] }
+[GameManager] player { declaration [type: Entity] [field] }
+[Entity] spriteExtents { declaration [type: Vector2] [field] }
+[{] playerUp { declaration [type: float] [local] }
+[{] distance { declaration [type: float] [local] }
+[UseAbility] ability { declaration [type: EntityAbility] [argument] }
+[EntityAbility] range { declaration [type: float] [field] }
+[NULL] GameManager { type [def] [product] }
+[GameManager] player { declaration [type: Entity] [field] }
+[{] IsPosValid { function [def] }
+[{] distance { declaration [type: float] [local] }
+[{] IsPosValid { function [def] }
+[{] distance { declaration [type: float] [local] }
+[{] IsPosValid { function [def] }
+[IsPosValid] offsetX { declaration [type: float] [argument] }
+[IsPosValid] offset { declaration [type: Vector3] [local] }
+[IsPosValid] offsetX { declaration [type: float] [argument] }
+[IsPosValid] onGround { declaration [type: bool] [local] }
+[{] destination { declaration [type: Vector3] [local] }
+[IsPosValid] offset { declaration [type: Vector3] [local] }
+[Entity] spriteExtents { declaration [type: Vector2] [field] }
+[{] playerUp { declaration [type: float] [local] }
+[NULL] Vector2 { type [def] [product] }
+[Entity] spriteExtents { declaration [type: Vector2] [field] }
+[IsPosValid] insideWall { declaration [type: bool] [local] }
+[{] destination { declaration [type: Vector3] [local] }
+[IsPosValid] offset { declaration [type: Vector3] [local] }
+[{] playerUp { declaration [type: float] [local] }
+[Entity] sr { declaration [type: SpriteRenderer] [field] }
+[IsPosValid] onGround { declaration [type: bool] [local] }
+[IsPosValid] insideWall { declaration [type: bool] [local] }
+[{] destination { declaration [type: Vector3] [local] }
+[IsPosValid] offsetX { declaration [type: float] [argument] }
+[{] playerUp { declaration [type: float] [local] }
+[{] destination { declaration [type: Vector3] [local] }
+[Entity] CalculateMoveRegion { function [def] }
+[Entity] AbilityType { type [def] [product] }
+[AbilityType] Explode { constant }
+[Entity] IsInRange { function [def] }
+[UseAbility] ability { declaration [type: EntityAbility] [argument] }
+[EntityAbility] range { declaration [type: float] [field] }
+[NULL] GameManager { type [def] [product] }
+[GameManager] player { declaration [type: Entity] [field] }
+[NULL] GameManager { type [def] [product] }
+[GameManager] player { declaration [type: Entity] [field] }
+[Entity] Hurt { function [def] }
+[UseAbility] ability { declaration [type: EntityAbility] [argument] }
+[EntityAbility] damage { declaration [type: int] [field] }
+[Entity] AbilityType { type [def] [product] }
+[AbilityType] Jump { constant }
+[UseAbility] ability { declaration [type: EntityAbility] [argument] }
+[EntityAbility] duration { declaration [type: float] [field] }
+[UseAbility] cooldownTime { declaration [type: float] [local] }
+[UseAbility] ability { declaration [type: EntityAbility] [argument] }
+[EntityAbility] cooldownTime { declaration [type: float] [field] }
+[Entity] speed { declaration [type: float] [field] }
+[UseAbility] speed { declaration [type: float] [argument] }
+[Entity] targetType { declaration [type: TargetType] [field] }
+[UseAbility] targetType { declaration [type: TargetType] [argument] }
+[Entity] moveType { declaration [type: MoveType] [field] }
+[UseAbility] moveType { declaration [type: MoveType] [argument] }
+[Entity] currentAbility { declaration [type: int] [field] }
+[Entity] currentAbility { declaration [type: int] [field] }
+[Entity] abilities { declaration [type: EntityAbility[]] [field] }
+[UseAbility] cooldownTime { declaration [type: float] [local] }
+[UseAbility] ability { declaration [type: EntityAbility] [argument] }
+[EntityAbility] flags { declaration [type: Property<AbilityFlag>] [field] }
+[Property] SetProperty { function [def] }
+[Entity] AbilityFlag { type [def] [product] }
+[AbilityFlag] CanExecute { constant }
+[Entity] TargetOffsetType { type [def] [product] }
+[TargetOffsetType] None { constant }
+[TargetOffsetType] Mouse { constant }
+[TargetOffsetType] Player { constant }
+[Entity] MoveRegionType { type [def] [product] }
+[MoveRegionType] None { constant }
+[MoveRegionType] Ground { constant }
+[MoveRegionType] Vertical { constant }
+[Entity] AttackTrigger { type [def] [product] }
+[AttackTrigger] None { constant }
+[AttackTrigger] MouseInput { constant }
+[NULL] Property { type [def] [product] }
+[NULL] EntityProperty { type [def] [product] }
+[Entity] properties { declaration [type: Property<EntityProperty>] [field] }
+[NULL] Property { type [def] [product] }
+[Entity] VFXProperty { type [def] [product] }
+[Entity] testProperties { declaration [type: Property<VFXProperty>[]] [field] }
+[Entity] EntityAbility { type [def] [product] }
+[Entity] abilities { declaration [type: EntityAbility[]] [field] }
+[Entity] currentAbility { declaration [type: int] [field] }
+[Entity] health { declaration [type: int] [field] }
+[Entity] damage { declaration [type: int] [field] }
+[Entity] money { declaration [type: int] [field] }
+[Entity] ammo { declaration [type: int] [field] }
+[Entity] collisionTags { declaration [type: string[]] [field] }
+[NULL] RangedInt { type [def] [product] }
+[Entity] valueRange { declaration [type: RangedInt] [field] }
+[Entity] stat { declaration [type: WeaponStat] [field] }
+[Entity] AttackTrigger { type [def] [product] }
+[Entity] attackTrigger { declaration [type: AttackTrigger] [field] }
+[NULL] RangedFloat { type [def] [product] }
+[Entity] attackDuration { declaration [type: RangedFloat] [field] }
+[Entity] MoveType { type [def] [product] }
+[Entity] moveType { declaration [type: MoveType] [field] }
+[Entity] RotateType { type [def] [product] }
+[Entity] rotateType { declaration [type: RotateType] [field] }
+[Entity] TargetType { type [def] [product] }
+[Entity] targetType { declaration [type: TargetType] [field] }
+[Entity] speed { declaration [type: float] [field] }
+[Entity] dRotate { declaration [type: float] [field] }
+[Entity] range { declaration [type: float] [field] }
+[Entity] maxFallingSpeed { declaration [type: float] [field] }
+[Entity] TargetOffsetType { type [def] [product] }
+[Entity] offsetType { declaration [type: TargetOffsetType] [field] }
+[NULL] Vector2 { type [def] [product] }
+[Entity] targetOffset { declaration [type: Vector2] [field] }
+[Entity] spring { declaration [type: SpringData] [field] }
+[NULL] RangedFloat { type [def] [product] }
+[Entity] fallDir { declaration [type: RangedFloat] [field] }
+[Entity] MoveRegionType { type [def] [product] }
+[Entity] regionType { declaration [type: MoveRegionType] [field] }
+[Entity] MoveRegionType { type [def] [product] }
+[MoveRegionType] Vertical { constant }
+[Entity] verticalHeight { declaration [type: float] [field] }
+[Entity] moveRegion { declaration [type: Rect] [field] }
+[Entity] moveTime { declaration [type: float] [field] }
+[Entity] moveTimeValue { declaration [type: float] [field] }
+[Entity] groundRememberTime { declaration [type: float] [field] }
+[Entity] groundRemember { declaration [type: float] [field] }
+[Entity] fallRememberTime { declaration [type: float] [field] }
+[Entity] fallRemember { declaration [type: float] [field] }
+[Entity] jumpPressedRememberTime { declaration [type: float] [field] }
+[Entity] jumpPressedRemember { declaration [type: float] [field] }
+[Entity] footstepAudio { declaration [type: AudioType] [field] }
+[NULL] RangedFloat { type [def] [product] }
+[Entity] timeBtwFootsteps { declaration [type: RangedFloat] [field] }
+[Entity] timeBtwFootstepsValue { declaration [type: float] [field] }
+[NULL] Vector2 { type [def] [product] }
+[Entity] velocity { declaration [type: Vector2] [field] }
+[Entity] rb { declaration [type: Rigidbody2D] [field] }
+[Entity] cd { declaration [type: Collider2D] [field] }
+[Entity] speedY { declaration [type: float] [field] }
+[NULL] Vector2 { type [def] [product] }
+[Entity] targetDir { declaration [type: Vector2] [field] }
+[NULL] Vector2 { type [def] [product] }
+[Entity] targetPos { declaration [type: Vector2] [field] }
+[NULL] Vector2 { type [def] [product] }
+[Entity] offsetDir { declaration [type: Vector2] [field] }
+[NULL] EntityState { type [def] [product] }
+[Entity] state { declaration [type: EntityState] [field] }
+[Entity] whiteMat { declaration [type: Material] [field] }
+[Entity] leftDust { declaration [type: ParticleSystem] [field] }
+[Entity] rightDust { declaration [type: ParticleSystem] [field] }
+[Entity] vfx { declaration [type: VFXCollection] [field] }
+[Entity] EntityVFX { type [def] [product] }
+[Entity] spawnVFX { declaration [type: EntityVFX] [field] }
+[Entity] deathVFX { declaration [type: EntityVFX] [field] }
+[Entity] hurtVFX { declaration [type: EntityVFX] [field] }
+[Entity] text { declaration [type: TMPro.TextMeshPro] [field] }
+[Entity] trail { declaration [type: TrailRenderer] [field] }
+[Entity] anim { declaration [type: Animator] [field] }
+[Entity] sr { declaration [type: SpriteRenderer] [field] }
+[NULL] Vector2 { type [def] [product] }
+[Entity] spriteExtents { declaration [type: Vector2] [field] }
+[Entity] OnObjectInit { function [def] }
+[Entity] HasProperty { function [def] }
+[NULL] EntityProperty { type [def] [product] }
+[EntityProperty] UsePooling { constant }
+[Entity] Init { function [def] }
+[Entity] deathVFX { declaration [type: EntityVFX] [field] }
+[EntityVFX] done { declaration [type: System.Action] [field] }
+[Entity] CustomInit { function [def] }
+[Entity] Init { function [def] }
+[Entity] OnObjectSpawn { function [def] }
+[Entity] OnObjectSpawn { function [def] }
+[Entity] moveTimeValue { declaration [type: float] [field] }
+[Entity] moveTime { declaration [type: float] [field] }
+[Entity] CalculateMoveRegion { function [def] }
+[Entity] HasProperty { function [def] }
+[NULL] EntityProperty { type [def] [product] }
+[EntityProperty] FallingOnSpawn { constant }
+[Entity] StartFalling { function [def] }
+[Entity] Start { function [def] }
+[Entity] HasProperty { function [def] }
+[NULL] EntityProperty { type [def] [product] }
+[EntityProperty] UsePooling { constant }
+[Entity] HasProperty { function [def] }
+[NULL] EntityProperty { type [def] [product] }
+[EntityProperty] CustomInit { constant }
+[Entity] Init { function [def] }
+[Entity] OnObjectSpawn { function [def] }
+[Entity] deathVFX { declaration [type: EntityVFX] [field] }
+[EntityVFX] done { declaration [type: System.Action] [field] }
+[Entity] Init { function [def] }
+[Entity] rb { declaration [type: Rigidbody2D] [field] }
+[Entity] cd { declaration [type: Collider2D] [field] }
+[Entity] text { declaration [type: TMPro.TextMeshPro] [field] }
+[Entity] trail { declaration [type: TrailRenderer] [field] }
+[Entity] anim { declaration [type: Animator] [field] }
+[Entity] sr { declaration [type: SpriteRenderer] [field] }
+[Entity] rb { declaration [type: Rigidbody2D] [field] }
+[Entity] maxFallingSpeed { declaration [type: float] [field] }
+[{] drag { declaration [type: float] [local] }
+[Entity] rb { declaration [type: Rigidbody2D] [field] }
+[Entity] maxFallingSpeed { declaration [type: float] [field] }
+[{] drag { declaration [type: float] [local] }
+[{] drag { declaration [type: float] [local] }
+[Entity] rb { declaration [type: Rigidbody2D] [field] }
+[{] drag { declaration [type: float] [local] }
+[Entity] whiteMat { declaration [type: Material] [field] }
+[Entity] whiteMat { declaration [type: Material] [field] }
+[Entity] whiteMat { declaration [type: Material] [field] }
+[Entity] sr { declaration [type: SpriteRenderer] [field] }
+[Entity] spriteExtents { declaration [type: Vector2] [field] }
+[Entity] sr { declaration [type: SpriteRenderer] [field] }
+[Entity] HasProperty { function [def] }
+[NULL] EntityProperty { type [def] [product] }
+[EntityProperty] SpawnCellWhenDie { constant }
+[Entity] deathVFX { declaration [type: EntityVFX] [field] }
+[EntityVFX] done { declaration [type: System.Action] [field] }
+[] dropValue { declaration [type: int] [local] }
+[Entity] valueRange { declaration [type: RangedInt] [field] }
+[RangedInt] randomValue { declaration [type: int] [property] }
+[] i { declaration [type: int] [local] }
+[] i { declaration [type: int] [local] }
+[] dropValue { declaration [type: int] [local] }
+[] i { declaration [type: int] [local] }
+[Entity] MoveType { type [def] [product] }
+[Init] move { declaration [type: MoveType] [local] }
+[Entity] moveType { declaration [type: MoveType] [field] }
+[Entity] RotateType { type [def] [product] }
+[Init] rotate { declaration [type: RotateType] [local] }
+[Entity] rotateType { declaration [type: RotateType] [field] }
+[Entity] hurtVFX { declaration [type: EntityVFX] [field] }
+[EntityVFX] done { declaration [type: System.Action] [field] }
+[Entity] SetProperty { function [def] }
+[NULL] EntityProperty { type [def] [product] }
+[EntityProperty] CanBeHurt { constant }
+[Entity] moveType { declaration [type: MoveType] [field] }
+[Init] move { declaration [type: MoveType] [local] }
+[Entity] rotateType { declaration [type: RotateType] [field] }
+[Init] rotate { declaration [type: RotateType] [local] }
+[Entity] ammo { declaration [type: int] [field] }
+[Entity] stat { declaration [type: WeaponStat] [field] }
+[Entity] spring { declaration [type: SpringData] [field] }
+[Entity] spring { declaration [type: SpringData] [field] }
+[Entity] spring { declaration [type: SpringData] [field] }
+[NULL] GameManager { type [def] [product] }
+[GameManager] player { declaration [type: Entity] [field] }
+[Entity] state { declaration [type: EntityState] [field] }
+[NULL] EntityState { type [def] [product] }
+[EntityState] OnSpawn { constant }
+[Entity] InitCamera { function [def] }
+[InitCamera] automatic { declaration [type: bool] [argument] }
+[InitCamera] useSmoothDamp { declaration [type: bool] [argument] }
+[NULL] Vector2 { type [def] [product] }
+[InitCamera] value { declaration [type: Vector2] [argument] }
+[InitCamera] waitTime { declaration [type: float] [argument] }
+[Entity] SetProperty { function [def] }
+[NULL] EntityProperty { type [def] [product] }
+[EntityProperty] StartAtMinMoveRegion { constant }
+[InitCamera] automatic { declaration [type: bool] [argument] }
+[Entity] offsetType { declaration [type: TargetOffsetType] [field] }
+[InitCamera] automatic { declaration [type: bool] [argument] }
+[Entity] TargetOffsetType { type [def] [product] }
+[TargetOffsetType] None { constant }
+[Entity] TargetOffsetType { type [def] [product] }
+[TargetOffsetType] Mouse { constant }
+[Entity] targetType { declaration [type: TargetType] [field] }
+[InitCamera] automatic { declaration [type: bool] [argument] }
+[Entity] TargetType { type [def] [product] }
+[TargetType] MoveRegion { constant }
+[Entity] TargetType { type [def] [product] }
+[TargetType] Player { constant }
+[Entity] speed { declaration [type: float] [field] }
+[InitCamera] value { declaration [type: Vector2] [argument] }
+[Entity] moveType { declaration [type: MoveType] [field] }
+[InitCamera] useSmoothDamp { declaration [type: bool] [argument] }
+[Entity] MoveType { type [def] [product] }
+[MoveType] SmoothDamp { constant }
+[Entity] MoveType { type [def] [product] }
+[MoveType] Fly { constant }
+[Entity] speed { declaration [type: float] [field] }
+[InitCamera] value { declaration [type: Vector2] [argument] }
+[Entity] speedY { declaration [type: float] [field] }
+[InitCamera] value { declaration [type: Vector2] [argument] }
+[Entity] abilities { declaration [type: EntityAbility[]] [field] }
+[EntityAbility] flags { declaration [type: Property<AbilityFlag>] [field] }
+[NULL] Property { type [def] [product] }
+[Entity] AbilityFlag { type [def] [product] }
+[Entity] AbilityFlag { type [def] [product] }
+[AbilityFlag] ExecuteWhenOutOfMoveRegion { constant }
+[Entity] AbilityFlag { type [def] [product] }
+[AbilityFlag] CanExecute { constant }
+[Entity] abilities { declaration [type: EntityAbility[]] [field] }
+[EntityAbility] chargeTime { declaration [type: float] [field] }
+[InitCamera] waitTime { declaration [type: float] [argument] }
+[] room { declaration [type: NULL] [argument] }
+[InitCamera] ToNextRoom { function [def] }
+[NULL] GameManager { type [def] [product] }
+[GameManager] GetBoundsFromRoom { function [def] }
+[] room { declaration [type: NULL] [argument] }
+[InitCamera] ToNextRoom { function [def] }
+[ToNextRoom] roomRect { declaration [type: Rect] [argument] }
+[Entity] moveRegion { declaration [type: Rect] [field] }
+[ToNextRoom] roomRect { declaration [type: Rect] [argument] }
+[Entity] moveRegion { declaration [type: Rect] [field] }
+[NULL] GameManager { type [def] [product] }
+[GameManager] mainCam { declaration [type: Camera] [field] }
+[Entity] moveRegion { declaration [type: Rect] [field] }
+[NULL] GameManager { type [def] [product] }
+[GameManager] mainCam { declaration [type: Camera] [field] }
+[Entity] moveRegion { declaration [type: Rect] [field] }
+[Entity] moveRegion { declaration [type: Rect] [field] }
+[Entity] moveRegion { declaration [type: Rect] [field] }
+[Entity] moveRegion { declaration [type: Rect] [field] }
+[Entity] InitBullet { function [def] }
+[InitBullet] damage { declaration [type: int] [argument] }
+[InitBullet] isCritical { declaration [type: bool] [argument] }
+[InitBullet] hitPlayer { declaration [type: bool] [argument] }
+[Entity] damage { declaration [type: int] [field] }
+[InitBullet] damage { declaration [type: int] [argument] }
+[Entity] SetProperty { function [def] }
+[NULL] EntityProperty { type [def] [product] }
+[EntityProperty] IsCritical { constant }
+[InitBullet] isCritical { declaration [type: bool] [argument] }
+[Entity] collisionTags { declaration [type: string[]] [field] }
+[InitBullet] hitPlayer { declaration [type: bool] [argument] }
+[Entity] InitDamagePopup { function [def] }
+[InitDamagePopup] damage { declaration [type: int] [argument] }
+[InitDamagePopup] isCritical { declaration [type: bool] [argument] }
+[Entity] targetDir { declaration [type: Vector2] [field] }
+[NULL] Vector2 { type [def] [product] }
+[Entity] text { declaration [type: TMPro.TextMeshPro] [field] }
+[InitDamagePopup] damage { declaration [type: int] [argument] }
+[Entity] spawnVFX { declaration [type: EntityVFX] [field] }
+[Entity] EntityVFX { type [def] [product] }
+[Entity] properties { declaration [type: Property<EntityProperty>] [field] }
+[NULL] Property { type [def] [product] }
+[Entity] VFXProperty { type [def] [product] }
+[Entity] VFXProperty { type [def] [product] }
+[VFXProperty] ScaleOverTime { constant }
+[Entity] VFXProperty { type [def] [product] }
+[VFXProperty] FadeTextWhenDone { constant }
+[Entity] moveTime { declaration [type: float] [field] }
+[NULL] Vector2 { type [def] [product] }
+[InitDamagePopup] isCritical { declaration [type: bool] [argument] }
+[InitDamagePopup] isCritical { declaration [type: bool] [argument] }
+[Entity] PlayVFX { function [def] }
+[Entity] spawnVFX { declaration [type: EntityVFX] [field] }
+[Entity] Pickup { function [def] }
+[NULL] GameManager { type [def] [product] }
+[GameManager] player { declaration [type: Entity] [field] }
+[Entity] spring { declaration [type: SpringData] [field] }
+[NULL] GameManager { type [def] [product] }
+[GameManager] player { declaration [type: Entity] [field] }
+[Entity] offsetType { declaration [type: TargetOffsetType] [field] }
+[Entity] TargetOffsetType { type [def] [product] }
+[TargetOffsetType] Player { constant }
+[Entity] moveType { declaration [type: MoveType] [field] }
+[Entity] MoveType { type [def] [product] }
+[MoveType] Spring { constant }
+[Entity] targetType { declaration [type: TargetType] [field] }
+[Entity] TargetType { type [def] [product] }
+[TargetType] Player { constant }
+[Entity] rotateType { declaration [type: RotateType] [field] }
+[Entity] RotateType { type [def] [product] }
+[RotateType] Weapon { constant }
+[Entity] attackTrigger { declaration [type: AttackTrigger] [field] }
+[Entity] AttackTrigger { type [def] [product] }
+[AttackTrigger] MouseInput { constant }
+[Entity] Shoot { function [def] }
+[Shoot] isCritical { declaration [type: bool] [argument] }
+[NULL] Entity { type [def] [product] }
+[Shoot] bullet { declaration [type: Entity] [local] }
+[NULL] Entity { type [def] [product] }
+[Shoot] bullet { declaration [type: Entity] [local] }
+[Entity] InitBullet { function [def] }
+[Shoot] isCritical { declaration [type: bool] [argument] }
+[Entity] stat { declaration [type: WeaponStat] [field] }
+[Entity] stat { declaration [type: WeaponStat] [field] }
+[Shoot] isCritical { declaration [type: bool] [argument] }
+[Entity] Update { function [def] }
+[Update] wasGrounded { declaration [type: bool] [local] }
+[Entity] HasProperty { function [def] }
+[NULL] EntityProperty { type [def] [product] }
+[EntityProperty] IsGrounded { constant }
+[Update] isGrounded { declaration [type: bool] [local] }
+[Entity] SetProperty { function [def] }
+[NULL] EntityProperty { type [def] [product] }
+[EntityProperty] IsGrounded { constant }
+[Entity] spriteExtents { declaration [type: Vector2] [field] }
+[Entity] abilities { declaration [type: EntityAbility[]] [field] }
+[Entity] abilities { declaration [type: EntityAbility[]] [field] }
+[Entity] currentAbility { declaration [type: int] [field] }
+[EntityAbility] flags { declaration [type: Property<AbilityFlag>] [field] }
+[Property] HasProperty { function [def] }
+[Entity] AbilityFlag { type [def] [product] }
+[AbilityFlag] CanExecute { constant }
+[Entity] CanUseAbility { function [def] }
+[Entity] abilities { declaration [type: EntityAbility[]] [field] }
+[Entity] currentAbility { declaration [type: int] [field] }
+[Entity] UseAbility { function [def] }
+[Entity] abilities { declaration [type: EntityAbility[]] [field] }
+[Entity] currentAbility { declaration [type: int] [field] }
+[Entity] moveType { declaration [type: MoveType] [field] }
+[Entity] targetType { declaration [type: TargetType] [field] }
+[Entity] speed { declaration [type: float] [field] }
+[Entity] groundRemember { declaration [type: float] [field] }
+[Update] isGrounded { declaration [type: bool] [local] }
+[Entity] groundRemember { declaration [type: float] [field] }
+[Entity] groundRememberTime { declaration [type: float] [field] }
+[Entity] fallRemember { declaration [type: float] [field] }
+[Update] isGrounded { declaration [type: bool] [local] }
+[Entity] fallRemember { declaration [type: float] [field] }
+[Entity] fallRememberTime { declaration [type: float] [field] }
+[Entity] jumpPressedRemember { declaration [type: float] [field] }
+[Entity] HasProperty { function [def] }
+[NULL] EntityProperty { type [def] [product] }
+[EntityProperty] CanJump { constant }
+[Entity] jumpPressedRemember { declaration [type: float] [field] }
+[Entity] jumpPressedRememberTime { declaration [type: float] [field] }
+[Entity] HasProperty { function [def] }
+[NULL] EntityProperty { type [def] [product] }
+[EntityProperty] FallingOnSpawn { constant }
+[Update] isGrounded { declaration [type: bool] [local] }
+[{] canShoot { declaration [type: bool] [local] }
+[{] canReload { declaration [type: bool] [local] }
+[Entity] attackTrigger { declaration [type: AttackTrigger] [field] }
+[Entity] AttackTrigger { type [def] [product] }
+[AttackTrigger] MouseInput { constant }
+[Entity] HasProperty { function [def] }
+[NULL] EntityProperty { type [def] [product] }
+[EntityProperty] IsReloading { constant }
+[{] canShoot { declaration [type: bool] [local] }
+[Entity] ammo { declaration [type: int] [field] }
+[{] canReload { declaration [type: bool] [local] }
+[Entity] ammo { declaration [type: int] [field] }
+[Entity] stat { declaration [type: WeaponStat] [field] }
+[{] canShoot { declaration [type: bool] [local] }
+[Entity] attackDuration { declaration [type: RangedFloat] [field] }
+[RangedFloat] max { declaration [type: float] [field] }
+[Entity] ammo { declaration [type: int] [field] }
+[Entity] attackDuration { declaration [type: RangedFloat] [field] }
+[RangedFloat] max { declaration [type: float] [field] }
+[Entity] stat { declaration [type: WeaponStat] [field] }
+[Entity] state { declaration [type: EntityState] [field] }
+[NULL] EntityState { type [def] [product] }
+[EntityState] StartAttack { constant }
+[{] isCritical { declaration [type: bool] [local] }
+[Entity] stat { declaration [type: WeaponStat] [field] }
+[{] rot { declaration [type: float] [local] }
+[Entity] attackDuration { declaration [type: RangedFloat] [field] }
+[RangedFloat] range { declaration [type: float] [property] }
+[Entity] attackDuration { declaration [type: RangedFloat] [field] }
+[RangedFloat] range { declaration [type: float] [property] }
+[Entity] Shoot { function [def] }
+[{] isCritical { declaration [type: bool] [local] }
+[Entity] ammo { declaration [type: int] [field] }
+[{] canShoot { declaration [type: bool] [local] }
+[{] canReload { declaration [type: bool] [local] }
+[{] Reloading { function [def] }
+[Entity] stat { declaration [type: WeaponStat] [field] }
+[NULL] GameManager { type [def] [product] }
+[GameManager] gameUI { declaration [type: GameUI] [field] }
+[] enable { declaration [type: NULL] [argument] }
+[NULL] GameManager { type [def] [product] }
+[GameManager] gameUI { declaration [type: GameUI] [field] }
+[] enable { declaration [type: NULL] [argument] }
+[Entity] stat { declaration [type: WeaponStat] [field] }
+[] enable { declaration [type: NULL] [argument] }
+[Entity] SetProperty { function [def] }
+[NULL] EntityProperty { type [def] [product] }
+[EntityProperty] IsReloading { constant }
+[] enable { declaration [type: NULL] [argument] }
+[Entity] ammo { declaration [type: int] [field] }
+[] enable { declaration [type: NULL] [argument] }
+[Entity] stat { declaration [type: WeaponStat] [field] }
+[{] Reloading { function [def] }
+[Reloading] stat { declaration [type: WeaponStat] [argument] }
+[Reloading] updateUI { declaration [type: System.Func<float, bool, bool>] [argument] }
+[Reloading] enable { declaration [type: System.Action<bool>] [argument] }
+[Reloading] enable { declaration [type: System.Action<bool>] [argument] }
+[Reloading] maxTime { declaration [type: float] [local] }
+[Reloading] stat { declaration [type: WeaponStat] [argument] }
+[Reloading] t { declaration [type: float] [local] }
+[Reloading] hasReloaded { declaration [type: bool] [local] }
+[Reloading] t { declaration [type: float] [local] }
+[Reloading] maxTime { declaration [type: float] [local] }
+[Reloading] t { declaration [type: float] [local] }
+[Reloading] hasReloaded { declaration [type: bool] [local] }
+[{] isPerfect { declaration [type: bool] [local] }
+[Reloading] updateUI { declaration [type: System.Func<float, bool, bool>] [argument] }
+[Reloading] t { declaration [type: float] [local] }
+[Reloading] hasReloaded { declaration [type: bool] [local] }
+[Reloading] hasReloaded { declaration [type: bool] [local] }
+[Reloading] maxTime { declaration [type: float] [local] }
+[{] isPerfect { declaration [type: bool] [local] }
+[Reloading] stat { declaration [type: WeaponStat] [argument] }
+[Reloading] stat { declaration [type: WeaponStat] [argument] }
+[Reloading] enable { declaration [type: System.Action<bool>] [argument] }
+[{] canShoot { declaration [type: bool] [local] }
+[Entity] attackDuration { declaration [type: RangedFloat] [field] }
+[RangedFloat] min { declaration [type: float] [field] }
+[Entity] attackDuration { declaration [type: RangedFloat] [field] }
+[RangedFloat] max { declaration [type: float] [field] }
+[Entity] moveTimeValue { declaration [type: float] [field] }
+[Entity] HasProperty { function [def] }
+[NULL] EntityProperty { type [def] [product] }
+[EntityProperty] DieAfterMoveTime { constant }
+[Entity] Die { function [def] }
+[Entity] RotateEntity { function [def] }
+[Entity] rotateType { declaration [type: RotateType] [field] }
+[Entity] dRotate { declaration [type: float] [field] }
+[Entity] velocity { declaration [type: Vector2] [field] }
+[NULL] Vector2 { type [def] [product] }
+[Update] prevVelocity { declaration [type: Vector2] [local] }
+[Entity] velocity { declaration [type: Vector2] [field] }
+[Entity] MoveEntity { function [def] }
+[Entity] HasProperty { function [def] }
+[NULL] EntityProperty { type [def] [product] }
+[EntityProperty] ClampToMoveRegion { constant }
+[Entity] moveRegion { declaration [type: Rect] [field] }
+[Entity] moveRegion { declaration [type: Rect] [field] }
+[Update] startJumping { declaration [type: bool] [local] }
+[Entity] jumpPressedRemember { declaration [type: float] [field] }
+[Entity] groundRemember { declaration [type: float] [field] }
+[Entity] EntityVFX { type [def] [product] }
+[{] playerVFX { declaration [type: EntityVFX] [local] }
+[Entity] EntityVFX { type [def] [product] }
+[Entity] velocity { declaration [type: Vector2] [field] }
+[Entity] leftDust { declaration [type: ParticleSystem] [field] }
+[Entity] velocity { declaration [type: Vector2] [field] }
+[Entity] rightDust { declaration [type: ParticleSystem] [field] }
+[Update] startJumping { declaration [type: bool] [local] }
+[Entity] state { declaration [type: EntityState] [field] }
+[NULL] EntityState { type [def] [product] }
+[EntityState] Jumping { constant }
+[Entity] jumpPressedRemember { declaration [type: float] [field] }
+[Entity] groundRemember { declaration [type: float] [field] }
+[Entity] SetProperty { function [def] }
+[NULL] EntityProperty { type [def] [product] }
+[EntityProperty] IsGrounded { constant }
+[Entity] rb { declaration [type: Rigidbody2D] [field] }
+[{] playerVFX { declaration [type: EntityVFX] [local] }
+[EntityVFX] audio { declaration [type: AudioType] [field] }
+[{] playerVFX { declaration [type: EntityVFX] [local] }
+[EntityVFX] scaleOffset { declaration [type: Vector2] [field] }
+[NULL] Vector2 { type [def] [product] }
+[{] playerVFX { declaration [type: EntityVFX] [local] }
+[EntityVFX] rotateTime { declaration [type: float] [field] }
+[{] playerVFX { declaration [type: EntityVFX] [local] }
+[EntityVFX] properties { declaration [type: Property<VFXProperty>] [field] }
+[Property] SetProperty { function [def] }
+[Entity] VFXProperty { type [def] [product] }
+[VFXProperty] FlipX { constant }
+[Update] wasGrounded { declaration [type: bool] [local] }
+[Update] isGrounded { declaration [type: bool] [local] }
+[Entity] state { declaration [type: EntityState] [field] }
+[NULL] EntityState { type [def] [product] }
+[EntityState] Landing { constant }
+[Entity] HasProperty { function [def] }
+[NULL] EntityProperty { type [def] [product] }
+[EntityProperty] FallingOnSpawn { constant }
+[Entity] StartFalling { function [def] }
+[{] playerVFX { declaration [type: EntityVFX] [local] }
+[EntityVFX] audio { declaration [type: AudioType] [field] }
+[{] playerVFX { declaration [type: EntityVFX] [local] }
+[EntityVFX] scaleOffset { declaration [type: Vector2] [field] }
+[NULL] Vector2 { type [def] [product] }
+[Entity] velocity { declaration [type: Vector2] [field] }
+[{] capsule { declaration [type: CapsuleCollider2D] [local] }
+[Entity] cd { declaration [type: Collider2D] [field] }
+[{] capsule { declaration [type: CapsuleCollider2D] [local] }
+[{] capsule { declaration [type: CapsuleCollider2D] [local] }
+[{] playerVFX { declaration [type: EntityVFX] [local] }
+[EntityVFX] done { declaration [type: System.Action] [field] }
+[{] capsule { declaration [type: CapsuleCollider2D] [local] }
+[Update] wasGrounded { declaration [type: bool] [local] }
+[Update] isGrounded { declaration [type: bool] [local] }
+[Entity] state { declaration [type: EntityState] [field] }
+[NULL] EntityState { type [def] [product] }
+[EntityState] Falling { constant }
+[{] playerVFX { declaration [type: EntityVFX] [local] }
+[Entity] EntityVFX { type [def] [product] }
+[Entity] properties { declaration [type: Property<EntityProperty>] [field] }
+[NULL] Property { type [def] [product] }
+[Entity] VFXProperty { type [def] [product] }
+[Entity] VFXProperty { type [def] [product] }
+[VFXProperty] StopAnimation { constant }
+[{] playerVFX { declaration [type: EntityVFX] [local] }
+[Update] isGrounded { declaration [type: bool] [local] }
+[NULL] Vector2 { type [def] [product] }
+[{] deltaVelocity { declaration [type: Vector2] [local] }
+[Entity] velocity { declaration [type: Vector2] [field] }
+[Update] prevVelocity { declaration [type: Vector2] [local] }
+[Entity] velocity { declaration [type: Vector2] [field] }
+[Entity] timeBtwFootstepsValue { declaration [type: float] [field] }
+[Entity] timeBtwFootstepsValue { declaration [type: float] [field] }
+[Entity] timeBtwFootsteps { declaration [type: RangedFloat] [field] }
+[RangedFloat] randomValue { declaration [type: float] [property] }
+[{] playerVFX { declaration [type: EntityVFX] [local] }
+[Entity] EntityVFX { type [def] [product] }
+[Entity] footstepAudio { declaration [type: AudioType] [field] }
+[{] deltaVelocity { declaration [type: Vector2] [local] }
+[{] playerVFX { declaration [type: EntityVFX] [local] }
+[{] playerVFX { declaration [type: EntityVFX] [local] }
+[Entity] EntityVFX { type [def] [product] }
+[{] playerVFX { declaration [type: EntityVFX] [local] }
+[EntityVFX] particles { declaration [type: ParticleSystem[]] [field] }
+[{] deltaVelocity { declaration [type: Vector2] [local] }
+[Entity] leftDust { declaration [type: ParticleSystem] [field] }
+[Entity] rightDust { declaration [type: ParticleSystem] [field] }
+[Update] prevVelocity { declaration [type: Vector2] [local] }
+[Entity] state { declaration [type: EntityState] [field] }
+[NULL] EntityState { type [def] [product] }
+[EntityState] StartMoving { constant }
+[{] playerVFX { declaration [type: EntityVFX] [local] }
+[EntityVFX] nextAnimation { declaration [type: string] [field] }
+[Entity] velocity { declaration [type: Vector2] [field] }
+[Entity] state { declaration [type: EntityState] [field] }
+[NULL] EntityState { type [def] [product] }
+[EntityState] StopMoving { constant }
+[{] playerVFX { declaration [type: EntityVFX] [local] }
+[EntityVFX] nextAnimation { declaration [type: string] [field] }
+[NULL] SCRIPTABLE_VFX { macro }
+[NULL] GameManager { type [def] [product] }
+[GameManager] player { declaration [type: Entity] [field] }
+[Entity] PlayVFX { function [def] }
+[{] playerVFX { declaration [type: EntityVFX] [local] }
+[Entity] vfx { declaration [type: VFXCollection] [field] }
+[{] effect { declaration [type: var] [local] }
+[Entity] vfx { declaration [type: VFXCollection] [field] }
+[Entity] state { declaration [type: EntityState] [field] }
+[Entity] PlayVFX { function [def] }
+[{] effect { declaration [type: var] [local] }
+[Entity] state { declaration [type: EntityState] [field] }
+[NULL] EntityState { type [def] [product] }
+[EntityState] None { constant }
+[Entity] PlayVFX { function [def] }
+[PlayVFX] vfx { declaration [type: VFX] [argument] }
+[PlayVFX] vfx { declaration [type: VFX] [argument] }
+[PlayVFX] vfx { declaration [type: VFX] [argument] }
+[PlayVFX] vfx { declaration [type: VFX] [argument] }
+[PlayVFX] vfx { declaration [type: VFX] [argument] }
+[PlayVFX] after { declaration [type: System.Action] [local] }
+[PlayVFX] enumerators { declaration [type: IEnumerator[]] [local] }
+[PlayVFX] enumeratorCount { declaration [type: int] [local] }
+[{] duration { declaration [type: float] [local] }
+[PlayVFX] vfx { declaration [type: VFX] [argument] }
+[PlayVFX] vfx { declaration [type: VFX] [argument] }
+[PlayVFX] vfx { declaration [type: VFX] [argument] }
+[{] Offset { function [def] }
+[] p { declaration [type: NULL] [argument] }
+[] p { declaration [type: NULL] [argument] }
+[PlayVFX] vfx { declaration [type: VFX] [argument] }
+[PlayVFX] vfx { declaration [type: VFX] [argument] }
+[{] Offset { function [def] }
+[] s { declaration [type: NULL] [argument] }
+[] s { declaration [type: NULL] [argument] }
+[{] Offset { function [def] }
+[Offset] getter { declaration [type: System.Func<Vector3>] [argument] }
+[Offset] setter { declaration [type: System.Action<Vector3>] [argument] }
+[Offset] ChangeOverTime { function [def] }
+[] p { declaration [type: NULL] [argument] }
+[Offset] setter { declaration [type: System.Action<Vector3>] [argument] }
+[] p { declaration [type: NULL] [argument] }
+[Offset] getter { declaration [type: System.Func<Vector3>] [argument] }
+[Offset] getter { declaration [type: System.Func<Vector3>] [argument] }
+[PlayVFX] vfx { declaration [type: VFX] [argument] }
+[{] duration { declaration [type: float] [local] }
+[PlayVFX] after { declaration [type: System.Action] [local] }
+[Offset] ChangeOverTime { function [def] }
+[] p { declaration [type: NULL] [argument] }
+[Offset] setter { declaration [type: System.Action<Vector3>] [argument] }
+[] p { declaration [type: NULL] [argument] }
+[Offset] getter { declaration [type: System.Func<Vector3>] [argument] }
+[Offset] getter { declaration [type: System.Func<Vector3>] [argument] }
+[PlayVFX] vfx { declaration [type: VFX] [argument] }
+[PlayVFX] vfx { declaration [type: VFX] [argument] }
+[Offset] ChangeOverTime { function [def] }
+[ChangeOverTime] setValue { declaration [type: System.Action<Vector3>] [argument] }
+[ChangeOverTime] startValue { declaration [type: Vector3] [argument] }
+[ChangeOverTime] endValue { declaration [type: Vector3] [argument] }
+[ChangeOverTime] decreaseTime { declaration [type: float] [argument] }
+[ChangeOverTime] decreaseTime { declaration [type: float] [argument] }
+[{] t { declaration [type: float] [local] }
+[{] t { declaration [type: float] [local] }
+[ChangeOverTime] setValue { declaration [type: System.Action<Vector3>] [argument] }
+[ChangeOverTime] startValue { declaration [type: Vector3] [argument] }
+[ChangeOverTime] endValue { declaration [type: Vector3] [argument] }
+[{] t { declaration [type: float] [local] }
+[{] t { declaration [type: float] [local] }
+[ChangeOverTime] decreaseTime { declaration [type: float] [argument] }
+[ChangeOverTime] setValue { declaration [type: System.Action<Vector3>] [argument] }
+[ChangeOverTime] endValue { declaration [type: Vector3] [argument] }
+[PlayVFX] after { declaration [type: System.Action] [local] }
+[] rotation { declaration [type: Vector3] [local] }
+[PlayVFX] vfx { declaration [type: VFX] [argument] }
+[] rotation { declaration [type: Vector3] [local] }
+[PlayVFX] vfx { declaration [type: VFX] [argument] }
+[] rotation { declaration [type: Vector3] [local] }
+[PlayVFX] vfx { declaration [type: VFX] [argument] }
+[] rotation { declaration [type: Vector3] [local] }
+[] rotation { declaration [type: Vector3] [local] }
+[Entity] anim { declaration [type: Animator] [field] }
+[PlayVFX] vfx { declaration [type: VFX] [argument] }
+[Entity] anim { declaration [type: Animator] [field] }
+[PlayVFX] vfx { declaration [type: VFX] [argument] }
+[PlayVFX] vfx { declaration [type: VFX] [argument] }
+[Entity] anim { declaration [type: Animator] [field] }
+[PlayVFX] vfx { declaration [type: VFX] [argument] }
+[PlayVFX] after { declaration [type: System.Action] [local] }
+[Entity] anim { declaration [type: Animator] [field] }
+[PlayVFX] vfx { declaration [type: VFX] [argument] }
+[PlayVFX] vfx { declaration [type: VFX] [argument] }
+[PlayVFX] vfx { declaration [type: VFX] [argument] }
+[PlayVFX] vfx { declaration [type: VFX] [argument] }
+[PlayVFX] vfx { declaration [type: VFX] [argument] }
+[PlayVFX] vfx { declaration [type: VFX] [argument] }
+[PlayVFX] vfx { declaration [type: VFX] [argument] }
+[PlayVFX] vfx { declaration [type: VFX] [argument] }
+[PlayVFX] vfx { declaration [type: VFX] [argument] }
+[PlayVFX] vfx { declaration [type: VFX] [argument] }
+[{] pool { declaration [type: PoolType] [local] }
+[PlayVFX] vfx { declaration [type: VFX] [argument] }
+[{] pool { declaration [type: PoolType] [local] }
+[PlayVFX] vfx { declaration [type: VFX] [argument] }
+[PlayVFX] vfx { declaration [type: VFX] [argument] }
+[PlayVFX] vfx { declaration [type: VFX] [argument] }
+[{] Flashing { function [def] }
+[Entity] sr { declaration [type: SpriteRenderer] [field] }
+[Entity] whiteMat { declaration [type: Material] [field] }
+[PlayVFX] vfx { declaration [type: VFX] [argument] }
+[PlayVFX] vfx { declaration [type: VFX] [argument] }
+[PlayVFX] vfx { declaration [type: VFX] [argument] }
+[{] Flashing { function [def] }
+[Flashing] sr { declaration [type: SpriteRenderer] [argument] }
+[Flashing] whiteMat { declaration [type: Material] [argument] }
+[Flashing] color { declaration [type: Color] [argument] }
+[Flashing] duration { declaration [type: float] [argument] }
+[Flashing] flashTime { declaration [type: float] [argument] }
+[Flashing] whiteMat { declaration [type: Material] [argument] }
+[Flashing] whiteMat { declaration [type: Material] [argument] }
+[Flashing] color { declaration [type: Color] [argument] }
+[Flashing] duration { declaration [type: float] [argument] }
+[{] currentTime { declaration [type: float] [local] }
+[{] defMat { declaration [type: Material] [local] }
+[Flashing] sr { declaration [type: SpriteRenderer] [argument] }
+[Flashing] sr { declaration [type: SpriteRenderer] [argument] }
+[Flashing] whiteMat { declaration [type: Material] [argument] }
+[Flashing] flashTime { declaration [type: float] [argument] }
+[Flashing] sr { declaration [type: SpriteRenderer] [argument] }
+[{] defMat { declaration [type: Material] [local] }
+[Flashing] flashTime { declaration [type: float] [argument] }
+[Flashing] duration { declaration [type: float] [argument] }
+[{] currentTime { declaration [type: float] [local] }
+[Flashing] whiteMat { declaration [type: Material] [argument] }
+[PlayVFX] DecreaseOverTime { function [def] }
+[] alpha { declaration [type: NULL] [argument] }
+[Entity] sr { declaration [type: SpriteRenderer] [field] }
+[] alpha { declaration [type: NULL] [argument] }
+[Entity] sr { declaration [type: SpriteRenderer] [field] }
+[PlayVFX] vfx { declaration [type: VFX] [argument] }
+[PlayVFX] vfx { declaration [type: VFX] [argument] }
+[{] EnableTrail { function [def] }
+[Entity] trail { declaration [type: TrailRenderer] [field] }
+[PlayVFX] vfx { declaration [type: VFX] [argument] }
+[PlayVFX] vfx { declaration [type: VFX] [argument] }
+[PlayVFX] vfx { declaration [type: VFX] [argument] }
+[PlayVFX] after { declaration [type: System.Action] [local] }
+[PlayVFX] DecreaseOverTime { function [def] }
+[] width { declaration [type: NULL] [argument] }
+[Entity] trail { declaration [type: TrailRenderer] [field] }
+[] width { declaration [type: NULL] [argument] }
+[Entity] trail { declaration [type: TrailRenderer] [field] }
+[PlayVFX] vfx { declaration [type: VFX] [argument] }
+[PlayVFX] vfx { declaration [type: VFX] [argument] }
+[{] EnableTrail { function [def] }
+[EnableTrail] trail { declaration [type: TrailRenderer] [argument] }
+[EnableTrail] emitTime { declaration [type: float] [argument] }
+[EnableTrail] stayTime { declaration [type: float] [argument] }
+[EnableTrail] trail { declaration [type: TrailRenderer] [argument] }
+[EnableTrail] trail { declaration [type: TrailRenderer] [argument] }
+[EnableTrail] emitTime { declaration [type: float] [argument] }
+[EnableTrail] trail { declaration [type: TrailRenderer] [argument] }
+[EnableTrail] stayTime { declaration [type: float] [argument] }
+[EnableTrail] trail { declaration [type: TrailRenderer] [argument] }
+[EnableTrail] trail { declaration [type: TrailRenderer] [argument] }
+[EnableTrail] trail { declaration [type: TrailRenderer] [argument] }
+[{] text { declaration [type: TMPro.TextMeshPro] [local] }
+[PlayVFX] vfx { declaration [type: VFX] [argument] }
+[{] text { declaration [type: TMPro.TextMeshPro] [local] }
+[PlayVFX] vfx { declaration [type: VFX] [argument] }
+[PlayVFX] vfx { declaration [type: VFX] [argument] }
+[{] text { declaration [type: TMPro.TextMeshPro] [local] }
+[PlayVFX] vfx { declaration [type: VFX] [argument] }
+[PlayVFX] vfx { declaration [type: VFX] [argument] }
+[PlayVFX] after { declaration [type: System.Action] [local] }
+[PlayVFX] DecreaseOverTime { function [def] }
+[] alpha { declaration [type: NULL] [argument] }
+[{] text { declaration [type: TMPro.TextMeshPro] [local] }
+[] alpha { declaration [type: NULL] [argument] }
+[{] text { declaration [type: TMPro.TextMeshPro] [local] }
+[PlayVFX] vfx { declaration [type: VFX] [argument] }
+[PlayVFX] vfx { declaration [type: VFX] [argument] }
+[PlayVFX] after { declaration [type: System.Action] [local] }
+[PlayVFX] DecreaseOverTime { function [def] }
+[DecreaseOverTime] setValue { declaration [type: System.Action<float>] [argument] }
+[DecreaseOverTime] startValue { declaration [type: float] [argument] }
+[DecreaseOverTime] decreaseTime { declaration [type: float] [argument] }
+[DecreaseOverTime] decreaseTime { declaration [type: float] [argument] }
+[{] t { declaration [type: float] [local] }
+[{] t { declaration [type: float] [local] }
+[DecreaseOverTime] setValue { declaration [type: System.Action<float>] [argument] }
+[DecreaseOverTime] startValue { declaration [type: float] [argument] }
+[{] t { declaration [type: float] [local] }
+[{] t { declaration [type: float] [local] }
+[DecreaseOverTime] decreaseTime { declaration [type: float] [argument] }
+[DecreaseOverTime] setValue { declaration [type: System.Action<float>] [argument] }
+[DecreaseOverTime] startValue { declaration [type: float] [argument] }
+[Entity] TargetType { type [def] [product] }
+[TargetType] None { constant }
+[TargetType] Input { constant }
+[TargetType] Player { constant }
+[TargetType] Random { constant }
+[TargetType] MoveDir { constant }
+[TargetType] MoveRegion { constant }
+[TargetType] Target { constant }
+[TargetType] Count { constant }
+[Entity] MoveType { type [def] [product] }
+[MoveType] None { constant }
+[MoveType] Run { constant }
+[MoveType] Fly { constant }
+[MoveType] SmoothDamp { constant }
+[MoveType] Custom { constant }
+[MoveType] Spring { constant }
+[MoveType] Count { constant }
+[Entity] MoveEntity { function [def] }
+[Entity] SetProperty { function [def] }
+[NULL] EntityProperty { type [def] [product] }
+[EntityProperty] AtEndOfMoveRegion { constant }
+[Entity] targetType { declaration [type: TargetType] [field] }
+[Entity] TargetType { type [def] [product] }
+[TargetType] Input { constant }
+[Entity] targetDir { declaration [type: Vector2] [field] }
+[NULL] Vector2 { type [def] [product] }
+[Entity] TargetType { type [def] [product] }
+[TargetType] Player { constant }
+[Entity] targetPos { declaration [type: Vector2] [field] }
+[NULL] GameManager { type [def] [product] }
+[GameManager] player { declaration [type: Entity] [field] }
+[Entity] TargetType { type [def] [product] }
+[TargetType] Target { constant }
+[Entity] TargetType { type [def] [product] }
+[TargetType] Random { constant }
+[Entity] targetDir { declaration [type: Vector2] [field] }
+[Entity] TargetType { type [def] [product] }
+[TargetType] MoveDir { constant }
+[Entity] targetDir { declaration [type: Vector2] [field] }
+[Entity] TargetType { type [def] [product] }
+[TargetType] MoveRegion { constant }
+[Entity] targetPos { declaration [type: Vector2] [field] }
+[Entity] moveRegion { declaration [type: Rect] [field] }
+[Entity] targetPos { declaration [type: Vector2] [field] }
+[Entity] moveRegion { declaration [type: Rect] [field] }
+[{] SwitchTargetToMax { function [def] }
+[Entity] targetPos { declaration [type: Vector2] [field] }
+[Entity] moveRegion { declaration [type: Rect] [field] }
+[Entity] moveRegion { declaration [type: Rect] [field] }
+[{] SwitchTargetToMax { function [def] }
+[Entity] targetPos { declaration [type: Vector2] [field] }
+[Entity] moveRegion { declaration [type: Rect] [field] }
+[Entity] moveRegion { declaration [type: Rect] [field] }
+[{] SwitchTargetToMax { function [def] }
+[{] SwitchTargetToMax { function [def] }
+[SwitchTargetToMax] toMax { declaration [type: bool] [argument] }
+[SwitchTargetToMax] atEndOfMoveRegion { declaration [type: bool] [argument] }
+[Entity] targetPos { declaration [type: Vector2] [field] }
+[SwitchTargetToMax] toMax { declaration [type: bool] [argument] }
+[Entity] moveRegion { declaration [type: Rect] [field] }
+[Entity] moveRegion { declaration [type: Rect] [field] }
+[Entity] velocity { declaration [type: Vector2] [field] }
+[NULL] Vector2 { type [def] [product] }
+[Entity] SetProperty { function [def] }
+[NULL] EntityProperty { type [def] [product] }
+[EntityProperty] AtEndOfMoveRegion { constant }
+[SwitchTargetToMax] atEndOfMoveRegion { declaration [type: bool] [argument] }
+[SwitchTargetToMax] atEndOfMoveRegion { declaration [type: bool] [argument] }
+[Entity] HasProperty { function [def] }
+[NULL] EntityProperty { type [def] [product] }
+[EntityProperty] StartAtMinMoveRegion { constant }
+[Entity] moveRegion { declaration [type: Rect] [field] }
+[Entity] TargetType { type [def] [product] }
+[TargetType] Target { constant }
+[Entity] TargetType { type [def] [product] }
+[TargetType] Target { constant }
+[Entity] offsetType { declaration [type: TargetOffsetType] [field] }
+[Entity] TargetOffsetType { type [def] [product] }
+[TargetOffsetType] Mouse { constant }
+[Entity] offsetDir { declaration [type: Vector2] [field] }
+[Entity] TargetOffsetType { type [def] [product] }
+[TargetOffsetType] Player { constant }
+[Entity] offsetDir { declaration [type: Vector2] [field] }
+[NULL] GameManager { type [def] [product] }
+[GameManager] player { declaration [type: Entity] [field] }
+[Entity] targetPos { declaration [type: Vector2] [field] }
+[NULL] Vector2 { type [def] [product] }
+[Entity] offsetDir { declaration [type: Vector2] [field] }
+[Entity] targetOffset { declaration [type: Vector2] [field] }
+[Entity] targetDir { declaration [type: Vector2] [field] }
+[Entity] targetPos { declaration [type: Vector2] [field] }
+[NULL] Vector2 { type [def] [product] }
+[Entity] moveType { declaration [type: MoveType] [field] }
+[Entity] MoveType { type [def] [product] }
+[MoveType] None { constant }
+[Entity] velocity { declaration [type: Vector2] [field] }
+[NULL] Vector2 { type [def] [product] }
+[Entity] MoveType { type [def] [product] }
+[MoveType] Run { constant }
+[Entity] targetDir { declaration [type: Vector2] [field] }
+[Entity] targetDir { declaration [type: Vector2] [field] }
+[Entity] targetDir { declaration [type: Vector2] [field] }
+[Entity] velocity { declaration [type: Vector2] [field] }
+[NULL] Vector2 { type [def] [product] }
+[Entity] targetDir { declaration [type: Vector2] [field] }
+[Entity] speed { declaration [type: float] [field] }
+[Entity] rb { declaration [type: Rigidbody2D] [field] }
+[Entity] MoveType { type [def] [product] }
+[MoveType] Fly { constant }
+[Entity] velocity { declaration [type: Vector2] [field] }
+[Entity] targetDir { declaration [type: Vector2] [field] }
+[Entity] speed { declaration [type: float] [field] }
+[Entity] MoveType { type [def] [product] }
+[MoveType] SmoothDamp { constant }
+[Entity] targetPos { declaration [type: Vector2] [field] }
+[Entity] velocity { declaration [type: Vector2] [field] }
+[NULL] Vector2 { type [def] [product] }
+[Entity] speed { declaration [type: float] [field] }
+[Entity] speedY { declaration [type: float] [field] }
+[Entity] MoveType { type [def] [product] }
+[MoveType] Spring { constant }
+[NULL] Vector2 { type [def] [product] }
+[{] newPos { declaration [type: Vector2] [local] }
+[Entity] targetPos { declaration [type: Vector2] [field] }
+[{] newPos { declaration [type: Vector2] [local] }
+[Entity] targetPos { declaration [type: Vector2] [field] }
+[Entity] spring { declaration [type: SpringData] [field] }
+[{] newPos { declaration [type: Vector2] [local] }
+[Entity] MoveType { type [def] [product] }
+[MoveType] Custom { constant }
+[Entity] rb { declaration [type: Rigidbody2D] [field] }
+[Entity] rb { declaration [type: Rigidbody2D] [field] }
+[Entity] velocity { declaration [type: Vector2] [field] }
+[Entity] velocity { declaration [type: Vector2] [field] }
+[Entity] RotateType { type [def] [product] }
+[RotateType] None { constant }
+[RotateType] PlayerX { constant }
+[RotateType] MoveDirX { constant }
+[RotateType] Weapon { constant }
+[RotateType] MouseX { constant }
+[RotateType] Linear { constant }
+[RotateType] Count { constant }
+[Entity] RotateEntity { function [def] }
+[RotateEntity] transform { declaration [type: Transform] [argument] }
+[Entity] RotateType { type [def] [product] }
+[RotateEntity] rotateType { declaration [type: RotateType] [argument] }
+[RotateEntity] dRotate { declaration [type: float] [argument] }
+[RotateEntity] velocityX { declaration [type: float] [argument] }
+[RotateEntity] dirX { declaration [type: float] [local] }
+[RotateEntity] player { declaration [type: Transform] [local] }
+[NULL] GameManager { type [def] [product] }
+[GameManager] player { declaration [type: Entity] [field] }
+[NULL] Vector2 { type [def] [product] }
+[RotateEntity] mouseDir { declaration [type: Vector2] [local] }
+[RotateEntity] transform { declaration [type: Transform] [argument] }
+[RotateEntity] rotateType { declaration [type: RotateType] [argument] }
+[Entity] RotateType { type [def] [product] }
+[RotateType] PlayerX { constant }
+[RotateEntity] dirX { declaration [type: float] [local] }
+[RotateEntity] player { declaration [type: Transform] [local] }
+[RotateEntity] transform { declaration [type: Transform] [argument] }
+[Entity] RotateType { type [def] [product] }
+[RotateType] MoveDirX { constant }
+[RotateEntity] dirX { declaration [type: float] [local] }
+[RotateEntity] velocityX { declaration [type: float] [argument] }
+[Entity] RotateType { type [def] [product] }
+[RotateType] MouseX { constant }
+[RotateEntity] dirX { declaration [type: float] [local] }
+[RotateEntity] mouseDir { declaration [type: Vector2] [local] }
+[Entity] RotateType { type [def] [product] }
+[RotateType] Weapon { constant }
+[RotateEntity] transform { declaration [type: Transform] [argument] }
+[NULL] GameManager { type [def] [product] }
+[GameManager] player { declaration [type: Entity] [field] }
+[Entity] fallRemember { declaration [type: float] [field] }
+[RotateEntity] player { declaration [type: Transform] [local] }
+[RotateEntity] mouseDir { declaration [type: Vector2] [local] }
+[RotateEntity] player { declaration [type: Transform] [local] }
+[Entity] RotateType { type [def] [product] }
+[RotateType] Linear { constant }
+[RotateEntity] transform { declaration [type: Transform] [argument] }
+[RotateEntity] dRotate { declaration [type: float] [argument] }
+[RotateEntity] dirX { declaration [type: float] [local] }
+[RotateEntity] dirX { declaration [type: float] [local] }
+[RotateEntity] transform { declaration [type: Transform] [argument] }
+[RotateEntity] transform { declaration [type: Transform] [argument] }
+[Entity] StartFalling { function [def] }
+[StartFalling] startFalling { declaration [type: bool] [argument] }
+[Entity] rb { declaration [type: Rigidbody2D] [field] }
+[StartFalling] startFalling { declaration [type: bool] [argument] }
+[NULL] Vector2 { type [def] [product] }
+[Entity] fallDir { declaration [type: RangedFloat] [field] }
+[RangedFloat] randomValue { declaration [type: float] [property] }
+[Entity] speed { declaration [type: float] [field] }
+[NULL] Vector2 { type [def] [product] }
+[Entity] moveType { declaration [type: MoveType] [field] }
+[StartFalling] startFalling { declaration [type: bool] [argument] }
+[Entity] MoveType { type [def] [product] }
+[MoveType] Custom { constant }
+[Entity] MoveType { type [def] [product] }
+[MoveType] Fly { constant }
+[Entity] cd { declaration [type: Collider2D] [field] }
+[StartFalling] startFalling { declaration [type: bool] [argument] }
+[Entity] rb { declaration [type: Rigidbody2D] [field] }
+[StartFalling] startFalling { declaration [type: bool] [argument] }
+[Entity] SetProperty { function [def] }
+[NULL] EntityProperty { type [def] [product] }
+[EntityProperty] FallingOnSpawn { constant }
+[StartFalling] startFalling { declaration [type: bool] [argument] }
+[StartFalling] startFalling { declaration [type: bool] [argument] }
+[Entity] CalculateMoveRegion { function [def] }
+[Entity] CompleteCycle { function [def] }
+[Entity] HasProperty { function [def] }
+[NULL] EntityProperty { type [def] [product] }
+[EntityProperty] AtEndOfMoveRegion { constant }
+[Entity] targetPos { declaration [type: Vector2] [field] }
+[Entity] moveRegion { declaration [type: Rect] [field] }
+[Entity] TestPlayerVFX { function [def] }
+[NULL] SCRIPTABLE_VFX { macro }
+[Entity] Hurt { function [def] }
+[TestPlayerVFX] vfx1 { declaration [type: VFX] [local] }
+[TestPlayerVFX] CreateTestVFX { function [def] }
+[NULL] RangedFloat { type [def] [product] }
+[NULL] Vector2 { type [def] [product] }
+[TestPlayerVFX] vfx2 { declaration [type: VFX] [local] }
+[TestPlayerVFX] CreateTestVFX { function [def] }
+[NULL] RangedFloat { type [def] [product] }
+[NULL] Vector2 { type [def] [product] }
+[Entity] PlayVFX { function [def] }
+[TestPlayerVFX] vfx1 { declaration [type: VFX] [local] }
+[Entity] PlayVFX { function [def] }
+[TestPlayerVFX] vfx2 { declaration [type: VFX] [local] }
+[TestPlayerVFX] CreateTestVFX { function [def] }
+[CreateTestVFX] name { declaration [type: string] [argument] }
+[NULL] RangedFloat { type [def] [product] }
+[CreateTestVFX] timeline { declaration [type: RangedFloat] [argument] }
+[NULL] Vector2 { type [def] [product] }
+[CreateTestVFX] offset { declaration [type: Vector2] [argument] }
+[CreateTestVFX] vfx { declaration [type: VFX] [local] }
+[CreateTestVFX] vfx { declaration [type: VFX] [local] }
+[CreateTestVFX] name { declaration [type: string] [argument] }
+[CreateTestVFX] vfx { declaration [type: VFX] [local] }
+[CreateTestVFX] offset { declaration [type: Vector2] [argument] }
+[CreateTestVFX] vfx { declaration [type: VFX] [local] }
+[CreateTestVFX] vfx { declaration [type: VFX] [local] }
+[CreateTestVFX] timeline { declaration [type: RangedFloat] [argument] }
+[CreateTestVFX] vfx { declaration [type: VFX] [local] }
+[Entity] Hurt { function [def] }
+[Hurt] damage { declaration [type: int] [argument] }
+[Entity] HasProperty { function [def] }
+[NULL] EntityProperty { type [def] [product] }
+[EntityProperty] CanBeHurt { constant }
+[Entity] health { declaration [type: int] [field] }
+[Hurt] damage { declaration [type: int] [argument] }
+[Entity] moveType { declaration [type: MoveType] [field] }
+[Entity] MoveType { type [def] [product] }
+[MoveType] None { constant }
+[Entity] rotateType { declaration [type: RotateType] [field] }
+[Entity] RotateType { type [def] [product] }
+[RotateType] None { constant }
+[Entity] SetProperty { function [def] }
+[NULL] EntityProperty { type [def] [product] }
+[EntityProperty] CanBeHurt { constant }
+[Entity] health { declaration [type: int] [field] }
+[Entity] state { declaration [type: EntityState] [field] }
+[NULL] EntityState { type [def] [product] }
+[EntityState] OnHit { constant }
+[Entity] Die { function [def] }
+[Entity] Die { function [def] }
+[Entity] state { declaration [type: EntityState] [field] }
+[NULL] EntityState { type [def] [product] }
+[EntityState] OnDeath { constant }
+[Entity] PlayVFX { function [def] }
+[Entity] deathVFX { declaration [type: EntityVFX] [field] }
+[Entity] HasProperty { function [def] }
+[NULL] EntityProperty { type [def] [product] }
+[HasProperty] property { declaration [type: EntityProperty] [argument] }
+[Entity] properties { declaration [type: Property<EntityProperty>] [field] }
+[Property] HasProperty { function [def] }
+[HasProperty] property { declaration [type: EntityProperty] [argument] }
+[Entity] SetProperty { function [def] }
+[NULL] EntityProperty { type [def] [product] }
+[SetProperty] property { declaration [type: EntityProperty] [argument] }
+[SetProperty] set { declaration [type: bool] [argument] }
+[Entity] properties { declaration [type: Property<EntityProperty>] [field] }
+[Property] SetProperty { function [def] }
+[SetProperty] property { declaration [type: EntityProperty] [argument] }
+[SetProperty] set { declaration [type: bool] [argument] }
+[SetProperty] set { declaration [type: bool] [argument] }
+[Entity] OnTriggerEnter2D { function [def] }
+[OnTriggerEnter2D] collision { declaration [type: Collider2D] [argument] }
+[Entity] OnHitEnter { function [def] }
+[OnTriggerEnter2D] collision { declaration [type: Collider2D] [argument] }
+[Entity] OnCollisionEnter2D { function [def] }
+[OnCollisionEnter2D] collision { declaration [type: Collision2D] [argument] }
+[Entity] OnHitEnter { function [def] }
+[OnCollisionEnter2D] collision { declaration [type: Collision2D] [argument] }
+[Entity] OnHitEnter { function [def] }
+[OnHitEnter] collision { declaration [type: Collider2D] [argument] }
+[OnHitEnter] tag { declaration [type: string] [local] }
+[Entity] collisionTags { declaration [type: string[]] [field] }
+[OnHitEnter] collision { declaration [type: Collider2D] [argument] }
+[OnHitEnter] tag { declaration [type: string] [local] }
+[NULL] Entity { type [def] [product] }
+[{] entity { declaration [type: Entity] [local] }
+[{] entity { declaration [type: Entity] [local] }
+[OnHitEnter] collision { declaration [type: Collider2D] [argument] }
+[NULL] Entity { type [def] [product] }
+[Entity] HasProperty { function [def] }
+[NULL] EntityProperty { type [def] [product] }
+[EntityProperty] DamageWhenCollide { constant }
+[{] entity { declaration [type: Entity] [local] }
+[Entity] Hurt { function [def] }
+[Entity] damage { declaration [type: int] [field] }
+[Entity] HasProperty { function [def] }
+[NULL] EntityProperty { type [def] [product] }
+[EntityProperty] AddMoneyWhenCollide { constant }
+[{] entity { declaration [type: Entity] [local] }
+[Entity] money { declaration [type: int] [field] }
+[Entity] money { declaration [type: int] [field] }
+[Entity] HasProperty { function [def] }
+[NULL] EntityProperty { type [def] [product] }
+[EntityProperty] DieWhenCollide { constant }
+[Entity] Die { function [def] }
+[Entity] HasProperty { function [def] }
+[NULL] EntityProperty { type [def] [product] }
+[EntityProperty] SpawnDamagePopup { constant }
+[NULL] Entity { type [def] [product] }
+[Entity] damage { declaration [type: int] [field] }
+[Entity] HasProperty { function [def] }
+[NULL] EntityProperty { type [def] [product] }
+[EntityProperty] IsCritical { constant }
+[Entity] IsInRange { function [def] }
+[IsInRange] range { declaration [type: float] [argument] }
+[NULL] Vector2 { type [def] [product] }
+[IsInRange] targetPos { declaration [type: Vector2] [argument] }
+[IsInRange] targetPos { declaration [type: Vector2] [argument] }
+[NULL] Vector2 { type [def] [product] }
+[IsInRange] range { declaration [type: float] [argument] }
+[IsInRange] range { declaration [type: float] [argument] }
+[Entity] IsInRange { function [def] }
+[NULL] Vector2 { type [def] [product] }
+[IsInRange] range { declaration [type: Vector2] [argument] }
+[NULL] Vector2 { type [def] [product] }
+[IsInRange] targetPos { declaration [type: Vector2] [argument] }
+[NULL] Vector2 { type [def] [product] }
+[IsInRange] targetDir { declaration [type: Vector2] [local] }
+[IsInRange] targetPos { declaration [type: Vector2] [argument] }
+[NULL] Vector2 { type [def] [product] }
+[IsInRange] targetDir { declaration [type: Vector2] [local] }
+[IsInRange] range { declaration [type: Vector2] [argument] }
+[IsInRange] targetDir { declaration [type: Vector2] [local] }
+[IsInRange] range { declaration [type: Vector2] [argument] }
+[Entity] IsInRangeY { function [def] }
+[IsInRangeY] range { declaration [type: float] [argument] }
+[NULL] Vector2 { type [def] [product] }
+[IsInRangeY] targetPos { declaration [type: Vector2] [argument] }
+[IsInRangeY] targetPos { declaration [type: Vector2] [argument] }
+[IsInRangeY] range { declaration [type: float] [argument] }
+[Entity] CalculateMoveRegion { function [def] }
+[Entity] regionType { declaration [type: MoveRegionType] [field] }
+[Entity] MoveRegionType { type [def] [product] }
+[MoveRegionType] Ground { constant }
+[Entity] moveRegion { declaration [type: Rect] [field] }
+[NULL] GameManager { type [def] [product] }
+[GameManager] CalculateMoveRegion { function [def] }
+[Entity] spriteExtents { declaration [type: Vector2] [field] }
+[Entity] MoveRegionType { type [def] [product] }
+[MoveRegionType] Vertical { constant }
+[NULL] GameManager { type [def] [product] }
+[GameManager] GetGroundPos { function [def] }
+[Entity] spriteExtents { declaration [type: Vector2] [field] }
+[{] groundPos { declaration [type: Vector3Int] [local] }
+[Entity] moveRegion { declaration [type: Rect] [field] }
+[NULL] Vector2 { type [def] [product] }
+[{] groundPos { declaration [type: Vector3Int] [local] }
+[Entity] spriteExtents { declaration [type: Vector2] [field] }
+[NULL] Vector2 { type [def] [product] }
+[Entity] verticalHeight { declaration [type: float] [field] }
+[{] groundPos { declaration [type: Vector3Int] [local] }
+[Entity] spriteExtents { declaration [type: Vector2] [field] }
+[Entity] VFXProperty { type [def] [product] }
+[VFXProperty] StopAnimation { constant }
+[VFXProperty] ChangeEffectObjBack { constant }
+[VFXProperty] ScaleOverTime { constant }
+[VFXProperty] FadeTextWhenDone { constant }
+[VFXProperty] StartTrailing { constant }
+[VFXProperty] DecreaseTrailWidth { constant }
+[VFXProperty] PlayParticleInOrder { constant }
+[VFXProperty] FlipX { constant }
+[VFXProperty] FlipY { constant }
+[VFXProperty] FlipZ { constant }
+[Entity] EntityVFX { type [def] [product] }
+[NULL] Property { type [def] [product] }
+[Entity] VFXProperty { type [def] [product] }
+[EntityVFX] properties { declaration [type: Property<VFXProperty>] [field] }
+[EntityVFX] done { declaration [type: System.Action] [field] }
+[EntityVFX] canStop { declaration [type: System.Func<bool>] [field] }
+[EntityVFX] nextAnimation { declaration [type: string] [field] }
+[EntityVFX] effectObj { declaration [type: GameObject] [field] }
+[EntityVFX] particles { declaration [type: ParticleSystem[]] [field] }
+[EntityVFX] waitTime { declaration [type: float] [field] }
+[EntityVFX] scaleTime { declaration [type: float] [field] }
+[EntityVFX] rotateTime { declaration [type: float] [field] }
+[EntityVFX] trailEmitTime { declaration [type: float] [field] }
+[EntityVFX] trailStayTime { declaration [type: float] [field] }
+[EntityVFX] flashTime { declaration [type: float] [field] }
+[EntityVFX] flashDuration { declaration [type: float] [field] }
+[EntityVFX] triggerColor { declaration [type: Color] [field] }
+[EntityVFX] textColor { declaration [type: Color] [field] }
+[EntityVFX] fontSize { declaration [type: float] [field] }
+[EntityVFX] stopTime { declaration [type: float] [field] }
+[EntityVFX] trauma { declaration [type: float] [field] }
+[EntityVFX] shakeMode { declaration [type: ShakeMode] [field] }
+[EntityVFX] shockSpeed { declaration [type: float] [field] }
+[EntityVFX] shockSize { declaration [type: float] [field] }
+[EntityVFX] camFlashTime { declaration [type: float] [field] }
+[EntityVFX] camFlashAlpha { declaration [type: float] [field] }
+[EntityVFX] alpha { declaration [type: float] [field] }
+[EntityVFX] fadeTime { declaration [type: float] [field] }
+[EntityVFX] range { declaration [type: float] [field] }
+[EntityVFX] particleType { declaration [type: ParticleType] [field] }
+[EntityVFX] audio { declaration [type: AudioType] [field] }
+[EntityVFX] poolType { declaration [type: PoolType] [field] }
+[NULL] Vector2 { type [def] [product] }
+[EntityVFX] scaleOffset { declaration [type: Vector2] [field] }
+[Entity] PlayVFX { function [def] }
+[Entity] EntityVFX { type [def] [product] }
+[PlayVFX] vfx { declaration [type: EntityVFX] [argument] }
+[PlayVFX] vfx { declaration [type: EntityVFX] [argument] }
+[Entity] state { declaration [type: EntityState] [field] }
+[PlayVFX] vfx { declaration [type: EntityVFX] [argument] }
+[EntityVFX] properties { declaration [type: Property<VFXProperty>] [field] }
+[Property] HasProperty { function [def] }
+[Entity] VFXProperty { type [def] [product] }
+[VFXProperty] ScaleOverTime { constant }
+[PlayVFX] ScaleOverTime { function [def] }
+[PlayVFX] vfx { declaration [type: EntityVFX] [argument] }
+[EntityVFX] scaleTime { declaration [type: float] [field] }
+[PlayVFX] vfx { declaration [type: EntityVFX] [argument] }
+[EntityVFX] scaleOffset { declaration [type: Vector2] [field] }
+[PlayVFX] vfx { declaration [type: EntityVFX] [argument] }
+[EntityVFX] scaleOffset { declaration [type: Vector2] [field] }
+[PlayVFX] vfx { declaration [type: EntityVFX] [argument] }
+[EntityVFX] nextAnimation { declaration [type: string] [field] }
+[Entity] anim { declaration [type: Animator] [field] }
+[PlayVFX] vfx { declaration [type: EntityVFX] [argument] }
+[EntityVFX] nextAnimation { declaration [type: string] [field] }
+[PlayVFX] vfx { declaration [type: EntityVFX] [argument] }
+[EntityVFX] properties { declaration [type: Property<VFXProperty>] [field] }
+[Property] HasProperty { function [def] }
+[Entity] VFXProperty { type [def] [product] }
+[VFXProperty] StopAnimation { constant }
+[Entity] anim { declaration [type: Animator] [field] }
+[PlayVFX] vfx { declaration [type: EntityVFX] [argument] }
+[EntityVFX] textColor { declaration [type: Color] [field] }
+[Entity] text { declaration [type: TMPro.TextMeshPro] [field] }
+[PlayVFX] vfx { declaration [type: EntityVFX] [argument] }
+[EntityVFX] textColor { declaration [type: Color] [field] }
+[PlayVFX] vfx { declaration [type: EntityVFX] [argument] }
+[EntityVFX] fontSize { declaration [type: float] [field] }
+[Entity] text { declaration [type: TMPro.TextMeshPro] [field] }
+[PlayVFX] vfx { declaration [type: EntityVFX] [argument] }
+[EntityVFX] fontSize { declaration [type: float] [field] }
+[PlayVFX] totalParticleTime { declaration [type: float] [local] }
+[PlayVFX] particleCount { declaration [type: float] [local] }
+[PlayVFX] vfx { declaration [type: EntityVFX] [argument] }
+[EntityVFX] particles { declaration [type: ParticleSystem[]] [field] }
+[PlayVFX] i { declaration [type: int] [local] }
+[PlayVFX] i { declaration [type: int] [local] }
+[PlayVFX] particleCount { declaration [type: float] [local] }
+[PlayVFX] i { declaration [type: int] [local] }
+[PlayVFX] vfx { declaration [type: EntityVFX] [argument] }
+[EntityVFX] particles { declaration [type: ParticleSystem[]] [field] }
+[PlayVFX] i { declaration [type: int] [local] }
+[PlayVFX] totalParticleTime { declaration [type: float] [local] }
+[PlayVFX] vfx { declaration [type: EntityVFX] [argument] }
+[EntityVFX] particles { declaration [type: ParticleSystem[]] [field] }
+[PlayVFX] i { declaration [type: int] [local] }
+[PlayVFX] vfx { declaration [type: EntityVFX] [argument] }
+[EntityVFX] properties { declaration [type: Property<VFXProperty>] [field] }
+[Property] HasProperty { function [def] }
+[Entity] VFXProperty { type [def] [product] }
+[VFXProperty] PlayParticleInOrder { constant }
+[PlayVFX] totalParticleTime { declaration [type: float] [local] }
+[PlayVFX] vfx { declaration [type: EntityVFX] [argument] }
+[EntityVFX] particles { declaration [type: ParticleSystem[]] [field] }
+[PlayVFX] i { declaration [type: int] [local] }
+[PlayVFX] vfx { declaration [type: EntityVFX] [argument] }
+[EntityVFX] effectObj { declaration [type: GameObject] [field] }
+[PlayVFX] vfx { declaration [type: EntityVFX] [argument] }
+[EntityVFX] effectObj { declaration [type: GameObject] [field] }
+[PlayVFX] vfx { declaration [type: EntityVFX] [argument] }
+[EntityVFX] effectObj { declaration [type: GameObject] [field] }
+[PlayVFX] vfx { declaration [type: EntityVFX] [argument] }
+[EntityVFX] camFlashTime { declaration [type: float] [field] }
+[PlayVFX] vfx { declaration [type: EntityVFX] [argument] }
+[EntityVFX] camFlashAlpha { declaration [type: float] [field] }
+[PlayVFX] vfx { declaration [type: EntityVFX] [argument] }
+[EntityVFX] shakeMode { declaration [type: ShakeMode] [field] }
+[PlayVFX] vfx { declaration [type: EntityVFX] [argument] }
+[EntityVFX] shockSpeed { declaration [type: float] [field] }
+[PlayVFX] vfx { declaration [type: EntityVFX] [argument] }
+[EntityVFX] shockSize { declaration [type: float] [field] }
+[PlayVFX] vfx { declaration [type: EntityVFX] [argument] }
+[EntityVFX] audio { declaration [type: AudioType] [field] }
+[PlayVFX] vfx { declaration [type: EntityVFX] [argument] }
+[EntityVFX] poolType { declaration [type: PoolType] [field] }
+[PlayVFX] vfx { declaration [type: EntityVFX] [argument] }
+[EntityVFX] particleType { declaration [type: ParticleType] [field] }
+[PlayVFX] vfx { declaration [type: EntityVFX] [argument] }
+[EntityVFX] range { declaration [type: float] [field] }
+[PlayVFX] vfx { declaration [type: EntityVFX] [argument] }
+[EntityVFX] stopTime { declaration [type: float] [field] }
+[PlayVFX] Flashing { function [def] }
+[Entity] sr { declaration [type: SpriteRenderer] [field] }
+[Entity] whiteMat { declaration [type: Material] [field] }
+[PlayVFX] vfx { declaration [type: EntityVFX] [argument] }
+[EntityVFX] triggerColor { declaration [type: Color] [field] }
+[PlayVFX] vfx { declaration [type: EntityVFX] [argument] }
+[EntityVFX] flashDuration { declaration [type: float] [field] }
+[PlayVFX] vfx { declaration [type: EntityVFX] [argument] }
+[EntityVFX] flashTime { declaration [type: float] [field] }
+[PlayVFX] vfx { declaration [type: EntityVFX] [argument] }
+[EntityVFX] canStop { declaration [type: System.Func<bool>] [field] }
+[PlayVFX] x { declaration [type: float] [local] }
+[PlayVFX] vfx { declaration [type: EntityVFX] [argument] }
+[EntityVFX] properties { declaration [type: Property<VFXProperty>] [field] }
+[Property] HasProperty { function [def] }
+[Entity] VFXProperty { type [def] [product] }
+[VFXProperty] FlipX { constant }
+[PlayVFX] y { declaration [type: float] [local] }
+[PlayVFX] vfx { declaration [type: EntityVFX] [argument] }
+[EntityVFX] properties { declaration [type: Property<VFXProperty>] [field] }
+[Property] HasProperty { function [def] }
+[Entity] VFXProperty { type [def] [product] }
+[VFXProperty] FlipY { constant }
+[PlayVFX] z { declaration [type: float] [local] }
+[PlayVFX] vfx { declaration [type: EntityVFX] [argument] }
+[EntityVFX] properties { declaration [type: Property<VFXProperty>] [field] }
+[Property] HasProperty { function [def] }
+[Entity] VFXProperty { type [def] [product] }
+[VFXProperty] FlipZ { constant }
+[PlayVFX] x { declaration [type: float] [local] }
+[PlayVFX] y { declaration [type: float] [local] }
+[PlayVFX] z { declaration [type: float] [local] }
+[PlayVFX] vfx { declaration [type: EntityVFX] [argument] }
+[EntityVFX] rotateTime { declaration [type: float] [field] }
+[PlayVFX] x { declaration [type: float] [local] }
+[PlayVFX] y { declaration [type: float] [local] }
+[PlayVFX] z { declaration [type: float] [local] }
+[PlayVFX] vfx { declaration [type: EntityVFX] [argument] }
+[EntityVFX] flashDuration { declaration [type: float] [field] }
+[PlayVFX] totalParticleTime { declaration [type: float] [local] }
+[PlayVFX] vfx { declaration [type: EntityVFX] [argument] }
+[EntityVFX] scaleTime { declaration [type: float] [field] }
+[PlayVFX] vfx { declaration [type: EntityVFX] [argument] }
+[EntityVFX] properties { declaration [type: Property<VFXProperty>] [field] }
+[Property] HasProperty { function [def] }
+[Entity] VFXProperty { type [def] [product] }
+[VFXProperty] FadeTextWhenDone { constant }
+[PlayVFX] FadeText { function [def] }
+[Entity] text { declaration [type: TMPro.TextMeshPro] [field] }
+[PlayVFX] vfx { declaration [type: EntityVFX] [argument] }
+[EntityVFX] alpha { declaration [type: float] [field] }
+[PlayVFX] vfx { declaration [type: EntityVFX] [argument] }
+[EntityVFX] fadeTime { declaration [type: float] [field] }
+[PlayVFX] Flashing { function [def] }
+[Entity] sr { declaration [type: SpriteRenderer] [field] }
+[Entity] whiteMat { declaration [type: Material] [field] }
+[PlayVFX] vfx { declaration [type: EntityVFX] [argument] }
+[EntityVFX] alpha { declaration [type: float] [field] }
+[PlayVFX] vfx { declaration [type: EntityVFX] [argument] }
+[EntityVFX] fadeTime { declaration [type: float] [field] }
+[PlayVFX] vfx { declaration [type: EntityVFX] [argument] }
+[EntityVFX] fadeTime { declaration [type: float] [field] }
+[PlayVFX] vfx { declaration [type: EntityVFX] [argument] }
+[EntityVFX] canStop { declaration [type: System.Func<bool>] [field] }
+[PlayVFX] vfx { declaration [type: EntityVFX] [argument] }
+[EntityVFX] properties { declaration [type: Property<VFXProperty>] [field] }
+[Property] HasProperty { function [def] }
+[Entity] VFXProperty { type [def] [product] }
+[VFXProperty] StartTrailing { constant }
+[PlayVFX] EnableTrail { function [def] }
+[Entity] trail { declaration [type: TrailRenderer] [field] }
+[PlayVFX] vfx { declaration [type: EntityVFX] [argument] }
+[EntityVFX] trailEmitTime { declaration [type: float] [field] }
+[PlayVFX] vfx { declaration [type: EntityVFX] [argument] }
+[EntityVFX] trailStayTime { declaration [type: float] [field] }
+[PlayVFX] vfx { declaration [type: EntityVFX] [argument] }
+[EntityVFX] properties { declaration [type: Property<VFXProperty>] [field] }
+[Property] HasProperty { function [def] }
+[Entity] VFXProperty { type [def] [product] }
+[VFXProperty] DecreaseTrailWidth { constant }
+[PlayVFX] vfx { declaration [type: EntityVFX] [argument] }
+[EntityVFX] trailEmitTime { declaration [type: float] [field] }
+[PlayVFX] DecreaseTrailWidth { function [def] }
+[Entity] trail { declaration [type: TrailRenderer] [field] }
+[PlayVFX] vfx { declaration [type: EntityVFX] [argument] }
+[EntityVFX] trailStayTime { declaration [type: float] [field] }
+[PlayVFX] vfx { declaration [type: EntityVFX] [argument] }
+[EntityVFX] fadeTime { declaration [type: float] [field] }
+[PlayVFX] vfx { declaration [type: EntityVFX] [argument] }
+[EntityVFX] trailEmitTime { declaration [type: float] [field] }
+[PlayVFX] vfx { declaration [type: EntityVFX] [argument] }
+[EntityVFX] trailStayTime { declaration [type: float] [field] }
+[PlayVFX] vfx { declaration [type: EntityVFX] [argument] }
+[EntityVFX] waitTime { declaration [type: float] [field] }
+[PlayVFX] vfx { declaration [type: EntityVFX] [argument] }
+[EntityVFX] properties { declaration [type: Property<VFXProperty>] [field] }
+[Property] HasProperty { function [def] }
+[Entity] VFXProperty { type [def] [product] }
+[VFXProperty] ScaleOverTime { constant }
+[PlayVFX] vfx { declaration [type: EntityVFX] [argument] }
+[EntityVFX] scaleOffset { declaration [type: Vector2] [field] }
+[PlayVFX] vfx { declaration [type: EntityVFX] [argument] }
+[EntityVFX] properties { declaration [type: Property<VFXProperty>] [field] }
+[Property] HasProperty { function [def] }
+[Entity] VFXProperty { type [def] [product] }
+[VFXProperty] ChangeEffectObjBack { constant }
+[PlayVFX] vfx { declaration [type: EntityVFX] [argument] }
+[EntityVFX] effectObj { declaration [type: GameObject] [field] }
+[PlayVFX] vfx { declaration [type: EntityVFX] [argument] }
+[EntityVFX] effectObj { declaration [type: GameObject] [field] }
+[Entity] anim { declaration [type: Animator] [field] }
+[Entity] anim { declaration [type: Animator] [field] }
+[PlayVFX] vfx { declaration [type: EntityVFX] [argument] }
+[EntityVFX] done { declaration [type: System.Action] [field] }
+[PlayVFX] Flashing { function [def] }
+[Flashing] sr { declaration [type: SpriteRenderer] [argument] }
+[Flashing] whiteMat { declaration [type: Material] [argument] }
+[Flashing] color { declaration [type: Color] [argument] }
+[Flashing] duration { declaration [type: float] [argument] }
+[Flashing] flashTime { declaration [type: float] [argument] }
+[Flashing] canStop { declaration [type: System.Func<bool>] [argument] }
+[Flashing] whiteMat { declaration [type: Material] [argument] }
+[Flashing] whiteMat { declaration [type: Material] [argument] }
+[Flashing] color { declaration [type: Color] [argument] }
+[Flashing] duration { declaration [type: float] [argument] }
+[Flashing] canStop { declaration [type: System.Func<bool>] [argument] }
+[{] currentTime { declaration [type: float] [local] }
+[{] defMat { declaration [type: Material] [local] }
+[Flashing] sr { declaration [type: SpriteRenderer] [argument] }
+[Flashing] sr { declaration [type: SpriteRenderer] [argument] }
+[Flashing] whiteMat { declaration [type: Material] [argument] }
+[Flashing] flashTime { declaration [type: float] [argument] }
+[Flashing] sr { declaration [type: SpriteRenderer] [argument] }
+[{] defMat { declaration [type: Material] [local] }
+[Flashing] flashTime { declaration [type: float] [argument] }
+[Flashing] duration { declaration [type: float] [argument] }
+[{] currentTime { declaration [type: float] [local] }
+[Flashing] whiteMat { declaration [type: Material] [argument] }
+[PlayVFX] ScaleOverTime { function [def] }
+[ScaleOverTime] transform { declaration [type: Transform] [argument] }
+[ScaleOverTime] duration { declaration [type: float] [argument] }
+[ScaleOverTime] scaleOffset { declaration [type: Vector3] [argument] }
+[ScaleOverTime] duration { declaration [type: float] [argument] }
+[ScaleOverTime] duration { declaration [type: float] [argument] }
+[ScaleOverTime] transform { declaration [type: Transform] [argument] }
+[ScaleOverTime] scaleOffset { declaration [type: Vector3] [argument] }
+[ScaleOverTime] transform { declaration [type: Transform] [argument] }
+[ScaleOverTime] transform { declaration [type: Transform] [argument] }
+[ScaleOverTime] scaleOffset { declaration [type: Vector3] [argument] }
+[PlayVFX] FadeText { function [def] }
+[FadeText] text { declaration [type: TMPro.TextMeshPro] [argument] }
+[FadeText] alpha { declaration [type: float] [argument] }
+[FadeText] fadeTime { declaration [type: float] [argument] }
+[FadeText] dAlpha { declaration [type: float] [local] }
+[FadeText] text { declaration [type: TMPro.TextMeshPro] [argument] }
+[FadeText] alpha { declaration [type: float] [argument] }
+[FadeText] fadeTime { declaration [type: float] [argument] }
+[FadeText] text { declaration [type: TMPro.TextMeshPro] [argument] }
+[FadeText] alpha { declaration [type: float] [argument] }
+[FadeText] text { declaration [type: TMPro.TextMeshPro] [argument] }
+[FadeText] dAlpha { declaration [type: float] [local] }
+[PlayVFX] EnableTrail { function [def] }
+[EnableTrail] trail { declaration [type: TrailRenderer] [argument] }
+[EnableTrail] emitTime { declaration [type: float] [argument] }
+[EnableTrail] stayTime { declaration [type: float] [argument] }
+[EnableTrail] trail { declaration [type: TrailRenderer] [argument] }
+[EnableTrail] trail { declaration [type: TrailRenderer] [argument] }
+[EnableTrail] emitTime { declaration [type: float] [argument] }
+[EnableTrail] trail { declaration [type: TrailRenderer] [argument] }
+[EnableTrail] stayTime { declaration [type: float] [argument] }
+[EnableTrail] trail { declaration [type: TrailRenderer] [argument] }
+[EnableTrail] trail { declaration [type: TrailRenderer] [argument] }
+[EnableTrail] trail { declaration [type: TrailRenderer] [argument] }
+[PlayVFX] DecreaseTrailWidth { function [def] }
+[DecreaseTrailWidth] trail { declaration [type: TrailRenderer] [argument] }
+[DecreaseTrailWidth] decreaseTime { declaration [type: float] [argument] }
+[DecreaseTrailWidth] startWidth { declaration [type: float] [local] }
+[DecreaseTrailWidth] trail { declaration [type: TrailRenderer] [argument] }
+[DecreaseTrailWidth] startTime { declaration [type: float] [local] }
+[DecreaseTrailWidth] decreaseTime { declaration [type: float] [argument] }
+[DecreaseTrailWidth] decreaseTime { declaration [type: float] [argument] }
+[DecreaseTrailWidth] trail { declaration [type: TrailRenderer] [argument] }
+[DecreaseTrailWidth] decreaseTime { declaration [type: float] [argument] }
+[DecreaseTrailWidth] startTime { declaration [type: float] [local] }
+[DecreaseTrailWidth] startWidth { declaration [type: float] [local] }
+[DecreaseTrailWidth] decreaseTime { declaration [type: float] [argument] }
+[DecreaseTrailWidth] trail { declaration [type: TrailRenderer] [argument] }
+[DecreaseTrailWidth] startWidth { declaration [type: float] [local] }
+Note count: 2738

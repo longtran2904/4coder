@@ -1,0 +1,268 @@
+
+keys_global =
+{
+    // NOTE(rjf): Meta
+    { "exit_4coder",                     "F4",     "Alt"              },
+    { "change_active_panel",             "Comma",  "Control"          },
+    { "change_active_panel_backwards",   "Comma",  "Control", "Shift" },
+    { "project_go_to_root_directory",    "H",      "Control"          },
+    { "f4_toggle_compilation_expand",    "Insert"                     },
+    { "change_to_build_panel",           "Period", "Alt"              },
+    { "close_build_panel",               "Comma",  "Alt"              },
+    { "f4_switch_syntax_option",         "Equal",    "Control"        },
+    
+    // TODO(long): Understand the macro system
+    /*{ "keyboard_macro_replay",           "Tick",   "Alt"              },
+    { "keyboard_macro_start_recording" , "U",      "Control"          },
+    { "keyboard_macro_finish_recording", "U",      "Control", "Shift" },
+    { "jp_macro_toggle_recording",       "U",      "Control"          },*/
+    
+    // NOTE(jack): Ryan has these unbound
+    { "toggle_filebar",                           "B",             "Alt" },
+    { "list_all_functions_current_buffer_lister", "I",             "Alt" },
+    { "list_all_functions_all_buffers_lister",    "I",             "Alt", "Shift" },
+    // NOTE(long): I don't really care about these
+    /*{ "open_in_other",                            "O",             "Alt" },
+    { "quick_swap_buffer",                        "BackwardSlash", "Alt" },*/
+    
+    // NOTE(rjf): Files
+    { "interactive_new",                       "N", "Control"          },
+    { "f4_setup_new_project",                  "N", "Control", "Shift" },
+    { "interactive_open_or_new",               "O", "Control"          },
+    { "f4_interactive_open_or_new_in_project", "O", "Alt"              },
+    { "f4_open_project",                       "O", "Control", "Shift" },
+    //{ "interactive_kill_buffer",               "K", "Control"          },
+    //{ "interactive_switch_buffer",             "I", "Control"          },
+    { "long_interactive_kill_buffer",               "K", "Control"          },
+    { "long_interactive_switch_buffer",             "I", "Control"          },
+    { "save_all_dirty_buffers",                "S", "Control", "Shift" },
+    { "f4_recent_files_menu",                  "V", "Alt"              },
+    
+    // NOTE(rjf): Jump Lists
+    { "goto_next_jump",  "N", "Alt"  },
+    { "goto_prev_jump",  "N", "Alt", "Shift" },
+    { "goto_first_jump", "M", "Alt", "Shift" },
+    
+    // NOTE(rjf): Commands
+    { "execute_any_cli",      "Z", "Alt"              },
+    { "execute_previous_cli", "Z", "Alt",   "Shift"   },
+    { "command_lister",       "X", "Alt"              },
+    
+    // NOTE(rjf): Project
+    { "build_in_build_panel",   "M", "Alt" },
+    { "project_command_lister", "X", "Alt", "Shift" },
+    { "project_fkey_command",   "F1" },
+    { "project_fkey_command",   "F2" },
+    { "project_fkey_command",   "F3" },
+    { "project_fkey_command",   "F4" },
+    { "project_fkey_command",   "F5" },
+    { "project_fkey_command",   "F6" },
+    { "project_fkey_command",   "F7" },
+    { "project_fkey_command",   "F8" },
+    { "project_fkey_command",   "F9" },
+    { "project_fkey_command",   "F10" },
+    { "project_fkey_command",   "F11" },
+    { "project_fkey_command",   "F12" },
+    { "project_fkey_command",   "F13" },
+    { "project_fkey_command",   "F14" },
+    { "project_fkey_command",   "F15" },
+    { "project_fkey_command",   "F16" },
+    
+    // NOTE(rjf): Panels
+    { "open_panel_vsplit", "P", "Control" },
+    { "open_panel_hsplit", "Minus", "Control" },
+    { "close_panel", "P", "Control", "Shift" },
+    //{ "f4_search_for_definition__project_wide", "J", "Control" },
+    //{ "f4_search_for_definition__current_file", "J", "Control", "Shift" },
+    { "long_search_for_definition__project_wide", "J", "Control" },
+    { "long_search_for_definition__current_file", "J", "Control", "Shift" },
+    //{ "jump_to_last_point", "J", "Alt" },
+    { "long_undo_jump",            "J", "Alt"     },
+    { "long_redo_jump",            "K", "Alt"     },
+    { "long_push_new_jump",        "L", "Alt"     },
+    { "long_list_all_jump_points", "L", "Control" },
+};
+
+keys_file =
+{
+    // NOTE(rjf): None => Characters
+    //            Ctrl => Tokens
+    //            Alt  => Alphanumeric/Camel
+    
+    // NOTE(rjf): Backspace/Delete
+    { "delete_char",                                  "Delete"               },
+    { "f4_delete_token_boundary",                     "Delete",    "Control" },
+    { "f4_delete_alpha_numeric_or_camel_boundary",    "Delete",    "Alt"     },
+    { "backspace_char",                               "Backspace"            },
+    { "f4_backspace_token_boundary",                  "Backspace", "Control" },
+    { "f4_backspace_alpha_numeric_or_camel_boundary", "Backspace", "Alt"     },
+    
+    // NOTE(rjf): Left/Right Arrow Keys
+    { "move_left",                                 "Left"                    },
+    { "move_left_whitespace_or_token_boundary",    "Left", "Control"         },
+    { "long_move_left_boundary",                   "Left", "Shift"           }, // NOTE(long): This will make notepad-mode unselectable
+    { "move_left_alpha_numeric_or_camel_boundary", "Left", "Alt"             },
+    { "long_move_left_alpha_numeric_or_camel_boundary", "Left", "Alt", "Shift" },
+    //{ "f4_move_left_token_boundary",               "Left", "Control", "Alt"  },
+    //{ "move_left_token_boundary",                  "Left", "Control"         },
+    //{ "move_left_whitespace_boundary",             "Left", "Control"         },
+    
+    { "move_right",                                 "Right"                   },
+    { "move_right_whitespace_or_token_boundary",    "Right", "Control"        },
+    { "long_move_right_boundary",                   "Right", "Shift"          },
+    { "move_right_alpha_numeric_or_camel_boundary", "Right", "Alt"            },
+    { "long_move_right_alpha_numeric_or_camel_boundary", "Right", "Alt", "Shift"   },
+    //{ "f4_move_right_token_boundary",               "Right", "Control", "Alt" },
+    //{ "move_right_token_boundary",                  "Right", "Control"        },
+    //{ "move_right_whitespace_boundary",             "Right", "Control"        },
+    
+    // NOTE(rjf): Up/Down Arrow Keys
+    { "move_up",                       "Up" },
+    { "move_down",                     "Down" },
+	{ "move_line_up",                  "Up", "Alt" },
+    { "move_line_down",                "Down", "Alt" },
+	{ "move_up_to_blank_line_end",     "Up", "Control" },
+    { "move_down_to_blank_line_end",   "Down", "Control" },
+    { "f4_move_up_token_occurrence",   "Up", "Control", "Alt" },
+    { "f4_move_down_token_occurrence", "Down", "Control", "Alt" },
+	
+    // NOTE(rjf): Alternative Movement Keys
+    { "seek_end_of_line",                "End" },
+    { "f4_home_first_non_whitespace",    "Home" },
+    { "page_up",                         "PageUp" },
+    { "page_down",                       "PageDown" },
+    { "goto_beginning_of_file",          "PageUp", "Control" },
+    { "goto_end_of_file",                "PageDown", "Control" },
+    { "f4_move_to_next_divider_comment", "Down", "Control",  "Shift" },
+    { "f4_move_to_prev_divider_comment", "Up", "Control", "Shift" },
+    { "long_move_to_next_function",      "Down", "Control", "Shift", "Alt" },
+    { "long_move_to_prev_function",      "Up", "Control", "Shift", "Alt" },
+    
+    // NOTE(rjf): Mark
+    { "set_mark",         "Space", "Control" },
+    { "cursor_mark_swap", "M",     "Control" },
+    
+    // NOTE(rjf): Ctrl  => Current Buffer vs All Buffers
+    //            Alt   => List vs Search/Query
+    //            Shift => Sensitive-String vs Insensitive-Substring
+    
+    // NOTE(rjf): Search
+    { "f4_search",                                                         "F", "Control" },
+    { "f4_reverse_search",                                                 "R", "Control" },
+    { "search_identifier",                                                 "T", "Control" },
+    { "goto_line",                                                         "G", "Control" },
+    { "long_search_case_sensitive",                                 "F", "Control", "Shift"},
+    { "long_reverse_string_case_sensitive",                         "R", "Control", "Shift"},
+    { "long_search_identifier_case_sensitive",                      "T", "Control", "Shift"},
+    
+    /*{ "list_all_locations",                                                "F", "Alt", "Shift" },
+    { "list_all_substring_locations_case_insensitive",                     "F", "Alt" },
+    { "list_all_locations_of_identifier",                                  "T", "Alt" },
+    { "list_all_locations_of_selection",                                   "G", "Alt" },*/
+    
+    { "long_list_all_locations",                                           "F", "Alt", "Shift"            },
+    { "long_list_all_substring_locations_case_insensitive",                "F", "Alt"                     },
+    { "long_list_all_locations_current_buffer",                            "F", "Alt", "Shift", "Control" },
+    { "long_list_all_substring_locations_case_insensitive_current_buffer", "F", "Alt", "Control"          },
+    
+    { "long_list_all_locations_of_identifier",                                           "T", "Alt", "Shift"            },
+    { "long_list_all_substring_locations_of_identifier_case_insensitive",                "T", "Alt"                     },
+    { "long_list_all_locations_of_identifier_current_buffer",                            "T", "Alt", "Shift", "Control" },
+    { "long_list_all_substring_locations_of_identifier_case_insensitive_current_buffer", "T", "Alt", "Control"          },
+    
+    // NOTE(rjf): Replace
+    { "replace_in_range",                              "A", "Control" },
+    { "query_replace",                                 "Q", "Control" },
+    { "query_replace_identifier",                      "Q", "Control", "Shift" },
+    { "query_replace_selection",                       "Q", "Alt" },
+    
+    // NOTE(rjf): Clipboard
+    // { "jp_copy",                                       "C", "Control" },
+    { "copy",                                          "C", "Control" },
+    { "paste_and_indent",                              "V", "Control" },
+    //{ "paste_next_and_indent",                         "V", "Control", "Shift" },
+    { "long_paste_and_replace_range",                  "V", "Control", "Shift" },
+    { "long_select_current_line",                      "A", "Control", "Shift" },
+    { "cut",                                           "X", "Control" },
+    
+    // { "jp_copy_line",                                  "C", "Control", "Shift" },
+    // { "jp_cut_line",                                   "X", "Control", "Shift" },
+    { "long_copy_line",                                "C", "Control", "Shift" },
+    { "long_cut_line",                                 "X", "Control", "Shift" },
+    
+    // NOTE(rjf): Deletion
+    { "delete_range",                                  "D", "Control" },
+    { "delete_line",                                   "D", "Control", "Shift" },
+    
+    // NOTE(rjf): Insertion
+    { "duplicate_line",                                "D", "Alt" },
+    
+    // NOTE(rjf): View
+    { "center_view",                                   "E", "Control" },
+    // { "jp_soft_center_view",                           "E", "Control" },
+    { "left_adjust_view",                              "E", "Control", "Shift" },
+    
+    // NOTE(rjf): File
+    //{ "kill_buffer",                                   "K", "Control", "Shift" },
+    { "long_kill_buffer",                                   "K", "Control", "Shift" },
+    { "reopen",                                        "O", "Alt", "Shift" },
+    { "save",                                          "S", "Control" },
+    { "save_all_dirty_buffers",                        "S", "Control", "Shift" },
+    { "redo",                                          "Y", "Control" },
+    { "undo",                                          "Z", "Control" },
+    { "view_buffer_other_panel",                    "Tick", "Control" },
+    
+    // NOTE(rjf): Meta
+    { "swap_panels",                                   "W", "Control" },
+    /*{ "if_read_only_goto_position",                    "Return" },*/
+    { "long_if_read_only_goto_position",                    "Return" },
+    { "if_read_only_goto_position_same_panel",         "Return", "Shift" },
+    { "view_jump_list_with_lister",                    "Period", "Control", "Shift" },
+    
+    // NOTE(rjf): Code Peek
+    { "f4_code_peek",          "Tick", "Alt" },
+    { "f4_code_peek_yank",     "Tab", "Control" },
+    { "f4_code_peek_clear",    "Shift", "Alt" },
+    
+    // NOTE(rjf): Go To Def
+    { "long_go_to_definition",            "Return", "Control" },
+    { "long_go_to_definition_same_panel", "Return", "Control", "Shift" },
+    
+    // NOTE(rjf): Helpers
+    { "f4_write_zero_struct",  "0", "Control" },
+    { "f4_toggle_enclosure_side",  "Semicolon", "Alt" },
+};
+
+keys_code =
+{
+	{ "f4_comment_selection",                                "Semicolon",    "Control" },
+    { "f4_uncomment_selection",                              "Semicolon",    "Control", "Shift" },
+    { "f4_autocomplete_or_indent",                           "Tab" },   
+    { "f4_unindent",                                         "Tab",          "Shift"   },
+    { "auto_indent_range",                                   "Tab",          "Control" },
+    
+    { "word_complete_drop_down",                             "Tab",          "Control", "Shift" },
+    //{ "write_block",                                         "1",            "Control" },
+    //{ "write_todo",                                          "2",            "Control" },
+    //{ "write_note",                                          "3",            "Control" },
+    
+    //{ "list_all_locations_of_type_definition",               "D",            "Alt" },
+    //{ "list_all_locations_of_type_definition_of_identifier", "T",            "Alt", "Shift" },
+    
+    { "open_long_braces",                                    "LeftBracket",  "Alt" },
+    { "open_long_braces_semicolon",                          "LeftBracket",  "Alt", "Shift" },
+    { "open_long_braces_break",                              "RightBracket", "Alt", "Shift" },
+    
+    { "select_prev_scope_absolute",                          "LeftBracket",  "Control" },
+    { "select_prev_top_most_scope",                          "LeftBracket",  "Control", "Shift" },
+    { "select_next_scope_absolute",                          "RightBracket", "Control" },
+    { "select_next_scope_after_current",                     "RightBracket", "Control", "Shift" },
+    
+    { "place_in_scope",                                      "ForwardSlash", "Alt" },
+    { "delete_current_scope",                                "Minus",        "Alt" },
+    { "open_file_in_quotes",                                 "1",            "Alt" },
+    { "open_matching_file_cpp",                              "2",            "Alt" },
+    
+    // TODO(jack): implement
+    // { "jp_insert_deref_access",                              "Period",       "Control" },
+};
