@@ -946,63 +946,50 @@ function String8 _Long_PushNoteTag(Application_Links* app, Arena* arena, F4_Inde
     {
         case F4_Index_NoteKind_Type:
         {
-            /*result = push_stringf(arena, "type [%s] [%s]",
-                                  note->flags & F4_Index_NoteFlag_Prototype ? "prototype" : "def",
-                                  note->flags & F4_Index_NoteFlag_SumType ? "sum" : "product");*/
-            result = push_stringf(arena, "type%s%s",
-                                  note->flags & F4_Index_NoteFlag_Prototype ? " [forward]" : "",
-                                  note->flags & F4_Index_NoteFlag_SumType ? " [union]" : "");
+            b32 is_forward = note->flags & F4_Index_NoteFlag_Prototype;
+            b32 is_union   = note->flags & F4_Index_NoteFlag_SumType;
+            b32 is_generic = Long_Index_IsGenericArgument(note);
+            result = push_stringf(arena, "type%s%s%s",
+                                  is_forward ? " [forward]" : "",
+                                  is_union ? " [union]" : "",
+                                  is_generic ? " [generic]" : "");
         } break;
+        
+        case F4_Index_NoteKind_Macro:       result = S8Lit("macro");       break;
+        case F4_Index_NoteKind_Constant:    result = S8Lit("constant");    break;
+        case F4_Index_NoteKind_CommentTag:  result = S8Lit("comment tag"); break;
+        case F4_Index_NoteKind_CommentToDo: result = S8Lit("TODO");        break;
         
         case F4_Index_NoteKind_Function:
         {
             String8 type = S8Lit("function");
             if (note->base_range.min)
             {
-                if (string_match(note->base_string, S8Lit("operator")))
+                if (Long_Index_MatchNote(app, note, note->base_range, S8Lit("operator")))
                 type = S8Lit("operator");
             }
-            else
+            else if (!range_size(note->range)) type = S8Lit("lambda");
+            else if (note->parent)
             {
-                if (!range_size(note->range)) type = S8Lit("lambda");
-                else if (note->parent)
+                switch (note->parent->kind)
                 {
-                    if (note->parent->kind == F4_Index_NoteKind_Type)
+                    case F4_Index_NoteKind_Type:
                     {
                         if (string_match(note->string, note->parent->string))
                         type = S8Lit("constructor");
-                    }
-                    else if (note->parent->kind == F4_Index_NoteKind_Decl)
+                    } break;
+                    
+                    case F4_Index_NoteKind_Decl:
                     {
                         if (string_match(note->string, S8Lit("get")))
                         type = S8Lit("getter");
-                        else if (string_match(note->string, S8Lit("set")))
+                        if (string_match(note->string, S8Lit("set")))
                         type = S8Lit("setter");
-                    }
+                    } break;
                 }
             }
-            //result = push_stringf(arena, "%s [%s]", type.str, note->flags & F4_Index_NoteFlag_Prototype ? "prototype" : "def");
+            
             result = push_stringf(arena, "%s%s", type.str, note->flags & F4_Index_NoteFlag_Prototype ? " [forward]" : "");
-        } break;
-        
-        case F4_Index_NoteKind_Macro:
-        {
-            result = S8Lit("macro");
-        } break;
-        
-        case F4_Index_NoteKind_Constant:
-        {
-            result = S8Lit("constant");
-        } break;
-        
-        case F4_Index_NoteKind_CommentTag:
-        {
-            result = S8Lit("comment tag");
-        } break;
-        
-        case F4_Index_NoteKind_CommentToDo:
-        {
-            result = S8Lit("TODO");
         } break;
         
         case F4_Index_NoteKind_Decl:
@@ -1012,6 +999,8 @@ function String8 _Long_PushNoteTag(Application_Links* app, Arena* arena, F4_Inde
             {
                 if (note->range.max < note->parent->scope_range.min)
                 string = S8Lit("argument");
+                else if (note->parent->kind == F4_Index_NoteKind_Function || note->parent->kind == F4_Index_NoteKind_Scope)
+                string = S8Lit("local");
                 else if (note->parent->kind == F4_Index_NoteKind_Type)
                 {
                     string = S8Lit("field");
@@ -1022,8 +1011,6 @@ function String8 _Long_PushNoteTag(Application_Links* app, Arena* arena, F4_Inde
                         string = S8Lit("property");
                     }
                 }
-                else if (note->parent->kind == F4_Index_NoteKind_Function || note->parent->kind == F4_Index_NoteKind_Scope)
-                string = S8Lit("local");
             }
             else string = S8Lit("global");
             
@@ -1075,6 +1062,8 @@ function LONG_INDEX_FILTER(Long_Filter_Note)
             else if (note->parent->kind == F4_Index_NoteKind_Type)
             result = false; // Field
         }
+        else if (Long_Index_IsGenericArgument(note))
+        result = false; // Generic Argument
     }
     return result;
 }

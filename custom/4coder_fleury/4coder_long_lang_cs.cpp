@@ -136,8 +136,6 @@ function void Long_CS_ParseGeneric(F4_Index_ParseCtx* ctx)
     }
 }
 
-#define LONG_INDEX_PARSE_NAMESPACE 1
-
 internal F4_LANGUAGE_INDEXFILE(Long_CS_IndexFile)
 {
     String8 cs_types[] =
@@ -170,9 +168,6 @@ internal F4_LANGUAGE_INDEXFILE(Long_CS_IndexFile)
         S8Lit("struct"),
         S8Lit("class"),
         S8Lit("interface"),
-#if !LONG_INDEX_PARSE_NAMESPACE
-        S8Lit("namespace"),
-#endif
     };
     
     String8 cs_operator[] = { S8Lit("operator") };
@@ -214,20 +209,15 @@ internal F4_LANGUAGE_INDEXFILE(Long_CS_IndexFile)
         }
         else if (ctx->active_parent && Long_Index_ParsePattern(ctx, "%t", "}"))
         {
-#if LONG_INDEX_PARSE_NAMESPACE
             Long_Index_PeekPrevious(ctx,
                                     {
                                         Long_Index_EndCtxScope(ctx);
                                         do Long_Index_PopParent(ctx);
                                         while (!Long_Index_IsParentInitialized(ctx));
                                     });
-#else
-            Long_Index_PeekPrevious(ctx, Long_Index_EndCtxScope(ctx); Long_Index_PopParent(ctx));
-#endif
         }
         
         //~ NOTE(long): Namespaces
-#if LONG_INDEX_PARSE_NAMESPACE
         else if (Long_Index_ParsePattern(ctx, "%b", TokenCsKind_Namespace, &base))
         {
             while (Long_Index_ParsePattern(ctx, "%k", TokenBaseKind_Identifier, &name))
@@ -240,11 +230,11 @@ internal F4_LANGUAGE_INDEXFILE(Long_CS_IndexFile)
                 if (note) F4_Index_PushParent(ctx, note);
                 else      Long_Index_MakeNote(ctx, base, name, F4_Index_NoteKind_Type, 1);
                 ctx->active_parent->scope_range = {};
+                ctx->active_parent->flags |= F4_Index_NoteFlag_Namespace;
                 if (!Long_Index_ParsePattern(ctx, "%t", "."))
                 break;
             }
         }
-#endif
         
         //~ NOTE(long): Types
         else if (Long_CS_ParseDecl(ctx, &base, &name, ExpandArray(cs_type_keywords), Long_ParseFlag_NoBase))
@@ -301,23 +291,13 @@ internal F4_LANGUAGE_INDEXFILE(Long_CS_IndexFile)
             Long_Index_MakeNote(ctx, {}, Ii64(name.min), F4_Index_NoteKind_Function);
         }
         
-#define LONG_INDEX_PARSE_DECL 1
-        
         //~ NOTE(long): Declarations
         else if (Long_CS_ParseDecl(ctx, &base, &name, ExpandArray(cs_types), 0, "out", &use_modifier))
         {
             kind = F4_Index_NoteKind_Decl;
-#if !LONG_INDEX_PARSE_DECL
-            // NOTE(long): "int A, int B": This will pop parent "A" because "A.scope_range" contains "int" from "int B"
-            if (Long_Index_CtxCompare(ctx, kind == F4_Index_NoteKind_Decl) &&
-                range_contains_inclusive(Long_Index_CtxScope(ctx), base.min))
-            Long_Index_PopParent(ctx);
-#endif
             
             DECLARATION:
             Long_Index_MakeNote(ctx, base, name, kind);
-            
-#if LONG_INDEX_PARSE_DECL
             if (use_modifier)
             Long_Index_PopParent(ctx);
             else if (!range_size(base) || (!Long_Index_PeekPattern(ctx, "%t", "=>") && !Long_Index_PeekPattern(ctx, "%t", "{")))
@@ -332,28 +312,10 @@ internal F4_LANGUAGE_INDEXFILE(Long_CS_IndexFile)
                 
                 Long_Index_EndCtxChange(ctx);
             }
-#else
-            // NOTE(long): This check is for property's body (ex: int something => { ... } doesn't have a child scope)
-            if (!range_size(base) || (!Long_Index_PeekPattern(ctx, "%t", "=>") && !Long_Index_PeekPattern(ctx, "%t", "{")))
-            {
-                Long_Index_BeginCtxChange(ctx);
-                if (Long_Index_ParsePattern(ctx, "%t", "="))
-                Long_CS_SkipExpression(ctx);
-                Long_Index_BlockCtxScope(ctx,
-                                         {
-                                             // NOTE(long): 'out' is the only modifier that required a type
-                                             // Ex: `in/ref/params myVar` vs `out MyType myVar`
-                                             if (!use_modifier && Long_Index_ParsePattern(ctx, "%t", ","))
-                                             Long_Index_ParsePattern(ctx, "%k", TokenBaseKind_Identifier, 0);
-                                         });
-                Long_Index_EndCtxChange(ctx);
-            }
-#endif
         }
         
         else if (Long_Index_ParsePattern(ctx, "%k", TokenBaseKind_Identifier, &name))
         {
-#if LONG_INDEX_PARSE_DECL
             F4_Index_Note* prev_sibling = ctx->active_parent ? ctx->active_parent->last_child : ctx->file->last_note;
             if (prev_sibling && prev_sibling->kind == F4_Index_NoteKind_Decl && prev_sibling->scope_range.max)
             {
@@ -377,33 +339,18 @@ internal F4_LANGUAGE_INDEXFILE(Long_CS_IndexFile)
                 }
                 Long_Index_EndCtxChange(ctx);
             }
-#endif
             
             if (ctx->active_parent)
             {
                 switch (ctx->active_parent->kind)
                 {
-#if !LONG_INDEX_PARSE_DECL
-                    // NOTE(long): This is either for trailing declarations or fields of an enum
-                    case F4_Index_NoteKind_Decl:
-                    case F4_Index_NoteKind_Constant:
-                    {
-                        if (range_contains_inclusive(Long_Index_CtxScope(ctx), name.min))
-                        {
-                            base = ctx->active_parent->base_range;
-                            kind = ctx->active_parent->kind;
-                            Long_Index_PopParent(ctx);
-                        }
-                    } break;
-#endif
-                    
                     case F4_Index_NoteKind_Function: // NOTE(long): This is for lambda's arguments
                     {
                         if (range_size(ctx->active_parent->range) == 0 && Long_Index_CtxScope(ctx) == Range_i64{})
                         kind = F4_Index_NoteKind_Decl;
                     } break;
                     
-                    case F4_Index_NoteKind_Type: // NOTE(long): This is for the first field of an enum
+                    case F4_Index_NoteKind_Type: // NOTE(long): This is for all the fields of an enum
                     {
                         if (Long_Index_IsMatch(ctx, ctx->active_parent->base_range, cs_type_keywords, 1))
                         kind = F4_Index_NoteKind_Constant;

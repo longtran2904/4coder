@@ -16,6 +16,7 @@ function LONG_INDEX_FILTER(Long_Filter_Note);
 
 function b32 F4_ARGBIsValid(ARGB_Color color);
 
+function b32 Long_Index_IsGenericArgument(F4_Index_Note* note);
 function b32 Long_Index_MatchNote(Application_Links* app, F4_Index_Note* note, Range_i64 range, String8 match);
 function b32 Long_Index_IsMatch(F4_Index_ParseCtx* ctx, Range_i64 range, String8* array, u64 count);
 function b32 Long_Index_IsMatch(F4_Index_ParseCtx* ctx, Token* token, String8* array, u64 count);

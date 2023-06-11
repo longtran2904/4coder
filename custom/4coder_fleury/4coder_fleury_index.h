@@ -23,6 +23,7 @@ enum
     F4_Index_NoteFlag_Prototype   = (1<<0),
     F4_Index_NoteFlag_ProductType = (1<<1),
     F4_Index_NoteFlag_SumType     = (1<<2),
+    F4_Index_NoteFlag_Namespace   = (1<<3),
 };
 
 struct F4_Index_File;
@@ -50,7 +51,6 @@ struct F4_Index_Note
     // NOTE(long): These are the only new fields that I add
     Range_i64 scope_range;
     Range_i64 base_range;
-    String8 base_string;
 };
 
 struct F4_Index_File

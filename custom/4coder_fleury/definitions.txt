@@ -3,34 +3,36 @@
 [NULL] { {  }
 [{] test_local_1 { <{> declaration [local] }
 [{] test_local_2 { <{> declaration [local] }
-[NULL] MyGenericType { type [def] [product] }
-[MyGenericType] T { <MyGenericType> type [def] [product] }
+[NULL] MyGenericType { type }
+[MyGenericType] T { <MyGenericType> type [generic] }
 [MyGenericType] a { <MyGenericType> declaration [field] }
 [MyGenericType] b { <MyGenericType> declaration [field] }
-[MyGenericType] DoShit { <MyGenericType> function [def] }
+[MyGenericType] DoShit { <MyGenericType> function }
 [DoShit] someArg { <DoShit> declaration [argument] }
-[MyGenericType] DoGenericShit { <MyGenericType> function [def] }
-[DoGenericShit] U { <DoGenericShit> type [def] [product] }
+[MyGenericType] DoGenericShit { <MyGenericType> function }
+[DoGenericShit] U { <DoGenericShit> type [generic] }
 [DoGenericShit] a { <DoGenericShit> declaration [argument] }
 [DoGenericShit] b { <DoGenericShit> declaration [argument] }
-[NULL] GenericFunc { function [def] }
-[GenericFunc] T { <GenericFunc> type [def] [product] }
+[NULL] GenericFunc { function }
+[GenericFunc] T { <GenericFunc> type [generic] }
 [GenericFunc] arg { <GenericFunc> declaration [argument] }
 [GenericFunc] a { <GenericFunc> declaration [local] }
-[NULL] TesStruct { type [def] [product] }
-[NULL] TestSingleEnum { type [def] [product] }
-[NULL] EnumTest { type [def] [product] }
+[GenericFunc] test_local_1 { <GenericFunc> declaration [local] }
+[GenericFunc] test_global_1 { <GenericFunc> declaration [local] }
+[NULL] TesStruct { type }
+[NULL] TestSingleEnum { type }
+[NULL] EnumTest { type }
 [EnumTest] A { <EnumTest> constant }
 [A] { { <A>  }
 [EnumTest] B { <EnumTest> constant }
 [EnumTest] C { <EnumTest> constant }
-[NULL] TestNamespace { type [def] [product] }
+[NULL] TestNamespace { type }
 [TestNamespace] Namespace { <TestNamespace> declaration [field] }
-[TestNamespace] A { <TestNamespace> type [def] [product] }
-[A] B { <A> type [def] [product] }
-[B] C { <B> type [def] [product] }
-[C] Namespace { <C> function [def] }
-[B] Namespace { <B> type [def] [product] }
+[TestNamespace] A { <TestNamespace> type }
+[A] B { <A> type }
+[B] C { <B> type }
+[C] Namespace { <C> function }
+[B] Namespace { <B> type }
 [B] @"C:\Users\scoleridge\Documents\"; { <B> comment tag }
 [B] @"My pensive SARA ! thy soft cheek reclined { <B> comment tag }
 [NULL] verbatimStr3 { declaration [global] }
@@ -41,11 +43,11 @@
 [handsome] { { <handsome>  }
 [NULL] testDecl1 { declaration [global] }
 [NULL] testDecl2 { declaration [global] }
-[NULL] CreateTest { function [def] }
+[NULL] CreateTest { function }
 [CreateTest] a { <CreateTest> declaration [argument] }
 [CreateTest] b { <CreateTest> declaration [argument] }
 [CreateTest] c { <CreateTest> declaration [argument] }
-[NULL] VeryLongFunction { function [def] }
+[NULL] VeryLongFunction { function }
 [VeryLongFunction] something { <VeryLongFunction> declaration [argument] }
 [VeryLongFunction] someOtherThing { <VeryLongFunction> declaration [argument] }
 [VeryLongFunction] fl { <VeryLongFunction> declaration [argument] }
@@ -61,43 +63,43 @@
 [VeryLongFunction] testStruct { <VeryLongFunction> declaration [argument] }
 [VeryLongFunction] senum { <VeryLongFunction> declaration [argument] }
 [VeryLongFunction] arg { <VeryLongFunction> declaration [argument] }
-[NULL] Vector2 { type [def] [product] }
-[Vector2] + { <Vector2> operator [def] }
+[NULL] Vector2 { type }
+[Vector2] + { <Vector2> operator }
 [+] a { <+> declaration [argument] }
 [+] b { <+> declaration [argument] }
-[Vector2] - { <Vector2> operator [def] }
+[Vector2] - { <Vector2> operator }
 [-] a { <-> declaration [argument] }
-[Vector2] - { <Vector2> operator [def] }
+[Vector2] - { <Vector2> operator }
 [-] a { <-> declaration [argument] }
 [-] b { <-> declaration [argument] }
-[Vector2] * { <Vector2> operator [def] }
+[Vector2] * { <Vector2> operator }
 [*] d { <*> declaration [argument] }
 [*] a { <*> declaration [argument] }
-[Vector2] * { <Vector2> operator [def] }
+[Vector2] * { <Vector2> operator }
 [*] a { <*> declaration [argument] }
 [*] d { <*> declaration [argument] }
-[Vector2] * { <Vector2> operator [def] }
+[Vector2] * { <Vector2> operator }
 [*] a { <*> declaration [argument] }
 [*] b { <*> declaration [argument] }
-[Vector2] / { <Vector2> operator [def] }
+[Vector2] / { <Vector2> operator }
 [/] a { </> declaration [argument] }
 [/] d { </> declaration [argument] }
-[Vector2] / { <Vector2> operator [def] }
+[Vector2] / { <Vector2> operator }
 [/] a { </> declaration [argument] }
 [/] b { </> declaration [argument] }
-[Vector2] == { <Vector2> operator [def] }
+[Vector2] == { <Vector2> operator }
 [==] lhs { <==> declaration [argument] }
 [==] rhs { <==> declaration [argument] }
-[Vector2] != { <Vector2> operator [def] }
+[Vector2] != { <Vector2> operator }
 [!=] lhs { <!=> declaration [argument] }
 [!=] rhs { <!=> declaration [argument] }
-[Vector2] Vector2 { <Vector2> operator [def] }
+[Vector2] Vector2 { <Vector2> operator }
 [Vector2] v { <Vector2> declaration [argument] }
-[Vector2] Vector3 { <Vector2> operator [def] }
+[Vector2] Vector3 { <Vector2> operator }
 [Vector3] v { <Vector3> declaration [argument] }
 [NULL] { {  }
 [NULL] { {  }
-[NULL] Test { type [def] [product] }
+[NULL] Test { type }
 [Test] DoStuff { <Test> declaration [field] }
 [Test] d { <Test> declaration [field] }
 [Test] a { <Test> declaration [field] }
@@ -111,26 +113,26 @@
 [Test] a { <Test> declaration [field] }
 [Test] c { <Test> declaration [field] }
 [Test] tupple { <Test> declaration [field] }
-[Test] Function { <Test> function [def] }
+[Test] Function { <Test> function }
 [Function] someInt { <Function> declaration [argument] }
 [Function] someFloat { <Function> declaration [argument] }
-[Test] Function2 { <Test> function [def] }
-[Test] Test { <Test> constructor [def] }
+[Test] Function2 { <Test> function }
+[Test] Test { <Test> constructor }
 [Test] property { <Test> declaration [property] }
-[property] get { <property> getter [def] }
-[get]  { <get> lambda [def] }
+[property] get { <property> getter }
+[get]  { <get> lambda }
 [] _ { <> declaration [argument] }
 [] a { <> declaration [local] }
-[property] set { <property> setter [def] }
+[property] set { <property> setter }
 [set] b { <set> declaration [local] }
-[set]  { <set> lambda [def] }
+[set]  { <set> lambda }
 [] x { <> declaration [argument] }
 [] y { <> declaration [argument] }
 [] z { <> declaration [argument] }
-[Test] Something { <Test> function [def] }
+[Test] Something { <Test> function }
 [Something] a { <Something> declaration [local] }
 [Something] b { <Something> declaration [local] }
-[b]  { <b> lambda [def] }
+[b]  { <b> lambda }
 [] e { <> declaration [argument] }
 [] f { <> declaration [argument] }
 [] g { <> declaration [argument] }
@@ -138,23 +140,23 @@
 [{] b { <{> declaration [local] }
 [Something] c { <Something> declaration [local] }
 [Something] { { <Something>  }
-[{] Stuff { <{> function [def] }
+[{] Stuff { <{> function }
 [{] a { <{> declaration [local] }
 [Something] { { <Something>  }
 [{] DoStuff { <{> declaration [local] }
 [Something] { { <Something>  }
 [{] DoStuff { <{> declaration [local] }
 [Something] { { <Something>  }
-[{] DoStuff { <{> function [def] }
+[{] DoStuff { <{> function }
 [DoStuff] a { <DoStuff> declaration [local] }
 [DoStuff] b { <DoStuff> declaration [local] }
 [Something] { { <Something>  }
 [{] stuff { <{> declaration [local] }
 [Something] { { <Something>  }
-[{] A { <{> function [def] }
+[{] A { <{> function }
 [A] a { <A> declaration [argument] }
 [A] b { <A> declaration [argument] }
-[{] B { <{> function [def] }
+[{] B { <{> function }
 [B] a { <B> declaration [argument] }
 [B] b { <B> declaration [argument] }
 [B] c { <B> declaration [argument] }
@@ -162,70 +164,70 @@
 [Something] { { <Something>  }
 [{] t { <{> declaration [local] }
 [Something] { { <Something>  }
-[Test] SomeOtherThing { <Test> function [def] }
+[Test] SomeOtherThing { <Test> function }
 [SomeOtherThing] DoStuff { <SomeOtherThing> declaration [argument] }
 [SomeOtherThing] a { <SomeOtherThing> declaration [local] }
-[Test] Stuff { <Test> type [def] [product] }
-[Stuff] DoStuff { <Stuff> function [def] }
-[DoStuff] DoStuff { <DoStuff> function [def] }
-[DoStuff] DoStuff { <DoStuff> function [def] }
-[NULL] OtherTest { type [def] [product] }
-[OtherTest] DoStuff { <OtherTest> function [def] }
-[NULL] Stuff { type [def] [product] }
+[Test] Stuff { <Test> type }
+[Stuff] DoStuff { <Stuff> function }
+[DoStuff] DoStuff { <DoStuff> function }
+[DoStuff] DoStuff { <DoStuff> function }
+[NULL] OtherTest { type }
+[OtherTest] DoStuff { <OtherTest> function }
+[NULL] Stuff { type }
 [Stuff] DoStuff { <Stuff> declaration [field] }
-[NULL] Optional { type [def] [product] }
-[Optional] T { <Optional> type [def] [product] }
+[NULL] Optional { type }
+[Optional] T { <Optional> type [generic] }
 [Optional] enabled { <Optional> declaration [field] }
 [Optional] value { <Optional> declaration [field] }
 [Optional] some { <Optional> declaration [field] }
 [Optional] something { <Optional> declaration [field] }
 [Optional] ConstantNumber { <Optional> declaration [field] }
-[Optional] SmoothFunc { <Optional> type [def] [product] }
+[Optional] SmoothFunc { <Optional> type }
 [SmoothFunc] a { <SmoothFunc> declaration [argument] }
 [SmoothFunc] b { <SmoothFunc> declaration [argument] }
-[Optional] SomeOtherDelegate { <Optional> type [def] [product] }
+[Optional] SomeOtherDelegate { <Optional> type }
 [SomeOtherDelegate] arr { <SomeOtherDelegate> declaration [argument] }
 [SomeOtherDelegate] c { <SomeOtherDelegate> declaration [argument] }
 [SomeOtherDelegate] d { <SomeOtherDelegate> declaration [argument] }
-[Optional] Optional { <Optional> constructor [def] }
+[Optional] Optional { <Optional> constructor }
 [Optional] initValue { <Optional> declaration [argument] }
-[Optional] Optional { <Optional> constructor [def] }
-[Optional] T { <Optional> operator [def] }
+[Optional] Optional { <Optional> constructor }
+[Optional] T { <Optional> operator }
 [T] optional { <T> declaration [argument] }
 [T] c { <T> declaration [local] }
-[Optional] SomeFunc1 { <Optional> function [def] }
+[Optional] SomeFunc1 { <Optional> function }
 [SomeFunc1] a { <SomeFunc1> declaration [argument] }
 [SomeFunc1] a { <SomeFunc1> declaration [local] }
 [SomeFunc1] b { <SomeFunc1> declaration [local] }
-[Optional] SomeFunc2 { <Optional> function [def] }
+[Optional] SomeFunc2 { <Optional> function }
 [SomeFunc2] a { <SomeFunc2> declaration [argument] }
 [SomeFunc2] b { <SomeFunc2> declaration [local] }
-[Optional] GenericFunc { <Optional> function [def] }
+[Optional] GenericFunc { <Optional> function }
 [GenericFunc] a { <GenericFunc> declaration [argument] }
-[Optional] DoStuff { <Optional> function [def] }
+[Optional] DoStuff { <Optional> function }
 [DoStuff] args { <DoStuff> declaration [argument] }
-[NULL] Property { type [def] [product] }
-[Property] T { <Property> type [def] [product] }
+[NULL] Property { type }
+[Property] T { <Property> type [generic] }
 [Property] serializedEnumNames { <Property> declaration [field] }
 [Property] properties { <Property> declaration [field] }
 [Property] enumNames { <Property> declaration [property] }
-[Property] Property { <Property> constructor [def] }
+[Property] Property { <Property> constructor }
 [Property] properties { <Property> declaration [argument] }
 [Property] names { <Property> declaration [local] }
-[Property] Stuff { <Property> function [def] }
-[Property] HasProperty { <Property> function [def] }
+[Property] Stuff { <Property> function }
+[Property] HasProperty { <Property> function }
 [HasProperty] property { <HasProperty> declaration [argument] }
 [HasProperty] p { <HasProperty> declaration [local] }
-[Property] SetProperty { <Property> function [def] }
+[Property] SetProperty { <Property> function }
 [SetProperty] property { <SetProperty> declaration [argument] }
 [SetProperty] set { <SetProperty> declaration [argument] }
 [SetProperty] p { <SetProperty> declaration [local] }
-[Property] SetProperties { <Property> function [def] }
+[Property] SetProperties { <Property> function }
 [SetProperties] properties { <SetProperties> declaration [argument] }
 [SetProperties] property { <SetProperties> declaration [local] }
-[Property] ToString { <Property> function [def] }
-[Property] OnBeforeSerialize { <Property> function [def] }
-[Property] OnAfterDeserialize { <Property> function [def] }
+[Property] ToString { <Property> function }
+[Property] OnBeforeSerialize { <Property> function }
+[Property] OnAfterDeserialize { <Property> function }
 [OnAfterDeserialize] enumNames { <OnAfterDeserialize> declaration [local] }
 [OnAfterDeserialize] { { <OnAfterDeserialize>  }
 [OnAfterDeserialize] sets { <OnAfterDeserialize> declaration [local] }
@@ -241,40 +243,40 @@
 [{] { { <{>  }
 [{] msg { <{> declaration [local] }
 [OnAfterDeserialize] i { <OnAfterDeserialize> declaration [local] }
-[NULL] RangedInt { type [def] [product] }
+[NULL] RangedInt { type }
 [RangedInt] min { <RangedInt> declaration [field] }
 [RangedInt] max { <RangedInt> declaration [field] }
-[RangedInt] RangedInt { <RangedInt> constructor [def] }
+[RangedInt] RangedInt { <RangedInt> constructor }
 [RangedInt] min { <RangedInt> declaration [argument] }
 [RangedInt] max { <RangedInt> declaration [argument] }
 [RangedInt] randomValue { <RangedInt> declaration [property] }
-[NULL] RangedFloat { type [def] [product] }
+[NULL] RangedFloat { type }
 [RangedFloat] min { <RangedFloat> declaration [field] }
 [RangedFloat] max { <RangedFloat> declaration [field] }
-[RangedFloat] RangedFloat { <RangedFloat> constructor [def] }
+[RangedFloat] RangedFloat { <RangedFloat> constructor }
 [RangedFloat] min { <RangedFloat> declaration [argument] }
 [RangedFloat] max { <RangedFloat> declaration [argument] }
 [RangedFloat] randomValue { <RangedFloat> declaration [property] }
-[randomValue] get { <randomValue> getter [def] }
+[randomValue] get { <randomValue> getter }
 [RangedFloat] range { <RangedFloat> declaration [property] }
-[NULL] IntReference { type [def] [product] }
+[NULL] IntReference { type }
 [IntReference] useConstant { <IntReference> declaration [field] }
 [IntReference] constantValue { <IntReference> declaration [field] }
 [IntReference] variable { <IntReference> declaration [field] }
 [IntReference] value { <IntReference> declaration [property] }
-[value] get { <value> getter [def] }
-[value] set { <value> setter [def] }
-[IntReference] IntReference { <IntReference> constructor [def] }
+[value] get { <value> getter }
+[value] set { <value> setter }
+[IntReference] IntReference { <IntReference> constructor }
 [IntReference] value { <IntReference> declaration [argument] }
-[IntReference] int { <IntReference> operator [def] }
+[IntReference] int { <IntReference> operator }
 [int] reference { <int> declaration [argument] }
-[NULL] GameMode { type [def] [product] }
+[NULL] GameMode { type }
 [GameMode] None { <GameMode> constant }
 [GameMode] Quit { <GameMode> constant }
 [GameMode] Main { <GameMode> constant }
 [GameMode] Play { <GameMode> constant }
 [GameMode] Count { <GameMode> constant }
-[NULL] GameManager { type [def] [product] }
+[NULL] GameManager { type }
 [GameManager] startMode { <GameManager> declaration [field] }
 [GameManager] mainMode { <GameManager> declaration [field] }
 [GameManager] playMode { <GameManager> declaration [field] }
@@ -295,29 +297,29 @@
 [GameManager] gameUI { <GameManager> declaration [field] }
 [GameManager] defaultBounds { <GameManager> declaration [field] }
 [GameManager] tilemap { <GameManager> declaration [field] }
-[GameManager] Bounds { <GameManager> type [def] [product] }
+[GameManager] Bounds { <GameManager> type }
 [Bounds] a { <Bounds> declaration [field] }
 [Bounds] b { <Bounds> declaration [field] }
 [Bounds] c { <Bounds> declaration [field] }
-[GameManager] FindAllEntityProperties { <GameManager> function [def] }
+[GameManager] FindAllEntityProperties { <GameManager> function }
 [FindAllEntityProperties] generateFile { <FindAllEntityProperties> declaration [argument] }
 [FindAllEntityProperties] watch { <FindAllEntityProperties> declaration [local] }
 [FindAllEntityProperties] builder { <FindAllEntityProperties> declaration [local] }
-[FindAllEntityProperties]  { <FindAllEntityProperties> lambda [def] }
+[FindAllEntityProperties]  { <FindAllEntityProperties> lambda }
 [] assets { <> declaration [local] }
 [] entities { <> declaration [local] }
 [] asset { <> declaration [local] }
 [] { { <>  }
 [{] path { <{> declaration [local] }
 [{] entity { <{> declaration [local] }
-[FindAllEntityProperties]  { <FindAllEntityProperties> lambda [def] }
+[FindAllEntityProperties]  { <FindAllEntityProperties> lambda }
 [] assets { <> declaration [local] }
 [] entities { <> declaration [local] }
 [FindAllEntityProperties] message { <FindAllEntityProperties> declaration [local] }
 [FindAllEntityProperties] context { <FindAllEntityProperties> declaration [local] }
 [FindAllEntityProperties] { { <FindAllEntityProperties>  }
 [{] path { <{> declaration [local] }
-[FindAllEntityProperties] SaveEntityProperties { <FindAllEntityProperties> function [def] }
+[FindAllEntityProperties] SaveEntityProperties { <FindAllEntityProperties> function }
 [SaveEntityProperties] builder { <SaveEntityProperties> declaration [argument] }
 [SaveEntityProperties] title { <SaveEntityProperties> declaration [argument] }
 [SaveEntityProperties] getEntities { <SaveEntityProperties> declaration [argument] }
@@ -325,7 +327,7 @@
 [SaveEntityProperties] entity { <SaveEntityProperties> declaration [local] }
 [SaveEntityProperties] { { <SaveEntityProperties>  }
 [{] startIndex { <{> declaration [local] }
-[FindAllEntityProperties] PrintProperty { <FindAllEntityProperties> function [def] }
+[FindAllEntityProperties] PrintProperty { <FindAllEntityProperties> function }
 [PrintProperty] obj { <PrintProperty> declaration [argument] }
 [PrintProperty] fieldName { <PrintProperty> declaration [argument] }
 [PrintProperty] builder { <PrintProperty> declaration [argument] }
@@ -334,17 +336,17 @@
 [PrintProperty] names { <PrintProperty> declaration [local] }
 [PrintProperty] setNames { <PrintProperty> declaration [local] }
 [PrintProperty] i { <PrintProperty> declaration [local] }
-[PrintProperty]  { <PrintProperty> lambda [def] }
+[PrintProperty]  { <PrintProperty> lambda }
 [] name { <> declaration [argument] }
 [] i { <> declaration [argument] }
-[FindAllEntityProperties] SerializeType { <FindAllEntityProperties> function [def] }
+[FindAllEntityProperties] SerializeType { <FindAllEntityProperties> function }
 [SerializeType] obj { <SerializeType> declaration [argument] }
 [SerializeType] builder { <SerializeType> declaration [argument] }
 [SerializeType] fieldName { <SerializeType> declaration [argument] }
 [SerializeType] { { <SerializeType>  }
-[SerializeType]  { <SerializeType> lambda [def] }
+[SerializeType]  { <SerializeType> lambda }
 [] data { <> declaration [argument] }
-[SerializeType]  { <SerializeType> lambda [def] }
+[SerializeType]  { <SerializeType> lambda }
 [] data { <> declaration [argument] }
 [] property { <> declaration [local] }
 [] name { <> declaration [local] }
@@ -353,12 +355,12 @@
 [{] isArrayElement { <{> declaration [local] }
 [{] isParentArrayElement { <{> declaration [local] }
 [{] TODO: Handle array of serializable type contains array of serializable type contains array of... { <{> TODO }
-[SerializeType]  { <SerializeType> lambda [def] }
+[SerializeType]  { <SerializeType> lambda }
 [] data { <> declaration [argument] }
-[SerializeType]  { <SerializeType> lambda [def] }
+[SerializeType]  { <SerializeType> lambda }
 [] data { <> declaration [argument] }
 [] recursive { <> declaration [argument] }
-[GameManager] InitTilemap { <GameManager> function [def] }
+[GameManager] InitTilemap { <GameManager> function }
 [InitTilemap] rooms { <InitTilemap> declaration [argument] }
 [InitTilemap] tilemap { <InitTilemap> declaration [argument] }
 [InitTilemap] ruleTile { <InitTilemap> declaration [argument] }
@@ -371,19 +373,19 @@
 [{] doorTile { <{> declaration [local] }
 [{] { { <{>  }
 [{] pos { <{> declaration [local] }
-[{] Remove { <{> function [def] }
+[{] Remove { <{> function }
 [Remove] tilemap { <Remove> declaration [argument] }
 [Remove] pos { <Remove> declaration [argument] }
 [Remove] removeDir { <Remove> declaration [argument] }
 [Remove] { { <Remove>  }
-[GameManager] GetTilemapFromRoom { <GameManager> function [def] }
+[GameManager] GetTilemapFromRoom { <GameManager> function }
 [GetTilemapFromRoom] roomTransform { <GetTilemapFromRoom> declaration [argument] }
-[GameManager] GetBoundsFromTilemap { <GameManager> function [def] }
+[GameManager] GetBoundsFromTilemap { <GameManager> function }
 [GetBoundsFromTilemap] tilemap { <GetBoundsFromTilemap> declaration [argument] }
 [GetBoundsFromTilemap] bounds { <GetBoundsFromTilemap> declaration [local] }
-[GameManager] GetBoundsFromRoom { <GameManager> function [def] }
+[GameManager] GetBoundsFromRoom { <GameManager> function }
 [GetBoundsFromRoom] roomTransform { <GetBoundsFromRoom> declaration [argument] }
-[GameManager] GetGroundPos { <GameManager> function [def] }
+[GameManager] GetGroundPos { <GameManager> function }
 [GetGroundPos] pos { <GetGroundPos> declaration [argument] }
 [GetGroundPos] extents { <GetGroundPos> declaration [argument] }
 [GetGroundPos] dirY { <GetGroundPos> declaration [argument] }
@@ -393,7 +395,7 @@
 [GetGroundPos] { { <GetGroundPos>  }
 [{] hitPosCeil { <{> declaration [local] }
 [{] hitPosFloor { <{> declaration [local] }
-[GameManager] CalculateMoveRegion { <GameManager> function [def] }
+[GameManager] CalculateMoveRegion { <GameManager> function }
 [CalculateMoveRegion] pos { <CalculateMoveRegion> declaration [argument] }
 [CalculateMoveRegion] extents { <CalculateMoveRegion> declaration [argument] }
 [CalculateMoveRegion] dirY { <CalculateMoveRegion> declaration [argument] }
@@ -409,33 +411,33 @@
 [{] { { <{>  }
 [{] minPos { <{> declaration [local] }
 [{] maxPos { <{> declaration [local] }
-[GameManager] QueryTiles { <GameManager> function [def] }
+[GameManager] QueryTiles { <GameManager> function }
 [QueryTiles] tilemap { <QueryTiles> declaration [argument] }
 [QueryTiles] startPos { <QueryTiles> declaration [argument] }
 [QueryTiles] breakCondition { <QueryTiles> declaration [argument] }
 [QueryTiles] advanceX { <QueryTiles> declaration [argument] }
 [QueryTiles] advanceY { <QueryTiles> declaration [argument] }
 [QueryTiles] pos { <QueryTiles> declaration [local] }
-[GameManager] Start { <GameManager> function [def] }
+[GameManager] Start { <GameManager> function }
 [Start] { { <Start>  }
-[{]  { <{> lambda [def] }
+[{]  { <{> lambda }
 [] value { <> declaration [argument] }
 [] dir { <> declaration [argument] }
-[{]  { <{> lambda [def] }
+[{]  { <{> lambda }
 [] mode { <> declaration [argument] }
-[Start]  { <Start> lambda [def] }
-[Start]  { <Start> lambda [def] }
-[Start]  { <Start> lambda [def] }
+[Start]  { <Start> lambda }
+[Start]  { <Start> lambda }
+[Start]  { <Start> lambda }
 [Start] { { <Start>  }
-[{]  { <{> lambda [def] }
+[{]  { <{> lambda }
 [] value { <> declaration [argument] }
 [] dir { <> declaration [argument] }
-[{]  { <{> lambda [def] }
+[{]  { <{> lambda }
 [] scale { <> declaration [argument] }
-[{]  { <{> lambda [def] }
+[{]  { <{> lambda }
 [] _ { <> declaration [argument] }
-[Start]  { <Start> lambda [def] }
-[GameManager] Update { <GameManager> function [def] }
+[Start]  { <Start> lambda }
+[GameManager] Update { <GameManager> function }
 [Update] { { <Update>  }
 [{] { { <{>  }
 [{] { { <{>  }
@@ -449,7 +451,7 @@
 [{] { { <{>  }
 [{] roomRect { <{> declaration [local] }
 [{] { { <{>  }
-[GameManager] StartGameMode { <GameManager> function [def] }
+[GameManager] StartGameMode { <GameManager> function }
 [StartGameMode] mode { <StartGameMode> declaration [argument] }
 [StartGameMode] { { <StartGameMode>  }
 [StartGameMode] TODO: { <StartGameMode> TODO }
@@ -473,15 +475,15 @@
 [{] { { <{>  }
 [{] { { <{>  }
 [{] { { <{>  }
-[{]  { <{> lambda [def] }
+[{]  { <{> lambda }
 [] room { <> declaration [argument] }
-[{]  { <{> lambda [def] }
+[{]  { <{> lambda }
 [] room { <> declaration [argument] }
 [{] { { <{>  }
 [{] player { <{> declaration [local] }
 [{] { { <{>  }
 [{] { { <{>  }
-[GameManager] LockRoom { <GameManager> function [def] }
+[GameManager] LockRoom { <GameManager> function }
 [LockRoom] room { <LockRoom> declaration [argument] }
 [LockRoom] lockRoom { <LockRoom> declaration [argument] }
 [LockRoom] disableEnemies { <LockRoom> declaration [argument] }
@@ -492,11 +494,11 @@
 [{] door { <{> declaration [local] }
 [{] { { <{>  }
 [{] doorAnim { <{> declaration [local] }
-[GameManager] OnAudioFilterRead { <GameManager> function [def] }
+[GameManager] OnAudioFilterRead { <GameManager> function }
 [OnAudioFilterRead] data { <OnAudioFilterRead> declaration [argument] }
 [OnAudioFilterRead] channels { <OnAudioFilterRead> declaration [argument] }
 [NULL] SCRIPTABLE_VFX { macro }
-[NULL] EntityProperty { type [def] [product] }
+[NULL] EntityProperty { type }
 [EntityProperty] CanJump { <EntityProperty> constant }
 [EntityProperty] CanBeHurt { <EntityProperty> constant }
 [EntityProperty] DamageWhenCollide { <EntityProperty> constant }
@@ -516,7 +518,7 @@
 [EntityProperty] IsReloading { <EntityProperty> constant }
 [EntityProperty] AtEndOfMoveRegion { <EntityProperty> constant }
 [EntityProperty] Count { <EntityProperty> constant }
-[NULL] EntityState { type [def] [product] }
+[NULL] EntityState { type }
 [EntityState] None { <EntityState> constant }
 [EntityState] Jumping { <EntityState> constant }
 [EntityState] Falling { <EntityState> constant }
@@ -528,14 +530,14 @@
 [EntityState] OnSpawn { <EntityState> constant }
 [EntityState] OnHit { <EntityState> constant }
 [EntityState] OnDeath { <EntityState> constant }
-[NULL] Entity { type [def] [product] }
-[Entity] AbilityType { <Entity> type [def] [product] }
+[NULL] Entity { type }
+[Entity] AbilityType { <Entity> type }
 [AbilityType] None { <AbilityType> constant }
 [AbilityType] Move { <AbilityType> constant }
 [AbilityType] Teleport { <AbilityType> constant }
 [AbilityType] Explode { <AbilityType> constant }
 [AbilityType] Jump { <AbilityType> constant }
-[Entity] AbilityFlag { <Entity> type [def] [product] }
+[Entity] AbilityFlag { <Entity> type }
 [AbilityFlag] Interuptible { <AbilityFlag> constant }
 [AbilityFlag] AwayFromPlayer { <AbilityFlag> constant }
 [AbilityFlag] LockOnPlayerForEternity { <AbilityFlag> constant }
@@ -545,7 +547,7 @@
 [AbilityFlag] ExecuteWhenOutOfMoveRegion { <AbilityFlag> constant }
 [AbilityFlag] OrCombine { <AbilityFlag> constant }
 [AbilityFlag] CanExecute { <AbilityFlag> constant }
-[Entity] EntityAbility { <Entity> type [def] [product] }
+[Entity] EntityAbility { <Entity> type }
 [EntityAbility] flags { <EntityAbility> declaration [field] }
 [EntityAbility] vfx { <EntityAbility> declaration [field] }
 [EntityAbility] type { <EntityAbility> declaration [field] }
@@ -558,7 +560,7 @@
 [EntityAbility] duration { <EntityAbility> declaration [field] }
 [EntityAbility] range { <EntityAbility> declaration [field] }
 [EntityAbility] damage { <EntityAbility> declaration [field] }
-[Entity] CanUseAbility { <Entity> function [def] }
+[Entity] CanUseAbility { <Entity> function }
 [CanUseAbility] ability { <CanUseAbility> declaration [argument] }
 [CanUseAbility] flags { <CanUseAbility> declaration [local] }
 [CanUseAbility] pos { <CanUseAbility> declaration [local] }
@@ -567,18 +569,18 @@
 [CanUseAbility] isInRangeY { <CanUseAbility> declaration [local] }
 [CanUseAbility] moveRegion { <CanUseAbility> declaration [local] }
 [CanUseAbility] result { <CanUseAbility> declaration [local] }
-[CanUseAbility] Check { <CanUseAbility> function [def] }
+[CanUseAbility] Check { <CanUseAbility> function }
 [Check] condition { <Check> declaration [argument] }
 [Check] values { <Check> declaration [argument] }
 [Check] b { <Check> declaration [local] }
-[Entity] UseAbility { <Entity> function [def] }
+[Entity] UseAbility { <Entity> function }
 [UseAbility] ability { <UseAbility> declaration [argument] }
 [UseAbility] moveType { <UseAbility> declaration [argument] }
 [UseAbility] targetType { <UseAbility> declaration [argument] }
 [UseAbility] speed { <UseAbility> declaration [argument] }
 [UseAbility] cooldownTime { <UseAbility> declaration [local] }
 [UseAbility] timer { <UseAbility> declaration [local] }
-[UseAbility]  { <UseAbility> lambda [def] }
+[UseAbility]  { <UseAbility> lambda }
 [UseAbility] { { <UseAbility>  }
 [UseAbility] { { <UseAbility>  }
 [{] { { <{>  }
@@ -589,7 +591,7 @@
 [{] { { <{>  }
 [{] distance { <{> declaration [local] }
 [{] TODO: Maybe teleport opposite to where the player is heading or teleport to nearby platform { <{> TODO }
-[{] IsPosValid { <{> function [def] }
+[{] IsPosValid { <{> function }
 [IsPosValid] offsetX { <IsPosValid> declaration [argument] }
 [IsPosValid] offset { <IsPosValid> declaration [local] }
 [IsPosValid] onGround { <IsPosValid> declaration [local] }
@@ -597,15 +599,15 @@
 [IsPosValid] { { <IsPosValid>  }
 [{] { { <{>  }
 [{] { { <{>  }
-[Entity] TargetOffsetType { <Entity> type [def] [product] }
+[Entity] TargetOffsetType { <Entity> type }
 [TargetOffsetType] None { <TargetOffsetType> constant }
 [TargetOffsetType] Mouse { <TargetOffsetType> constant }
 [TargetOffsetType] Player { <TargetOffsetType> constant }
-[Entity] MoveRegionType { <Entity> type [def] [product] }
+[Entity] MoveRegionType { <Entity> type }
 [MoveRegionType] None { <MoveRegionType> constant }
 [MoveRegionType] Ground { <MoveRegionType> constant }
 [MoveRegionType] Vertical { <MoveRegionType> constant }
-[Entity] AttackTrigger { <Entity> type [def] [product] }
+[Entity] AttackTrigger { <Entity> type }
 [AttackTrigger] None { <AttackTrigger> constant }
 [AttackTrigger] MouseInput { <AttackTrigger> constant }
 [Entity] properties { <Entity> declaration [field] }
@@ -666,46 +668,46 @@
 [Entity] anim { <Entity> declaration [field] }
 [Entity] sr { <Entity> declaration [field] }
 [Entity] spriteExtents { <Entity> declaration [field] }
-[Entity] OnObjectInit { <Entity> function [def] }
+[Entity] OnObjectInit { <Entity> function }
 [OnObjectInit] { { <OnObjectInit>  }
-[{]  { <{> lambda [def] }
-[Entity] CustomInit { <Entity> function [def] }
+[{]  { <{> lambda }
+[Entity] CustomInit { <Entity> function }
 [CustomInit] TODO: Figure out whether we need to disable or destroy the object { <CustomInit> TODO }
-[Entity] OnObjectSpawn { <Entity> function [def] }
-[Entity] Start { <Entity> function [def] }
+[Entity] OnObjectSpawn { <Entity> function }
+[Entity] Start { <Entity> function }
 [Start] { { <Start>  }
-[{]  { <{> lambda [def] }
-[Entity] Init { <Entity> function [def] }
+[{]  { <{> lambda }
+[Entity] Init { <Entity> function }
 [Init] { { <Init>  }
 [{] drag { <{> declaration [local] }
-[Init]  { <Init> lambda [def] }
+[Init]  { <Init> lambda }
 [] dropValue { <> declaration [local] }
 [] i { <> declaration [local] }
 [Init] move { <Init> declaration [local] }
 [Init] rotate { <Init> declaration [local] }
-[Init]  { <Init> lambda [def] }
-[Entity] InitCamera { <Entity> function [def] }
+[Init]  { <Init> lambda }
+[Entity] InitCamera { <Entity> function }
 [InitCamera] automatic { <InitCamera> declaration [argument] }
 [InitCamera] useSmoothDamp { <InitCamera> declaration [argument] }
 [InitCamera] value { <InitCamera> declaration [argument] }
 [InitCamera] waitTime { <InitCamera> declaration [argument] }
-[InitCamera]  { <InitCamera> lambda [def] }
+[InitCamera]  { <InitCamera> lambda }
 [] room { <> declaration [argument] }
-[InitCamera] ToNextRoom { <InitCamera> function [def] }
+[InitCamera] ToNextRoom { <InitCamera> function }
 [ToNextRoom] roomRect { <ToNextRoom> declaration [argument] }
-[Entity] InitBullet { <Entity> function [def] }
+[Entity] InitBullet { <Entity> function }
 [InitBullet] damage { <InitBullet> declaration [argument] }
 [InitBullet] isCritical { <InitBullet> declaration [argument] }
 [InitBullet] hitPlayer { <InitBullet> declaration [argument] }
-[Entity] InitDamagePopup { <Entity> function [def] }
+[Entity] InitDamagePopup { <Entity> function }
 [InitDamagePopup] damage { <InitDamagePopup> declaration [argument] }
 [InitDamagePopup] isCritical { <InitDamagePopup> declaration [argument] }
 [InitDamagePopup] { { <InitDamagePopup>  }
-[Entity] Pickup { <Entity> function [def] }
-[Entity] Shoot { <Entity> function [def] }
+[Entity] Pickup { <Entity> function }
+[Entity] Shoot { <Entity> function }
 [Shoot] isCritical { <Shoot> declaration [argument] }
 [Shoot] bullet { <Shoot> declaration [local] }
-[Entity] Update { <Entity> function [def] }
+[Entity] Update { <Entity> function }
 [Update] TODO: Test if this is actually working { <Update> TODO }
 [Update] wasGrounded { <Update> declaration [local] }
 [Update] isGrounded { <Update> declaration [local] }
@@ -719,9 +721,9 @@
 [{] isCritical { <{> declaration [local] }
 [{] rot { <{> declaration [local] }
 [{] { { <{>  }
-[{]  { <{> lambda [def] }
+[{]  { <{> lambda }
 [] enable { <> declaration [argument] }
-[{] Reloading { <{> function [def] }
+[{] Reloading { <{> function }
 [Reloading] stat { <Reloading> declaration [argument] }
 [Reloading] updateUI { <Reloading> declaration [argument] }
 [Reloading] enable { <Reloading> declaration [argument] }
@@ -743,7 +745,7 @@
 [{] { { <{>  }
 [{] capsule { <{> declaration [local] }
 [{] { { <{>  }
-[{]  { <{> lambda [def] }
+[{]  { <{> lambda }
 [{] { { <{>  }
 [{] TODO: Has a falling animation rather than the first frame of the idle one { <{> TODO }
 [{] { { <{>  }
@@ -757,29 +759,29 @@
 [{] { { <{>  }
 [{] { { <{>  }
 [{] effect { <{> declaration [local] }
-[Entity] PlayVFX { <Entity> function [def] }
+[Entity] PlayVFX { <Entity> function }
 [PlayVFX] vfx { <PlayVFX> declaration [argument] }
 [PlayVFX] after { <PlayVFX> declaration [local] }
-[after]  { <after> lambda [def] }
+[after]  { <after> lambda }
 [PlayVFX] enumerators { <PlayVFX> declaration [local] }
 [PlayVFX] enumeratorCount { <PlayVFX> declaration [local] }
 [PlayVFX] { { <PlayVFX>  }
 [{] duration { <{> declaration [local] }
-[{]  { <{> lambda [def] }
-[{]  { <{> lambda [def] }
+[{]  { <{> lambda }
+[{]  { <{> lambda }
 [] p { <> declaration [argument] }
-[{]  { <{> lambda [def] }
-[{]  { <{> lambda [def] }
+[{]  { <{> lambda }
+[{]  { <{> lambda }
 [] s { <> declaration [argument] }
-[{] Offset { <{> function [def] }
+[{] Offset { <{> function }
 [Offset] getter { <Offset> declaration [argument] }
 [Offset] setter { <Offset> declaration [argument] }
-[Offset]  { <Offset> lambda [def] }
+[Offset]  { <Offset> lambda }
 [] p { <> declaration [argument] }
-[Offset]  { <Offset> lambda [def] }
-[]  { <> lambda [def] }
+[Offset]  { <Offset> lambda }
+[]  { <> lambda }
 [] p { <> declaration [argument] }
-[Offset] ChangeOverTime { <Offset> function [def] }
+[Offset] ChangeOverTime { <Offset> function }
 [ChangeOverTime] setValue { <ChangeOverTime> declaration [argument] }
 [ChangeOverTime] startValue { <ChangeOverTime> declaration [argument] }
 [ChangeOverTime] endValue { <ChangeOverTime> declaration [argument] }
@@ -787,16 +789,16 @@
 [ChangeOverTime] { { <ChangeOverTime>  }
 [{] t { <{> declaration [local] }
 [{] { { <{>  }
-[PlayVFX]  { <PlayVFX> lambda [def] }
+[PlayVFX]  { <PlayVFX> lambda }
 [] rotation { <> declaration [local] }
 [PlayVFX] { { <PlayVFX>  }
-[{]  { <{> lambda [def] }
+[{]  { <{> lambda }
 [PlayVFX] { { <PlayVFX>  }
 [{] pool { <{> declaration [local] }
 [PlayVFX] { { <PlayVFX>  }
 [{] { { <{>  }
 [{] { { <{>  }
-[{] Flashing { <{> function [def] }
+[{] Flashing { <{> function }
 [Flashing] sr { <Flashing> declaration [argument] }
 [Flashing] whiteMat { <Flashing> declaration [argument] }
 [Flashing] color { <Flashing> declaration [argument] }
@@ -806,32 +808,32 @@
 [{] currentTime { <{> declaration [local] }
 [{] defMat { <{> declaration [local] }
 [{] { { <{>  }
-[{]  { <{> lambda [def] }
+[{]  { <{> lambda }
 [] alpha { <> declaration [argument] }
 [{] { { <{>  }
-[{]  { <{> lambda [def] }
-[]  { <> lambda [def] }
+[{]  { <{> lambda }
+[]  { <> lambda }
 [] width { <> declaration [argument] }
 [{] TODO: Fade trail { <{> TODO }
 [{] { { <{>  }
-[{] EnableTrail { <{> function [def] }
+[{] EnableTrail { <{> function }
 [EnableTrail] trail { <EnableTrail> declaration [argument] }
 [EnableTrail] emitTime { <EnableTrail> declaration [argument] }
 [EnableTrail] stayTime { <EnableTrail> declaration [argument] }
 [{] { { <{>  }
 [{] text { <{> declaration [local] }
-[{]  { <{> lambda [def] }
-[]  { <> lambda [def] }
+[{]  { <{> lambda }
+[]  { <> lambda }
 [] alpha { <> declaration [argument] }
 [PlayVFX] TODO: Maybe change this to an offset-based { <PlayVFX> TODO }
-[PlayVFX] DecreaseOverTime { <PlayVFX> function [def] }
+[PlayVFX] DecreaseOverTime { <PlayVFX> function }
 [DecreaseOverTime] setValue { <DecreaseOverTime> declaration [argument] }
 [DecreaseOverTime] startValue { <DecreaseOverTime> declaration [argument] }
 [DecreaseOverTime] decreaseTime { <DecreaseOverTime> declaration [argument] }
 [DecreaseOverTime] { { <DecreaseOverTime>  }
 [{] t { <{> declaration [local] }
 [{] { { <{>  }
-[Entity] TargetType { <Entity> type [def] [product] }
+[Entity] TargetType { <Entity> type }
 [TargetType] None { <TargetType> constant }
 [TargetType] Input { <TargetType> constant }
 [TargetType] Player { <TargetType> constant }
@@ -840,7 +842,7 @@
 [TargetType] MoveRegion { <TargetType> constant }
 [TargetType] Target { <TargetType> constant }
 [TargetType] Count { <TargetType> constant }
-[Entity] MoveType { <Entity> type [def] [product] }
+[Entity] MoveType { <Entity> type }
 [MoveType] None { <MoveType> constant }
 [MoveType] Run { <MoveType> constant }
 [MoveType] Fly { <MoveType> constant }
@@ -848,14 +850,14 @@
 [MoveType] Custom { <MoveType> constant }
 [MoveType] Spring { <MoveType> constant }
 [MoveType] Count { <MoveType> constant }
-[Entity] MoveEntity { <Entity> function [def] }
+[Entity] MoveEntity { <Entity> function }
 [MoveEntity] { { <MoveEntity>  }
 [{] { { <{>  }
 [{] { { <{>  }
 [{] { { <{>  }
 [{] { { <{>  }
 [{] { { <{>  }
-[{] SwitchTargetToMax { <{> function [def] }
+[{] SwitchTargetToMax { <{> function }
 [SwitchTargetToMax] toMax { <SwitchTargetToMax> declaration [argument] }
 [SwitchTargetToMax] atEndOfMoveRegion { <SwitchTargetToMax> declaration [argument] }
 [{] { { <{>  }
@@ -870,7 +872,7 @@
 [{] { { <{>  }
 [{] { { <{>  }
 [{] newPos { <{> declaration [local] }
-[Entity] RotateType { <Entity> type [def] [product] }
+[Entity] RotateType { <Entity> type }
 [RotateType] None { <RotateType> constant }
 [RotateType] PlayerX { <RotateType> constant }
 [RotateType] MoveDirX { <RotateType> constant }
@@ -878,7 +880,7 @@
 [RotateType] MouseX { <RotateType> constant }
 [RotateType] Linear { <RotateType> constant }
 [RotateType] Count { <RotateType> constant }
-[Entity] RotateEntity { <Entity> function [def] }
+[Entity] RotateEntity { <Entity> function }
 [RotateEntity] transform { <RotateEntity> declaration [argument] }
 [RotateEntity] rotateType { <RotateEntity> declaration [argument] }
 [RotateEntity] dRotate { <RotateEntity> declaration [argument] }
@@ -892,56 +894,56 @@
 [{] { { <{>  }
 [{] { { <{>  }
 [{] { { <{>  }
-[Entity] StartFalling { <Entity> function [def] }
+[Entity] StartFalling { <Entity> function }
 [StartFalling] startFalling { <StartFalling> declaration [argument] }
-[Entity] CompleteCycle { <Entity> function [def] }
-[Entity] TestPlayerVFX { <Entity> function [def] }
+[Entity] CompleteCycle { <Entity> function }
+[Entity] TestPlayerVFX { <Entity> function }
 [TestPlayerVFX] vfx1 { <TestPlayerVFX> declaration [local] }
 [TestPlayerVFX] vfx2 { <TestPlayerVFX> declaration [local] }
-[TestPlayerVFX] CreateTestVFX { <TestPlayerVFX> function [def] }
+[TestPlayerVFX] CreateTestVFX { <TestPlayerVFX> function }
 [CreateTestVFX] name { <CreateTestVFX> declaration [argument] }
 [CreateTestVFX] timeline { <CreateTestVFX> declaration [argument] }
 [CreateTestVFX] offset { <CreateTestVFX> declaration [argument] }
 [CreateTestVFX] vfx { <CreateTestVFX> declaration [local] }
-[Entity] Hurt { <Entity> function [def] }
+[Entity] Hurt { <Entity> function }
 [Hurt] damage { <Hurt> declaration [argument] }
 [Hurt] { { <Hurt>  }
 [{] TODO: Replace this with a stat { <{> TODO }
 [{] { { <{>  }
-[Entity] Die { <Entity> function [def] }
-[Entity] HasProperty { <Entity> function [def] }
+[Entity] Die { <Entity> function }
+[Entity] HasProperty { <Entity> function }
 [HasProperty] property { <HasProperty> declaration [argument] }
-[Entity] SetProperty { <Entity> function [def] }
+[Entity] SetProperty { <Entity> function }
 [SetProperty] property { <SetProperty> declaration [argument] }
 [SetProperty] set { <SetProperty> declaration [argument] }
-[Entity] OnTriggerEnter2D { <Entity> function [def] }
+[Entity] OnTriggerEnter2D { <Entity> function }
 [OnTriggerEnter2D] collision { <OnTriggerEnter2D> declaration [argument] }
-[Entity] OnCollisionEnter2D { <Entity> function [def] }
+[Entity] OnCollisionEnter2D { <Entity> function }
 [OnCollisionEnter2D] collision { <OnCollisionEnter2D> declaration [argument] }
-[Entity] OnHitEnter { <Entity> function [def] }
+[Entity] OnHitEnter { <Entity> function }
 [OnHitEnter] collision { <OnHitEnter> declaration [argument] }
 [OnHitEnter] tag { <OnHitEnter> declaration [local] }
 [OnHitEnter] { { <OnHitEnter>  }
 [{] { { <{>  }
 [{] entity { <{> declaration [local] }
 [{] { { <{>  }
-[Entity] IsInRange { <Entity> function [def] }
+[Entity] IsInRange { <Entity> function }
 [IsInRange] range { <IsInRange> declaration [argument] }
 [IsInRange] targetPos { <IsInRange> declaration [argument] }
-[Entity] IsInRange { <Entity> function [def] }
+[Entity] IsInRange { <Entity> function }
 [IsInRange] range { <IsInRange> declaration [argument] }
 [IsInRange] targetPos { <IsInRange> declaration [argument] }
 [IsInRange] targetDir { <IsInRange> declaration [local] }
-[Entity] IsInRangeY { <Entity> function [def] }
+[Entity] IsInRangeY { <Entity> function }
 [IsInRangeY] range { <IsInRangeY> declaration [argument] }
 [IsInRangeY] targetPos { <IsInRangeY> declaration [argument] }
-[Entity] CalculateMoveRegion { <Entity> function [def] }
+[Entity] CalculateMoveRegion { <Entity> function }
 [CalculateMoveRegion] { { <CalculateMoveRegion>  }
 [{] { { <{>  }
 [{] { { <{>  }
 [{] groundPos { <{> declaration [local] }
 [{] { { <{>  }
-[Entity] VFXProperty { <Entity> type [def] [product] }
+[Entity] VFXProperty { <Entity> type }
 [VFXProperty] StopAnimation { <VFXProperty> constant }
 [VFXProperty] ChangeEffectObjBack { <VFXProperty> constant }
 [VFXProperty] ScaleOverTime { <VFXProperty> constant }
@@ -952,7 +954,7 @@
 [VFXProperty] FlipX { <VFXProperty> constant }
 [VFXProperty] FlipY { <VFXProperty> constant }
 [VFXProperty] FlipZ { <VFXProperty> constant }
-[Entity] EntityVFX { <Entity> type [def] [product] }
+[Entity] EntityVFX { <Entity> type }
 [EntityVFX] properties { <EntityVFX> declaration [field] }
 [EntityVFX] done { <EntityVFX> declaration [field] }
 [EntityVFX] canStop { <EntityVFX> declaration [field] }
@@ -983,22 +985,22 @@
 [EntityVFX] audio { <EntityVFX> declaration [field] }
 [EntityVFX] poolType { <EntityVFX> declaration [field] }
 [EntityVFX] scaleOffset { <EntityVFX> declaration [field] }
-[Entity] PlayVFX { <Entity> function [def] }
+[Entity] PlayVFX { <Entity> function }
 [PlayVFX] vfx { <PlayVFX> declaration [argument] }
 [PlayVFX] totalParticleTime { <PlayVFX> declaration [local] }
 [PlayVFX] particleCount { <PlayVFX> declaration [local] }
 [PlayVFX] i { <PlayVFX> declaration [local] }
 [PlayVFX] { { <PlayVFX>  }
 [{] { { <{>  }
-[{]  { <{> lambda [def] }
+[{]  { <{> lambda }
 [PlayVFX] x { <PlayVFX> declaration [local] }
 [PlayVFX] y { <PlayVFX> declaration [local] }
 [PlayVFX] z { <PlayVFX> declaration [local] }
-[PlayVFX]  { <PlayVFX> lambda [def] }
-[PlayVFX]  { <PlayVFX> lambda [def] }
-[]  { <> lambda [def] }
-[]  { <> lambda [def] }
-[PlayVFX] Flashing { <PlayVFX> function [def] }
+[PlayVFX]  { <PlayVFX> lambda }
+[PlayVFX]  { <PlayVFX> lambda }
+[]  { <> lambda }
+[]  { <> lambda }
+[PlayVFX] Flashing { <PlayVFX> function }
 [Flashing] sr { <Flashing> declaration [argument] }
 [Flashing] whiteMat { <Flashing> declaration [argument] }
 [Flashing] color { <Flashing> declaration [argument] }
@@ -1008,26 +1010,26 @@
 [Flashing] { { <Flashing>  }
 [{] currentTime { <{> declaration [local] }
 [{] defMat { <{> declaration [local] }
-[PlayVFX] ScaleOverTime { <PlayVFX> function [def] }
+[PlayVFX] ScaleOverTime { <PlayVFX> function }
 [ScaleOverTime] transform { <ScaleOverTime> declaration [argument] }
 [ScaleOverTime] duration { <ScaleOverTime> declaration [argument] }
 [ScaleOverTime] scaleOffset { <ScaleOverTime> declaration [argument] }
 [ScaleOverTime] { { <ScaleOverTime>  }
 [ScaleOverTime] { { <ScaleOverTime>  }
-[PlayVFX] FadeText { <PlayVFX> function [def] }
+[PlayVFX] FadeText { <PlayVFX> function }
 [FadeText] text { <FadeText> declaration [argument] }
 [FadeText] alpha { <FadeText> declaration [argument] }
 [FadeText] fadeTime { <FadeText> declaration [argument] }
 [FadeText] dAlpha { <FadeText> declaration [local] }
 [FadeText] { { <FadeText>  }
-[PlayVFX] EnableTrail { <PlayVFX> function [def] }
+[PlayVFX] EnableTrail { <PlayVFX> function }
 [EnableTrail] trail { <EnableTrail> declaration [argument] }
 [EnableTrail] emitTime { <EnableTrail> declaration [argument] }
 [EnableTrail] stayTime { <EnableTrail> declaration [argument] }
-[PlayVFX] DecreaseTrailWidth { <PlayVFX> function [def] }
+[PlayVFX] DecreaseTrailWidth { <PlayVFX> function }
 [DecreaseTrailWidth] trail { <DecreaseTrailWidth> declaration [argument] }
 [DecreaseTrailWidth] decreaseTime { <DecreaseTrailWidth> declaration [argument] }
 [DecreaseTrailWidth] startWidth { <DecreaseTrailWidth> declaration [local] }
 [DecreaseTrailWidth] startTime { <DecreaseTrailWidth> declaration [local] }
 [DecreaseTrailWidth] { { <DecreaseTrailWidth>  }
-Note count: 1032
+Note count: 1034

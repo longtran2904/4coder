@@ -1,4 +1,12 @@
 
+function b32 Long_Index_IsGenericArgument(F4_Index_Note* note)
+{
+    F4_Index_Note* parent = note->parent;
+    return (parent && note->kind == F4_Index_NoteKind_Type &&
+            (parent->kind == F4_Index_NoteKind_Type || parent->kind == F4_Index_NoteKind_Function) &&
+            note->range.min < parent->scope_range.min && !(parent->flags & F4_Index_NoteFlag_Namespace));
+}
+
 function b32 Long_Index_MatchNote(Application_Links* app, F4_Index_Note* note, Range_i64 range, String8 match)
 {
     Scratch_Block scratch(app);
@@ -265,7 +273,6 @@ function F4_Index_Note* Long_Index_MakeNote(F4_Index_ParseCtx* ctx, Range_i64 ba
 {
     F4_Index_Note* note = F4_Index_MakeNote(ctx, range, kind, 0);
     note->base_range = base_range;
-    note->base_string = push_string_copy(&ctx->file->arena, F4_Index_StringFromRange(ctx, base_range));
     if (push_parent)
     F4_Index_PushParent(ctx, note);
     return note;
