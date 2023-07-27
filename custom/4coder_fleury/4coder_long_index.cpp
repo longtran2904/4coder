@@ -338,7 +338,6 @@ function F4_Index_Note* Long_Index_LookupRef(Application_Links* app, Token_Array
     if (note && range_size(note->base_range))
     {
         Token* token = token_from_pos(array, note->base_range.max - 1);
-        if (token->kind == TokenBaseKind_Identifier)
         result = Long_Index_LookupBestNote(app, note->file->buffer, array, token);
     }
     return result;
