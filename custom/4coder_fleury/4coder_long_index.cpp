@@ -1,4 +1,9 @@
 
+function b32 Long_Index_IsComment(F4_Index_Note* note)
+{
+    return note->kind == F4_Index_NoteKind_CommentTag || note->kind == F4_Index_NoteKind_CommentToDo;
+}
+
 function b32 Long_Index_IsGenericArgument(F4_Index_Note* note)
 {
     F4_Index_Note* parent = note->parent;
@@ -150,11 +155,11 @@ function b32 Long_Index_SkipBody(Application_Links* app, Token_Iterator_Array* i
 // NOTE(long): This function was ripped from F4_Index_ParsePattern and modified so that it takes a va_list and output a Range_i64
 function b32 _Long_Index_ParsePattern(F4_Index_ParseCtx* ctx, char* fmt, va_list _args)
 {
-    ProfileScope(ctx->app, "[Long] Parse Pattern");
+    Long_Index_ProfileScope(ctx->app, "[Long] Parse Pattern");
     b32 parsed = 1;
     
     F4_Index_ParseCtx ctx_restore = *ctx;
-    F4_Index_TokenSkipFlags flags = F4_Index_TokenSkipFlag_SkipWhitespace|F4_Index_TokenSkipFlag_SkipComment;
+    F4_Index_TokenSkipFlags flags = F4_Index_TokenSkipFlag_SkipAll;
     
     va_list args;
     va_copy(args, _args);
@@ -294,18 +299,21 @@ function F4_Index_Note* Long_Index_LookupNote(String_Const_u8 string)
     return result;
 }
 
-function F4_Index_Note* Long_Index_LookupChild(F4_Index_Note* parent, String8 name)
+function F4_Index_Note* Long_Index_LookupChild(String8 name, F4_Index_Note* parent)
 {
-    F4_Index_Note* result = 0;
-    for (F4_Index_Note* child = parent ? parent->first_child : 0; child; child = child->next_sibling)
+    if (parent)
     {
+        for (F4_Index_Note* child = parent->first_child; child; child = child->next_sibling)
         if (string_match(child->string, name))
-        {
-            result = child;
-            break;
-        }
+        return child;
     }
-    return result;
+    else
+    {
+        for (F4_Index_Note* note = Long_Index_LookupNote(name); note; note = note->next)
+        if (!note->parent)
+        return note;
+    }
+    return 0;
 }
 
 function F4_Index_Note* Long_Index_LookupChild(F4_Index_Note* parent, i32 index)
@@ -337,7 +345,7 @@ function F4_Index_Note* Long_Index_LookupRef(Application_Links* app, Token_Array
 }
 
 function void
-_Long_Index_ParseSelection(Application_Links* app, Arena* arena, Token_Iterator_Array* it, Buffer_ID buffer, String8List* list)
+Long_Index_ParseSelection(Application_Links* app, Arena* arena, Token_Iterator_Array* it, Buffer_ID buffer, String8List* list)
 {
     Long_Index_SkipBody(app, it, buffer, true);
     Token* current = token_it_read(it);
@@ -363,90 +371,37 @@ _Long_Index_ParseSelection(Application_Links* app, Arena* arena, Token_Iterator_
                 is_selection = Long_Index_IsMatch(lexeme, ExpandArray(selections));
             }
             if (is_selection && token_it_dec(it))
-            _Long_Index_ParseSelection(app, arena, it, buffer, list);
+            Long_Index_ParseSelection(app, arena, it, buffer, list);
         }
     }
 }
 
-#define LONG_INDEX_CACHING 0
-
-#if LONG_INDEX_CACHING
-struct Long_Index_Table
+function F4_Index_Note* Long_Index_LookupNoteTree(F4_Index_File* file, F4_Index_Note* note, String8 string)
 {
-    F4_Index_Note* table[16384];
-    Buffer_ID buffers[16384];
-    i64 locations[16384];
-};
-
-global Long_Index_Table long_table = {};
-
-#define LONG_TABLE_PROBING 1
-function i32 Long_Index_LookupTable(Application_Links* app, Buffer_ID buffer, Token* token)
-{
-    ProfileScope(app, "[Long] Lookup Table");
-    i64 pos = token->pos;
-    Tiny_Jump key = { buffer, pos };
-    u64 slot = table_hash(&key, sizeof(key), 1) % ArrayCount(long_table.table);
-#if LONG_TABLE_PROBING
-    u64 original = slot;
-    while (long_table.buffers[slot])
+    for (F4_Index_Note* parent = note; ; parent = parent->parent)
     {
-        if (long_table.buffers[slot] == buffer && long_table.locations[slot] == pos)
-        return (i32)slot;
-        slot = clamp_loop(slot + 1, ArrayCount(long_table.table));
-        if (slot == original)
-        break;
-    }
-#else
-    if (long_table.buffers[slot] == buffer && long_table.locations[slot] == pos)
-    return (i32)slot;
-#endif
-    return -1;
-}
-
-function void Long_Index_AddTable(Application_Links* app, Buffer_ID buffer, Token* token, F4_Index_Note* note)
-{
-    ProfileScope(app, "[Long] Update Table");
-    i64 pos = token->pos;
-    Tiny_Jump key = { buffer, pos };
-    u64 slot = table_hash(&key, sizeof(key), 1) % ArrayCount(long_table.table);
-#if LONG_TABLE_PROBING
-    u64 original = slot;
-    while (long_table.buffers[slot])
-    {
-        slot = clamp_loop(slot + 1, ArrayCount(long_table.table));
-        if (slot == original)
-        break;
-    }
-#endif
-    long_table.buffers[slot] = buffer;
-    long_table.locations[slot] = pos;
-    long_table.table[slot] = note;
-}
-
-function void Long_Index_ClearTable()
-{
-    memset(long_table.buffers, 0, sizeof(long_table.buffers));
-}
-#else
-function void Long_Index_ClearTable() {}
-#endif
-
-function F4_Index_Note* Long_Index_LookupNoteTree(F4_Index_Note* note, String8 string)
-{
-    for (F4_Index_Note* parent = note && note->first_child ? note->first_child : note; parent; parent = parent->parent)
-    {
-        while (parent->prev_sibling)
-        parent = parent->prev_sibling;
-        
-        for (F4_Index_Note* sibling = parent; sibling; sibling = sibling->next_sibling)
-        if (string_match(sibling->string, string))
-        return sibling;
+        F4_Index_Note* child = Long_Index_LookupChild(string, parent);
+        if (child  ) return child;
+        if (!parent) break;
     }
     
-    for (F4_Index_Note* global_note = Long_Index_LookupNote(string); global_note; global_note = global_note->next_sibling)
-    if (!global_note->parent)
-    return global_note;
+    for (String8ListNode* ref = file ? file->references : 0; ref; ref = ref->next)
+    {
+        F4_Index_Note* parent = 0;
+        for (String8Node* name = ref->list.first; name; name = name->next)
+        {
+            parent = Long_Index_LookupChild(name->string, parent);
+            if (!parent)
+            break;
+        }
+        
+        if (parent)
+        {
+            F4_Index_Note* child = Long_Index_LookupChild(string, parent);
+            if (child)
+            return child;
+        }
+    }
     
     return 0;
 }
@@ -470,10 +425,9 @@ function F4_Index_Note* Long_Index_LookupScope(F4_Index_Note* note, i64 pos)
     return result;
 }
 
-function F4_Index_Note* Long_Index_GetScopeNote(Application_Links* app, Buffer_ID buffer, i64 pos)
+function F4_Index_Note* Long_Index_GetScopeNote(F4_Index_File* file, i64 pos)
 {
     F4_Index_Note* result = 0;
-    F4_Index_File* file = F4_Index_LookupFile(app, buffer);
     for (F4_Index_Note* note = file ? file->first_note : 0; note; note = note->next_sibling)
     if (result = Long_Index_LookupScope(note, pos))
     break;
@@ -484,10 +438,9 @@ function F4_Index_Note* Long_Index_GetScopeNote(Application_Links* app, Buffer_I
 // Handle initializer lists and constructors
 // Handle inheritance
 // Handle generic base types
-function F4_Index_Note*
-Long_Index_LookupBestNote(Application_Links* app, Buffer_ID buffer, Token_Array* array, Token* token)
+function F4_Index_Note* Long_Index_LookupBestNote(Application_Links* app, Buffer_ID buffer, Token_Array* array, Token* token)
 {
-    ProfileScope(app, "[Long] Lookup Best Note");
+    Long_Index_ProfileScope(app, "[Long] Lookup Best Note");
     F4_Index_Note* result = 0;
     
     Range_i64 range = Ii64(token);
@@ -496,95 +449,29 @@ Long_Index_LookupBestNote(Application_Links* app, Buffer_ID buffer, Token_Array*
     Scratch_Block scratch(app);
     String8List names = {};
     
-    _Long_Index_ParseSelection(app, scratch, &it, buffer, &names);
+    Long_Index_ParseSelection(app, scratch, &it, buffer, &names);
     if (!names.first || !names.total_size || !names.node_count)
     return result;
     
-    Buffer_Cursor cursor = buffer_compute_cursor(app, buffer, seek_pos(pos));
-    cursor = cursor;
+    Buffer_Cursor debug_cursor = buffer_compute_cursor(app, buffer, seek_pos(pos));
     
-#if LONG_INDEX_CACHING
-    i32 slot = Long_Index_LookupTable(app, buffer, token);
-    if (slot >= 0)
-    return long_table.table[slot];
-#endif
-    
-#define LONG_INDEX_LOOKUP_SCOPE 1
-    
-#define MAX_DUPLICATE_NOTE_COUNT 64
-#if !LONG_INDEX_LOOKUP_SCOPE
-    F4_Index_Note** duplicateNotes   = push_array_zero(scratch, F4_Index_Note*, MAX_DUPLICATE_NOTE_COUNT);
-    F4_Index_Note** duplicateParents = push_array_zero(scratch, F4_Index_Note*, MAX_DUPLICATE_NOTE_COUNT);
-    int count = 0;
-#endif
-    
-    // TODO(long): C# specific crap - Abstract this out for other languages
-    b32 preferType = string_match(push_token_lexeme(app, scratch, buffer, it.ptr), S8Lit("this"));
-    
-#if 1
-    F4_Index_Note* firstNote = Long_Index_LookupNote(names.first->string);
-    for (F4_Index_Note* note = firstNote; note; note = note->next)
+    for (F4_Index_Note* note = Long_Index_LookupNote(names.first->string); note; note = note->next)
     {
         if (note->range == range)
         {
             result = note;
-            /*if (preferNewNote)
-            result = note->next ? note->next : firstNote;*/
             goto DONE;
         }
-        
-#if !LONG_INDEX_LOOKUP_SCOPE
-        if (preferType && !(note->file->buffer == buffer && note->parent && note->parent->kind == F4_Index_NoteKind_Type))
-        continue;
-        
-        F4_Index_Note* duplicateParent = 0;
-        
-        if (note->file->buffer == buffer)
-        {
-            if (range_contains(note->scope_range, pos))
-            duplicateParent = note;
-            else if (note->parent && range_contains(note->parent->scope_range, pos))
-            duplicateParent = note->parent;
-        }
-        
-        if (!note->parent || duplicateParent)
-        {
-            ProfileBlock(app, "[Long] Get Notes");
-            F4_Index_Note* child = note;
-            for (String8Node* name = names.first->next; name; name = name->next)
-            {
-                F4_Index_Note* parent = child;
-                child = Long_Index_LookupChild(parent, name->string);
-                
-                if (!child)
-                {
-                    F4_Index_Note* ref = Long_Index_LookupRef(app, array, parent);
-                    if (ref)     child = Long_Index_LookupChild(ref, name->string);
-                    if (!child) break;
-                }
-            }
-            
-            if (child)
-            {
-                duplicateNotes  [count] = child;
-                duplicateParents[count] = duplicateParent;
-                count++;
-            }
-        }
-        
-        if (count == MAX_DUPLICATE_NOTE_COUNT)
-        break;
-#endif
     }
-#endif
     
-#if LONG_INDEX_LOOKUP_SCOPE
-    F4_Index_Note* surrounding_note = Long_Index_GetScopeNote(app, buffer, pos);
-    if (preferType)
+    F4_Index_File* file = F4_Index_LookupFile(app, buffer);
+    F4_Index_Note* surrounding_note = Long_Index_GetScopeNote(file, pos);
+    // TODO(long): C# and C++ specific crap - Abstract this out for other languages
+    if (string_match(push_token_lexeme(app, scratch, buffer, it.ptr), S8Lit("this")))
     while (surrounding_note && surrounding_note->kind != F4_Index_NoteKind_Type)
     surrounding_note = surrounding_note->parent;
-    F4_Index_Note* note = Long_Index_LookupNoteTree(surrounding_note, names.first->string);
     
+    F4_Index_Note* note = Long_Index_LookupNoteTree(file, surrounding_note, names.first->string);
     // NOTE(long): Choose parent types over the child functions when they have the same name (constructors, conversion operators, etc)
     if (note && note->parent)
     if (note->kind == F4_Index_NoteKind_Function && note->parent->kind == F4_Index_NoteKind_Type)
@@ -597,42 +484,19 @@ Long_Index_LookupBestNote(Application_Links* app, Buffer_ID buffer, Token_Array*
         for (String8Node* name = names.first->next; name; name = name->next)
         {
             F4_Index_Note* parent = child;
-            child = Long_Index_LookupChild(parent, name->string);
+            child = Long_Index_LookupChild(name->string, parent);
             
             if (!child)
             {
                 F4_Index_Note* ref = Long_Index_LookupRef(app, array, parent);
-                if (ref)     child = Long_Index_LookupChild(ref, name->string);
+                if (ref)     child = Long_Index_LookupChild(name->string, ref);
                 if (!child) break;
             }
         }
         result = child;
     }
-#else
-    {
-        int resultIndex = 0;
-        for (i32 i = 1; i < count; ++i)
-        {
-            // NOTE(long): Prioritize parent->scope_range > note->scope_range > !parent
-            if (duplicateParents[i])
-            {
-                // NOTE(long): check if both parents are null, if it's true compare the children, if not compare the parents
-                F4_Index_Note** notes = duplicateParents[i] == duplicateParents[resultIndex] ? duplicateNotes : duplicateParents;
-                if (!duplicateParents[resultIndex] || notes[i]->scope_range.min > notes[resultIndex]->scope_range.min)
-                resultIndex = i;
-            }
-        }
-        result = duplicateNotes[resultIndex];
-        
-        // TODO(long): Pick def before prototype
-    }
-#endif
     
     DONE:
-#if LONG_INDEX_CACHING
-    Long_Index_AddTable(app, buffer, token, result);
-#endif
-    
     return result;
 }
 
@@ -649,13 +513,6 @@ function Rect_f32 Long_Index_DrawNote(Application_Links* app, Range_i64_Array ra
                                       Vec2_f32 tooltip_position, Range_f32 max_range_x,
                                       ARGB_Color highlight_color, Range_i64 highlight_range)
 {
-    // NOTE(long): When fading an undo action, the draw function will run before the index function, making the note tree outdated.
-    // Ex: Create a comment in between functions's arguments and then undo that comment
-    // If the index function get run (default_tick inside F4_Tick), the global_buffer_modified_set will be cleared
-    for (Buffer_Modified_Node* node = global_buffer_modified_set.first; node; node = node->next)
-    if (node->buffer == buffer)
-    return {};
-    
     Token_Array* array = 0;
     {
         Token_Array _array = get_token_array_from_buffer(app, buffer);
@@ -807,12 +664,10 @@ function void Long_Index_DrawTooltip(Application_Links* app, Rect_f32 screen_rec
     
     if (note->kind == F4_Index_NoteKind_Type && index)
     {
-        //for (F4_Index_Note* member = note->first_child; member; member = member->next_sibling)
         for (note = note->first_child; note; note = note->next_sibling)
         {
-            if (note->kind == F4_Index_NoteKind_Scope)
+            if (note->kind == F4_Index_NoteKind_Scope || Long_Index_IsComment(note))
             continue;
-            //Range_i64_Array ranges = Long_Index_GetNoteRanges(app, scratch, member, range);
             Range_i64_Array ranges = Long_Index_GetNoteRanges(app, scratch, note, range);
             Rect_f32 rect = Long_Index_DrawNote(app, ranges, note->file->buffer,
                                                 face, line_height, padding, color,
@@ -830,7 +685,8 @@ function void Long_Index_DrawTooltip(Application_Links* app, Rect_f32 screen_rec
             // so I don't need to check these ranges
             highlight_range = { argument->base_range.min, argument->scope_range.min };
         }
-        Rect_f32 rect = Long_Index_DrawNote(app, Long_Index_GetNoteRanges(app, scratch, note, range), note->file->buffer,
+        Range_i64_Array ranges = Long_Index_GetNoteRanges(app, scratch, note, range);
+        Rect_f32 rect = Long_Index_DrawNote(app, ranges, note->file->buffer,
                                             face, line_height, padding, color,
                                             tooltip_position, screen_x, highlight_color, highlight_range);
         tooltip_position.y += rect.y1 - rect.y0;
@@ -871,10 +727,15 @@ function void Long_Index_DrawCodePeek(Application_Links* app, View_ID view)
             note = Long_Index_LookupBestNote(app, buffer, &array, token);
             if (note && note->range.min == token->pos && (note->flags & F4_Index_NoteFlag_Prototype))
             {
-                F4_Index_Note* first_note = Long_Index_LookupNote(note->string);
-                for (F4_Index_Note* def = note->next ? note->next : first_note; def != note; def = def->next ? def->next : first_note)
-                if (def->parent == note->parent && !(def->flags & F4_Index_NoteFlag_Prototype))
-                note = def;
+                F4_Index_Note* parent = note->parent;
+                F4_Index_Note* old_note = note;
+                while (note->prev)
+                note = note->prev;
+                for (; note; note = note->next)
+                if (note->parent == parent && !(note->flags & F4_Index_NoteFlag_Prototype))
+                break;
+                if (!note)
+                note = old_note;
             }
         }
     }

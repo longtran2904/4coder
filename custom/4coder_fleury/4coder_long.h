@@ -85,6 +85,14 @@
 #include "4coder_profile_static_disable.cpp"
 #endif
 
+#if LONG_ENABLE_INDEX_PROFILE
+#define Long_Index_ProfileScope(T, N) ProfileScope(T, N)
+#define Long_Index_ProfileBlock(T, N) ProfileBlock(T, N)
+#else
+#define Long_Index_ProfileScope(...)
+#define Long_Index_ProfileBlock(...)
+#endif
+
 #elif !defined(FCODER_LONG_CPP)
 #define FCODER_LONG_CPP
 

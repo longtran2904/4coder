@@ -16,6 +16,7 @@ function LONG_INDEX_FILTER(Long_Filter_Note);
 
 function b32 F4_ARGBIsValid(ARGB_Color color);
 
+function b32 Long_Index_IsComment(F4_Index_NoteKind* note);
 function b32 Long_Index_IsGenericArgument(F4_Index_Note* note);
 function b32 Long_Index_MatchNote(Application_Links* app, F4_Index_Note* note, Range_i64 range, String8 match);
 function b32 Long_Index_IsMatch(F4_Index_ParseCtx* ctx, Range_i64 range, String8* array, u64 count);
@@ -28,10 +29,10 @@ function b32 Long_Index_PeekPattern(F4_Index_ParseCtx* ctx, char* fmt, ...);
 
 function F4_Index_Note* Long_Index_MakeNote(F4_Index_ParseCtx* ctx, Range_i64 base_range, Range_i64 range, F4_Index_NoteKind kind,
                                             b32 push_parent = true);
-function F4_Index_Note* Long_Index_LookupChild(F4_Index_Note* parent, String8 name);
-function F4_Index_Note* Long_Index_LookupChild(F4_Index_Note* parent, i32 index);
-function F4_Index_Note* Long_Index_LookupRef(Application_Links* app, Token_Array* array, F4_Index_Note* note);
 function F4_Index_Note* Long_Index_LookupNote(String_Const_u8 string);
+function F4_Index_Note* Long_Index_LookupChild(F4_Index_Note* parent, i32 index);
+function F4_Index_Note* Long_Index_LookupChild(String_Const_u8 string, F4_Index_Note* parent = 0);
+function F4_Index_Note* Long_Index_LookupRef(Application_Links* app, Token_Array* array, F4_Index_Note* note);
 function F4_Index_Note* Long_Index_LookupBestNote(Application_Links* app, Buffer_ID buffer, Token_Array* array, Token* token);
 
 #define Long_Index_Token(ctx) token_it_read(&(ctx)->it)

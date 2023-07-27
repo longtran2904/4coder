@@ -53,6 +53,12 @@ struct F4_Index_Note
     Range_i64 base_range;
 };
 
+struct String8ListNode
+{
+    String8ListNode* next;
+    String8List list;
+};
+
 struct F4_Index_File
 {
     F4_Index_File *hash_next;
@@ -61,6 +67,7 @@ struct F4_Index_File
     F4_Index_Note *first_note;
     F4_Index_Note *last_note;
 	int generation;
+    String8ListNode* references;
 };
 
 struct F4_Index_State
@@ -89,6 +96,7 @@ enum
 {
     F4_Index_TokenSkipFlag_SkipWhitespace = (1<<0),
     F4_Index_TokenSkipFlag_SkipComment    = (1<<1),
+    F4_Index_TokenSkipFlag_SkipAll        = F4_Index_TokenSkipFlag_SkipWhitespace|F4_Index_TokenSkipFlag_SkipComment,
 };
 
 function void F4_Index_Initialize(void);

@@ -8,6 +8,25 @@ F4_RenderBuffer(Application_Links *app, View_ID view_id, Face_ID face_id,
     Scratch_Block scratch(app);
     ProfileScope(app, "[Fleury] Render Buffer");
     
+    // NOTE(long): When fading out an undo, the BufferEditRange hook will run before the Tick hook, making the note tree outdated.
+    // Later, the RenderCaller hook will try to look up the color based on the old tree and crash the program.
+    // 1. F4_Language_LexFullInput_NoBreaks (BufferEditRange) will modify the Token list and the buffer (buffer_mark_as_modified)
+    // 2. F4_Render (HookdID_RenderCaller) uses the outdated note tree and crashes the program, so step 3 never runs
+    // 3. F4_Index_Tick (F4_Tick/HookID_Tick) updates the note tree correctly and clears the global_buffer_modified_set
+    // Calling the Tick function here will fix the problem.
+    
+    // This bug only happens when you undo some text, not when you redo/delete/type the text.
+    // The render hook always runs after the tick hook and global_buffer_modified_set is always empty in the latter case
+    for (Buffer_Modified_Node* node = global_buffer_modified_set.first; node; node = node->next)
+    {
+        if (node->buffer == buffer)
+        {
+            // NOTE(long): Maybe only call F4_Index_Tick on this buffer
+            F4_Tick(app, frame_info);
+            break;
+        }
+    }
+    
     View_ID active_view = get_active_view(app, Access_Always);
     b32 is_active_view = (active_view == view_id);
     Rect_f32 prev_clip = draw_set_clip(app, rect);

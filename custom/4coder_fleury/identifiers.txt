@@ -1,4 +1,8 @@
-NULL: UnityEngine
+[NULL] UnityEngine { type }
+[NULL] UnityEngine { type }
+[UnityEngine] MyEngine { <UnityEngine> type }
+[UnityEngine] MyEngine { <UnityEngine> type }
+[NULL] myEngine { declaration [global] }
 [NULL] test_global_1 { declaration [global] }
 [NULL] test_global_2 { declaration [global] }
 [{] test_local_1 { <{> declaration [local] }
@@ -18,6 +22,8 @@ NULL: UnityEngine
 [DoGenericShit] U { <DoGenericShit> type [generic] }
 [DoGenericShit] b { <DoGenericShit> declaration [argument] }
 [DoGenericShit] a { <DoGenericShit> declaration [argument] }
+[NULL] MyGenericType { type }
+[NULL] myType { declaration [global] }
 [NULL] GenericFunc { function }
 [GenericFunc] T { <GenericFunc> type [generic] }
 [GenericFunc] arg { <GenericFunc> declaration [argument] }
@@ -63,6 +69,7 @@ NULL: Something
 [NULL] TEST_MACRO { macro }
 [NULL] handsome { declaration [global] }
 [NULL] Test { type }
+[NULL] testDecl1 { declaration [global] }
 [NULL] testDecl1 { declaration [global] }
 [NULL] Test { type }
 [Test] Stuff { <Test> type }
@@ -633,10 +640,10 @@ NULL: System
 NULL: System
 NULL: Collections
 NULL: Generic
-NULL: UnityEngine
+[NULL] UnityEngine { type }
 NULL: Edgar
 NULL: Unity
-NULL: UnityEngine
+[NULL] UnityEngine { type }
 NULL: Tilemaps
 NULL: StringBuilder
 NULL: System
@@ -770,7 +777,7 @@ NULL: AddRange
 [] assets { <> declaration [local] }
 [] entities { <> declaration [local] }
 [FindAllEntityProperties] message { <FindAllEntityProperties> declaration [local] }
-NULL: UnityEngine
+[NULL] UnityEngine { type }
 NULL: Object
 [FindAllEntityProperties] context { <FindAllEntityProperties> declaration [local] }
 [FindAllEntityProperties] generateFile { <FindAllEntityProperties> declaration [argument] }
@@ -1737,7 +1744,7 @@ NULL: ReadAudio
 [NULL] SCRIPTABLE_VFX { macro }
 NULL: System
 NULL: Collections
-NULL: UnityEngine
+[NULL] UnityEngine { type }
 [NULL] EntityProperty { type }
 [EntityProperty] CanJump { <EntityProperty> constant }
 [EntityProperty] CanBeHurt { <EntityProperty> constant }
@@ -4400,4 +4407,4 @@ NULL: deltaTime
 [DecreaseTrailWidth] trail { <DecreaseTrailWidth> declaration [argument] }
 NULL: widthMultiplier
 [DecreaseTrailWidth] startWidth { <DecreaseTrailWidth> declaration [local] }
-Note count: 4402
+Note count: 4409

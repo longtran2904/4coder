@@ -402,6 +402,7 @@ typedef int socklen_t;
 #endif
 
 #define LONG_LISTER_FILTER_TAG 1
+#define LONG_ENABLE_INDEX_PROFILE 0
 #define LONG_ENABLE_PROFILE 0
 
 //~ NOTE(rjf): Macros and pragmase stuff that have to be put here for various

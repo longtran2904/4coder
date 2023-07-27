@@ -23,7 +23,7 @@ function b32 Long_CS_ParseDecl(F4_Index_ParseCtx* ctx, Range_i64* base_range, Ra
                                String8* base_keywords, u64 keyword_count, Long_ParseFlags flags,
                                char* start_token = 0, b32* optional_start_token = 0, char* end_token = 0)
 {
-    ProfileScope(ctx->app, "[Long] Parse Decl");
+    Long_Index_ProfileScope(ctx->app, "[Long] Parse Decl");
     b32 result = true;
     F4_Index_ParseCtx restore_ctx = *ctx;
     Range_i64 base = {};
@@ -47,9 +47,9 @@ function b32 Long_CS_ParseDecl(F4_Index_ParseCtx* ctx, Range_i64* base_range, Ra
         }
         else while (result && !ctx->done)
         {
-            ProfileBlock(ctx->app, "[Long] Parse Base Type");
+            Long_Index_ProfileBlock(ctx->app, "[Long] Parse Base Type");
             {
-                ProfileBlock(ctx->app, "[Long] Parse Identifier");
+                Long_Index_ProfileBlock(ctx->app, "[Long] Parse Identifier");
                 if (base_keywords && Long_Index_ParsePattern(ctx, "%k", TokenBaseKind_Keyword, &type_range))
                 result = Long_Index_IsMatch(ctx, type_range, base_keywords, keyword_count);
                 else if (has_base_type)
@@ -60,7 +60,7 @@ function b32 Long_CS_ParseDecl(F4_Index_ParseCtx* ctx, Range_i64* base_range, Ra
             
             if (result)
             {
-                ProfileBlock(ctx->app, "[Long] Parse Operator");
+                Long_Index_ProfileBlock(ctx->app, "[Long] Parse Operator");
                 if (base == Range_i64{})
                 base.start = type_range.start;
                 if (Long_Index_PeekPattern(ctx, "%t", "[") || Long_Index_PeekPattern(ctx, "%t", "<"))
@@ -174,7 +174,7 @@ internal F4_LANGUAGE_INDEXFILE(Long_CS_IndexFile)
     
     while (!ctx->done)
     {
-        ProfileBlock(ctx->app, "[Long] Parse CS");
+        Long_Index_ProfileBlock(ctx->app, "[Long] Parse CS");
         Range_i64 name = {};
         Range_i64 base = {};
         b32 use_modifier = 0;
@@ -207,14 +207,26 @@ internal F4_LANGUAGE_INDEXFILE(Long_CS_IndexFile)
                                         Long_Index_StartCtxScope(ctx);
                                     });
         }
-        else if (ctx->active_parent && Long_Index_ParsePattern(ctx, "%t", "}"))
+        else if (ctx->active_parent && Long_Index_PeekPattern(ctx, "%t", "}"))
         {
-            Long_Index_PeekPrevious(ctx,
-                                    {
-                                        Long_Index_EndCtxScope(ctx);
-                                        do Long_Index_PopParent(ctx);
-                                        while (!Long_Index_IsParentInitialized(ctx));
-                                    });
+            Long_Index_EndCtxScope(ctx);
+            do Long_Index_PopParent(ctx);
+            while (!Long_Index_IsParentInitialized(ctx));
+            F4_Index_ParseCtx_Inc(ctx, F4_Index_TokenSkipFlag_SkipAll);
+        }
+        
+        //~ NOTE(long): Using
+        else if (Long_Index_ParsePattern(ctx, "%b", TokenCsKind_Using, &base))
+        {
+            String8ListNode* node = push_array(&ctx->file->arena, String8ListNode, 1);
+            sll_stack_push(ctx->file->references, node);
+            while (Long_Index_ParsePattern(ctx, "%k", TokenBaseKind_Identifier, &name))
+            {
+                String8 using_name = push_string_copy(&ctx->file->arena, F4_Index_StringFromRange(ctx, name));
+                string_list_push(&ctx->file->arena, &node->list, using_name);
+                if (!Long_Index_ParsePattern(ctx, "%t", "."))
+                break;
+            }
         }
         
         //~ NOTE(long): Namespaces
@@ -223,10 +235,7 @@ internal F4_LANGUAGE_INDEXFILE(Long_CS_IndexFile)
             while (Long_Index_ParsePattern(ctx, "%k", TokenBaseKind_Identifier, &name))
             {
                 String8 name_string = F4_Index_StringFromRange(ctx, name);
-                F4_Index_Note* note = Long_Index_LookupNote(name_string);
-                for (; note; note = note->next)
-                if (note->parent == ctx->active_parent)
-                break;
+                F4_Index_Note* note = Long_Index_LookupChild(name_string, ctx->active_parent);
                 if (note) F4_Index_PushParent(ctx, note);
                 else      Long_Index_MakeNote(ctx, base, name, F4_Index_NoteKind_Type, 1);
                 ctx->active_parent->scope_range = {};
@@ -376,7 +385,7 @@ internal F4_LANGUAGE_INDEXFILE(Long_CS_IndexFile)
             F4_Index_SkipSoftTokens(ctx, 1);
         }
         
-        else F4_Index_ParseCtx_Inc(ctx, F4_Index_TokenSkipFlag_SkipWhitespace|F4_Index_TokenSkipFlag_SkipComment);
+        else F4_Index_ParseCtx_Inc(ctx, F4_Index_TokenSkipFlag_SkipAll);
     }
 }
 
@@ -455,31 +464,10 @@ internal F4_LANGUAGE_POSCONTEXT(Long_CS_PosContext)
     return Long_CS_ParsePosContext(app, arena, buffer, &tokens, pos);
 }
 
-function void RecursiveSuck(Application_Links* app, Text_Layout_ID layout, Token_Array* tokens, ARGB_Color color, F4_Index_Note* note)
-{
-    paint_text_color(app, layout, note->range, color);
-    if (note->scope_range.min)
-    {
-        paint_text_color(app, layout, Ii64(token_from_pos(tokens, note->scope_range.min)), color);
-        paint_text_color(app, layout, Ii64(token_from_pos(tokens, note->scope_range.max)), color);
-    }
-    for (F4_Index_Note* child = note->first_child; child; child = child->next_sibling)
-    RecursiveSuck(app, layout, tokens, color, child);
-}
-
 //void name(Application_Links *app, Text_Layout_ID text_layout_id, Token_Array *array, Color_Table color_table)
 internal F4_LANGUAGE_HIGHLIGHT(Long_CS_Highlight)
 {
-    Buffer_ID buffer = text_layout_get_buffer(app, text_layout_id); buffer;
-#if 0
-    {
-        ARGB_Color color = F4_ARGBFromID(color_table, fleury_color_index_comment_tag, 0);
-        paint_text_color(app, text_layout_id, buffer_range(app, buffer), F4_ARGBFromID(active_color_table, defcolor_text_default));
-        for (F4_Index_Note* note = F4_Index_LookupFile(app, buffer)->first_note; note; note = note->next_sibling)
-        RecursiveSuck(app, text_layout_id, array, color, note);
-    }
-#endif
-    
+    Buffer_ID buffer = text_layout_get_buffer(app, text_layout_id);
     Range_i64 visible_range = text_layout_get_visible_range(app, text_layout_id);
     Token_Iterator_Array it = token_iterator_pos(0, array, visible_range.min);
     

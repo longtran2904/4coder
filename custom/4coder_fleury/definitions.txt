@@ -1,3 +1,6 @@
+[NULL] UnityEngine { type }
+[UnityEngine] MyEngine { <UnityEngine> type }
+[NULL] myEngine { declaration [global] }
 [NULL] test_global_1 { declaration [global] }
 [NULL] test_global_2 { declaration [global] }
 [NULL] { {  }
@@ -13,6 +16,15 @@
 [DoGenericShit] U { <DoGenericShit> type [generic] }
 [DoGenericShit] a { <DoGenericShit> declaration [argument] }
 [DoGenericShit] b { <DoGenericShit> declaration [argument] }
+[DoGenericShit] @tag comment
+    */ { <DoGenericShit> comment tag }
+[MyGenericType] @tag comment
+    */ { <MyGenericType> comment tag }
+[MyGenericType] TODO: todo comment
+*/ { <MyGenericType> TODO }
+[NULL] TODO: todo comment
+*/ { TODO }
+[NULL] myType { declaration [global] }
 [NULL] GenericFunc { function }
 [GenericFunc] T { <GenericFunc> type [generic] }
 [GenericFunc] arg { <GenericFunc> declaration [argument] }
@@ -35,12 +47,15 @@
 [B] Namespace { <B> type }
 [B] @"C:\Users\scoleridge\Documents\"; { <B> comment tag }
 [B] @"My pensive SARA ! thy soft cheek reclined { <B> comment tag }
+[NULL] @"C:\Users\scoleridge\Documents\"; { comment tag }
+[NULL] @"My pensive SARA ! thy soft cheek reclined { comment tag }
 [NULL] verbatimStr3 { declaration [global] }
 [NULL] interpolStr { declaration [global] }
 [NULL] normalStr { declaration [global] }
 [NULL] TEST_MACRO { macro }
 [NULL] handsome { declaration [global] }
 [handsome] { { <handsome>  }
+[NULL] @test comment*/ { comment tag }
 [NULL] testDecl1 { declaration [global] }
 [NULL] testDecl2 { declaration [global] }
 [NULL] CreateTest { function }
@@ -1032,4 +1047,4 @@
 [DecreaseTrailWidth] startWidth { <DecreaseTrailWidth> declaration [local] }
 [DecreaseTrailWidth] startTime { <DecreaseTrailWidth> declaration [local] }
 [DecreaseTrailWidth] { { <DecreaseTrailWidth>  }
-Note count: 1034
+Note count: 1045

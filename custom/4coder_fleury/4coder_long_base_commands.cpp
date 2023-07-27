@@ -23,6 +23,8 @@ function String8 Long_Buffer_GetNameWithoutPrjPath(Application_Links* app, Arena
     {
         String8 buffer_name = push_buffer_base_name(app, scratch, buffer);
         filepath = string_chop(filepath, buffer_name.size);
+        // NOTE(long): the push_buffer_base_name returns a string with '\\'
+        //filepath = string_mod_replace_character(filepath, '/', '\\');
     }
     
     Variable_Handle prj_var = vars_read_key(vars_get_root(), vars_save_string_lit("prj_config"));
@@ -32,11 +34,8 @@ function String8 Long_Buffer_GetNameWithoutPrjPath(Application_Links* app, Arena
         String8 prj_dir = prj_path_from_project(scratch, prj_var);
         if (prj_dir.size)
         {
-            u8 proj_last = prj_dir.str[prj_dir.size - 1];
-            u8 file_last = filepath.str[filepath.size - 1];
-            if (proj_last != file_last)
-            prj_dir = string_mod_replace_character(prj_dir, proj_last, file_last);
-            
+            // NOTE(long): prj_dir always has a slash at the end
+            prj_dir = string_mod_replace_character(prj_dir, '/', '\\');
             if (string_match(string_prefix(filepath, prj_dir.size), prj_dir))
             {
                 filepath = string_skip(filepath, prj_dir.size);
@@ -49,20 +48,20 @@ function String8 Long_Buffer_GetNameWithoutPrjPath(Application_Links* app, Arena
     {
         Variable_Handle reference_path_var = vars_read_key(prj_var, vars_save_string_lit("reference_paths"));
         i32 i = 0;
+        b32 multi_paths = !vars_is_nil(vars_next_sibling(vars_first_child(reference_path_var)));
         for (Vars_Children(path_var, reference_path_var), ++i)
         {
             String8 ref_dir = vars_string_from_var(scratch, path_var);
             if (ref_dir.size)
             {
-                u8 proj_last = ref_dir.str[ref_dir.size - 1];
-                u8 file_last = filepath.str[filepath.size - 1];
-                if (proj_last != file_last)
-                ref_dir = string_mod_replace_character(ref_dir, proj_last, file_last);
-                
+                ref_dir = string_mod_replace_character(ref_dir, '/', '\\');
+                if (ref_dir.str[ref_dir.size - 1] == '\\')
+                ref_dir.size--;
                 if (string_match(string_prefix(filepath, ref_dir.size), ref_dir))
                 {
                     filepath = string_skip(filepath, ref_dir.size);
-                    filepath = push_stringf(scratch, "REF_PATH_%d:\\%.*s", i, string_expand(filepath));
+                    String8 path_index = multi_paths ? push_stringf(scratch, ":%d", i) : String8{};
+                    filepath = push_stringf(scratch, "REFPATH%.*s%.*s", string_expand(path_index), string_expand(filepath));
                     break;
                 }
             }

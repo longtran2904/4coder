@@ -25,7 +25,12 @@
 // 973 parse macro define
 // 986 parse property/getter/setter
 // 1032 parse namespace and generic types, functions, and arguments
+// 1042 fix comment after note.scope_range and comment's duplication
+// 1045 parse "using"
 using UnityEngine;
+
+namespace UnityEngine { class MyEngine; }
+MyEngine myEngine;
 
 int test_global_1, test_global_2;
 {
@@ -38,7 +43,17 @@ struct MyGenericType<T>
     public T b;
     public void DoShit(int someArg) { }
     public T DoGenericShit<U>(T a, U b) { return a; }
+    
+    /* Test commment 1
+    // @tag comment
+    */
 }
+
+/* Test commment
+// TODO: todo comment
+*/
+
+MyGenericType<int /**/> myType;
 
 void GenericFunc<T>(int arg)
 {
@@ -84,7 +99,8 @@ TestNamespace.A.B.C.Namespace();
 #if TEST_MACRO
 int handsome =
 {};
-Test /*Some test comment*/ testDecl1;
+Test /*Some @test comment*/ testDecl1;
+testDecl1;
 Test.Stuff testDecl2;
 Test /*Some other comment*/ CreateTest(int a, int b, float c);
 Test.Stuff[][][] VeryLongFunction(Test.Stuff something, int someOtherThing, float fl, Optional[] optionals, params OtherTest[] others,
