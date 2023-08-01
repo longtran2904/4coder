@@ -35,6 +35,7 @@
 // [X] Polish the index lister (show parent as tag, pos and line number, the entire function and type signature)
 // [X] Show file location in the file lister
 // [X] Show number of items
+// [ ] Differentiate type/flag/parent tag (`function` vs `[forward]` vs '<MyParent>`)
 // [ ] Show rare command lister
 // [ ] Show description/footer of an item
 // [ ] Resize font size to fit the element (has min size for large item and put ... after it)

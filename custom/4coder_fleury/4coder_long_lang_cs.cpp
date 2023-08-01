@@ -136,52 +136,6 @@ function void Long_CS_ParseGeneric(F4_Index_ParseCtx* ctx)
     }
 }
 
-F4_Index_Note namespace_root = {};
-
-function F4_Index_Note* Long_Index_MakeNamespace(F4_Index_ParseCtx* ctx, Range_i64 base, Range_i64 name)
-{
-    String8 name_string = F4_Index_StringFromRange(ctx, name);
-    if (!ctx->active_parent)
-    ctx->active_parent = &namespace_root;
-    F4_Index_Note* note = Long_Index_LookupChild(name_string, ctx->active_parent);
-    if (note)   F4_Index_PushParent(ctx, note);
-    else note = Long_Index_MakeNote(ctx, base, name, F4_Index_NoteKind_Type);
-    Long_Index_CtxScope(ctx) = {};
-    note->flags |= F4_Index_NoteFlag_Namespace;
-    return note;
-}
-
-function void Long_Index_PushNamespaceScope(F4_Index_ParseCtx* ctx)
-{
-    F4_Index_Note* current_namespace = F4_Index_PushParent(ctx, 0);
-    F4_Index_Note* namespace_scope = Long_Index_MakeNote(ctx, {}, Ii64(Long_Index_Token(ctx)), F4_Index_NoteKind_Scope);
-    namespace_scope->flags |= F4_Index_NoteFlag_Namespace;
-    namespace_scope->first_child = current_namespace->last_child;
-    namespace_scope->parent = current_namespace->parent;
-    current_namespace->parent = namespace_scope;
-    F4_Index_PopParent(ctx, current_namespace);
-}
-
-function void Long_Index_PopNamespaceScope(F4_Index_ParseCtx* ctx)
-{
-    Long_Index_CtxScope(ctx) = {};
-    F4_Index_Note* current_namespace = ctx->active_parent;
-    F4_Index_Note* namespace_scope = current_namespace->parent;
-    Assert(namespace_scope->kind == F4_Index_NoteKind_Scope);
-    Assert(namespace_scope->parent);
-    
-    // Reset the parent note
-    current_namespace->parent = namespace_scope->parent;
-    namespace_scope->parent = 0;
-    
-    // Update the child note
-    if (namespace_scope->first_child)
-    namespace_scope->first_child = namespace_scope->first_child->next_sibling;
-    else
-        namespace_scope->first_child = current_namespace->first_child;
-    namespace_scope->last_child = namespace_scope->first_child ? current_namespace->last_child : 0;
-}
-
 internal F4_LANGUAGE_INDEXFILE(Long_CS_IndexFile)
 {
     String8 cs_types[] =
@@ -261,13 +215,7 @@ internal F4_LANGUAGE_INDEXFILE(Long_CS_IndexFile)
                                         Long_Index_MakeNote(ctx, {}, Ii64(Long_Index_Token(ctx)), F4_Index_NoteKind_Scope);
                                         // NOTE(long): namespaces are always uninitialized
                                         else if (ctx->active_parent && Long_Index_IsNamespace(ctx->active_parent))
-                                        {
-                                            /*F4_Index_Note* parent = F4_Index_PushParent(ctx, 0);
-                                            Long_Index_MakeNote(ctx, {}, Ii64(Long_Index_Token(ctx)), F4_Index_NoteKind_Scope);
-                                            ctx->active_parent->flags |= F4_Index_NoteFlag_Namespace;
-                                            ctx->active_parent->parent = parent;*/
-                                            Long_Index_PushNamespaceScope(ctx);
-                                        }
+                                        Long_Index_PushNamespaceScope(ctx);
                                         Long_Index_StartCtxScope(ctx);
                                     });
         }
@@ -276,11 +224,7 @@ internal F4_LANGUAGE_INDEXFILE(Long_CS_IndexFile)
             // NOTE(long): The last leaf namespace can have scope_range in one file while (base)range in other files
             // So it must be cleared here at the end of its scope
             if (Long_Index_IsNamespace(ctx->active_parent))
-#if 0
-            Long_Index_CtxScope(ctx) = {};
-#else
             Long_Index_PopNamespaceScope(ctx);
-#endif
             else
                 Long_Index_EndCtxScope(ctx);
             do Long_Index_PopParent(ctx);
@@ -293,16 +237,7 @@ internal F4_LANGUAGE_INDEXFILE(Long_CS_IndexFile)
         {
             while (Long_Index_ParsePattern(ctx, "%k", TokenBaseKind_Identifier, &name))
             {
-#if 0
-                String8 name_string = F4_Index_StringFromRange(ctx, name);
-                F4_Index_Note* note = Long_Index_LookupChild(name_string, ctx->active_parent);
-                if (note) F4_Index_PushParent(ctx, note);
-                else      Long_Index_MakeNote(ctx, base, name, F4_Index_NoteKind_Type);
-                Long_Index_CtxScope(ctx) = {};
-                ctx->active_parent->flags |= F4_Index_NoteFlag_Namespace;
-#else
                 Long_Index_MakeNamespace(ctx, base, name);
-#endif
                 if (!Long_Index_ParsePattern(ctx, "%t", "."))
                 break;
             }
@@ -562,7 +497,7 @@ internal F4_LANGUAGE_HIGHLIGHT(Long_CS_Highlight)
                 ARGB_Color color = F4_ARGBFromID(color_table, fleury_color_index_decl);
                 if (note->parent)
                 {
-                    if (note->range.max < note->parent->scope_range.min)
+                    if (Long_Index_IsArgument(note))
                     color = F4_ARGBFromID(color_table, long_color_index_param);
                     else if (note->parent->kind == F4_Index_NoteKind_Type)
                     color = F4_ARGBFromID(color_table, long_color_index_field);

@@ -996,7 +996,7 @@ function String8 _Long_PushNoteTag(Application_Links* app, Arena* arena, F4_Inde
             String8 string = {};
             if (note->parent)
             {
-                if (note->range.max < note->parent->scope_range.min)
+                if (Long_Index_IsArgument(note))
                 string = S8Lit("argument");
                 else if (note->parent->kind == F4_Index_NoteKind_Function || note->parent->kind == F4_Index_NoteKind_Scope)
                 string = S8Lit("local");
@@ -1027,11 +1027,6 @@ function String8 _Long_PushNoteTag(Application_Links* app, Arena* arena, F4_Inde
     return result;
 }
 
-function LONG_INDEX_FILTER(Long_Filter_Scopes)
-{
-    return note->kind != F4_Index_NoteKind_Scope;
-}
-
 function LONG_INDEX_FILTER(Long_Filter_Empty_Scopes)
 {
     return note->kind == F4_Index_NoteKind_Scope && note->first_child == 0;
@@ -1044,7 +1039,7 @@ function LONG_INDEX_FILTER(Long_Filter_Declarations)
 
 function LONG_INDEX_FILTER(Long_Filter_FunctionAndType)
 {
-    return note->kind == F4_Index_NoteKind_Type || note->kind == F4_Index_NoteKind_Function;
+    return (note->kind == F4_Index_NoteKind_Type && !Long_Index_IsGenericArgument(note)) || note->kind == F4_Index_NoteKind_Function;
 }
 
 function LONG_INDEX_FILTER(Long_Filter_Note)
@@ -1059,7 +1054,7 @@ function LONG_INDEX_FILTER(Long_Filter_Note)
         result = false; // Local
         else if (note->kind == F4_Index_NoteKind_Decl)
         {
-            if (note->range.max < parent->scope_range.min)
+            if (Long_Index_IsArgument(note))
             result = false; // Argument
             else if (parent->kind == F4_Index_NoteKind_Type)
             result = false; // Field
@@ -1075,53 +1070,20 @@ function void Long_Lister_PushIndexNote(Application_Links* app, Arena* arena, Li
     if (!filter || filter(note))
     {
         Buffer_ID buffer = note->file->buffer;
-        String8 string = note->string;
-        if (string_match(string, S8Lit("Vector2")))
-        string = note->string;
-        
         Scratch_Block scratch(app, arena);
-        b32 has_arg = note->scope_range.min > note->range.min;
-        if (note->base_range.max || has_arg)
-        {
-            String8List list = {};
-            if (note->base_range.max)
-            string_list_push(scratch, &list, push_buffer_range(app, scratch, buffer, note->base_range));
-            string_list_push(scratch, &list, push_buffer_range(app, scratch, buffer, { note->range.min,
-                                                                   has_arg ? note->scope_range.min : note->range.max }));
-            string = string_list_flatten(arena, list, S8Lit(" "), 0, 0);
-            string = string_condense_whitespace(scratch, string);
-        }
+        
+        String8List list = {};
+        if (note->base_range.max)
+        string_list_push(scratch, &list, push_buffer_range(app, scratch, buffer, note->base_range));
+        string_list_push(scratch, &list, push_buffer_range(app, scratch, buffer, Long_Index_ArgumentRange(note)));
+        String8 string = string_list_flatten(arena, list, S8Lit(" "), 0, 0);
+        string = string_condense_whitespace(scratch, string);
         
         Long_Lister_AddItem(app, lister, string, _Long_PushNoteTag(app, arena, note), buffer, note->range.first);
     }
     
     Long_Index_IterateValidNoteInFile(child, note)
     Long_Lister_PushIndexNote(app, arena, lister, child, filter);
-}
-
-function void Long_Lister_PushDebugNote(Application_Links* app, Arena* arena, Lister* lister, F4_Index_Note* note, b32 search_file)
-{
-    Buffer_ID buffer = note->file->buffer;
-    String8 string = note->string;
-    
-    Scratch_Block scratch(app, arena);
-    b32 has_arg = note->scope_range.min > note->range.min;
-    if (note->base_range.max || has_arg)
-    {
-        String8List list = {};
-        if (note->base_range.max)
-        string_list_push(scratch, &list, push_buffer_range(app, scratch, buffer, note->base_range));
-        string_list_push(scratch, &list, push_buffer_range(app, scratch, buffer,{ note->range.min,
-                                                               has_arg ? note->scope_range.min : note->range.max }));
-        string = string_list_flatten(arena, list, S8Lit(" "), 0, 0);
-        string = string_condense_whitespace(scratch, string);
-    }
-    
-    Long_Lister_AddItem(app, lister, string, _Long_PushNoteTag(app, arena, note), buffer, note->range.first);
-    
-    if (!search_file || !Long_Index_IsNamespace(note))
-    for (F4_Index_Note* child = note->first_child; child; child = child->next_sibling)
-    Long_Lister_PushDebugNote(app, arena, lister, child, search_file);
 }
 
 function void _Long_SearchDefinition(Application_Links* app, NoteFilter* filter, b32 project_wide)
@@ -1133,50 +1095,20 @@ function void _Long_SearchDefinition(Application_Links* app, NoteFilter* filter,
     lister_set_default_handlers(lister);
     
     F4_Index_Lock();
+    // TODO(long): Split iterating through all notes in project vs file into two paths
+    for (Buffer_ID buffer = project_wide ? get_buffer_next(app, 0, Access_Always) : view_get_buffer(app, view, Access_Always);
+         buffer; buffer = get_buffer_next(app, buffer, Access_Always))
     {
-        for (Buffer_ID buffer = project_wide ? get_buffer_next(app, 0, Access_Always) : view_get_buffer(app, view, Access_Always);
-             buffer; buffer = get_buffer_next(app, buffer, Access_Always))
-        {
-            F4_Index_File* file = F4_Index_LookupFile(app, buffer);
-            String8 filename = push_buffer_base_name(app, scratch, buffer);
-            for (F4_Index_Note* note = file ? file->first_note : 0; note; note = note->next_sibling)
-            Long_Lister_PushIndexNote(app, scratch, lister, note, filter);
-            if (!project_wide)
-            break;
-        }
+        F4_Index_File* file = F4_Index_LookupFile(app, buffer);
+        String8 filename = push_buffer_base_name(app, scratch, buffer);
+        for (F4_Index_Note* note = file ? file->first_note : 0; note; note = note->next_sibling)
+        Long_Lister_PushIndexNote(app, scratch, lister, note, filter);
+        if (!project_wide)
+        break;
     }
     F4_Index_Unlock();
     
     lister_set_query(lister, push_u8_stringf(scratch, "Index (%s):", project_wide ? "Project" : "File"));
-    Lister_Result l_result = run_lister(app, lister);
-    LongListerData result = {};
-    if (!l_result.canceled && l_result.user_data)
-    block_copy_struct(&result, (LongListerData*)l_result.user_data);
-    if (result.buffer != 0)
-    Long_JumpToLocation(app, view, result.buffer, result.pos);
-}
-
-CUSTOM_UI_COMMAND_SIG(long_search_for_definition__debug)
-CUSTOM_DOC("List all definitions in the index and jump to the one selected by the user.")
-{
-    View_ID view = get_active_view(app, Access_Always);
-    
-    Scratch_Block scratch(app);
-    Lister_Block lister(app, scratch);
-    lister_set_default_handlers(lister);
-    
-    F4_Index_Lock();
-    for (F4_Index_Note* note = namespace_root.first_child; note; note = note->next_sibling)
-    Long_Lister_PushDebugNote(app, scratch, lister, note, 0);
-    for (Buffer_ID buffer = get_buffer_next(app, 0, Access_Always); buffer; buffer = get_buffer_next(app, buffer, Access_Always))
-    {
-        F4_Index_File* file = F4_Index_LookupFile(app, buffer);
-        for (F4_Index_Note* note = file ? file->first_note : 0; note; note = note->next_sibling)
-        Long_Lister_PushDebugNote(app, scratch, lister, note, 1);
-    }
-    F4_Index_Unlock();
-    
-    lister_set_query(lister, S8Lit("Index (Debug):"));
     Lister_Result l_result = run_lister(app, lister);
     LongListerData result = {};
     if (!l_result.canceled && l_result.user_data)
@@ -1200,7 +1132,7 @@ CUSTOM_DOC("List all definitions in the current file and jump to the one selecte
 CUSTOM_UI_COMMAND_SIG/*CUSTOM_COMMAND_SIG*/(long_search_for_definition_no_filter__project_file)
 CUSTOM_DOC("List all definitions in the current file and jump to the one selected by the user.")
 {
-    _Long_SearchDefinition(app, /*Long_Filter_Scopes*/0, 1);
+    _Long_SearchDefinition(app, 0, 1);
 }
 
 function void _Long_PushNoteString(Application_Links* app, Arena* arena, String8List* list, int* noteCount,

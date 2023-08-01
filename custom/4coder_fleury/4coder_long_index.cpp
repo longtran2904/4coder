@@ -1,4 +1,6 @@
 
+//~ NOTE(long): Predicate Functions
+
 function b32 Long_Index_IsComment(F4_Index_Note* note)
 {
     return note->kind == F4_Index_NoteKind_CommentTag || note->kind == F4_Index_NoteKind_CommentToDo;
@@ -7,14 +9,13 @@ function b32 Long_Index_IsComment(F4_Index_Note* note)
 function b32 Long_Index_IsGenericArgument(F4_Index_Note* note)
 {
     F4_Index_Note* parent = note->parent;
-    return (parent && note->kind == F4_Index_NoteKind_Type &&
-            (parent->kind == F4_Index_NoteKind_Type || parent->kind == F4_Index_NoteKind_Function) &&
-            note->range.min < parent->scope_range.min && !Long_Index_IsNamespace(parent));
+    return (parent && note->kind == F4_Index_NoteKind_Type && Long_Index_IsArgument(note) &&
+            (parent->kind == F4_Index_NoteKind_Type || parent->kind == F4_Index_NoteKind_Function));
 }
 
 function b32 Long_Index_IsNamespace(F4_Index_Note* note)
 {
-    return (note->flags & F4_Index_NoteFlag_Namespace) || note == &namespace_root;
+    return note->flags & F4_Index_NoteFlag_Namespace;
 }
 
 function b32 Long_Index_MatchNote(Application_Links* app, F4_Index_Note* note, Range_i64 range, String8 match)
@@ -49,6 +50,8 @@ function b32 Long_Index_IsMatch(String8 string, String8* array, u64 count)
     return true;
     return false;
 }
+
+//~ NOTE(long): Parsing Functions
 
 function b32 Long_Index_SkipExpression(F4_Index_ParseCtx* ctx, i16 seperator, i16 terminator)
 {
@@ -278,6 +281,8 @@ function b32 Long_Index_ParsePattern(F4_Index_ParseCtx* ctx, char* fmt, ...)
     return _Long_Index_ParsePattern(ctx, fmt, args);
 }
 
+//~ NOTE(long): Indexing Function
+
 function F4_Index_Note* Long_Index_MakeNote(F4_Index_ParseCtx* ctx, Range_i64 base_range, Range_i64 range, F4_Index_NoteKind kind,
                                             b32 push_parent)
 {
@@ -289,6 +294,63 @@ function F4_Index_Note* Long_Index_MakeNote(F4_Index_ParseCtx* ctx, Range_i64 ba
     F4_Index_PushParent(ctx, note);
     return note;
 }
+
+function F4_Index_Note InitializeNamespaceRootBecauseCppIsAStupidLanguage()
+{
+    F4_Index_Note stupid_placeholder = {};
+    stupid_placeholder.flags = F4_Index_NoteFlag_Namespace;
+    return stupid_placeholder;
+}
+
+global F4_Index_Note namespace_root = InitializeNamespaceRootBecauseCppIsAStupidLanguage();
+
+function F4_Index_Note* Long_Index_MakeNamespace(F4_Index_ParseCtx* ctx, Range_i64 base, Range_i64 name)
+{
+    String8 name_string = F4_Index_StringFromRange(ctx, name);
+    if (!ctx->active_parent)
+    ctx->active_parent = &namespace_root;
+    F4_Index_Note* note = Long_Index_LookupChild(name_string, ctx->active_parent);
+    if (note)   F4_Index_PushParent(ctx, note);
+    else note = Long_Index_MakeNote(ctx, base, name, F4_Index_NoteKind_Type);
+    Long_Index_CtxScope(ctx) = {};
+    note->flags |= F4_Index_NoteFlag_Namespace;
+    return note;
+}
+
+function F4_Index_Note* Long_Index_PushNamespaceScope(F4_Index_ParseCtx* ctx)
+{
+    F4_Index_Note* current_namespace = F4_Index_PushParent(ctx, 0);
+    F4_Index_Note* namespace_scope = Long_Index_MakeNote(ctx, {}, Ii64(Long_Index_Token(ctx)), F4_Index_NoteKind_Scope);
+    namespace_scope->flags |= F4_Index_NoteFlag_Namespace;
+    namespace_scope->first_child = current_namespace->last_child;
+    namespace_scope->parent = current_namespace->parent;
+    current_namespace->parent = namespace_scope;
+    F4_Index_PopParent(ctx, current_namespace);
+    return namespace_scope;
+}
+
+function F4_Index_Note* Long_Index_PopNamespaceScope(F4_Index_ParseCtx* ctx)
+{
+    Long_Index_CtxScope(ctx) = {};
+    F4_Index_Note* current_namespace = ctx->active_parent;
+    F4_Index_Note* namespace_scope = current_namespace->parent;
+    Assert(namespace_scope->kind == F4_Index_NoteKind_Scope);
+    Assert(namespace_scope->parent);
+    
+    // Reset the parent note
+    current_namespace->parent = namespace_scope->parent;
+    namespace_scope->parent = 0;
+    
+    // Update the child note
+    if (namespace_scope->first_child)
+    namespace_scope->first_child = namespace_scope->first_child->next_sibling;
+    else
+        namespace_scope->first_child = current_namespace->first_child;
+    namespace_scope->last_child = namespace_scope->first_child ? current_namespace->last_child : 0;
+    return namespace_scope;
+}
+
+//~ NOTE(long): Lookup Functions
 
 function F4_Index_Note* Long_Index_LookupNote(String_Const_u8 string)
 {
@@ -418,8 +480,7 @@ function F4_Index_Note* Long_Index_LookupScope(F4_Index_Note* note, i64 pos)
     
     if (note->range.min == pos)
     result = note;
-    else if (note->scope_range.max && (range_contains(note->scope_range, pos) ||
-                                       range_contains(Range_i64{ note->range.max, note->scope_range.min }, pos)))
+    else if (note->scope_range.max && range_contains(Range_i64{ note->range.min, note->scope_range.max }, pos))
     {
         Long_Index_IterateValidNoteInFile(child, note)
         if (result = Long_Index_LookupScope(child, pos))
@@ -431,7 +492,7 @@ function F4_Index_Note* Long_Index_LookupScope(F4_Index_Note* note, i64 pos)
     return result;
 }
 
-function F4_Index_Note* Long_Index_GetScopeNote(F4_Index_File* file, i64 pos)
+function F4_Index_Note* Long_Index_GetSurroundingNote(F4_Index_File* file, i64 pos)
 {
     F4_Index_Note* result = 0;
     for (F4_Index_Note* note = file ? file->first_note : 0; note; note = note->next_sibling)
@@ -470,7 +531,7 @@ function F4_Index_Note* Long_Index_LookupBestNote(Application_Links* app, Buffer
     }
     
     F4_Index_File* file = F4_Index_LookupFile(app, buffer);
-    F4_Index_Note* surrounding_note = Long_Index_GetScopeNote(file, pos);
+    F4_Index_Note* surrounding_note = Long_Index_GetSurroundingNote(file, pos);
     // TODO(long): C# and C++ specific crap - Abstract this out for other languages
     if (string_match(push_token_lexeme(app, scratch, buffer, it.ptr), S8Lit("this")))
     while (surrounding_note && surrounding_note->kind != F4_Index_NoteKind_Type)
@@ -504,6 +565,8 @@ function F4_Index_Note* Long_Index_LookupBestNote(Application_Links* app, Buffer
     DONE:
     return result;
 }
+
+//~ NOTE(long): Render Functions
 
 function String8 Long_GetStringAdvance(Application_Links* app, Face_ID face, String8 string, Token* token, i64 startPos, f32* advance)
 {
@@ -632,7 +695,7 @@ function Range_i64_Array Long_Index_GetNoteRanges(Application_Links* app, Arena*
     
     if (note->base_range.max)
     result.ranges[result.count++] = note->base_range;
-    result.ranges[result.count++] = { note->range.min, Max(note->range.max, note->scope_range.min) };
+    result.ranges[result.count++] = Long_Index_ArgumentRange(note);
     if (range.max)
     result.ranges[result.count++] = range;
     
