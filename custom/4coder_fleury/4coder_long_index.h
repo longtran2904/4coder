@@ -18,9 +18,12 @@ function b32 F4_ARGBIsValid(ARGB_Color color);
 
 function b32 Long_Index_IsComment(F4_Index_NoteKind* note);
 function b32 Long_Index_IsGenericArgument(F4_Index_Note* note);
-function b32 Long_Index_MatchNote(Application_Links* app, F4_Index_Note* note, Range_i64 range, String8 match);
+function b32 Long_Index_IsNamespace(F4_Index_Note* note);
+
 function b32 Long_Index_IsMatch(F4_Index_ParseCtx* ctx, Range_i64 range, String8* array, u64 count);
 function b32 Long_Index_IsMatch(F4_Index_ParseCtx* ctx, Token* token, String8* array, u64 count);
+function b32 Long_Index_MatchNote(Application_Links* app, F4_Index_Note* note, Range_i64 range, String8 match);
+
 function b32 Long_Index_SkipExpression(F4_Index_ParseCtx* ctx, i16 seperator, i16 terminator);
 function b32 Long_Index_SkipBody(F4_Index_ParseCtx* ctx, b32 dec = 0, b32 exit_early = 0);
 function b32 Long_Index_SkipBody(Application_Links* app, Token_Iterator_Array* it, Buffer_ID buffer, b32 dec = 0, b32 exit_early = 0);
@@ -34,6 +37,16 @@ function F4_Index_Note* Long_Index_LookupChild(F4_Index_Note* parent, i32 index)
 function F4_Index_Note* Long_Index_LookupChild(String_Const_u8 string, F4_Index_Note* parent = 0);
 function F4_Index_Note* Long_Index_LookupRef(Application_Links* app, Token_Array* array, F4_Index_Note* note);
 function F4_Index_Note* Long_Index_LookupBestNote(Application_Links* app, Buffer_ID buffer, Token_Array* array, Token* token);
+
+#define Long_Index_IterateValidNoteInFile(child, note) \
+for (F4_Index_Note* child = (note)->first_child; child != ((note)->last_child ? (note)->last_child->next_sibling : 0); \
+child = child->next_sibling) if (!Long_Index_IsNamespace(child))
+
+#define Long_Index_IterateValidNoteInFile_Dir(child, note, forward) \
+F4_Index_Note* start = (forward) ? (note)->first_child : (note)->last_child; \
+F4_Index_Note* end   = (forward) ? (note)->last_child : (note)->first_child; \
+for (F4_Index_Note* child = start; child != (end ? ((forward) ? end->next_sibling : end->prev_sibling) : 0); \
+child = (forward) ? child->next_sibling : child->prev_sibling) if (!Long_Index_IsNamespace(child))
 
 #define Long_Index_Token(ctx) token_it_read(&(ctx)->it)
 #define Long_Index_CtxScope(ctx) (ctx)->active_parent->scope_range

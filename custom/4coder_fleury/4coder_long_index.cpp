@@ -9,7 +9,12 @@ function b32 Long_Index_IsGenericArgument(F4_Index_Note* note)
     F4_Index_Note* parent = note->parent;
     return (parent && note->kind == F4_Index_NoteKind_Type &&
             (parent->kind == F4_Index_NoteKind_Type || parent->kind == F4_Index_NoteKind_Function) &&
-            note->range.min < parent->scope_range.min && !(parent->flags & F4_Index_NoteFlag_Namespace));
+            note->range.min < parent->scope_range.min && !Long_Index_IsNamespace(parent));
+}
+
+function b32 Long_Index_IsNamespace(F4_Index_Note* note)
+{
+    return (note->flags & F4_Index_NoteFlag_Namespace) || note == &namespace_root;
 }
 
 function b32 Long_Index_MatchNote(Application_Links* app, F4_Index_Note* note, Range_i64 range, String8 match)
@@ -276,8 +281,10 @@ function b32 Long_Index_ParsePattern(F4_Index_ParseCtx* ctx, char* fmt, ...)
 function F4_Index_Note* Long_Index_MakeNote(F4_Index_ParseCtx* ctx, Range_i64 base_range, Range_i64 range, F4_Index_NoteKind kind,
                                             b32 push_parent)
 {
+    Assert(!ctx->active_parent || ctx->active_parent->kind != F4_Index_NoteKind_Scope || !Long_Index_IsNamespace(ctx->active_parent));
     F4_Index_Note* note = F4_Index_MakeNote(ctx, range, kind, 0);
     note->base_range = base_range;
+    note->scope_range = {};
     if (push_parent)
     F4_Index_PushParent(ctx, note);
     return note;
@@ -310,7 +317,7 @@ function F4_Index_Note* Long_Index_LookupChild(String8 name, F4_Index_Note* pare
     else
     {
         for (F4_Index_Note* note = Long_Index_LookupNote(name); note; note = note->next)
-        if (!note->parent)
+        if (!note->parent || note->parent == &namespace_root)
         return note;
     }
     return 0;
@@ -414,7 +421,7 @@ function F4_Index_Note* Long_Index_LookupScope(F4_Index_Note* note, i64 pos)
     else if (note->scope_range.max && (range_contains(note->scope_range, pos) ||
                                        range_contains(Range_i64{ note->range.max, note->scope_range.min }, pos)))
     {
-        for (F4_Index_Note* child = note->first_child; child; child = child->next_sibling)
+        Long_Index_IterateValidNoteInFile(child, note)
         if (result = Long_Index_LookupScope(child, pos))
         break;
         
@@ -436,7 +443,6 @@ function F4_Index_Note* Long_Index_GetScopeNote(F4_Index_File* file, i64 pos)
 // TODO(long):
 // Handle initializer lists and constructors
 // Handle inheritance
-// Handle generic base types
 function F4_Index_Note* Long_Index_LookupBestNote(Application_Links* app, Buffer_ID buffer, Token_Array* array, Token* token)
 {
     Long_Index_ProfileScope(app, "[Long] Lookup Best Note");

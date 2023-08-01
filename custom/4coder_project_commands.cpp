@@ -142,7 +142,10 @@ prj_open_files_pattern_filter__rec(Application_Links *app, String8 path, Prj_Pat
             
             // NOTE(long): Load reference code
             if (flags & PrjOpenFileFlag_ReadOnly)
-            buffer_set_setting(app, buffer, BufferSetting_ReadOnly|BufferSetting_Unimportant, true);
+            {
+                buffer_set_setting(app, buffer, BufferSetting_ReadOnly, true);
+                buffer_set_setting(app, buffer, BufferSetting_Unimportant, true);
+            }
             
             int fuckingDebugger = 0;
             fuckingDebugger = 5 + 10;

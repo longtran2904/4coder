@@ -50,3 +50,5 @@ fkey_command = {
     .F1 = "build",
     .F2 = "build_lexers",
 };
+
+//reference_paths = { "D:\\Documents\\Unity\\Decompile\\Temp\\" };

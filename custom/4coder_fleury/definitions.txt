@@ -1,4 +1,4 @@
-[NULL] UnityEngine { type }
+[NULL] { { [namespace] }
 [UnityEngine] MyEngine { <UnityEngine> type }
 [NULL] myEngine { declaration [global] }
 [NULL] test_global_1 { declaration [global] }
@@ -38,12 +38,11 @@
 [A] { { <A>  }
 [EnumTest] B { <EnumTest> constant }
 [EnumTest] C { <EnumTest> constant }
-[NULL] TestNamespace { type }
+[NULL] { { [namespace] }
 [TestNamespace] Namespace { <TestNamespace> declaration [field] }
-[TestNamespace] A { <TestNamespace> type }
-[A] B { <A> type }
-[B] C { <B> type }
+[NULL] { { [namespace] }
 [C] Namespace { <C> function }
+[NULL] { { [namespace] }
 [B] Namespace { <B> type }
 [B] @"C:\Users\scoleridge\Documents\"; { <B> comment tag }
 [B] @"My pensive SARA ! thy soft cheek reclined { <B> comment tag }
@@ -1047,4 +1046,4 @@
 [DecreaseTrailWidth] startWidth { <DecreaseTrailWidth> declaration [local] }
 [DecreaseTrailWidth] startTime { <DecreaseTrailWidth> declaration [local] }
 [DecreaseTrailWidth] { { <DecreaseTrailWidth>  }
-Note count: 1045
+Note count: 1044
