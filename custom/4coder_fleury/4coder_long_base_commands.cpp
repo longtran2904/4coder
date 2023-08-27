@@ -238,6 +238,8 @@ CUSTOM_DOC("List jump history")
     Long_IteratePointStack(app, stack, stack->bot, stack->top, 1, size,
                            {
                                String8 line = Long_Buffer_PushLine(app, scratch, buffer, pos);
+                               line = string_condense_whitespace(scratch, line);
+                               line = string_skip_chop_whitespace(line);
                                String8 tag = (i == stack->current - 1) ? S8Lit("current") : String8{};
                                Long_Lister_AddItem(app, lister, line, tag, buffer, pos, i);
                            });
@@ -487,6 +489,7 @@ CUSTOM_DOC("When executed on a buffer with jumps, creates a persistent lister fo
                 Buffer_ID buffer = location.buffer_id;
                 i64 pos = location.pos;
                 String_Const_u8 line = Long_Buffer_PushLine(app, scratch, buffer, pos);
+                line = string_condense_whitespace(scratch, line);
                 line = string_skip_chop_whitespace(line);
                 Long_Lister_AddItem(app, lister, line, {}, buffer, pos, i);
             }
@@ -882,6 +885,18 @@ CUSTOM_DOC("Begins an incremental search down through the current buffer for the
 
 //~ NOTE(long): Index Commands
 
+CUSTOM_COMMAND_SIG(long_toggle_pos_context)
+CUSTOM_DOC("Toggles position context window.")
+{
+    long_global_pos_context_open ^= 1;
+}
+
+CUSTOM_COMMAND_SIG(long_switch_pos_context_option)
+CUSTOM_DOC("Switches the position context mode.")
+{
+    long_active_pos_context_option = (long_active_pos_context_option + 1) % ArrayCount(long_global_context_opts);
+}
+
 function void Long_GoToDefinition(Application_Links* app, b32 same_panel)
 {
     F4_Index_Note* note = 0;
@@ -1039,13 +1054,16 @@ function LONG_INDEX_FILTER(Long_Filter_Declarations)
 
 function LONG_INDEX_FILTER(Long_Filter_FunctionAndType)
 {
-    return (note->kind == F4_Index_NoteKind_Type && !Long_Index_IsGenericArgument(note)) || note->kind == F4_Index_NoteKind_Function;
+    b32 is_type = note->kind == F4_Index_NoteKind_Type && !Long_Index_IsGenericArgument(note);
+    b32 is_func = note->kind == F4_Index_NoteKind_Function && range_size(note->range); // range_size is for filtering lambda
+    return is_type || is_func;
 }
 
 function LONG_INDEX_FILTER(Long_Filter_Note)
 {
     b32 result = true;
     F4_Index_Note* parent = note->parent;
+    
     if (note->kind == F4_Index_NoteKind_Scope)
     result = false;
     else if (parent)
@@ -1062,6 +1080,7 @@ function LONG_INDEX_FILTER(Long_Filter_Note)
         else if (Long_Index_IsGenericArgument(note))
         result = false; // Generic Argument
     }
+    
     return result;
 }
 

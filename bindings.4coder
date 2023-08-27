@@ -186,16 +186,20 @@ keys_file =
     { "save_all_dirty_buffers",                        "S", "Control", "Shift" },
     { "redo",                                          "Y", "Control"          },
     { "undo",                                          "Z", "Control"          },
-    { "view_buffer_other_panel",                    "Tick", "Control"          },
+    { "view_buffer_other_panel",                       "W", "Control", "Shift" },
     
     // NOTE(rjf): Meta
     { "swap_panels",                                   "W", "Control" },
     { "if_read_only_goto_position",                    "Return" },
     { "if_read_only_goto_position_same_panel",         "Return", "Shift" },
-    { "long_view_jump_list_with_lister",                    "Period", "Control", "Shift" },
+    { "long_view_jump_list_with_lister",               "Period", "Control", "Shift" },
     
     // NOTE(rjf): Code Peek
-    { "f4_code_peek",          "Tick", "Alt" },
+    { "f4_code_peek",                   "Tick", "Control" },
+    
+    // NOTE(long): Pos Context
+    { "long_toggle_pos_context",        "Tick" , "Alt" },
+    { "long_switch_pos_context_option", "Equal", "Alt" },
     
     // NOTE(rjf): Go To Def
     { "long_go_to_definition",            "Return", "Control" },

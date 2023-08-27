@@ -128,7 +128,11 @@ struct Vector2
     
     public static implicit operator Vector2(Vector3 v);
     public static implicit operator Vector3(Vector2 v);
+    
+    public Vector2(float x, float y);
 }
+
+Vector2 vector2 = new Vector2(test_global_1, test_global_2);
 
 [
  NewLine(a = { }, b = {0})

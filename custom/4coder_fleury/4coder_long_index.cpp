@@ -347,6 +347,7 @@ function F4_Index_Note* Long_Index_PopNamespaceScope(F4_Index_ParseCtx* ctx)
     else
         namespace_scope->first_child = current_namespace->first_child;
     namespace_scope->last_child = namespace_scope->first_child ? current_namespace->last_child : 0;
+    namespace_scope->scope_range = { current_namespace->scope_range.min, ctx->it.ptr->pos };
     return namespace_scope;
 }
 
@@ -401,13 +402,14 @@ function F4_Index_Note* Long_Index_LookupChild(F4_Index_Note* parent, i32 index)
     return result;
 }
 
-function F4_Index_Note* Long_Index_LookupRef(Application_Links* app, Token_Array* array, F4_Index_Note* note)
+function F4_Index_Note* Long_Index_LookupRef(Application_Links* app, F4_Index_Note* note, F4_Index_Note* filter_note)
 {
     F4_Index_Note* result = 0;
     if (note && range_size(note->base_range))
     {
-        Token* token = token_from_pos(array, note->base_range.max - 1);
-        result = Long_Index_LookupBestNote(app, note->file->buffer, array, token);
+        Token_Array array = get_token_array_from_buffer(app, note->file->buffer);
+        Token* token = token_from_pos(&array, note->base_range.max - 1);
+        result = Long_Index_LookupBestNote(app, note->file->buffer, &array, token, filter_note);
     }
     return result;
 }
@@ -504,65 +506,94 @@ function F4_Index_Note* Long_Index_GetSurroundingNote(F4_Index_File* file, i64 p
 // TODO(long):
 // Handle initializer lists and constructors
 // Handle inheritance
-function F4_Index_Note* Long_Index_LookupBestNote(Application_Links* app, Buffer_ID buffer, Token_Array* array, Token* token)
+function F4_Index_Note* Long_Index_LookupBestNote(Application_Links* app, Buffer_ID buffer, Token_Array* array, Token* token, F4_Index_Note* filter_note)
 {
     Long_Index_ProfileScope(app, "[Long] Lookup Best Note");
-    F4_Index_Note* result = 0;
-    
-    Range_i64 range = Ii64(token);
-    i64 pos = range.min;
-    Token_Iterator_Array it = token_iterator_pos(0, array, pos);
     Scratch_Block scratch(app);
+    
     String8List names = {};
-    
+    Range_i64 range = Ii64(token);
+    Token_Iterator_Array it = token_iterator_pos(0, array, range.min);
     Long_Index_ParseSelection(app, scratch, &it, buffer, &names);
-    if (!names.first || !names.total_size || !names.node_count)
-    return result;
     
-    Buffer_Cursor debug_cursor = buffer_compute_cursor(app, buffer, seek_pos(pos));
-    
-    for (F4_Index_Note* note = Long_Index_LookupNote(names.first->string); note; note = note->next)
-    {
-        if (note->range == range)
-        {
-            result = note;
-            goto DONE;
-        }
-    }
+    Buffer_Cursor debug_cursor = buffer_compute_cursor(app, buffer, seek_pos(range.min));
     
     F4_Index_File* file = F4_Index_LookupFile(app, buffer);
-    F4_Index_Note* surrounding_note = Long_Index_GetSurroundingNote(file, pos);
-    // TODO(long): C# and C++ specific crap - Abstract this out for other languages
-    if (string_match(push_token_lexeme(app, scratch, buffer, it.ptr), S8Lit("this")))
-    while (surrounding_note && surrounding_note->kind != F4_Index_NoteKind_Type)
-    surrounding_note = surrounding_note->parent;
-    
-    F4_Index_Note* note = Long_Index_LookupNoteTree(file, surrounding_note, names.first->string);
-    // NOTE(long): Choose parent types over the child functions when they have the same name (constructors, conversion operators, etc)
-    if (note && note->parent)
-    if (note->kind == F4_Index_NoteKind_Function && note->parent->kind == F4_Index_NoteKind_Type)
-    if (string_match(note->string, note->parent->string)) 
-    note = note->parent;
-    
-    if (note)
+    F4_Index_Note* surrounding_note;
     {
-        F4_Index_Note* child = note;
-        for (String8Node* name = names.first->next; name; name = name->next)
-        {
-            F4_Index_Note* parent = child;
-            child = Long_Index_LookupChild(name->string, parent);
-            
-            if (!child)
-            {
-                F4_Index_Note* ref = Long_Index_LookupRef(app, array, parent);
-                if (ref)     child = Long_Index_LookupChild(name->string, ref);
-                if (!child) break;
-            }
-        }
-        result = child;
+        for (F4_Index_Note* note = names.first ? Long_Index_LookupNote(names.first->string) : 0; note; note = note->next)
+        if (note->file == file && note->range == range)
+        return note;
+        surrounding_note = Long_Index_GetSurroundingNote(file, range.min);
     }
     
-    DONE:
+    // TODO(long): C# and C++ specific crap - Abstract this out for other languages
+    b32 prefer_type, prefer_func;
+    {
+        String8 start_string = push_token_lexeme(app, scratch, buffer, it.ptr);
+        
+        prefer_type = string_match(start_string, S8Lit("this"));
+        {
+            if (prefer_type)
+            while (surrounding_note && surrounding_note->kind != F4_Index_NoteKind_Type)
+            surrounding_note = surrounding_note->parent;
+        }
+        
+        prefer_func = string_match(start_string, S8Lit("new"));
+    }
+    
+    F4_Index_Note* result = 0;
+    if (names.first)
+    {
+        F4_Index_Note* note = Long_Index_LookupNoteTree(file, surrounding_note, names.first->string);
+        // NOTE(long): Choose parent types over the child functions when they have the same name (constructors, conversion operators, etc)
+        if (note)
+        {
+            if (prefer_func)
+            {
+                if (note->kind == F4_Index_NoteKind_Type)
+                {
+                    for (F4_Index_Note* constructor = note->first_child; constructor; constructor = constructor->next_sibling)
+                    if (string_match(constructor->string, note->string) && !constructor->base_range.max)
+                    note = constructor;
+                }
+            }
+            else if (note->parent)
+            {
+                if (note->kind == F4_Index_NoteKind_Function && note->parent->kind == F4_Index_NoteKind_Type)
+                if (string_match(note->string, note->parent->string))
+                note = note->parent;
+            }
+        }
+        
+        if (note)
+        {
+            F4_Index_Note* child = note;
+            for (String8Node* name = names.first->next; name; name = name->next)
+            {
+                // NOTE(long): The reason we need a filter_note is to make sure cases like this never crash:
+                // TestA.anything TestA;
+                // Or
+                // TestA.stuff1 TestB;
+                // TestB.stuff2 TestA;
+                // Or so on for TestC, TestD, etc
+                if (child == filter_note) break;
+                
+                F4_Index_Note* parent = child;
+                child = Long_Index_LookupChild(name->string, parent);
+                
+                if (!child)
+                {
+                    F4_Index_Note* ref = Long_Index_LookupRef(app, parent, filter_note ? filter_note : parent);
+                    if (ref)     child = Long_Index_LookupChild(name->string, ref);
+                    if (!child) break;
+                }
+            }
+            result = child;
+        }
+    }
+    else if (prefer_type) result = surrounding_note;
+    
     return result;
 }
 
@@ -702,7 +733,33 @@ function Range_i64_Array Long_Index_GetNoteRanges(Application_Links* app, Arena*
     return result;
 }
 
-function void Long_Index_DrawTooltip(Application_Links* app, Rect_f32 screen_rect, Token_Array* array, Vec2_f32* tooltip_offset,
+global b32 long_global_pos_context_open    = 1;
+global i32 long_global_child_tooltip_count = 20;
+global i32 long_active_pos_context_option  = 0;
+global F4_Index_NoteKind long_global_context_opts[] =
+{
+    F4_Index_NoteKind_Decl,
+    F4_Index_NoteKind_Function,
+    F4_Index_NoteKind_Type,
+};
+
+function f32 Long_Index_DrawString(Application_Links* app, String8 string, Vec2_f32 tooltip_position,
+                                   Face_ID face, f32 line_height, f32 padding, ARGB_Color color)
+{
+    Vec2_f32 needed_size = { get_string_advance(app, face, string), line_height };
+    Rect_f32 draw_rect =
+    {
+        tooltip_position.x,
+        tooltip_position.y,
+        tooltip_position.x + needed_size.x + 2*padding,
+        tooltip_position.y + needed_size.y + 2*padding,
+    };
+    F4_DrawTooltipRect(app, draw_rect);
+    draw_string(app, face, string, draw_rect.p0 + Vec2_f32{ padding, padding }, color);
+    return draw_rect.y1 - draw_rect.y0;
+}
+
+function void Long_Index_DrawTooltip(Application_Links* app, Rect_f32 screen_rect, Vec2_f32* tooltip_offset,
                                      F4_Index_Note* note, i32 index, Range_i64 range, Range_i64 highlight_range)
 {
     Vec2_f32 tooltip_position =
@@ -725,22 +782,54 @@ function void Long_Index_DrawTooltip(Application_Links* app, Rect_f32 screen_rec
     
     if (note->kind == F4_Index_NoteKind_Decl && index)
     {
-        note = Long_Index_LookupRef(app, array, note);
+        note = Long_Index_LookupRef(app, note);
         if (!note)
         return;
     }
     
     if (note->kind == F4_Index_NoteKind_Type && index)
     {
-        for (note = note->first_child; note; note = note->next_sibling)
         {
-            if (note->kind == F4_Index_NoteKind_Scope || Long_Index_IsComment(note))
+            String8 option_names[] =
+            {
+                S8Lit("[DECLARATIONS]"),
+                S8Lit("[FUNCTIONS]"),
+                S8Lit("[TYPES]"),
+            };
+            String8 string = option_names[long_active_pos_context_option];
+            
+            ARGB_Color option_colors[] =
+            {
+                finalize_color(fleury_color_index_decl, 0),
+                finalize_color(fleury_color_index_function, 0),
+                finalize_color(fleury_color_index_product_type, 0),
+            };
+            ARGB_Color color = option_colors[long_active_pos_context_option];
+            
+            tooltip_position.y += Long_Index_DrawString(app, string, tooltip_position, face, line_height, padding * 1.5f, color);
+        }
+        
+        i32 i = 0;
+        for (F4_Index_Note* child = note->first_child; child; child = child->next_sibling)
+        {
+            if (i == long_global_child_tooltip_count)
+            {
+                tooltip_position.y += Long_Index_DrawString(app, S8Lit("..."), tooltip_position, face, line_height, padding * .5f, color);
+                break;
+            }
+            
+            if (child->kind == F4_Index_NoteKind_Scope || Long_Index_IsComment(child))
             continue;
-            Range_i64_Array ranges = Long_Index_GetNoteRanges(app, scratch, note, range);
-            Rect_f32 rect = Long_Index_DrawNote(app, ranges, note->file->buffer,
+            
+            if (child->kind != long_global_context_opts[long_active_pos_context_option])
+            continue;
+            
+            Range_i64_Array ranges = Long_Index_GetNoteRanges(app, scratch, child, range);
+            Rect_f32 rect = Long_Index_DrawNote(app, ranges, child->file->buffer,
                                                 face, line_height, padding, color,
                                                 tooltip_position, screen_x, highlight_color, highlight_range);
             tooltip_position.y += rect.y1 - rect.y0;
+            ++i;
         }
     }
     else
@@ -764,15 +853,16 @@ function void Long_Index_DrawTooltip(Application_Links* app, Rect_f32 screen_rec
     *tooltip_offset += tooltip_position - offset;
 }
 
-function void Long_Index_DrawPosContext(Application_Links* app, View_ID view, Token_Array* array, F4_Language_PosContextData* first_ctx)
+function void Long_Index_DrawPosContext(Application_Links* app, View_ID view, F4_Language_PosContextData* first_ctx)
 {
+    if (!long_global_pos_context_open) return;
+    
     Vec2_f32 offset = {};
     Rect_f32 screen = view_get_screen_rect(app, view);
     for (F4_Language_PosContextData* ctx = first_ctx; ctx; ctx = ctx->next)
     {
         if (ctx->relevant_note)
-        Long_Index_DrawTooltip(app, screen, array, &offset,
-                               ctx->relevant_note, ctx->argument_index, ctx->range, ctx->highlight_range);
+        Long_Index_DrawTooltip(app, screen, &offset, ctx->relevant_note, ctx->argument_index, ctx->range, ctx->highlight_range);
     }
 }
 

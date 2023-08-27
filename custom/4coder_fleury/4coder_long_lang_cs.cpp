@@ -172,13 +172,6 @@ internal F4_LANGUAGE_INDEXFILE(Long_CS_IndexFile)
     
     String8 cs_operator[] = { S8Lit("operator") };
     
-    {
-        Scratch_Block scratch(ctx->app);
-        String8 buffer_name = push_buffer_base_name(ctx->app, scratch, ctx->file->buffer);
-        if (string_match(buffer_name, S8Lit("NavMesh.cs")))
-        buffer_name = buffer_name;
-    }
-    
     while (!ctx->done)
     {
         Long_Index_ProfileBlock(ctx->app, "[Long] Parse CS");
@@ -449,9 +442,12 @@ Long_CS_ParsePosContext(Application_Links* app, Arena* arena, Buffer_ID buffer, 
                         index = has_arg ? arg_idx : -1; // NOTE(long): -1 means don't highlight any argument
                         arg_idx = 0;
                     }
-                    //Long_Index_DrawTooltip(app, view_get_screen_rect(app, view), array, note, index, &offset);
-                    F4_Language_PosContext_PushData(arena, &first, &last, note, 0, index);
-                    tooltip_count++;
+                    
+                    if (note->range.min != token->pos)
+                    {
+                        F4_Language_PosContext_PushData(arena, &first, &last, note, 0, index);
+                        tooltip_count++;
+                    }
                 }
             }
             
@@ -492,21 +488,27 @@ internal F4_LANGUAGE_HIGHLIGHT(Long_CS_Highlight)
         if (token->kind == TokenBaseKind_Identifier)
         {
             F4_Index_Note* note = Long_Index_LookupBestNote(app, buffer, array, token);
-            if (note && note->kind == F4_Index_NoteKind_Decl)
+            if (note && note->parent)
             {
-                ARGB_Color color = F4_ARGBFromID(color_table, fleury_color_index_decl);
-                if (note->parent)
+                switch (note->kind)
                 {
-                    if (Long_Index_IsArgument(note))
-                    color = F4_ARGBFromID(color_table, long_color_index_param);
-                    else if (note->parent->kind == F4_Index_NoteKind_Type)
-                    color = F4_ARGBFromID(color_table, long_color_index_field);
-                    else
-                        color = F4_ARGBFromID(color_table, long_color_index_local);
-                    if (!F4_ARGBIsValid(color))
-                    color = F4_ARGBFromID(color_table, defcolor_text_default);
+                    case F4_Index_NoteKind_Decl:
+                    {
+                        ARGB_Color color;
+                        
+                        if (Long_Index_IsArgument(note))
+                        color = F4_ARGBFromID(color_table, long_color_index_param);
+                        else if (note->parent->kind == F4_Index_NoteKind_Type)
+                        color = F4_ARGBFromID(color_table, long_color_index_field);
+                        else
+                            color = F4_ARGBFromID(color_table, long_color_index_local);
+                        
+                        if (!F4_ARGBIsValid(color))
+                        color = F4_ARGBFromID(color_table, defcolor_text_default);
+                        
+                        paint_text_color(app, text_layout_id, Ii64(token), color);
+                    } break;
                 }
-                paint_text_color(app, text_layout_id, Ii64(token), color);
             }
         }
         
@@ -526,3 +528,25 @@ internal F4_LANGUAGE_HIGHLIGHT(Long_CS_Highlight)
     }
 #endif
 }
+
+#if 0
+function void Long_CS_ParsePos(Application_Links* app, F4_Index_File* file, Token_Iterator_Array* it)
+{
+    Long_Index_SkipBody(app, it, buffer, true);
+    Token* current = token_it_read(it);
+    if (current && current->kind == TokenBaseKind_Identifier)
+    {
+        String8 string = push_buffer_range(app, arena, buffer, Ii64(current));
+        
+#define SLLQueuePushFront(f, l, n) ((f) == 0 ? ((f)=(l)=(n),(n)->next=0) : ((n)->next=(f),(f)=(n)))
+        String8Node* node = push_array(arena, String8Node, 1);
+        node->string = string;
+        SLLQueuePushFront(list->first, list->last, node);
+        list->node_count += 1;
+        list->total_size += string.size;
+        
+        if (token_it_dec(it) && Long_CS_IsTokenSelection(it->ptr) && token_it_dec(it))
+        Long_Index_ParseSelection(app, arena, it, buffer, list);
+    }
+}
+#endif

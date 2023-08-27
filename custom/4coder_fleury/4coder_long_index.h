@@ -45,8 +45,8 @@ function F4_Index_Note* Long_Index_PopNamespaceScope(F4_Index_ParseCtx* ctx);
 function F4_Index_Note* Long_Index_LookupNote(String_Const_u8 string);
 function F4_Index_Note* Long_Index_LookupChild(F4_Index_Note* parent, i32 index);
 function F4_Index_Note* Long_Index_LookupChild(String_Const_u8 string, F4_Index_Note* parent = 0);
-function F4_Index_Note* Long_Index_LookupRef(Application_Links* app, Token_Array* array, F4_Index_Note* note);
-function F4_Index_Note* Long_Index_LookupBestNote(Application_Links* app, Buffer_ID buffer, Token_Array* array, Token* token);
+function F4_Index_Note* Long_Index_LookupRef(Application_Links* app, F4_Index_Note* note, F4_Index_Note* filter_note = 0);
+function F4_Index_Note* Long_Index_LookupBestNote(Application_Links* app, Buffer_ID buffer, Token_Array* array, Token* token, F4_Index_Note* filter_note = 0);
 
 //~ NOTE(long): Macros
 
@@ -88,9 +88,9 @@ if (token_it_dec(&(ctx)->it)) { stm; token_it_inc(&(ctx)->it); } \
 
 //~ NOTE(long): Render Functions
 
-function void Long_Index_DrawTooltip(Application_Links* app, Rect_f32 screen_rect, Token_Array* array,
-                                     F4_Index_Note* note, i32 index, Vec2_f32* tooltip_offset);
-function void Long_Index_DrawPosContext(Application_Links* app, View_ID view, Token_Array* array, F4_Language_PosContextData* first_ctx);
+function void Long_Index_DrawTooltip(Application_Links* app, Rect_f32 screen_rect, F4_Index_Note* note,
+                                     i32 index, Vec2_f32* tooltip_offset);
+function void Long_Index_DrawPosContext(Application_Links* app, View_ID view, F4_Language_PosContextData* first_ctx);
 function void Long_Index_DrawCodePeek(Application_Links* app, View_ID view);
 
 #endif //4CODER_LONG_INDEX_H

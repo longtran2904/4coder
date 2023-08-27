@@ -233,7 +233,7 @@ NULL: Action
 [] f { <> declaration [argument] }
 [] g { <> declaration [argument] }
 [Test] DoStuff { <Test> declaration [field] }
-[InverseLerp] b { <InverseLerp> declaration [argument] }
+[{] b { <{> declaration [local] }
 [Something] c { <Something> declaration [local] }
 [{] Stuff { <{> function }
 [{] Stuff { <{> function }
@@ -382,7 +382,7 @@ NULL: A
 [Test] DoStuff { <Test> declaration [field] }
 [NULL] Property { type }
 [Property] T { <Property> type [generic] }
-[UnityEngine] ISerializationCallbackReceiver { <UnityEngine> type }
+NULL: ISerializationCallbackReceiver
 [Property] T { <Property> type [generic] }
 NULL: System
 NULL: Enum
@@ -461,16 +461,16 @@ NULL: SetFlag
 [Property] OnAfterDeserialize { <Property> function }
 [OnAfterDeserialize] enumNames { <OnAfterDeserialize> declaration [local] }
 [Property] enumNames { <Property> declaration [property] }
-[UnityEngine] Debug { <UnityEngine> type }
-[Debug] Assert { <Debug> function }
+NULL: Debug
+NULL: Assert
 [OnAfterDeserialize] enumNames { <OnAfterDeserialize> declaration [local] }
 NULL: Length
 [Property] T { <Property> type [generic] }
 NULL: FullName
 [OnAfterDeserialize] enumNames { <OnAfterDeserialize> declaration [local] }
 NULL: Length
-[UnityEngine] Debug { <UnityEngine> type }
-[Debug] Assert { <Debug> function }
+NULL: Debug
+NULL: Assert
 [OnAfterDeserialize] enumNames { <OnAfterDeserialize> declaration [local] }
 NULL: Length
 [Property] T { <Property> type [generic] }
@@ -478,8 +478,8 @@ NULL: FullName
 [Property] serializedEnumNames { <Property> declaration [field] }
 [Property] serializedEnumNames { <Property> declaration [field] }
 NULL: Length
-[UnityEngine] Debug { <UnityEngine> type }
-[Debug] Log { <Debug> function }
+NULL: Debug
+NULL: Log
 [Property] T { <Property> type [generic] }
 NULL: Name
 [Property] serializedEnumNames { <Property> declaration [field] }
@@ -522,8 +522,8 @@ NULL: HasFlag
 [{] oldIndex { <{> declaration [local] }
 [{] findOldIndex { <{> declaration [local] }
 [{] currentValue { <{> declaration [local] }
-[UnityEngine] Debug { <UnityEngine> type }
-[Debug] Log { <Debug> function }
+NULL: Debug
+NULL: Log
 [Property] serializedEnumNames { <Property> declaration [field] }
 [{] oldIndex { <{> declaration [local] }
 [OnAfterDeserialize] i { <OnAfterDeserialize> declaration [local] }
@@ -538,11 +538,11 @@ NULL: Length
 [Property] serializedEnumNames { <Property> declaration [field] }
 [OnAfterDeserialize] i { <OnAfterDeserialize> declaration [local] }
 [{] currentValue { <{> declaration [local] }
-[UnityEngine] Debug { <UnityEngine> type }
-[Debug] LogWarning { <Debug> function }
+NULL: Debug
+NULL: LogWarning
 [{] msg { <{> declaration [local] }
-[UnityEngine] Debug { <UnityEngine> type }
-[Debug] Log { <Debug> function }
+NULL: Debug
+NULL: Log
 [{] msg { <{> declaration [local] }
 [{] currentValue { <{> declaration [local] }
 [OnAfterDeserialize] sets { <OnAfterDeserialize> declaration [local] }
@@ -577,8 +577,8 @@ NULL: Tooltip
 [RangedInt] max { <RangedInt> declaration [field] }
 [RangedInt] max { <RangedInt> declaration [argument] }
 [RangedInt] randomValue { <RangedInt> declaration [property] }
-[UnityEngine] Random { <UnityEngine> type }
-[Random] Range { <Random> function }
+NULL: Random
+NULL: Range
 [RangedInt] min { <RangedInt> declaration [field] }
 [RangedInt] max { <RangedInt> declaration [field] }
 NULL: System
@@ -600,8 +600,8 @@ NULL: Tooltip
 [RangedFloat] min { <RangedFloat> declaration [field] }
 [RangedFloat] max { <RangedFloat> declaration [field] }
 [RangedFloat] min { <RangedFloat> declaration [field] }
-[UnityEngine] Random { <UnityEngine> type }
-[Random] Range { <Random> function }
+NULL: Random
+NULL: Range
 [RangedFloat] min { <RangedFloat> declaration [field] }
 [RangedFloat] max { <RangedFloat> declaration [field] }
 [RangedFloat] range { <RangedFloat> declaration [property] }
@@ -644,7 +644,7 @@ NULL: Generic
 NULL: Edgar
 NULL: Unity
 [] UnityEngine { <> type [namespace] }
-[UnityEngine] Tilemaps { <UnityEngine> type [namespace] }
+NULL: Tilemaps
 NULL: StringBuilder
 NULL: System
 NULL: Text
@@ -657,13 +657,13 @@ NULL: StringBuilder
 [GameMode] Count { <GameMode> constant }
 NULL: SomethingHere
 [NULL] GameManager { type }
-[UnityEngine] MonoBehaviour { <UnityEngine> type }
+NULL: MonoBehaviour
 NULL: Header
 [NULL] GameMode { type }
 [GameManager] startMode { <GameManager> declaration [field] }
-[UnityEngine] GameObject { <UnityEngine> type }
+NULL: GameObject
 [GameManager] mainMode { <GameManager> declaration [field] }
-[UnityEngine] GameObject { <UnityEngine> type }
+NULL: GameObject
 [GameManager] playMode { <GameManager> declaration [field] }
 NULL: LevelData
 [GameManager] levels { <GameManager> declaration [field] }
@@ -678,9 +678,9 @@ NULL: Header
 NULL: GameMenu
 [GameManager] gameMenu { <GameManager> declaration [field] }
 NULL: Header
-[UnityEngine] Audio { <UnityEngine> type [namespace] }
+NULL: Audio
 [GameManager] audios { <GameManager> declaration [field] }
-[UnityEngine] AudioType { <UnityEngine> type }
+NULL: AudioType
 [GameManager] firstMusic { <GameManager> declaration [field] }
 [GameManager] sourceCount { <GameManager> declaration [field] }
 NULL: Pool
@@ -691,13 +691,13 @@ NULL: RoomInstance
 [GameManager] currentRoom { <GameManager> declaration [field] }
 [NULL] Entity { type }
 [GameManager] player { <GameManager> declaration [field] }
-[UnityEngine] Camera { <UnityEngine> type }
+NULL: Camera
 [GameManager] mainCam { <GameManager> declaration [field] }
 NULL: GameUI
 [GameManager] gameUI { <GameManager> declaration [field] }
 [GameManager] Bounds { <GameManager> type }
 [GameManager] defaultBounds { <GameManager> declaration [field] }
-[Tilemaps] Tilemap { <Tilemaps> type }
+NULL: Tilemap
 [GameManager] tilemap { <GameManager> declaration [field] }
 NULL: NewLine
 NULL: SomeOtherThing
@@ -730,9 +730,9 @@ NULL: ToString
 [FindAllEntityProperties] SaveEntityProperties { <FindAllEntityProperties> function }
 [FindAllEntityProperties] builder { <FindAllEntityProperties> declaration [local] }
 [] assets { <> declaration [local] }
-[] UnityEditor { <> type [namespace] }
-[UnityEditor] AssetDatabase { <UnityEditor> type }
-[AssetDatabase] FindAssets { <AssetDatabase> function }
+NULL: UnityEditor
+NULL: AssetDatabase
+NULL: FindAssets
 NULL: List
 [NULL] Entity { type }
 [] entities { <> declaration [local] }
@@ -743,15 +743,15 @@ NULL: Length
 [] asset { <> declaration [local] }
 [] assets { <> declaration [local] }
 [{] path { <{> declaration [local] }
-[] UnityEditor { <> type [namespace] }
-[UnityEditor] AssetDatabase { <UnityEditor> type }
-[AssetDatabase] GUIDToAssetPath { <AssetDatabase> function }
+NULL: UnityEditor
+NULL: AssetDatabase
+NULL: GUIDToAssetPath
 [] asset { <> declaration [local] }
 [NULL] Entity { type }
 [{] entity { <{> declaration [local] }
-[] UnityEditor { <> type [namespace] }
-[UnityEditor] AssetDatabase { <UnityEditor> type }
-[AssetDatabase] LoadAssetAtPath { <AssetDatabase> function }
+NULL: UnityEditor
+NULL: AssetDatabase
+NULL: LoadAssetAtPath
 [NULL] Entity { type }
 [{] path { <{> declaration [local] }
 [{] entity { <{> declaration [local] }
@@ -778,7 +778,7 @@ NULL: AddRange
 [] entities { <> declaration [local] }
 [FindAllEntityProperties] message { <FindAllEntityProperties> declaration [local] }
 [] UnityEngine { <> type [namespace] }
-[UnityEngine] Object { <UnityEngine> type }
+NULL: Object
 [FindAllEntityProperties] context { <FindAllEntityProperties> declaration [local] }
 [FindAllEntityProperties] generateFile { <FindAllEntityProperties> declaration [argument] }
 [{] path { <{> declaration [local] }
@@ -791,24 +791,24 @@ NULL: WriteAllText
 [{] path { <{> declaration [local] }
 [FindAllEntityProperties] builder { <FindAllEntityProperties> declaration [local] }
 NULL: ToString
-[] UnityEditor { <> type [namespace] }
-[UnityEditor] AssetDatabase { <UnityEditor> type }
-[AssetDatabase] SaveAssets { <AssetDatabase> function }
-[] UnityEditor { <> type [namespace] }
-[UnityEditor] AssetDatabase { <UnityEditor> type }
-[AssetDatabase] Refresh { <AssetDatabase> function }
+NULL: UnityEditor
+NULL: AssetDatabase
+NULL: SaveAssets
+NULL: UnityEditor
+NULL: AssetDatabase
+NULL: Refresh
 [FindAllEntityProperties] message { <FindAllEntityProperties> declaration [local] }
 [{] path { <{> declaration [local] }
 [FindAllEntityProperties] context { <FindAllEntityProperties> declaration [local] }
-[] UnityEditor { <> type [namespace] }
-[UnityEditor] AssetDatabase { <UnityEditor> type }
-[AssetDatabase] LoadAssetAtPath { <AssetDatabase> function }
-[UnityEngine] TextAsset { <UnityEngine> type }
+NULL: UnityEditor
+NULL: AssetDatabase
+NULL: LoadAssetAtPath
+NULL: TextAsset
 [{] path { <{> declaration [local] }
 [FindAllEntityProperties] watch { <FindAllEntityProperties> declaration [local] }
 NULL: Stop
-[UnityEngine] Debug { <UnityEngine> type }
-[Debug] Log { <Debug> function }
+NULL: Debug
+NULL: Log
 [FindAllEntityProperties] message { <FindAllEntityProperties> declaration [local] }
 [FindAllEntityProperties] context { <FindAllEntityProperties> declaration [local] }
 [FindAllEntityProperties] SaveEntityProperties { <FindAllEntityProperties> function }
@@ -839,8 +839,8 @@ NULL: Append
 [FindAllEntityProperties] SerializeType { <FindAllEntityProperties> function }
 [SaveEntityProperties] entity { <SaveEntityProperties> declaration [local] }
 [SaveEntityProperties] builder { <SaveEntityProperties> declaration [argument] }
-[UnityEngine] Debug { <UnityEngine> type }
-[Debug] Log { <Debug> function }
+NULL: Debug
+NULL: Log
 [SaveEntityProperties] builder { <SaveEntityProperties> declaration [argument] }
 NULL: ToString
 [{] startIndex { <{> declaration [local] }
@@ -955,8 +955,8 @@ NULL: parent
 NULL: parent
 NULL: type
 NULL: IsArray
-[UnityEngine] Debug { <UnityEngine> type }
-[Debug] Assert { <Debug> function }
+NULL: Debug
+NULL: Assert
 [{] isArrayElement { <{> declaration [local] }
 [{] isParentArrayElement { <{> declaration [local] }
 [{] isParentArrayElement { <{> declaration [local] }
@@ -992,9 +992,9 @@ NULL: type
 NULL: List
 NULL: RoomInstance
 [InitTilemap] rooms { <InitTilemap> declaration [argument] }
-[Tilemaps] Tilemap { <Tilemaps> type }
+NULL: Tilemap
 [InitTilemap] tilemap { <InitTilemap> declaration [argument] }
-[Tilemaps] TileBase { <Tilemaps> type }
+NULL: TileBase
 [InitTilemap] ruleTile { <InitTilemap> declaration [argument] }
 [InitTilemap] room { <InitTilemap> declaration [local] }
 [InitTilemap] rooms { <InitTilemap> declaration [argument] }
@@ -1003,13 +1003,13 @@ NULL: RoomInstance
 NULL: Doors
 [{] door { <{> declaration [local] }
 NULL: ConnectedRoomInstance
-[UnityEngine] Vector3Int { <UnityEngine> type }
+NULL: Vector3Int
 [{] dir { <{> declaration [local] }
 [{] door { <{> declaration [local] }
 NULL: DoorLine
 NULL: GetDirectionVector
 [InitTilemap] tilemap { <InitTilemap> declaration [argument] }
-[Tilemap] SetTile { <Tilemap> function }
+NULL: SetTile
 [{] door { <{> declaration [local] }
 NULL: DoorLine
 NULL: From
@@ -1018,7 +1018,7 @@ NULL: Position
 [{] dir { <{> declaration [local] }
 [InitTilemap] ruleTile { <InitTilemap> declaration [argument] }
 [InitTilemap] tilemap { <InitTilemap> declaration [argument] }
-[Tilemap] SetTile { <Tilemap> function }
+NULL: SetTile
 [{] door { <{> declaration [local] }
 NULL: DoorLine
 NULL: To
@@ -1026,39 +1026,39 @@ NULL: To
 NULL: Position
 [{] dir { <{> declaration [local] }
 [InitTilemap] ruleTile { <InitTilemap> declaration [argument] }
-[UnityEngine] Vector3Int { <UnityEngine> type }
+NULL: Vector3Int
 [{] doorTile { <{> declaration [local] }
 [{] door { <{> declaration [local] }
 NULL: DoorLine
 NULL: GetPoints
-[UnityEngine] Vector3Int { <UnityEngine> type }
+NULL: Vector3Int
 [{] pos { <{> declaration [local] }
 [{] doorTile { <{> declaration [local] }
 [InitTilemap] room { <InitTilemap> declaration [local] }
 NULL: Position
 [InitTilemap] tilemap { <InitTilemap> declaration [argument] }
-[Tilemap] SetTile { <Tilemap> function }
+NULL: SetTile
 [{] pos { <{> declaration [local] }
 [{] Remove { <{> function }
 [InitTilemap] tilemap { <InitTilemap> declaration [argument] }
 [{] pos { <{> declaration [local] }
-[UnityEngine] Vector3Int { <UnityEngine> type }
+NULL: Vector3Int
 [{] door { <{> declaration [local] }
 NULL: FacingDirection
 [{] Remove { <{> function }
-[Tilemaps] Tilemap { <Tilemaps> type }
+NULL: Tilemap
 [Remove] tilemap { <Remove> declaration [argument] }
-[UnityEngine] Vector3Int { <UnityEngine> type }
+NULL: Vector3Int
 [Remove] pos { <Remove> declaration [argument] }
-[UnityEngine] Vector3Int { <UnityEngine> type }
+NULL: Vector3Int
 [Remove] removeDir { <Remove> declaration [argument] }
 [Remove] pos { <Remove> declaration [argument] }
 [Remove] removeDir { <Remove> declaration [argument] }
 [Remove] tilemap { <Remove> declaration [argument] }
-[Tilemap] GetTile { <Tilemap> function }
+NULL: GetTile
 [Remove] pos { <Remove> declaration [argument] }
 [Remove] tilemap { <Remove> declaration [argument] }
-[Tilemap] SetTile { <Tilemap> function }
+NULL: SetTile
 [Remove] pos { <Remove> declaration [argument] }
 [{] Remove { <{> function }
 [Remove] tilemap { <Remove> declaration [argument] }
@@ -1071,26 +1071,26 @@ NULL: CompressAndRefresh
 [NULL] GameManager { type }
 [GameManager] tilemap { <GameManager> declaration [field] }
 [InitTilemap] tilemap { <InitTilemap> declaration [argument] }
-[UnityEngine] Debug { <UnityEngine> type }
-[Debug] Log { <Debug> function }
+NULL: Debug
+NULL: Log
 [InitTilemap] tilemap { <InitTilemap> declaration [argument] }
-[Tilemaps] Tilemap { <Tilemaps> type }
+NULL: Tilemap
 [GameManager] GetTilemapFromRoom { <GameManager> function }
-[UnityEngine] Transform { <UnityEngine> type }
+NULL: Transform
 [GetTilemapFromRoom] roomTransform { <GetTilemapFromRoom> declaration [argument] }
 [GetTilemapFromRoom] roomTransform { <GetTilemapFromRoom> declaration [argument] }
-[Transform] GetChild { <Transform> function }
+NULL: GetChild
 NULL: GetChild
 NULL: GetComponent
-[Tilemaps] Tilemap { <Tilemaps> type }
+NULL: Tilemap
 [GameManager] Bounds { <GameManager> type }
 [GameManager] GetBoundsFromTilemap { <GameManager> function }
-[Tilemaps] Tilemap { <Tilemaps> type }
+NULL: Tilemap
 [GetBoundsFromTilemap] tilemap { <GetBoundsFromTilemap> declaration [argument] }
 [GameManager] Bounds { <GameManager> type }
 [GetBoundsFromTilemap] bounds { <GetBoundsFromTilemap> declaration [local] }
 [GetBoundsFromTilemap] tilemap { <GetBoundsFromTilemap> declaration [argument] }
-[Tilemap] cellBounds { <Tilemap> declaration [property] }
+NULL: cellBounds
 NULL: ToBounds
 [GetBoundsFromTilemap] bounds { <GetBoundsFromTilemap> declaration [local] }
 NULL: center
@@ -1100,7 +1100,7 @@ NULL: position
 [GetBoundsFromTilemap] bounds { <GetBoundsFromTilemap> declaration [local] }
 [GameManager] Bounds { <GameManager> type }
 [GameManager] GetBoundsFromRoom { <GameManager> function }
-[UnityEngine] Transform { <UnityEngine> type }
+NULL: Transform
 [GetBoundsFromRoom] roomTransform { <GetBoundsFromRoom> declaration [argument] }
 [GetBoundsFromRoom] roomTransform { <GetBoundsFromRoom> declaration [argument] }
 [GameManager] GetBoundsFromTilemap { <GameManager> function }
@@ -1113,138 +1113,138 @@ NULL: position
 [NULL] Vector2 { type }
 [GetGroundPos] extents { <GetGroundPos> declaration [argument] }
 [GetGroundPos] dirY { <GetGroundPos> declaration [argument] }
-[UnityEngine] Vector3Int { <UnityEngine> type }
+NULL: Vector3Int
 [GetGroundPos] groundPos { <GetGroundPos> declaration [argument] }
-[UnityEngine] Vector3Int { <UnityEngine> type }
+NULL: Vector3Int
 [GetGroundPos] emptyPos { <GetGroundPos> declaration [argument] }
-[UnityEngine] RaycastHit2D { <UnityEngine> type }
+NULL: RaycastHit2D
 [GetGroundPos] hitInfo { <GetGroundPos> declaration [local] }
 NULL: GameUtils
 NULL: GroundCheck
 [GetGroundPos] pos { <GetGroundPos> declaration [argument] }
 [GetGroundPos] extents { <GetGroundPos> declaration [argument] }
 [GetGroundPos] dirY { <GetGroundPos> declaration [argument] }
-[UnityEngine] Color { <UnityEngine> type }
-[Color] cyan { <Color> declaration [property] }
+NULL: Color
+NULL: cyan
 [GetGroundPos] groundPos { <GetGroundPos> declaration [argument] }
-[UnityEngine] Vector3Int { <UnityEngine> type }
-[Vector3Int] zero { <Vector3Int> declaration [property] }
+NULL: Vector3Int
+NULL: zero
 [GetGroundPos] emptyPos { <GetGroundPos> declaration [argument] }
-[UnityEngine] Vector3Int { <UnityEngine> type }
-[Vector3Int] zero { <Vector3Int> declaration [property] }
+NULL: Vector3Int
+NULL: zero
 [GetGroundPos] hitInfo { <GetGroundPos> declaration [local] }
-[UnityEngine] Vector3Int { <UnityEngine> type }
+NULL: Vector3Int
 [{] hitPosCeil { <{> declaration [local] }
 [GameManager] QueryTiles { <GameManager> function }
 [GameManager] tilemap { <GameManager> declaration [field] }
 [GetGroundPos] hitInfo { <GetGroundPos> declaration [local] }
-[RaycastHit2D] point { <RaycastHit2D> declaration [property] }
+NULL: point
 NULL: ToVector2Int
 NULL: ToVector3Int
 [GetGroundPos] dirY { <GetGroundPos> declaration [argument] }
-[UnityEngine] Vector3Int { <UnityEngine> type }
+NULL: Vector3Int
 [{] hitPosFloor { <{> declaration [local] }
 [GameManager] QueryTiles { <GameManager> function }
 [GameManager] tilemap { <GameManager> declaration [field] }
 [GetGroundPos] hitInfo { <GetGroundPos> declaration [local] }
-[RaycastHit2D] point { <RaycastHit2D> declaration [property] }
+NULL: point
 NULL: ToVector2Int
 NULL: ToVector3Int
 [GetGroundPos] dirY { <GetGroundPos> declaration [argument] }
 [GetGroundPos] groundPos { <GetGroundPos> declaration [argument] }
-[UnityEngine] Mathf { <UnityEngine> type }
-[Mathf] Abs { <Mathf> function }
+NULL: Mathf
+NULL: Abs
 [{] hitPosFloor { <{> declaration [local] }
-[Vector3Int] y { <Vector3Int> declaration [property] }
-[GetGroundPos] hitInfo { <GetGroundPos> declaration [local] }
-[RaycastHit2D] point { <RaycastHit2D> declaration [property] }
 NULL: y
-[UnityEngine] Mathf { <UnityEngine> type }
-[Mathf] Abs { <Mathf> function }
-[{] hitPosCeil { <{> declaration [local] }
-[Vector3Int] y { <Vector3Int> declaration [property] }
 [GetGroundPos] hitInfo { <GetGroundPos> declaration [local] }
-[RaycastHit2D] point { <RaycastHit2D> declaration [property] }
+NULL: point
+NULL: y
+NULL: Mathf
+NULL: Abs
+[{] hitPosCeil { <{> declaration [local] }
+NULL: y
+[GetGroundPos] hitInfo { <GetGroundPos> declaration [local] }
+NULL: point
 NULL: y
 [{] hitPosFloor { <{> declaration [local] }
 [{] hitPosCeil { <{> declaration [local] }
 [GetGroundPos] emptyPos { <GetGroundPos> declaration [argument] }
 [GetGroundPos] groundPos { <GetGroundPos> declaration [argument] }
-[UnityEngine] Vector3Int { <UnityEngine> type }
+NULL: Vector3Int
 [GetGroundPos] dirY { <GetGroundPos> declaration [argument] }
 [GetGroundPos] hitInfo { <GetGroundPos> declaration [local] }
-[UnityEngine] Rect { <UnityEngine> type }
+NULL: Rect
 [GameManager] CalculateMoveRegion { <GameManager> function }
 [NULL] Vector2 { type }
 [CalculateMoveRegion] pos { <CalculateMoveRegion> declaration [argument] }
 [NULL] Vector2 { type }
 [CalculateMoveRegion] extents { <CalculateMoveRegion> declaration [argument] }
 [CalculateMoveRegion] dirY { <CalculateMoveRegion> declaration [argument] }
-[UnityEngine] Rect { <UnityEngine> type }
+NULL: Rect
 [CalculateMoveRegion] result { <CalculateMoveRegion> declaration [local] }
-[UnityEngine] Rect { <UnityEngine> type }
-[UnityEngine] Debug { <UnityEngine> type }
-[Debug] Assert { <Debug> function }
+NULL: Rect
+NULL: Debug
+NULL: Assert
 [CalculateMoveRegion] dirY { <CalculateMoveRegion> declaration [argument] }
-[UnityEngine] Mathf { <UnityEngine> type }
-[Mathf] Sign { <Mathf> function }
+NULL: Mathf
+NULL: Sign
 [CalculateMoveRegion] dirY { <CalculateMoveRegion> declaration [argument] }
 [CalculateMoveRegion] dirY { <CalculateMoveRegion> declaration [argument] }
 [GameManager] GetGroundPos { <GameManager> function }
 [CalculateMoveRegion] pos { <CalculateMoveRegion> declaration [argument] }
 [CalculateMoveRegion] extents { <CalculateMoveRegion> declaration [argument] }
 [CalculateMoveRegion] dirY { <CalculateMoveRegion> declaration [argument] }
-[UnityEngine] Vector3Int { <UnityEngine> type }
+NULL: Vector3Int
 [CalculateMoveRegion] hitPos { <CalculateMoveRegion> declaration [local] }
 NULL: notDecl
-[UnityEngine] Vector3Int { <UnityEngine> type }
+NULL: Vector3Int
 [CalculateMoveRegion] empPos { <CalculateMoveRegion> declaration [local] }
-[UnityEngine] Vector3Int { <UnityEngine> type }
+NULL: Vector3Int
 [{] minGroundPos { <{> declaration [local] }
 [GameManager] QueryTiles { <GameManager> function }
 [GameManager] tilemap { <GameManager> declaration [field] }
 [CalculateMoveRegion] hitPos { <CalculateMoveRegion> declaration [local] }
-[UnityEngine] Vector3Int { <UnityEngine> type }
+NULL: Vector3Int
 [{] maxGroundPos { <{> declaration [local] }
 [GameManager] QueryTiles { <GameManager> function }
 [GameManager] tilemap { <GameManager> declaration [field] }
 [CalculateMoveRegion] hitPos { <CalculateMoveRegion> declaration [local] }
-[UnityEngine] Vector3Int { <UnityEngine> type }
+NULL: Vector3Int
 [{] minWallPos { <{> declaration [local] }
 [GameManager] QueryTiles { <GameManager> function }
 [GameManager] tilemap { <GameManager> declaration [field] }
 [CalculateMoveRegion] empPos { <CalculateMoveRegion> declaration [local] }
-[UnityEngine] Vector3Int { <UnityEngine> type }
+NULL: Vector3Int
 [{] maxWallPos { <{> declaration [local] }
 [GameManager] QueryTiles { <GameManager> function }
 [GameManager] tilemap { <GameManager> declaration [field] }
 [CalculateMoveRegion] empPos { <CalculateMoveRegion> declaration [local] }
 [CalculateMoveRegion] dirY { <CalculateMoveRegion> declaration [argument] }
 [{] minGroundPos { <{> declaration [local] }
-[Vector3Int] y { <Vector3Int> declaration [property] }
+NULL: y
 [{] maxGroundPos { <{> declaration [local] }
-[Vector3Int] y { <Vector3Int> declaration [property] }
+NULL: y
 [CalculateMoveRegion] dirY { <CalculateMoveRegion> declaration [argument] }
 [{] minWallPos { <{> declaration [local] }
-[Vector3Int] y { <Vector3Int> declaration [property] }
+NULL: y
 [{] maxWallPos { <{> declaration [local] }
-[Vector3Int] y { <Vector3Int> declaration [property] }
+NULL: y
 [NULL] Vector2 { type }
 [{] minPos { <{> declaration [local] }
 NULL: MathUtils
 NULL: Max
-[UnityEngine] Vector2Int { <UnityEngine> type }
+NULL: Vector2Int
 [{] minGroundPos { <{> declaration [local] }
-[UnityEngine] Vector2Int { <UnityEngine> type }
+NULL: Vector2Int
 [{] minWallPos { <{> declaration [local] }
 [NULL] Vector2 { type }
 [NULL] Vector2 { type }
 [{] maxPos { <{> declaration [local] }
 NULL: MathUtils
 NULL: Min
-[UnityEngine] Vector2Int { <UnityEngine> type }
+NULL: Vector2Int
 [{] maxGroundPos { <{> declaration [local] }
-[UnityEngine] Vector2Int { <UnityEngine> type }
+NULL: Vector2Int
 [{] maxWallPos { <{> declaration [local] }
 [CalculateMoveRegion] result { <CalculateMoveRegion> declaration [local] }
 NULL: MathUtils
@@ -1260,43 +1260,43 @@ NULL: CreateRectMinMax
 NULL: GameDebug
 NULL: DrawBox
 [CalculateMoveRegion] result { <CalculateMoveRegion> declaration [local] }
-[UnityEngine] Color { <UnityEngine> type }
-[Color] green { <Color> declaration [property] }
+NULL: Color
+NULL: green
 NULL: GameDebug
 NULL: DrawLine
-[UnityEngine] Vector3 { <UnityEngine> type }
+NULL: Vector3
 [{] minGroundPos { <{> declaration [local] }
-[UnityEngine] Vector3 { <UnityEngine> type }
+NULL: Vector3
 [{] maxGroundPos { <{> declaration [local] }
-[UnityEngine] Color { <UnityEngine> type }
-[Color] red { <Color> declaration [property] }
+NULL: Color
+NULL: red
 NULL: GameDebug
 NULL: DrawLine
-[UnityEngine] Vector3 { <UnityEngine> type }
+NULL: Vector3
 [{] minWallPos { <{> declaration [local] }
-[UnityEngine] Vector3 { <UnityEngine> type }
+NULL: Vector3
 [{] maxWallPos { <{> declaration [local] }
-[UnityEngine] Color { <UnityEngine> type }
-[Color] yellow { <Color> declaration [property] }
+NULL: Color
+NULL: yellow
 [CalculateMoveRegion] result { <CalculateMoveRegion> declaration [local] }
-[UnityEngine] Vector3Int { <UnityEngine> type }
+NULL: Vector3Int
 [GameManager] QueryTiles { <GameManager> function }
-[Tilemaps] Tilemap { <Tilemaps> type }
+NULL: Tilemap
 [QueryTiles] tilemap { <QueryTiles> declaration [argument] }
-[UnityEngine] Vector3Int { <UnityEngine> type }
+NULL: Vector3Int
 [QueryTiles] startPos { <QueryTiles> declaration [argument] }
 [QueryTiles] breakCondition { <QueryTiles> declaration [argument] }
 [QueryTiles] advanceX { <QueryTiles> declaration [argument] }
 [QueryTiles] advanceY { <QueryTiles> declaration [argument] }
-[UnityEngine] Vector3Int { <UnityEngine> type }
+NULL: Vector3Int
 [QueryTiles] pos { <QueryTiles> declaration [local] }
 [QueryTiles] startPos { <QueryTiles> declaration [argument] }
 [QueryTiles] tilemap { <QueryTiles> declaration [argument] }
-[Tilemap] GetTile { <Tilemap> function }
+NULL: GetTile
 [QueryTiles] pos { <QueryTiles> declaration [local] }
 [QueryTiles] breakCondition { <QueryTiles> declaration [argument] }
 [QueryTiles] pos { <QueryTiles> declaration [local] }
-[UnityEngine] Vector3Int { <UnityEngine> type }
+NULL: Vector3Int
 [QueryTiles] advanceX { <QueryTiles> declaration [argument] }
 [QueryTiles] advanceY { <QueryTiles> declaration [argument] }
 [QueryTiles] pos { <QueryTiles> declaration [local] }
@@ -1315,8 +1315,8 @@ NULL: gameObject
 NULL: FindObjectOfType
 NULL: GameUI
 [GameManager] mainCam { <GameManager> declaration [field] }
-[UnityEngine] Camera { <UnityEngine> type }
-[Camera] main { <Camera> declaration [property] }
+NULL: Camera
+NULL: main
 [GameManager] cameraEntity { <GameManager> declaration [field] }
 [GameManager] mainCam { <GameManager> declaration [field] }
 NULL: GetComponentInParent
@@ -1399,22 +1399,22 @@ NULL: updateValue
 [] value { <> declaration [argument] }
 [] dir { <> declaration [argument] }
 [] value { <> declaration [argument] }
-[UnityEngine] Mathf { <UnityEngine> type }
-[Mathf] Pow { <Mathf> function }
+NULL: Mathf
+NULL: Pow
 [] dir { <> declaration [argument] }
 NULL: changed
 [] scale { <> declaration [argument] }
-[UnityEngine] Time { <UnityEngine> type }
-[Time] timeScale { <Time> declaration [property] }
+NULL: Time
+NULL: timeScale
 [] scale { <> declaration [argument] }
 NULL: GameDebug
 NULL: Log
-[UnityEngine] Time { <UnityEngine> type }
-[Time] timeScale { <Time> declaration [property] }
+NULL: Time
+NULL: timeScale
 NULL: callback
 [] _ { <> declaration [argument] }
-[UnityEngine] Time { <UnityEngine> type }
-[Time] timeScale { <Time> declaration [property] }
+NULL: Time
+NULL: timeScale
 NULL: GameDebug
 NULL: Log
 NULL: GameDebug
@@ -1449,7 +1449,7 @@ NULL: Count
 [{] aspectRatio { <{> declaration [local] }
 NULL: f
 NULL: f
-[UnityEngine] Transform { <UnityEngine> type }
+NULL: Transform
 [{] roomTransform { <{> declaration [local] }
 [GameManager] rooms { <GameManager> declaration [field] }
 [GameManager] currentRoom { <GameManager> declaration [field] }
@@ -1467,7 +1467,7 @@ NULL: x
 NULL: extents
 NULL: y
 [GameManager] mainCam { <GameManager> declaration [field] }
-[Camera] orthographicSize { <Camera> declaration [property] }
+NULL: orthographicSize
 [{] ratio { <{> declaration [local] }
 [{] aspectRatio { <{> declaration [local] }
 [{] bounds { <{> declaration [local] }
@@ -1489,7 +1489,7 @@ NULL: Count
 [{] i { <{> declaration [local] }
 [{] i { <{> declaration [local] }
 [GameManager] currentRoom { <GameManager> declaration [field] }
-[UnityEngine] Rect { <UnityEngine> type }
+NULL: Rect
 [{] roomRect { <{> declaration [local] }
 [GameManager] GetBoundsFromRoom { <GameManager> function }
 [GameManager] rooms { <GameManager> declaration [field] }
@@ -1503,7 +1503,7 @@ NULL: one
 [NULL] Vector2 { type }
 NULL: one
 [{] roomRect { <{> declaration [local] }
-[Rect] Contains { <Rect> function }
+NULL: Contains
 [GameManager] player { <GameManager> declaration [field] }
 NULL: transform
 NULL: position
@@ -1529,8 +1529,8 @@ NULL: transform
 [StartGameMode] mode { <StartGameMode> declaration [argument] }
 [NULL] GameMode { type }
 [GameMode] Quit { <GameMode> constant }
-[UnityEngine] Application { <UnityEngine> type }
-[Application] Quit { <Application> function }
+NULL: Application
+NULL: Quit
 [GameManager] rooms { <GameManager> declaration [field] }
 NULL: Clear
 [GameManager] gameMenu { <GameManager> declaration [field] }
@@ -1542,17 +1542,17 @@ NULL: SetActive
 [GameMode] Main { <GameMode> constant }
 [GameManager] mainMode { <GameManager> declaration [field] }
 [GameManager] mainMode { <GameManager> declaration [field] }
-[GameObject] SetActive { <GameObject> function }
+NULL: SetActive
 [{] isMainMode { <{> declaration [local] }
 [GameManager] playMode { <GameManager> declaration [field] }
-[GameObject] SetActive { <GameObject> function }
+NULL: SetActive
 [{] isMainMode { <{> declaration [local] }
 [StartGameMode] mode { <StartGameMode> declaration [argument] }
 [NULL] GameMode { type }
 [GameMode] Main { <GameMode> constant }
 NULL: AudioManager
 NULL: PlayAudio
-[UnityEngine] AudioType { <UnityEngine> type }
+NULL: AudioType
 NULL: Music_Main
 [NULL] GameMode { type }
 [GameMode] Play { <GameMode> constant }
@@ -1624,14 +1624,14 @@ NULL: transform
 NULL: Clear
 [{] levelGenerated { <{> declaration [local] }
 [{] count { <{> declaration [local] }
-[UnityEngine] Debug { <UnityEngine> type }
-[Debug] LogError { <Debug> function }
+NULL: Debug
+NULL: LogError
 [{] generator { <{> declaration [local] }
 NULL: Generate
 [{] levelGenerated { <{> declaration [local] }
 NULL: InvalidOperationException
-[UnityEngine] Debug { <UnityEngine> type }
-[Debug] LogError { <Debug> function }
+NULL: Debug
+NULL: LogError
 [{] count { <{> declaration [local] }
 [{] level { <{> declaration [local] }
 NULL: moveAutomatically
@@ -1680,8 +1680,8 @@ NULL: BoundsType
 NULL: Custom
 [GameManager] defaultBounds { <GameManager> declaration [field] }
 [GameManager] Bounds { <GameManager> type }
-[UnityEngine] Vector3 { <UnityEngine> type }
-[Vector3] zero { <Vector3> declaration [property] }
+NULL: Vector3
+NULL: zero
 [{] level { <{> declaration [local] }
 NULL: boundsSize
 [GameManager] mainCam { <GameManager> declaration [field] }
@@ -1691,12 +1691,12 @@ NULL: TriggerEvent
 NULL: GameEventType
 NULL: NextRoom
 [GameManager] player { <GameManager> declaration [field] }
-[UnityEngine] GameObject { <UnityEngine> type }
-[GameObject] FindGameObjectWithTag { <GameObject> function }
+NULL: GameObject
+NULL: FindGameObjectWithTag
 NULL: GetComponent
 [NULL] Entity { type }
 [GameManager] LockRoom { <GameManager> function }
-[UnityEngine] Transform { <UnityEngine> type }
+NULL: Transform
 [LockRoom] room { <LockRoom> declaration [argument] }
 [LockRoom] lockRoom { <LockRoom> declaration [argument] }
 [LockRoom] disableEnemies { <LockRoom> declaration [argument] }
@@ -1710,10 +1710,10 @@ NULL: EnemySpawner
 [{] spawner { <{> declaration [local] }
 [{] spawner { <{> declaration [local] }
 NULL: enabled
-[UnityEngine] Transform { <UnityEngine> type }
+NULL: Transform
 [LockRoom] doorHolder { <LockRoom> declaration [local] }
 [LockRoom] room { <LockRoom> declaration [argument] }
-[Transform] Find { <Transform> function }
+NULL: Find
 [LockRoom] doorHolder { <LockRoom> declaration [local] }
 [LockRoom] lockRoom { <LockRoom> declaration [argument] }
 [LockRoom] doorHolder { <LockRoom> declaration [local] }
@@ -1723,16 +1723,16 @@ NULL: Destroy
 [LockRoom] doorHolder { <LockRoom> declaration [local] }
 NULL: gameObject
 NULL: f
-[UnityEngine] Transform { <UnityEngine> type }
+NULL: Transform
 [{] door { <{> declaration [local] }
 [LockRoom] doorHolder { <LockRoom> declaration [local] }
-[UnityEngine] Animator { <UnityEngine> type }
+NULL: Animator
 [{] doorAnim { <{> declaration [local] }
 [{] door { <{> declaration [local] }
 NULL: GetComponent
-[UnityEngine] Animator { <UnityEngine> type }
+NULL: Animator
 [{] doorAnim { <{> declaration [local] }
-[Animator] Play { <Animator> function }
+NULL: Play
 [LockRoom] lockRoom { <LockRoom> declaration [argument] }
 [GameManager] OnAudioFilterRead { <GameManager> function }
 [OnAudioFilterRead] data { <OnAudioFilterRead> declaration [argument] }
@@ -1778,7 +1778,7 @@ NULL: Collections
 [EntityState] OnDeath { <EntityState> constant }
 NULL: SerializedPool
 [NULL] Entity { type }
-[UnityEngine] MonoBehaviour { <UnityEngine> type }
+NULL: MonoBehaviour
 NULL: IPooledObject
 NULL: Ability
 [Entity] AbilityType { <Entity> type }
@@ -1832,8 +1832,8 @@ NULL: transform
 NULL: position
 NULL: transform
 NULL: position
-[UnityEngine] Vector3 { <UnityEngine> type }
-[Vector3] one { <Vector3> declaration [property] }
+NULL: Vector3
+NULL: one
 [CanUseAbility] lowHealth { <CanUseAbility> declaration [local] }
 [CanUseAbility] flags { <CanUseAbility> declaration [local] }
 [Property] HasProperty { <Property> function }
@@ -1931,12 +1931,12 @@ NULL: IEnumerator
 [UseAbility] ability { <UseAbility> declaration [argument] }
 NULL: END
 [UseAbility] timer { <UseAbility> declaration [local] }
-[UnityEngine] Time { <UnityEngine> type }
-[Time] deltaTime { <Time> declaration [property] }
+NULL: Time
+NULL: deltaTime
 [Entity] targetType { <Entity> declaration [field] }
 [Entity] TargetType { <Entity> type }
 [TargetType] None { <TargetType> constant }
-[UnityEngine] WaitForSeconds { <UnityEngine> type }
+NULL: WaitForSeconds
 [UseAbility] ability { <UseAbility> declaration [argument] }
 [EntityAbility] chargeTime { <EntityAbility> declaration [field] }
 [UseAbility] ability { <UseAbility> declaration [argument] }
@@ -1988,7 +1988,7 @@ NULL: position
 NULL: transform
 NULL: up
 NULL: y
-[UnityEngine] Vector3 { <UnityEngine> type }
+NULL: Vector3
 [{] destination { <{> declaration [local] }
 [{] destination { <{> declaration [local] }
 [NULL] GameManager { type }
@@ -1996,7 +1996,7 @@ NULL: y
 NULL: transform
 NULL: position
 [{] destination { <{> declaration [local] }
-[Vector3] y { <Vector3> declaration [field] }
+NULL: y
 [Entity] spriteExtents { <Entity> declaration [field] }
 NULL: y
 [NULL] GameManager { type }
@@ -2007,8 +2007,8 @@ NULL: y
 [{] distance { <{> declaration [local] }
 [UseAbility] ability { <UseAbility> declaration [argument] }
 [EntityAbility] range { <EntityAbility> declaration [field] }
-[UnityEngine] Mathf { <UnityEngine> type }
-[Mathf] Sign { <Mathf> function }
+NULL: Mathf
+NULL: Sign
 [NULL] GameManager { type }
 [GameManager] player { <GameManager> declaration [field] }
 NULL: transform
@@ -2024,40 +2024,40 @@ NULL: x
 NULL: END
 [{] IsPosValid { <{> function }
 [IsPosValid] offsetX { <IsPosValid> declaration [argument] }
-[UnityEngine] Vector3 { <UnityEngine> type }
+NULL: Vector3
 [IsPosValid] offset { <IsPosValid> declaration [local] }
-[UnityEngine] Vector3 { <UnityEngine> type }
+NULL: Vector3
 [IsPosValid] offsetX { <IsPosValid> declaration [argument] }
 [IsPosValid] onGround { <IsPosValid> declaration [local] }
 NULL: GameUtils
 NULL: BoxCast
 [{] destination { <{> declaration [local] }
 [IsPosValid] offset { <IsPosValid> declaration [local] }
-[UnityEngine] Vector3 { <UnityEngine> type }
+NULL: Vector3
 [Entity] spriteExtents { <Entity> declaration [field] }
 NULL: y
 [{] playerUp { <{> declaration [local] }
 [NULL] Vector2 { type }
 [Entity] spriteExtents { <Entity> declaration [field] }
 NULL: x
-[UnityEngine] Color { <UnityEngine> type }
-[Color] yellow { <Color> declaration [property] }
+NULL: Color
+NULL: yellow
 [IsPosValid] insideWall { <IsPosValid> declaration [local] }
 NULL: GameUtils
 NULL: BoxCast
 [{] destination { <{> declaration [local] }
 [IsPosValid] offset { <IsPosValid> declaration [local] }
-[UnityEngine] Vector3 { <UnityEngine> type }
+NULL: Vector3
 [{] playerUp { <{> declaration [local] }
 [Entity] sr { <Entity> declaration [field] }
 NULL: bounds
 NULL: size
-[UnityEngine] Color { <UnityEngine> type }
-[Color] green { <Color> declaration [property] }
+NULL: Color
+NULL: green
 [IsPosValid] onGround { <IsPosValid> declaration [local] }
 [IsPosValid] insideWall { <IsPosValid> declaration [local] }
 [{] destination { <{> declaration [local] }
-[Vector3] x { <Vector3> declaration [field] }
+NULL: x
 [IsPosValid] offsetX { <IsPosValid> declaration [argument] }
 [{] playerUp { <{> declaration [local] }
 NULL: transform
@@ -2085,7 +2085,7 @@ NULL: position
 [EntityAbility] damage { <EntityAbility> declaration [field] }
 [Entity] AbilityType { <Entity> type }
 [AbilityType] Jump { <AbilityType> constant }
-[UnityEngine] WaitForSeconds { <UnityEngine> type }
+NULL: WaitForSeconds
 [UseAbility] ability { <UseAbility> declaration [argument] }
 [EntityAbility] duration { <EntityAbility> declaration [field] }
 [UseAbility] cooldownTime { <UseAbility> declaration [local] }
@@ -2104,7 +2104,7 @@ NULL: LoopIndex
 [Entity] currentAbility { <Entity> declaration [field] }
 [Entity] abilities { <Entity> declaration [field] }
 NULL: Length
-[UnityEngine] WaitForSeconds { <UnityEngine> type }
+NULL: WaitForSeconds
 [UseAbility] cooldownTime { <UseAbility> declaration [local] }
 [UseAbility] ability { <UseAbility> declaration [argument] }
 [EntityAbility] flags { <EntityAbility> declaration [field] }
@@ -2178,7 +2178,7 @@ NULL: ShowWhen
 [Entity] MoveRegionType { <Entity> type }
 [MoveRegionType] Vertical { <MoveRegionType> constant }
 [Entity] verticalHeight { <Entity> declaration [field] }
-[UnityEngine] Rect { <UnityEngine> type }
+NULL: Rect
 [Entity] moveRegion { <Entity> declaration [field] }
 [Entity] moveTime { <Entity> declaration [field] }
 [Entity] moveTimeValue { <Entity> declaration [field] }
@@ -2188,16 +2188,16 @@ NULL: ShowWhen
 [Entity] fallRemember { <Entity> declaration [field] }
 [Entity] jumpPressedRememberTime { <Entity> declaration [field] }
 [Entity] jumpPressedRemember { <Entity> declaration [field] }
-[UnityEngine] AudioType { <UnityEngine> type }
+NULL: AudioType
 [Entity] footstepAudio { <Entity> declaration [field] }
 [NULL] RangedFloat { type }
 [Entity] timeBtwFootsteps { <Entity> declaration [field] }
 [Entity] timeBtwFootstepsValue { <Entity> declaration [field] }
 [NULL] Vector2 { type }
 [Entity] velocity { <Entity> declaration [field] }
-[UnityEngine] Rigidbody2D { <UnityEngine> type }
+NULL: Rigidbody2D
 [Entity] rb { <Entity> declaration [field] }
-[UnityEngine] Collider2D { <UnityEngine> type }
+NULL: Collider2D
 [Entity] cd { <Entity> declaration [field] }
 [Entity] speedY { <Entity> declaration [field] }
 [NULL] Vector2 { type }
@@ -2209,11 +2209,11 @@ NULL: ShowWhen
 [NULL] EntityState { type }
 [Entity] state { <Entity> declaration [field] }
 NULL: Header
-[UnityEngine] Material { <UnityEngine> type }
+NULL: Material
 [Entity] whiteMat { <Entity> declaration [field] }
-[UnityEngine] ParticleSystem { <UnityEngine> type }
+NULL: ParticleSystem
 [Entity] leftDust { <Entity> declaration [field] }
-[UnityEngine] ParticleSystem { <UnityEngine> type }
+NULL: ParticleSystem
 [Entity] rightDust { <Entity> declaration [field] }
 NULL: VFXCollection
 [Entity] vfx { <Entity> declaration [field] }
@@ -2221,14 +2221,14 @@ NULL: VFXCollection
 [Entity] spawnVFX { <Entity> declaration [field] }
 [Entity] deathVFX { <Entity> declaration [field] }
 [Entity] hurtVFX { <Entity> declaration [field] }
-[] TMPro { <> type [namespace] }
-[TMPro] TextMeshPro { <TMPro> type }
+NULL: TMPro
+NULL: TextMeshPro
 [Entity] text { <Entity> declaration [field] }
-[UnityEngine] TrailRenderer { <UnityEngine> type }
+NULL: TrailRenderer
 [Entity] trail { <Entity> declaration [field] }
-[UnityEngine] Animator { <UnityEngine> type }
+NULL: Animator
 [Entity] anim { <Entity> declaration [field] }
-[UnityEngine] SpriteRenderer { <UnityEngine> type }
+NULL: SpriteRenderer
 [Entity] sr { <Entity> declaration [field] }
 [NULL] Vector2 { type }
 [Entity] spriteExtents { <Entity> declaration [field] }
@@ -2247,8 +2247,8 @@ NULL: SetActive
 [Entity] OnObjectSpawn { <Entity> function }
 [Entity] moveTimeValue { <Entity> declaration [field] }
 [Entity] moveTime { <Entity> declaration [field] }
-[UnityEngine] Time { <UnityEngine> type }
-[Time] time { <Time> declaration [property] }
+NULL: Time
+NULL: time
 [Entity] CalculateMoveRegion { <Entity> function }
 [Entity] HasProperty { <Entity> function }
 [NULL] EntityProperty { type }
@@ -2270,42 +2270,42 @@ NULL: Initialize
 [Entity] Init { <Entity> function }
 [Entity] rb { <Entity> declaration [field] }
 NULL: GetComponent
-[UnityEngine] Rigidbody2D { <UnityEngine> type }
+NULL: Rigidbody2D
 [Entity] cd { <Entity> declaration [field] }
 NULL: GetComponent
-[UnityEngine] Collider2D { <UnityEngine> type }
+NULL: Collider2D
 [Entity] text { <Entity> declaration [field] }
 NULL: GetComponent
-[] TMPro { <> type [namespace] }
-[TMPro] TextMeshPro { <TMPro> type }
+NULL: TMPro
+NULL: TextMeshPro
 [Entity] trail { <Entity> declaration [field] }
 NULL: GetComponent
-[UnityEngine] TrailRenderer { <UnityEngine> type }
+NULL: TrailRenderer
 [Entity] anim { <Entity> declaration [field] }
 NULL: GetComponent
-[UnityEngine] Animator { <UnityEngine> type }
+NULL: Animator
 [Entity] sr { <Entity> declaration [field] }
 NULL: GetComponent
-[UnityEngine] SpriteRenderer { <UnityEngine> type }
+NULL: SpriteRenderer
 [Entity] rb { <Entity> declaration [field] }
 [Entity] maxFallingSpeed { <Entity> declaration [field] }
 [{] drag { <{> declaration [local] }
 NULL: MathUtils
 NULL: GetDragFromAcceleration
-[UnityEngine] Mathf { <UnityEngine> type }
-[Mathf] Abs { <Mathf> function }
-[UnityEngine] Physics2D { <UnityEngine> type }
-[Physics2D] gravity { <Physics2D> declaration [property] }
+NULL: Mathf
+NULL: Abs
+NULL: Physics2D
+NULL: gravity
 NULL: y
 [Entity] rb { <Entity> declaration [field] }
-[Rigidbody2D] gravityScale { <Rigidbody2D> declaration [property] }
+NULL: gravityScale
 [Entity] maxFallingSpeed { <Entity> declaration [field] }
-[UnityEngine] Debug { <UnityEngine> type }
-[Debug] Assert { <Debug> function }
+NULL: Debug
+NULL: Assert
 [{] drag { <{> declaration [local] }
 [{] drag { <{> declaration [local] }
 [Entity] rb { <Entity> declaration [field] }
-[Rigidbody2D] drag { <Rigidbody2D> declaration [property] }
+NULL: drag
 [{] drag { <{> declaration [local] }
 [Entity] whiteMat { <Entity> declaration [field] }
 [Entity] whiteMat { <Entity> declaration [field] }
@@ -2424,30 +2424,30 @@ NULL: NextRoom
 [] room { <> declaration [argument] }
 NULL: ToRect
 [InitCamera] ToNextRoom { <InitCamera> function }
-[UnityEngine] Rect { <UnityEngine> type }
+NULL: Rect
 [ToNextRoom] roomRect { <ToNextRoom> declaration [argument] }
 [Entity] moveRegion { <Entity> declaration [field] }
 [ToNextRoom] roomRect { <ToNextRoom> declaration [argument] }
 [Entity] moveRegion { <Entity> declaration [field] }
-[Rect] min { <Rect> declaration [property] }
+NULL: min
 [NULL] GameManager { type }
 [GameManager] mainCam { <GameManager> declaration [field] }
 NULL: HalfSize
 [Entity] moveRegion { <Entity> declaration [field] }
-[Rect] max { <Rect> declaration [property] }
+NULL: max
 [NULL] GameManager { type }
 [GameManager] mainCam { <GameManager> declaration [field] }
 NULL: HalfSize
-[UnityEngine] Debug { <UnityEngine> type }
-[Debug] Assert { <Debug> function }
+NULL: Debug
+NULL: Assert
 [Entity] moveRegion { <Entity> declaration [field] }
-[Rect] xMin { <Rect> declaration [property] }
+NULL: xMin
 [Entity] moveRegion { <Entity> declaration [field] }
-[Rect] xMax { <Rect> declaration [property] }
+NULL: xMax
 [Entity] moveRegion { <Entity> declaration [field] }
-[Rect] yMin { <Rect> declaration [property] }
+NULL: yMin
 [Entity] moveRegion { <Entity> declaration [field] }
-[Rect] yMax { <Rect> declaration [property] }
+NULL: yMax
 [Entity] InitBullet { <Entity> function }
 [InitBullet] damage { <InitBullet> declaration [argument] }
 [InitBullet] isCritical { <InitBullet> declaration [argument] }
@@ -2492,10 +2492,10 @@ NULL: fontSize
 NULL: f
 NULL: textColor
 [InitDamagePopup] isCritical { <InitDamagePopup> declaration [argument] }
-[UnityEngine] Color { <UnityEngine> type }
-[Color] red { <Color> declaration [property] }
-[UnityEngine] Color { <UnityEngine> type }
-[Color] white { <Color> declaration [property] }
+NULL: Color
+NULL: red
+NULL: Color
+NULL: white
 [Entity] PlayVFX { <Entity> function }
 [Entity] spawnVFX { <Entity> declaration [field] }
 NULL: EasyButtons
@@ -2547,8 +2547,8 @@ NULL: damage
 NULL: critDamage
 [Shoot] isCritical { <Shoot> declaration [argument] }
 [Entity] Update { <Entity> function }
-[UnityEngine] Time { <UnityEngine> type }
-[Time] deltaTime { <Time> declaration [property] }
+NULL: Time
+NULL: deltaTime
 [Update] wasGrounded { <Update> declaration [local] }
 [Entity] HasProperty { <Entity> function }
 [NULL] EntityProperty { type }
@@ -2565,8 +2565,8 @@ NULL: position
 NULL: transform
 NULL: up
 NULL: y
-[UnityEngine] Color { <UnityEngine> type }
-[Color] red { <Color> declaration [property] }
+NULL: Color
+NULL: red
 [Entity] abilities { <Entity> declaration [field] }
 NULL: Length
 [Entity] abilities { <Entity> declaration [field] }
@@ -2586,20 +2586,20 @@ NULL: StartCoroutine
 [Entity] targetType { <Entity> declaration [field] }
 [Entity] speed { <Entity> declaration [field] }
 [Entity] groundRemember { <Entity> declaration [field] }
-[UnityEngine] Time { <UnityEngine> type }
-[Time] deltaTime { <Time> declaration [property] }
+NULL: Time
+NULL: deltaTime
 [Update] isGrounded { <Update> declaration [local] }
 [Entity] groundRemember { <Entity> declaration [field] }
 [Entity] groundRememberTime { <Entity> declaration [field] }
 [Entity] fallRemember { <Entity> declaration [field] }
-[UnityEngine] Time { <UnityEngine> type }
-[Time] deltaTime { <Time> declaration [property] }
+NULL: Time
+NULL: deltaTime
 [Update] isGrounded { <Update> declaration [local] }
 [Entity] fallRemember { <Entity> declaration [field] }
 [Entity] fallRememberTime { <Entity> declaration [field] }
 [Entity] jumpPressedRemember { <Entity> declaration [field] }
-[UnityEngine] Time { <UnityEngine> type }
-[Time] deltaTime { <Time> declaration [property] }
+NULL: Time
+NULL: deltaTime
 [Entity] HasProperty { <Entity> function }
 [NULL] EntityProperty { type }
 [EntityProperty] CanJump { <EntityProperty> constant }
@@ -2636,30 +2636,30 @@ NULL: GetInput
 NULL: InputType
 NULL: Reload
 [{] canShoot { <{> declaration [local] }
-[UnityEngine] Time { <UnityEngine> type }
-[Time] time { <Time> declaration [property] }
+NULL: Time
+NULL: time
 [Entity] attackDuration { <Entity> declaration [field] }
 [RangedFloat] max { <RangedFloat> declaration [field] }
 [Entity] ammo { <Entity> declaration [field] }
 [Entity] attackDuration { <Entity> declaration [field] }
 [RangedFloat] max { <RangedFloat> declaration [field] }
-[UnityEngine] Time { <UnityEngine> type }
-[Time] time { <Time> declaration [property] }
+NULL: Time
+NULL: time
 [Entity] stat { <Entity> declaration [field] }
 NULL: timeBtwShots
 [Entity] state { <Entity> declaration [field] }
 [NULL] EntityState { type }
 [EntityState] StartAttack { <EntityState> constant }
 [{] isCritical { <{> declaration [local] }
-[UnityEngine] Random { <UnityEngine> type }
-[Random] value { <Random> declaration [property] }
+NULL: Random
+NULL: value
 [Entity] stat { <Entity> declaration [field] }
 NULL: critChance
 [{] rot { <{> declaration [local] }
 [Entity] attackDuration { <Entity> declaration [field] }
 [RangedFloat] range { <RangedFloat> declaration [property] }
-[UnityEngine] Mathf { <UnityEngine> type }
-[Mathf] PerlinNoise { <Mathf> function }
+NULL: Mathf
+NULL: PerlinNoise
 [Entity] attackDuration { <Entity> declaration [field] }
 [RangedFloat] range { <RangedFloat> declaration [property] }
 NULL: f
@@ -2715,8 +2715,8 @@ NULL: standardReload
 [Reloading] t { <Reloading> declaration [local] }
 [Reloading] maxTime { <Reloading> declaration [local] }
 [Reloading] t { <Reloading> declaration [local] }
-[UnityEngine] Time { <UnityEngine> type }
-[Time] deltaTime { <Time> declaration [property] }
+NULL: Time
+NULL: deltaTime
 [Reloading] hasReloaded { <Reloading> declaration [local] }
 [{] isPerfect { <{> declaration [local] }
 [Reloading] updateUI { <Reloading> declaration [argument] }
@@ -2739,8 +2739,8 @@ NULL: failedReload
 [RangedFloat] min { <RangedFloat> declaration [field] }
 [Entity] attackDuration { <Entity> declaration [field] }
 [RangedFloat] max { <RangedFloat> declaration [field] }
-[UnityEngine] Time { <UnityEngine> type }
-[Time] time { <Time> declaration [property] }
+NULL: Time
+NULL: time
 [Entity] moveTimeValue { <Entity> declaration [field] }
 [Entity] HasProperty { <Entity> function }
 [NULL] EntityProperty { type }
@@ -2766,9 +2766,9 @@ NULL: Clamp
 NULL: transform
 NULL: position
 [Entity] moveRegion { <Entity> declaration [field] }
-[Rect] min { <Rect> declaration [property] }
+NULL: min
 [Entity] moveRegion { <Entity> declaration [field] }
-[Rect] max { <Rect> declaration [property] }
+NULL: max
 NULL: transform
 NULL: position
 NULL: z
@@ -2783,7 +2783,7 @@ NULL: ShakeMode
 NULL: PlayerJump
 NULL: waitTime
 NULL: particles
-[UnityEngine] ParticleSystem { <UnityEngine> type }
+NULL: ParticleSystem
 [Entity] velocity { <Entity> declaration [field] }
 NULL: x
 [Entity] leftDust { <Entity> declaration [field] }
@@ -2800,10 +2800,10 @@ NULL: x
 [NULL] EntityProperty { type }
 [EntityProperty] IsGrounded { <EntityProperty> constant }
 [Entity] rb { <Entity> declaration [field] }
-[Rigidbody2D] gravityScale { <Rigidbody2D> declaration [property] }
+NULL: gravityScale
 [{] playerVFX { <{> declaration [local] }
 [EntityVFX] audio { <EntityVFX> declaration [field] }
-[UnityEngine] AudioType { <UnityEngine> type }
+NULL: AudioType
 NULL: Player_Jump
 [{] playerVFX { <{> declaration [local] }
 [EntityVFX] scaleOffset { <EntityVFX> declaration [field] }
@@ -2826,28 +2826,28 @@ NULL: Player_Jump
 [Entity] StartFalling { <Entity> function }
 [{] playerVFX { <{> declaration [local] }
 [EntityVFX] audio { <EntityVFX> declaration [field] }
-[UnityEngine] AudioType { <UnityEngine> type }
+NULL: AudioType
 NULL: Player_Land
 [{] playerVFX { <{> declaration [local] }
 [EntityVFX] scaleOffset { <EntityVFX> declaration [field] }
 [NULL] Vector2 { type }
 [Entity] velocity { <Entity> declaration [field] }
 NULL: x
-[UnityEngine] CapsuleCollider2D { <UnityEngine> type }
+NULL: CapsuleCollider2D
 [{] capsule { <{> declaration [local] }
 [Entity] cd { <Entity> declaration [field] }
-[UnityEngine] CapsuleCollider2D { <UnityEngine> type }
+NULL: CapsuleCollider2D
 [{] capsule { <{> declaration [local] }
 [{] capsule { <{> declaration [local] }
-[CapsuleCollider2D] direction { <CapsuleCollider2D> declaration [property] }
-[UnityEngine] CapsuleDirection2D { <UnityEngine> type }
-[CapsuleDirection2D] Horizontal { <CapsuleDirection2D> constant }
+NULL: direction
+NULL: CapsuleDirection2D
+NULL: Horizontal
 [{] playerVFX { <{> declaration [local] }
 [EntityVFX] done { <EntityVFX> declaration [field] }
 [{] capsule { <{> declaration [local] }
-[CapsuleCollider2D] direction { <CapsuleCollider2D> declaration [property] }
-[UnityEngine] CapsuleDirection2D { <UnityEngine> type }
-[CapsuleDirection2D] Vertical { <CapsuleDirection2D> constant }
+NULL: direction
+NULL: CapsuleDirection2D
+NULL: Vertical
 [Update] wasGrounded { <Update> declaration [local] }
 [Update] isGrounded { <Update> declaration [local] }
 [Entity] state { <Entity> declaration [field] }
@@ -2869,12 +2869,12 @@ NULL: nextAnimation
 [Update] prevVelocity { <Update> declaration [local] }
 [Entity] velocity { <Entity> declaration [field] }
 NULL: x
-[UnityEngine] Time { <UnityEngine> type }
-[Time] time { <Time> declaration [property] }
+NULL: Time
+NULL: time
 [Entity] timeBtwFootstepsValue { <Entity> declaration [field] }
 [Entity] timeBtwFootstepsValue { <Entity> declaration [field] }
-[UnityEngine] Time { <UnityEngine> type }
-[Time] time { <Time> declaration [property] }
+NULL: Time
+NULL: time
 [Entity] timeBtwFootsteps { <Entity> declaration [field] }
 [RangedFloat] randomValue { <RangedFloat> declaration [property] }
 [{] playerVFX { <{> declaration [local] }
@@ -2888,7 +2888,7 @@ NULL: x
 [Entity] EntityVFX { <Entity> type }
 [{] playerVFX { <{> declaration [local] }
 [EntityVFX] particles { <EntityVFX> declaration [field] }
-[UnityEngine] ParticleSystem { <UnityEngine> type }
+NULL: ParticleSystem
 [{] deltaVelocity { <{> declaration [local] }
 NULL: x
 [Entity] leftDust { <Entity> declaration [field] }
@@ -2925,17 +2925,17 @@ NULL: StartCoroutine
 [EntityState] None { <EntityState> constant }
 NULL: IEnumerator
 [Entity] PlayVFX { <Entity> function }
-[UnityEngine] VFX { <UnityEngine> type [namespace] }
+NULL: VFX
 [PlayVFX] vfx { <PlayVFX> declaration [argument] }
 [PlayVFX] vfx { <PlayVFX> declaration [argument] }
-[UnityEngine] Debug { <UnityEngine> type }
-[Debug] Log { <Debug> function }
+NULL: Debug
+NULL: Log
 [PlayVFX] vfx { <PlayVFX> declaration [argument] }
 NULL: name
 [PlayVFX] vfx { <PlayVFX> declaration [argument] }
 NULL: timeline
 NULL: min
-[UnityEngine] WaitForSeconds { <UnityEngine> type }
+NULL: WaitForSeconds
 [PlayVFX] vfx { <PlayVFX> declaration [argument] }
 NULL: timeline
 NULL: min
@@ -2986,11 +2986,11 @@ NULL: localScale
 [{] Offset { <{> function }
 NULL: System
 NULL: Func
-[UnityEngine] Vector3 { <UnityEngine> type }
+NULL: Vector3
 [Offset] getter { <Offset> declaration [argument] }
 NULL: System
 NULL: Action
-[UnityEngine] Vector3 { <UnityEngine> type }
+NULL: Vector3
 [Offset] setter { <Offset> declaration [argument] }
 NULL: StartCoroutine
 [Offset] ChangeOverTime { <Offset> function }
@@ -2999,7 +2999,7 @@ NULL: StartCoroutine
 [] p { <> declaration [argument] }
 [Offset] getter { <Offset> declaration [argument] }
 [Offset] getter { <Offset> declaration [argument] }
-[UnityEngine] Vector3 { <UnityEngine> type }
+NULL: Vector3
 [PlayVFX] vfx { <PlayVFX> declaration [argument] }
 NULL: offset
 [{] duration { <{> declaration [local] }
@@ -3011,7 +3011,7 @@ NULL: StartCoroutine
 [] p { <> declaration [argument] }
 [Offset] getter { <Offset> declaration [argument] }
 [Offset] getter { <Offset> declaration [argument] }
-[UnityEngine] Vector3 { <UnityEngine> type }
+NULL: Vector3
 [PlayVFX] vfx { <PlayVFX> declaration [argument] }
 NULL: offset
 [PlayVFX] vfx { <PlayVFX> declaration [argument] }
@@ -3020,54 +3020,54 @@ NULL: IEnumerator
 [Offset] ChangeOverTime { <Offset> function }
 NULL: System
 NULL: Action
-[UnityEngine] Vector3 { <UnityEngine> type }
+NULL: Vector3
 [ChangeOverTime] setValue { <ChangeOverTime> declaration [argument] }
-[UnityEngine] Vector3 { <UnityEngine> type }
+NULL: Vector3
 [ChangeOverTime] startValue { <ChangeOverTime> declaration [argument] }
-[UnityEngine] Vector3 { <UnityEngine> type }
+NULL: Vector3
 [ChangeOverTime] endValue { <ChangeOverTime> declaration [argument] }
 [ChangeOverTime] decreaseTime { <ChangeOverTime> declaration [argument] }
 [ChangeOverTime] decreaseTime { <ChangeOverTime> declaration [argument] }
 [{] t { <{> declaration [local] }
 [{] t { <{> declaration [local] }
 [ChangeOverTime] setValue { <ChangeOverTime> declaration [argument] }
-[UnityEngine] Vector3 { <UnityEngine> type }
-[Vector3] Lerp { <Vector3> function }
+NULL: Vector3
+NULL: Lerp
 [ChangeOverTime] startValue { <ChangeOverTime> declaration [argument] }
 [ChangeOverTime] endValue { <ChangeOverTime> declaration [argument] }
 [{] t { <{> declaration [local] }
 [{] t { <{> declaration [local] }
-[UnityEngine] Time { <UnityEngine> type }
-[Time] deltaTime { <Time> declaration [property] }
+NULL: Time
+NULL: deltaTime
 [ChangeOverTime] decreaseTime { <ChangeOverTime> declaration [argument] }
 [ChangeOverTime] setValue { <ChangeOverTime> declaration [argument] }
 [ChangeOverTime] endValue { <ChangeOverTime> declaration [argument] }
 [PlayVFX] after { <PlayVFX> declaration [local] }
-[UnityEngine] Vector3 { <UnityEngine> type }
+NULL: Vector3
 [] rotation { <> declaration [local] }
-[UnityEngine] Vector3 { <UnityEngine> type }
-[Vector3] zero { <Vector3> declaration [property] }
+NULL: Vector3
+NULL: zero
 [PlayVFX] vfx { <PlayVFX> declaration [argument] }
 NULL: flags
 NULL: HasProperty
 NULL: VFXFlag
 NULL: FlipX
 [] rotation { <> declaration [local] }
-[Vector3] x { <Vector3> declaration [field] }
+NULL: x
 [PlayVFX] vfx { <PlayVFX> declaration [argument] }
 NULL: flags
 NULL: HasProperty
 NULL: VFXFlag
 NULL: FlipY
 [] rotation { <> declaration [local] }
-[Vector3] y { <Vector3> declaration [field] }
+NULL: y
 [PlayVFX] vfx { <PlayVFX> declaration [argument] }
 NULL: flags
 NULL: HasProperty
 NULL: VFXFlag
 NULL: FlipZ
 [] rotation { <> declaration [local] }
-[Vector3] z { <Vector3> declaration [field] }
+NULL: z
 NULL: transform
 NULL: Rotate
 [] rotation { <> declaration [local] }
@@ -3076,7 +3076,7 @@ NULL: IsNullOrEmpty
 [PlayVFX] vfx { <PlayVFX> declaration [argument] }
 NULL: animation
 [Entity] anim { <Entity> declaration [field] }
-[Animator] Play { <Animator> function }
+NULL: Play
 [PlayVFX] vfx { <PlayVFX> declaration [argument] }
 NULL: animation
 [PlayVFX] vfx { <PlayVFX> declaration [argument] }
@@ -3085,7 +3085,7 @@ NULL: HasProperty
 NULL: VFXFlag
 NULL: StopAnimation
 [Entity] anim { <Entity> declaration [field] }
-[Animator] speed { <Animator> declaration [property] }
+NULL: speed
 [PlayVFX] vfx { <PlayVFX> declaration [argument] }
 NULL: flags
 NULL: HasProperty
@@ -3093,7 +3093,7 @@ NULL: VFXFlag
 NULL: ResumeAnimation
 [PlayVFX] after { <PlayVFX> declaration [local] }
 [Entity] anim { <Entity> declaration [field] }
-[Animator] speed { <Animator> declaration [property] }
+NULL: speed
 [PlayVFX] vfx { <PlayVFX> declaration [argument] }
 NULL: flags
 NULL: HasProperty
@@ -3179,59 +3179,59 @@ NULL: range
 NULL: stayTime
 NULL: IEnumerator
 [{] Flashing { <{> function }
-[UnityEngine] SpriteRenderer { <UnityEngine> type }
+NULL: SpriteRenderer
 [Flashing] sr { <Flashing> declaration [argument] }
-[UnityEngine] Material { <UnityEngine> type }
+NULL: Material
 [Flashing] whiteMat { <Flashing> declaration [argument] }
-[UnityEngine] Color { <UnityEngine> type }
+NULL: Color
 [Flashing] color { <Flashing> declaration [argument] }
 [Flashing] duration { <Flashing> declaration [argument] }
 [Flashing] flashTime { <Flashing> declaration [argument] }
 [Flashing] whiteMat { <Flashing> declaration [argument] }
 [Flashing] whiteMat { <Flashing> declaration [argument] }
-[Material] color { <Material> declaration [property] }
+NULL: color
 [Flashing] color { <Flashing> declaration [argument] }
-[UnityEngine] Debug { <UnityEngine> type }
-[Debug] Log { <Debug> function }
+NULL: Debug
+NULL: Log
 [Flashing] duration { <Flashing> declaration [argument] }
 [{] currentTime { <{> declaration [local] }
-[UnityEngine] Time { <UnityEngine> type }
-[Time] time { <Time> declaration [property] }
-[UnityEngine] Material { <UnityEngine> type }
+NULL: Time
+NULL: time
+NULL: Material
 [{] defMat { <{> declaration [local] }
 [Flashing] sr { <Flashing> declaration [argument] }
 NULL: material
 [Flashing] sr { <Flashing> declaration [argument] }
 NULL: material
 [Flashing] whiteMat { <Flashing> declaration [argument] }
-[UnityEngine] WaitForSeconds { <UnityEngine> type }
+NULL: WaitForSeconds
 [Flashing] flashTime { <Flashing> declaration [argument] }
 [Flashing] sr { <Flashing> declaration [argument] }
 NULL: material
 [{] defMat { <{> declaration [local] }
-[UnityEngine] WaitForSeconds { <UnityEngine> type }
+NULL: WaitForSeconds
 [Flashing] flashTime { <Flashing> declaration [argument] }
 [Flashing] duration { <Flashing> declaration [argument] }
-[UnityEngine] Time { <UnityEngine> type }
-[Time] time { <Time> declaration [property] }
+NULL: Time
+NULL: time
 [{] currentTime { <{> declaration [local] }
 [Flashing] whiteMat { <Flashing> declaration [argument] }
-[Material] color { <Material> declaration [property] }
-[UnityEngine] Color { <UnityEngine> type }
-[Color] white { <Color> declaration [property] }
-[UnityEngine] Debug { <UnityEngine> type }
-[Debug] Log { <Debug> function }
+NULL: color
+NULL: Color
+NULL: white
+NULL: Debug
+NULL: Log
 NULL: VFXType
 NULL: Fade
 NULL: StartCoroutine
 [PlayVFX] DecreaseOverTime { <PlayVFX> function }
 [] alpha { <> declaration [argument] }
 [Entity] sr { <Entity> declaration [field] }
-[SpriteRenderer] color { <SpriteRenderer> declaration [property] }
-[UnityEngine] Color { <UnityEngine> type }
+NULL: color
+NULL: Color
 [] alpha { <> declaration [argument] }
 [Entity] sr { <Entity> declaration [field] }
-[SpriteRenderer] color { <SpriteRenderer> declaration [property] }
+NULL: color
 NULL: a
 [PlayVFX] vfx { <PlayVFX> declaration [argument] }
 NULL: color
@@ -3259,10 +3259,10 @@ NULL: StartCoroutine
 [PlayVFX] DecreaseOverTime { <PlayVFX> function }
 [] width { <> declaration [argument] }
 [Entity] trail { <Entity> declaration [field] }
-[TrailRenderer] widthMultiplier { <TrailRenderer> declaration [property] }
+NULL: widthMultiplier
 [] width { <> declaration [argument] }
 [Entity] trail { <Entity> declaration [field] }
-[TrailRenderer] widthMultiplier { <TrailRenderer> declaration [property] }
+NULL: widthMultiplier
 [PlayVFX] vfx { <PlayVFX> declaration [argument] }
 NULL: stayTime
 [PlayVFX] vfx { <PlayVFX> declaration [argument] }
@@ -3272,38 +3272,38 @@ NULL: VFXFlag
 NULL: FadeOut
 NULL: IEnumerator
 [{] EnableTrail { <{> function }
-[UnityEngine] TrailRenderer { <UnityEngine> type }
+NULL: TrailRenderer
 [EnableTrail] trail { <EnableTrail> declaration [argument] }
 [EnableTrail] emitTime { <EnableTrail> declaration [argument] }
 [EnableTrail] stayTime { <EnableTrail> declaration [argument] }
 [EnableTrail] trail { <EnableTrail> declaration [argument] }
 NULL: enabled
 [EnableTrail] trail { <EnableTrail> declaration [argument] }
-[TrailRenderer] emitting { <TrailRenderer> declaration [property] }
-[UnityEngine] WaitForSeconds { <UnityEngine> type }
+NULL: emitting
+NULL: WaitForSeconds
 [EnableTrail] emitTime { <EnableTrail> declaration [argument] }
 [EnableTrail] trail { <EnableTrail> declaration [argument] }
-[TrailRenderer] emitting { <TrailRenderer> declaration [property] }
-[UnityEngine] WaitForSeconds { <UnityEngine> type }
+NULL: emitting
+NULL: WaitForSeconds
 [EnableTrail] stayTime { <EnableTrail> declaration [argument] }
 [EnableTrail] trail { <EnableTrail> declaration [argument] }
-[TrailRenderer] Clear { <TrailRenderer> function }
+NULL: Clear
 [EnableTrail] trail { <EnableTrail> declaration [argument] }
-[TrailRenderer] emitting { <TrailRenderer> declaration [property] }
+NULL: emitting
 [EnableTrail] trail { <EnableTrail> declaration [argument] }
 NULL: enabled
 NULL: VFXType
 NULL: Text
-[] TMPro { <> type [namespace] }
-[TMPro] TextMeshPro { <TMPro> type }
+NULL: TMPro
+NULL: TextMeshPro
 [{] text { <{> declaration [local] }
 NULL: GetComponent
-[] TMPro { <> type [namespace] }
-[TMPro] TextMeshPro { <TMPro> type }
+NULL: TMPro
+NULL: TextMeshPro
 [PlayVFX] vfx { <PlayVFX> declaration [argument] }
 NULL: color
-[UnityEngine] Color { <UnityEngine> type }
-[Color] clear { <Color> declaration [property] }
+NULL: Color
+NULL: clear
 [{] text { <{> declaration [local] }
 NULL: color
 [PlayVFX] vfx { <PlayVFX> declaration [argument] }
@@ -3330,7 +3330,7 @@ NULL: alpha
 NULL: alpha
 [PlayVFX] vfx { <PlayVFX> declaration [argument] }
 NULL: stayTime
-[UnityEngine] WaitForSeconds { <UnityEngine> type }
+NULL: WaitForSeconds
 [PlayVFX] vfx { <PlayVFX> declaration [argument] }
 NULL: timeline
 NULL: range
@@ -3346,15 +3346,15 @@ NULL: Action
 [{] t { <{> declaration [local] }
 [{] t { <{> declaration [local] }
 [DecreaseOverTime] setValue { <DecreaseOverTime> declaration [argument] }
-[UnityEngine] Mathf { <UnityEngine> type }
-[Mathf] Lerp { <Mathf> function }
+NULL: Mathf
+NULL: Lerp
 [DecreaseOverTime] startValue { <DecreaseOverTime> declaration [argument] }
 [{] t { <{> declaration [local] }
 [{] t { <{> declaration [local] }
-[UnityEngine] Time { <UnityEngine> type }
-[Time] deltaTime { <Time> declaration [property] }
+NULL: Time
+NULL: deltaTime
 [DecreaseOverTime] decreaseTime { <DecreaseOverTime> declaration [argument] }
-[UnityEngine] WaitForEndOfFrame { <UnityEngine> type }
+NULL: WaitForEndOfFrame
 [DecreaseOverTime] setValue { <DecreaseOverTime> declaration [argument] }
 [DecreaseOverTime] startValue { <DecreaseOverTime> declaration [argument] }
 [Entity] TargetType { <Entity> type }
@@ -3414,30 +3414,30 @@ NULL: right
 [TargetType] MoveRegion { <TargetType> constant }
 [Entity] targetPos { <Entity> declaration [field] }
 [Entity] moveRegion { <Entity> declaration [field] }
-[Rect] max { <Rect> declaration [property] }
+NULL: max
 [Entity] targetPos { <Entity> declaration [field] }
 [Entity] moveRegion { <Entity> declaration [field] }
-[Rect] min { <Rect> declaration [property] }
+NULL: min
 [{] SwitchTargetToMax { <{> function }
 [Entity] targetPos { <Entity> declaration [field] }
 [Entity] moveRegion { <Entity> declaration [field] }
-[Rect] max { <Rect> declaration [property] }
+NULL: max
 NULL: MathUtils
 NULL: IsApproximate
 NULL: transform
 NULL: position
 [Entity] moveRegion { <Entity> declaration [field] }
-[Rect] max { <Rect> declaration [property] }
+NULL: max
 [{] SwitchTargetToMax { <{> function }
 [Entity] targetPos { <Entity> declaration [field] }
 [Entity] moveRegion { <Entity> declaration [field] }
-[Rect] min { <Rect> declaration [property] }
+NULL: min
 NULL: MathUtils
 NULL: IsApproximate
 NULL: transform
 NULL: position
 [Entity] moveRegion { <Entity> declaration [field] }
-[Rect] min { <Rect> declaration [property] }
+NULL: min
 [{] SwitchTargetToMax { <{> function }
 [{] SwitchTargetToMax { <{> function }
 [SwitchTargetToMax] toMax { <SwitchTargetToMax> declaration [argument] }
@@ -3445,9 +3445,9 @@ NULL: position
 [Entity] targetPos { <Entity> declaration [field] }
 [SwitchTargetToMax] toMax { <SwitchTargetToMax> declaration [argument] }
 [Entity] moveRegion { <Entity> declaration [field] }
-[Rect] max { <Rect> declaration [property] }
+NULL: max
 [Entity] moveRegion { <Entity> declaration [field] }
-[Rect] min { <Rect> declaration [property] }
+NULL: min
 [Entity] velocity { <Entity> declaration [field] }
 [NULL] Vector2 { type }
 NULL: zero
@@ -3462,7 +3462,7 @@ NULL: zero
 NULL: transform
 NULL: position
 [Entity] moveRegion { <Entity> declaration [field] }
-[Rect] min { <Rect> declaration [property] }
+NULL: min
 NULL: Z
 NULL: transform
 NULL: position
@@ -3515,7 +3515,7 @@ NULL: y
 NULL: x
 [Entity] speed { <Entity> declaration [field] }
 [Entity] rb { <Entity> declaration [field] }
-[Rigidbody2D] velocity { <Rigidbody2D> declaration [property] }
+NULL: velocity
 NULL: y
 [Entity] MoveType { <Entity> type }
 [MoveType] Fly { <MoveType> constant }
@@ -3536,8 +3536,8 @@ NULL: position
 [NULL] Vector2 { type }
 [Entity] speed { <Entity> declaration [field] }
 [Entity] speedY { <Entity> declaration [field] }
-[UnityEngine] Time { <UnityEngine> type }
-[Time] deltaTime { <Time> declaration [property] }
+NULL: Time
+NULL: deltaTime
 NULL: transform
 NULL: position
 NULL: z
@@ -3550,8 +3550,8 @@ NULL: z
 NULL: y
 NULL: MathUtils
 NULL: SecondOrder
-[UnityEngine] Time { <UnityEngine> type }
-[Time] deltaTime { <Time> declaration [property] }
+NULL: Time
+NULL: deltaTime
 [Entity] targetPos { <Entity> declaration [field] }
 NULL: y
 NULL: transform
@@ -3565,14 +3565,14 @@ NULL: position
 [MoveType] Custom { <MoveType> constant }
 [Entity] rb { <Entity> declaration [field] }
 [Entity] rb { <Entity> declaration [field] }
-[Rigidbody2D] velocity { <Rigidbody2D> declaration [property] }
+NULL: velocity
 [Entity] velocity { <Entity> declaration [field] }
 NULL: transform
 NULL: position
-[UnityEngine] Vector3 { <UnityEngine> type }
+NULL: Vector3
 [Entity] velocity { <Entity> declaration [field] }
-[UnityEngine] Time { <UnityEngine> type }
-[Time] deltaTime { <Time> declaration [property] }
+NULL: Time
+NULL: deltaTime
 [Entity] RotateType { <Entity> type }
 [RotateType] None { <RotateType> constant }
 [RotateType] PlayerX { <RotateType> constant }
@@ -3582,14 +3582,14 @@ NULL: position
 [RotateType] Linear { <RotateType> constant }
 [RotateType] Count { <RotateType> constant }
 [Entity] RotateEntity { <Entity> function }
-[UnityEngine] Transform { <UnityEngine> type }
+NULL: Transform
 [RotateEntity] transform { <RotateEntity> declaration [argument] }
 [Entity] RotateType { <Entity> type }
 [RotateEntity] rotateType { <RotateEntity> declaration [argument] }
 [RotateEntity] dRotate { <RotateEntity> declaration [argument] }
 [RotateEntity] velocityX { <RotateEntity> declaration [argument] }
 [RotateEntity] dirX { <RotateEntity> declaration [local] }
-[UnityEngine] Transform { <UnityEngine> type }
+NULL: Transform
 [RotateEntity] player { <RotateEntity> declaration [local] }
 [NULL] GameManager { type }
 [GameManager] player { <GameManager> declaration [field] }
@@ -3599,16 +3599,16 @@ NULL: transform
 NULL: GameInput
 NULL: GetDirToMouse
 [RotateEntity] transform { <RotateEntity> declaration [argument] }
-[Transform] position { <Transform> declaration [property] }
+NULL: position
 [RotateEntity] rotateType { <RotateEntity> declaration [argument] }
 [Entity] RotateType { <Entity> type }
 [RotateType] PlayerX { <RotateType> constant }
 [RotateEntity] dirX { <RotateEntity> declaration [local] }
 [RotateEntity] player { <RotateEntity> declaration [local] }
-[Transform] position { <Transform> declaration [property] }
+NULL: position
 NULL: x
 [RotateEntity] transform { <RotateEntity> declaration [argument] }
-[Transform] position { <Transform> declaration [property] }
+NULL: position
 NULL: x
 [Entity] RotateType { <Entity> type }
 [RotateType] MoveDirX { <RotateType> constant }
@@ -3622,46 +3622,46 @@ NULL: x
 [Entity] RotateType { <Entity> type }
 [RotateType] Weapon { <RotateType> constant }
 [RotateEntity] transform { <RotateEntity> declaration [argument] }
-[Transform] rotation { <Transform> declaration [property] }
+NULL: rotation
 [NULL] GameManager { type }
 [GameManager] player { <GameManager> declaration [field] }
 [Entity] fallRemember { <Entity> declaration [field] }
 [RotateEntity] player { <RotateEntity> declaration [local] }
-[Transform] rotation { <Transform> declaration [property] }
+NULL: rotation
 NULL: MathUtils
 NULL: GetQuaternionFlipY
 [RotateEntity] mouseDir { <RotateEntity> declaration [local] }
 [RotateEntity] player { <RotateEntity> declaration [local] }
-[Transform] up { <Transform> declaration [property] }
+NULL: up
 NULL: y
 [Entity] RotateType { <Entity> type }
 [RotateType] Linear { <RotateType> constant }
 [RotateEntity] transform { <RotateEntity> declaration [argument] }
-[Transform] Rotate { <Transform> function }
+NULL: Rotate
 [RotateEntity] dRotate { <RotateEntity> declaration [argument] }
-[UnityEngine] Time { <UnityEngine> type }
-[Time] deltaTime { <Time> declaration [property] }
+NULL: Time
+NULL: deltaTime
 [RotateEntity] dirX { <RotateEntity> declaration [local] }
-[UnityEngine] Mathf { <UnityEngine> type }
-[Mathf] Sign { <Mathf> function }
+NULL: Mathf
+NULL: Sign
 [RotateEntity] dirX { <RotateEntity> declaration [local] }
-[UnityEngine] Mathf { <UnityEngine> type }
-[Mathf] Sign { <Mathf> function }
+NULL: Mathf
+NULL: Sign
 [RotateEntity] transform { <RotateEntity> declaration [argument] }
-[Transform] right { <Transform> declaration [property] }
+NULL: right
 NULL: x
 [RotateEntity] transform { <RotateEntity> declaration [argument] }
-[Transform] Rotate { <Transform> function }
+NULL: Rotate
 [Entity] StartFalling { <Entity> function }
 [StartFalling] startFalling { <StartFalling> declaration [argument] }
 [Entity] rb { <Entity> declaration [field] }
-[Rigidbody2D] velocity { <Rigidbody2D> declaration [property] }
+NULL: velocity
 [StartFalling] startFalling { <StartFalling> declaration [argument] }
 [NULL] Vector2 { type }
 [Entity] fallDir { <Entity> declaration [field] }
 [RangedFloat] randomValue { <RangedFloat> declaration [property] }
-[UnityEngine] Random { <UnityEngine> type }
-[Random] value { <Random> declaration [property] }
+NULL: Random
+NULL: value
 NULL: normalized
 [Entity] speed { <Entity> declaration [field] }
 [NULL] Vector2 { type }
@@ -3673,15 +3673,15 @@ NULL: zero
 [Entity] MoveType { <Entity> type }
 [MoveType] Fly { <MoveType> constant }
 [Entity] cd { <Entity> declaration [field] }
-[Collider2D] isTrigger { <Collider2D> declaration [property] }
+NULL: isTrigger
 [StartFalling] startFalling { <StartFalling> declaration [argument] }
 [Entity] rb { <Entity> declaration [field] }
-[Rigidbody2D] bodyType { <Rigidbody2D> declaration [property] }
+NULL: bodyType
 [StartFalling] startFalling { <StartFalling> declaration [argument] }
-[UnityEngine] RigidbodyType2D { <UnityEngine> type }
-[RigidbodyType2D] Dynamic { <RigidbodyType2D> constant }
-[UnityEngine] RigidbodyType2D { <UnityEngine> type }
-[RigidbodyType2D] Kinematic { <RigidbodyType2D> constant }
+NULL: RigidbodyType2D
+NULL: Dynamic
+NULL: RigidbodyType2D
+NULL: Kinematic
 [Entity] SetProperty { <Entity> function }
 [NULL] EntityProperty { type }
 [EntityProperty] FallingOnSpawn { <EntityProperty> constant }
@@ -3694,16 +3694,16 @@ NULL: zero
 [EntityProperty] AtEndOfMoveRegion { <EntityProperty> constant }
 [Entity] targetPos { <Entity> declaration [field] }
 [Entity] moveRegion { <Entity> declaration [field] }
-[Rect] max { <Rect> declaration [property] }
+NULL: max
 [Entity] TestPlayerVFX { <Entity> function }
 [NULL] SCRIPTABLE_VFX { macro }
 [Entity] Hurt { <Entity> function }
-[UnityEngine] VFX { <UnityEngine> type [namespace] }
+NULL: VFX
 [TestPlayerVFX] vfx1 { <TestPlayerVFX> declaration [local] }
 [TestPlayerVFX] CreateTestVFX { <TestPlayerVFX> function }
 [NULL] RangedFloat { type }
 [NULL] Vector2 { type }
-[UnityEngine] VFX { <UnityEngine> type [namespace] }
+NULL: VFX
 [TestPlayerVFX] vfx2 { <TestPlayerVFX> declaration [local] }
 [TestPlayerVFX] CreateTestVFX { <TestPlayerVFX> function }
 [NULL] RangedFloat { type }
@@ -3714,18 +3714,18 @@ NULL: StartCoroutine
 NULL: StartCoroutine
 [Entity] PlayVFX { <Entity> function }
 [TestPlayerVFX] vfx2 { <TestPlayerVFX> declaration [local] }
-[UnityEngine] VFX { <UnityEngine> type [namespace] }
+NULL: VFX
 [TestPlayerVFX] CreateTestVFX { <TestPlayerVFX> function }
 [CreateTestVFX] name { <CreateTestVFX> declaration [argument] }
 [NULL] RangedFloat { type }
 [CreateTestVFX] timeline { <CreateTestVFX> declaration [argument] }
 [NULL] Vector2 { type }
 [CreateTestVFX] offset { <CreateTestVFX> declaration [argument] }
-[UnityEngine] VFX { <UnityEngine> type [namespace] }
+NULL: VFX
 [CreateTestVFX] vfx { <CreateTestVFX> declaration [local] }
-[UnityEngine] ScriptableObject { <UnityEngine> type }
-[ScriptableObject] CreateInstance { <ScriptableObject> function }
-[UnityEngine] VFX { <UnityEngine> type [namespace] }
+NULL: ScriptableObject
+NULL: CreateInstance
+NULL: VFX
 [CreateTestVFX] vfx { <CreateTestVFX> declaration [local] }
 NULL: name
 [CreateTestVFX] name { <CreateTestVFX> declaration [argument] }
@@ -3784,18 +3784,18 @@ NULL: timeline
 [SetProperty] set { <SetProperty> declaration [argument] }
 [SetProperty] set { <SetProperty> declaration [argument] }
 [Entity] OnTriggerEnter2D { <Entity> function }
-[UnityEngine] Collider2D { <UnityEngine> type }
+NULL: Collider2D
 [OnTriggerEnter2D] collision { <OnTriggerEnter2D> declaration [argument] }
 [Entity] OnHitEnter { <Entity> function }
 [OnTriggerEnter2D] collision { <OnTriggerEnter2D> declaration [argument] }
 [Entity] OnCollisionEnter2D { <Entity> function }
-[UnityEngine] Collision2D { <UnityEngine> type }
+NULL: Collision2D
 [OnCollisionEnter2D] collision { <OnCollisionEnter2D> declaration [argument] }
 [Entity] OnHitEnter { <Entity> function }
 [OnCollisionEnter2D] collision { <OnCollisionEnter2D> declaration [argument] }
-[Collision2D] collider { <Collision2D> declaration [property] }
+NULL: collider
 [Entity] OnHitEnter { <Entity> function }
-[UnityEngine] Collider2D { <UnityEngine> type }
+NULL: Collider2D
 [OnHitEnter] collision { <OnHitEnter> declaration [argument] }
 [OnHitEnter] tag { <OnHitEnter> declaration [local] }
 [Entity] collisionTags { <Entity> declaration [field] }
@@ -3875,8 +3875,8 @@ NULL: y
 [IsInRangeY] range { <IsInRangeY> declaration [argument] }
 [NULL] Vector2 { type }
 [IsInRangeY] targetPos { <IsInRangeY> declaration [argument] }
-[UnityEngine] Mathf { <UnityEngine> type }
-[Mathf] Abs { <Mathf> function }
+NULL: Mathf
+NULL: Abs
 [IsInRangeY] targetPos { <IsInRangeY> declaration [argument] }
 NULL: y
 NULL: transform
@@ -3898,8 +3898,8 @@ NULL: up
 NULL: y
 [Entity] MoveRegionType { <Entity> type }
 [MoveRegionType] Vertical { <MoveRegionType> constant }
-[UnityEngine] Debug { <UnityEngine> type }
-[Debug] Assert { <Debug> function }
+NULL: Debug
+NULL: Assert
 NULL: transform
 NULL: up
 NULL: y
@@ -3910,16 +3910,16 @@ NULL: position
 [Entity] spriteExtents { <Entity> declaration [field] }
 NULL: f
 NULL: _
-[UnityEngine] Vector3Int { <UnityEngine> type }
+NULL: Vector3Int
 [{] groundPos { <{> declaration [local] }
 [Entity] moveRegion { <Entity> declaration [field] }
-[UnityEngine] Rect { <UnityEngine> type }
+NULL: Rect
 [NULL] Vector2 { type }
 NULL: transform
 NULL: position
 NULL: x
 [{] groundPos { <{> declaration [local] }
-[Vector3Int] y { <Vector3Int> declaration [property] }
+NULL: y
 [Entity] spriteExtents { <Entity> declaration [field] }
 NULL: y
 [NULL] Vector2 { type }
@@ -3927,13 +3927,13 @@ NULL: up
 [Entity] verticalHeight { <Entity> declaration [field] }
 NULL: GameDebug
 NULL: DrawBox
-[UnityEngine] Rect { <UnityEngine> type }
-[UnityEngine] Vector3 { <UnityEngine> type }
+NULL: Rect
+NULL: Vector3
 [{] groundPos { <{> declaration [local] }
 [Entity] spriteExtents { <Entity> declaration [field] }
-[UnityEngine] Color { <UnityEngine> type }
-[Color] red { <Color> declaration [property] }
-[UnityEngine] VFX { <UnityEngine> type [namespace] }
+NULL: Color
+NULL: red
+NULL: VFX
 [Entity] VFXProperty { <Entity> type }
 [VFXProperty] StopAnimation { <VFXProperty> constant }
 [VFXProperty] ChangeEffectObjBack { <VFXProperty> constant }
@@ -3960,9 +3960,9 @@ NULL: System
 NULL: Func
 [EntityVFX] canStop { <EntityVFX> declaration [field] }
 [EntityVFX] nextAnimation { <EntityVFX> declaration [field] }
-[UnityEngine] GameObject { <UnityEngine> type }
+NULL: GameObject
 [EntityVFX] effectObj { <EntityVFX> declaration [field] }
-[UnityEngine] ParticleSystem { <UnityEngine> type }
+NULL: ParticleSystem
 [EntityVFX] particles { <EntityVFX> declaration [field] }
 NULL: Header
 [EntityVFX] waitTime { <EntityVFX> declaration [field] }
@@ -3974,10 +3974,10 @@ NULL: Header
 NULL: Header
 [EntityVFX] flashTime { <EntityVFX> declaration [field] }
 [EntityVFX] flashDuration { <EntityVFX> declaration [field] }
-[UnityEngine] Color { <UnityEngine> type }
+NULL: Color
 [EntityVFX] triggerColor { <EntityVFX> declaration [field] }
 NULL: Header
-[UnityEngine] Color { <UnityEngine> type }
+NULL: Color
 [EntityVFX] textColor { <EntityVFX> declaration [field] }
 [EntityVFX] fontSize { <EntityVFX> declaration [field] }
 NULL: Header
@@ -3997,7 +3997,7 @@ NULL: Header
 NULL: ParticleType
 [EntityVFX] particleType { <EntityVFX> declaration [field] }
 NULL: Header
-[UnityEngine] AudioType { <UnityEngine> type }
+NULL: AudioType
 [EntityVFX] audio { <EntityVFX> declaration [field] }
 NULL: PoolType
 [EntityVFX] poolType { <EntityVFX> declaration [field] }
@@ -4007,8 +4007,8 @@ NULL: PoolType
 [Entity] EntityVFX { <Entity> type }
 [PlayVFX] vfx { <PlayVFX> declaration [argument] }
 [PlayVFX] vfx { <PlayVFX> declaration [argument] }
-[UnityEngine] Debug { <UnityEngine> type }
-[Debug] Log { <Debug> function }
+NULL: Debug
+NULL: Log
 [Entity] state { <Entity> declaration [field] }
 [PlayVFX] vfx { <PlayVFX> declaration [argument] }
 [EntityVFX] properties { <EntityVFX> declaration [field] }
@@ -4024,14 +4024,14 @@ NULL: transform
 [EntityVFX] scaleOffset { <EntityVFX> declaration [field] }
 NULL: transform
 NULL: localScale
-[UnityEngine] Vector3 { <UnityEngine> type }
+NULL: Vector3
 [PlayVFX] vfx { <PlayVFX> declaration [argument] }
 [EntityVFX] scaleOffset { <EntityVFX> declaration [field] }
 NULL: IsNullOrEmpty
 [PlayVFX] vfx { <PlayVFX> declaration [argument] }
 [EntityVFX] nextAnimation { <EntityVFX> declaration [field] }
 [Entity] anim { <Entity> declaration [field] }
-[Animator] Play { <Animator> function }
+NULL: Play
 [PlayVFX] vfx { <PlayVFX> declaration [argument] }
 [EntityVFX] nextAnimation { <EntityVFX> declaration [field] }
 [PlayVFX] vfx { <PlayVFX> declaration [argument] }
@@ -4040,11 +4040,11 @@ NULL: IsNullOrEmpty
 [Entity] VFXProperty { <Entity> type }
 [VFXProperty] StopAnimation { <VFXProperty> constant }
 [Entity] anim { <Entity> declaration [field] }
-[Animator] speed { <Animator> declaration [property] }
+NULL: speed
 [PlayVFX] vfx { <PlayVFX> declaration [argument] }
 [EntityVFX] textColor { <EntityVFX> declaration [field] }
-[UnityEngine] Color { <UnityEngine> type }
-[Color] clear { <Color> declaration [property] }
+NULL: Color
+NULL: clear
 [Entity] text { <Entity> declaration [field] }
 NULL: color
 [PlayVFX] vfx { <PlayVFX> declaration [argument] }
@@ -4072,7 +4072,7 @@ NULL: InvokeAfter
 [PlayVFX] vfx { <PlayVFX> declaration [argument] }
 [EntityVFX] particles { <EntityVFX> declaration [field] }
 [PlayVFX] i { <PlayVFX> declaration [local] }
-[ParticleSystem] Play { <ParticleSystem> function }
+NULL: Play
 [PlayVFX] vfx { <PlayVFX> declaration [argument] }
 [EntityVFX] properties { <EntityVFX> declaration [field] }
 [Property] HasProperty { <Property> function }
@@ -4082,16 +4082,16 @@ NULL: InvokeAfter
 [PlayVFX] vfx { <PlayVFX> declaration [argument] }
 [EntityVFX] particles { <EntityVFX> declaration [field] }
 [PlayVFX] i { <PlayVFX> declaration [local] }
-[ParticleSystem] main { <ParticleSystem> declaration [property] }
+NULL: main
 NULL: duration
 [PlayVFX] vfx { <PlayVFX> declaration [argument] }
 [EntityVFX] effectObj { <EntityVFX> declaration [field] }
 [PlayVFX] vfx { <PlayVFX> declaration [argument] }
 [EntityVFX] effectObj { <EntityVFX> declaration [field] }
-[GameObject] SetActive { <GameObject> function }
+NULL: SetActive
 [PlayVFX] vfx { <PlayVFX> declaration [argument] }
 [EntityVFX] effectObj { <EntityVFX> declaration [field] }
-[GameObject] activeSelf { <GameObject> declaration [property] }
+NULL: activeSelf
 NULL: StartCoroutine
 NULL: CameraSystem
 NULL: instance
@@ -4174,13 +4174,13 @@ NULL: InvokeAfter
 [EntityVFX] rotateTime { <EntityVFX> declaration [field] }
 NULL: transform
 NULL: Rotate
-[UnityEngine] Vector3 { <UnityEngine> type }
+NULL: Vector3
 [PlayVFX] x { <PlayVFX> declaration [local] }
 [PlayVFX] y { <PlayVFX> declaration [local] }
 [PlayVFX] z { <PlayVFX> declaration [local] }
 NULL: InvokeAfter
-[UnityEngine] Mathf { <UnityEngine> type }
-[Mathf] Max { <Mathf> function }
+NULL: Mathf
+NULL: Max
 [PlayVFX] vfx { <PlayVFX> declaration [argument] }
 [EntityVFX] flashDuration { <EntityVFX> declaration [field] }
 [PlayVFX] totalParticleTime { <PlayVFX> declaration [local] }
@@ -4202,7 +4202,7 @@ NULL: StartCoroutine
 [PlayVFX] Flashing { <PlayVFX> function }
 [Entity] sr { <Entity> declaration [field] }
 [Entity] whiteMat { <Entity> declaration [field] }
-[UnityEngine] Color { <UnityEngine> type }
+NULL: Color
 [PlayVFX] vfx { <PlayVFX> declaration [argument] }
 [EntityVFX] alpha { <EntityVFX> declaration [field] }
 [PlayVFX] vfx { <PlayVFX> declaration [argument] }
@@ -4237,8 +4237,8 @@ NULL: StartCoroutine
 [PlayVFX] vfx { <PlayVFX> declaration [argument] }
 [EntityVFX] trailStayTime { <EntityVFX> declaration [field] }
 NULL: InvokeAfter
-[UnityEngine] Mathf { <UnityEngine> type }
-[Mathf] Max { <Mathf> function }
+NULL: Mathf
+NULL: Max
 [PlayVFX] vfx { <PlayVFX> declaration [argument] }
 [EntityVFX] fadeTime { <EntityVFX> declaration [field] }
 [PlayVFX] vfx { <PlayVFX> declaration [argument] }
@@ -4254,7 +4254,7 @@ NULL: InvokeAfter
 [VFXProperty] ScaleOverTime { <VFXProperty> constant }
 NULL: transform
 NULL: localScale
-[UnityEngine] Vector3 { <UnityEngine> type }
+NULL: Vector3
 [PlayVFX] vfx { <PlayVFX> declaration [argument] }
 [EntityVFX] scaleOffset { <EntityVFX> declaration [field] }
 [PlayVFX] vfx { <PlayVFX> declaration [argument] }
@@ -4264,23 +4264,23 @@ NULL: localScale
 [VFXProperty] ChangeEffectObjBack { <VFXProperty> constant }
 [PlayVFX] vfx { <PlayVFX> declaration [argument] }
 [EntityVFX] effectObj { <EntityVFX> declaration [field] }
-[GameObject] SetActive { <GameObject> function }
+NULL: SetActive
 [PlayVFX] vfx { <PlayVFX> declaration [argument] }
 [EntityVFX] effectObj { <EntityVFX> declaration [field] }
-[GameObject] activeSelf { <GameObject> declaration [property] }
+NULL: activeSelf
 [Entity] anim { <Entity> declaration [field] }
 [Entity] anim { <Entity> declaration [field] }
-[Animator] speed { <Animator> declaration [property] }
+NULL: speed
 [PlayVFX] vfx { <PlayVFX> declaration [argument] }
 [EntityVFX] done { <EntityVFX> declaration [field] }
 NULL: Invoke
 NULL: IEnumerator
 [PlayVFX] Flashing { <PlayVFX> function }
-[UnityEngine] SpriteRenderer { <UnityEngine> type }
+NULL: SpriteRenderer
 [Flashing] sr { <Flashing> declaration [argument] }
-[UnityEngine] Material { <UnityEngine> type }
+NULL: Material
 [Flashing] whiteMat { <Flashing> declaration [argument] }
-[UnityEngine] Color { <UnityEngine> type }
+NULL: Color
 [Flashing] color { <Flashing> declaration [argument] }
 [Flashing] duration { <Flashing> declaration [argument] }
 [Flashing] flashTime { <Flashing> declaration [argument] }
@@ -4289,64 +4289,64 @@ NULL: Func
 [Flashing] canStop { <Flashing> declaration [argument] }
 [Flashing] whiteMat { <Flashing> declaration [argument] }
 [Flashing] whiteMat { <Flashing> declaration [argument] }
-[Material] color { <Material> declaration [property] }
+NULL: color
 [Flashing] color { <Flashing> declaration [argument] }
 [Flashing] duration { <Flashing> declaration [argument] }
 [Flashing] canStop { <Flashing> declaration [argument] }
 NULL: Invoke
 [{] currentTime { <{> declaration [local] }
-[UnityEngine] Time { <UnityEngine> type }
-[Time] time { <Time> declaration [property] }
-[UnityEngine] Material { <UnityEngine> type }
+NULL: Time
+NULL: time
+NULL: Material
 [{] defMat { <{> declaration [local] }
 [Flashing] sr { <Flashing> declaration [argument] }
 NULL: material
 [Flashing] sr { <Flashing> declaration [argument] }
 NULL: material
 [Flashing] whiteMat { <Flashing> declaration [argument] }
-[UnityEngine] WaitForSeconds { <UnityEngine> type }
+NULL: WaitForSeconds
 [Flashing] flashTime { <Flashing> declaration [argument] }
 [Flashing] sr { <Flashing> declaration [argument] }
 NULL: material
 [{] defMat { <{> declaration [local] }
-[UnityEngine] WaitForSeconds { <UnityEngine> type }
+NULL: WaitForSeconds
 [Flashing] flashTime { <Flashing> declaration [argument] }
 [Flashing] duration { <Flashing> declaration [argument] }
-[UnityEngine] Time { <UnityEngine> type }
-[Time] time { <Time> declaration [property] }
+NULL: Time
+NULL: time
 [{] currentTime { <{> declaration [local] }
 [Flashing] whiteMat { <Flashing> declaration [argument] }
-[Material] color { <Material> declaration [property] }
-[UnityEngine] Color { <UnityEngine> type }
-[Color] white { <Color> declaration [property] }
+NULL: color
+NULL: Color
+NULL: white
 NULL: IEnumerator
 [PlayVFX] ScaleOverTime { <PlayVFX> function }
-[UnityEngine] Transform { <UnityEngine> type }
+NULL: Transform
 [ScaleOverTime] transform { <ScaleOverTime> declaration [argument] }
 [ScaleOverTime] duration { <ScaleOverTime> declaration [argument] }
-[UnityEngine] Vector3 { <UnityEngine> type }
+NULL: Vector3
 [ScaleOverTime] scaleOffset { <ScaleOverTime> declaration [argument] }
 [ScaleOverTime] duration { <ScaleOverTime> declaration [argument] }
 [ScaleOverTime] duration { <ScaleOverTime> declaration [argument] }
-[UnityEngine] Time { <UnityEngine> type }
-[Time] deltaTime { <Time> declaration [property] }
+NULL: Time
+NULL: deltaTime
 [ScaleOverTime] transform { <ScaleOverTime> declaration [argument] }
-[Transform] localScale { <Transform> declaration [property] }
+NULL: localScale
 [ScaleOverTime] scaleOffset { <ScaleOverTime> declaration [argument] }
-[UnityEngine] Time { <UnityEngine> type }
-[Time] deltaTime { <Time> declaration [property] }
+NULL: Time
+NULL: deltaTime
 [ScaleOverTime] transform { <ScaleOverTime> declaration [argument] }
 NULL: gameObject
 NULL: activeSelf
 [ScaleOverTime] transform { <ScaleOverTime> declaration [argument] }
-[Transform] localScale { <Transform> declaration [property] }
+NULL: localScale
 [ScaleOverTime] scaleOffset { <ScaleOverTime> declaration [argument] }
-[UnityEngine] Time { <UnityEngine> type }
-[Time] deltaTime { <Time> declaration [property] }
+NULL: Time
+NULL: deltaTime
 NULL: IEnumerator
 [PlayVFX] FadeText { <PlayVFX> function }
-[] TMPro { <> type [namespace] }
-[TMPro] TextMeshPro { <TMPro> type }
+NULL: TMPro
+NULL: TextMeshPro
 [FadeText] text { <FadeText> declaration [argument] }
 [FadeText] alpha { <FadeText> declaration [argument] }
 [FadeText] fadeTime { <FadeText> declaration [argument] }
@@ -4361,50 +4361,50 @@ NULL: alpha
 [FadeText] text { <FadeText> declaration [argument] }
 NULL: alpha
 [FadeText] dAlpha { <FadeText> declaration [local] }
-[UnityEngine] Time { <UnityEngine> type }
-[Time] deltaTime { <Time> declaration [property] }
+NULL: Time
+NULL: deltaTime
 NULL: IEnumerator
 [PlayVFX] EnableTrail { <PlayVFX> function }
-[UnityEngine] TrailRenderer { <UnityEngine> type }
+NULL: TrailRenderer
 [EnableTrail] trail { <EnableTrail> declaration [argument] }
 [EnableTrail] emitTime { <EnableTrail> declaration [argument] }
 [EnableTrail] stayTime { <EnableTrail> declaration [argument] }
 [EnableTrail] trail { <EnableTrail> declaration [argument] }
 NULL: enabled
 [EnableTrail] trail { <EnableTrail> declaration [argument] }
-[TrailRenderer] emitting { <TrailRenderer> declaration [property] }
-[UnityEngine] WaitForSeconds { <UnityEngine> type }
+NULL: emitting
+NULL: WaitForSeconds
 [EnableTrail] emitTime { <EnableTrail> declaration [argument] }
 [EnableTrail] trail { <EnableTrail> declaration [argument] }
-[TrailRenderer] emitting { <TrailRenderer> declaration [property] }
-[UnityEngine] WaitForSeconds { <UnityEngine> type }
+NULL: emitting
+NULL: WaitForSeconds
 [EnableTrail] stayTime { <EnableTrail> declaration [argument] }
 [EnableTrail] trail { <EnableTrail> declaration [argument] }
-[TrailRenderer] Clear { <TrailRenderer> function }
+NULL: Clear
 [EnableTrail] trail { <EnableTrail> declaration [argument] }
-[TrailRenderer] emitting { <TrailRenderer> declaration [property] }
+NULL: emitting
 [EnableTrail] trail { <EnableTrail> declaration [argument] }
 NULL: enabled
 NULL: IEnumerator
 [PlayVFX] DecreaseTrailWidth { <PlayVFX> function }
-[UnityEngine] TrailRenderer { <UnityEngine> type }
+NULL: TrailRenderer
 [DecreaseTrailWidth] trail { <DecreaseTrailWidth> declaration [argument] }
 [DecreaseTrailWidth] decreaseTime { <DecreaseTrailWidth> declaration [argument] }
 [DecreaseTrailWidth] startWidth { <DecreaseTrailWidth> declaration [local] }
 [DecreaseTrailWidth] trail { <DecreaseTrailWidth> declaration [argument] }
-[TrailRenderer] widthMultiplier { <TrailRenderer> declaration [property] }
+NULL: widthMultiplier
 [DecreaseTrailWidth] startTime { <DecreaseTrailWidth> declaration [local] }
 [DecreaseTrailWidth] decreaseTime { <DecreaseTrailWidth> declaration [argument] }
 [DecreaseTrailWidth] decreaseTime { <DecreaseTrailWidth> declaration [argument] }
 [DecreaseTrailWidth] trail { <DecreaseTrailWidth> declaration [argument] }
-[TrailRenderer] widthMultiplier { <TrailRenderer> declaration [property] }
+NULL: widthMultiplier
 [DecreaseTrailWidth] decreaseTime { <DecreaseTrailWidth> declaration [argument] }
 [DecreaseTrailWidth] startTime { <DecreaseTrailWidth> declaration [local] }
 [DecreaseTrailWidth] startWidth { <DecreaseTrailWidth> declaration [local] }
 [DecreaseTrailWidth] decreaseTime { <DecreaseTrailWidth> declaration [argument] }
-[UnityEngine] Time { <UnityEngine> type }
-[Time] deltaTime { <Time> declaration [property] }
+NULL: Time
+NULL: deltaTime
 [DecreaseTrailWidth] trail { <DecreaseTrailWidth> declaration [argument] }
-[TrailRenderer] widthMultiplier { <TrailRenderer> declaration [property] }
+NULL: widthMultiplier
 [DecreaseTrailWidth] startWidth { <DecreaseTrailWidth> declaration [local] }
 Note count: 4409
