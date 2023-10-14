@@ -66,16 +66,7 @@ fleury_color_index_function             = 0xFF1088FF;
 fleury_color_index_macro                = defcolor_preproc;
 fleury_color_index_constant             = 0xFFF3F3F3; // Enum Values
 fleury_color_index_comment_tag          = 0xFFFFFFFF;
-//fleury_color_index_decl                 = 0xFFC9598A;
-fleury_color_index_decl                 = 0xFF9060C0;
 fleury_color_cursor_macro               = 0xFFC060C0;
-
-//long_color_index_field                  = 0xFFFF8810;
-long_color_index_field                  = defcolor_text_default;
-//long_color_index_param                  = 0xFFFFFF10;
-//long_color_index_local                  = long_color_index_param;
-long_color_index_local                  = 0xFF10FFFF;
-long_color_index_param                  = long_color_index_local;
 
 // TODO(jack): I should really strip power mode out, its really gimiky and i dont care about it at all
 fleury_color_cursor_power_mode          = 0xffC82048;

@@ -1463,6 +1463,8 @@ theme_parse__file_name(Application_Links *app, Arena *arena, char *file_name, Ar
 
 ////////////////////////////////
 
+function void Long_UpdateCurrentTheme(Color_Table* table);
+
 // TODO(allen): review this function
 function void
 load_config_and_apply(Application_Links *app, Arena *out_arena, i32 override_font_size, b32 override_hinting){
@@ -1525,6 +1527,7 @@ load_config_and_apply(Application_Links *app, Arena *out_arena, i32 override_fon
     String_Const_u8 default_theme_name = def_get_config_string(scratch, vars_save_string_lit("default_theme_name"));
     Color_Table *colors = get_color_table_by_name(default_theme_name);
     set_active_color(colors);
+    Long_UpdateCurrentTheme(colors); 
     
     Face_Description description = {};
     if (override_font_size != 0){

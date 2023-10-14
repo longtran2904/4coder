@@ -6,6 +6,9 @@
 [NULL] { {  }
 [{] test_local_1 { <{> declaration [local] }
 [{] test_local_2 { <{> declaration [local] }
+[NULL] { {  }
+[{] TestB { <{> declaration [local] }
+[{] TestA { <{> declaration [local] }
 [NULL] MyGenericType { type }
 [MyGenericType] T { <MyGenericType> type [generic] }
 [MyGenericType] a { <MyGenericType> declaration [field] }
@@ -38,6 +41,14 @@
 [A] { { <A>  }
 [EnumTest] B { <EnumTest> constant }
 [EnumTest] C { <EnumTest> constant }
+[NULL] Base { type }
+[Base] a { <Base> declaration [field] }
+[NULL] Interface { type }
+[Interface] b { <Interface> declaration [field] }
+[NULL] Derive { type }
+[Derive] c { <Derive> declaration [field] }
+[NULL] DeriveDerive { type }
+[NULL] a { declaration [global] }
 [NULL] { { [namespace] }
 [TestNamespace] Namespace { <TestNamespace> declaration [field] }
 [NULL] { { [namespace] }
@@ -111,6 +122,10 @@
 [Vector2] v { <Vector2> declaration [argument] }
 [Vector2] Vector3 { <Vector2> operator }
 [Vector3] v { <Vector3> declaration [argument] }
+[Vector2] Vector2 { <Vector2> constructor }
+[Vector2] x { <Vector2> declaration [argument] }
+[Vector2] y { <Vector2> declaration [argument] }
+[NULL] vector2 { declaration [global] }
 [NULL] { {  }
 [NULL] { {  }
 [NULL] Test { type }
@@ -1046,4 +1061,4 @@
 [DecreaseTrailWidth] startWidth { <DecreaseTrailWidth> declaration [local] }
 [DecreaseTrailWidth] startTime { <DecreaseTrailWidth> declaration [local] }
 [DecreaseTrailWidth] { { <DecreaseTrailWidth>  }
-Note count: 1044
+Note count: 1059

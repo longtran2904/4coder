@@ -27,10 +27,10 @@ keys_global =
     { "long_interactive_switch_buffer",        "I", "Control"          },
     { "save_all_dirty_buffers",                "S", "Control", "Shift" },
     { "f4_recent_files_menu",                  "V", "Alt"              },
-    { "reload_all_themes_default_folder",      "H", "Control", "Shift" },
-    { "theme_lister",                          "H", "Control"          },
-    { "long_kill_jump_buffer",                 "K", "Control", "Alt"   },
-    { "long_switch_to_jump_buffer",            "I", "Control", "Alt"   },
+    { "long_reload_all_themes_default_folder", "H", "Control", "Shift" },
+    { "long_theme_lister",                     "H", "Control"          },
+    { "long_kill_search_buffer",                 "K", "Control", "Alt"   },
+    { "long_switch_to_search_buffer",            "I", "Control", "Alt"   },
     
     // NOTE(rjf): Jump Lists
     { "goto_next_jump",  "N", "Alt"  },
@@ -127,7 +127,7 @@ keys_file =
     
     // NOTE(rjf): Mark
     { "set_mark",         "Space", "Control" },
-    { "cursor_mark_swap", "M",     "Control" },
+    { "cursor_mark_swap", "B",     "Control" },
     
     // NOTE(long): Ctrl  => Current Buffer vs All Buffers
     //             Alt   => List vs Search/Query

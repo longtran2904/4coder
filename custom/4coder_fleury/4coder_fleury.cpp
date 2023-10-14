@@ -391,10 +391,13 @@ typedef int socklen_t;
 
 // NOTE(long): Macros for all my modifications in the 4coder and fleury layer
 #define LONG_INDEX 1
+#define LONG_INDEX_INLINE 0
+#define LONG_INDEX_INSERT_QUEUE 1
 #define LONG_INDEX_GET_COLOR 1
 #define LONG_INDEX_INDENT_PAREN 0
 #define LONG_INDEX_CODE_PEEK 1
 #define LONG_INDEX_POS_CONTEXT 1
+#define LONG_INDEX_PRELOAD_REF 0
 
 #define LONG_CS_LEXER 1
 #if LONG_CS_LEXER
@@ -402,7 +405,7 @@ typedef int socklen_t;
 #endif
 
 #define LONG_LISTER_FILTER_TAG 1
-#define LONG_ENABLE_INDEX_PROFILE 0
+#define LONG_ENABLE_INDEX_PROFILE 1
 #define LONG_ENABLE_PROFILE 0
 
 //~ NOTE(rjf): Macros and pragmase stuff that have to be put here for various
@@ -495,6 +498,8 @@ void custom_layer_init(Application_Links *app)
         set_custom_hook(app, HookID_DeltaRule,               F4_DeltaRule);
         set_custom_hook(app, HookID_BufferEditRange,         F4_BufferEditRange);
         set_custom_hook_memory_size(app, HookID_DeltaRule, delta_ctx_size(sizeof(Vec2_f32)));
+        
+        set_custom_hook(app, HookID_EndBuffer, Long_EndBuffer);
     }
     
     // NOTE(rjf): Set up mapping.

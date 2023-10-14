@@ -27,6 +27,7 @@
 // 1032 parse namespace and generic types, functions, and arguments
 // 1042 fix comment after note.scope_range and comment's duplication
 // 1045 parse "using"
+// 1059 parse inheritance and constructors
 using UnityEngine;
 
 namespace UnityEngine { class MyEngine; }
@@ -35,6 +36,11 @@ MyEngine myEngine;
 int test_global_1, test_global_2;
 {
     int test_local_1, test_local_2;
+}
+
+{
+    TestA.stuff1 TestB;
+    TestB.stuff2 TestA;
 }
 
 struct MyGenericType<T>
@@ -72,6 +78,16 @@ enum EnumTest
     B = 5,
     C = fjldasd
 }
+
+class Base { int a; }
+class Interface { int b; }
+class Derive : Base, Interface { int c; }
+class DeriveDerive : Derive;
+
+DeriveDerive.a;
+DeriveDerive.c;
+Derive a;
+a.a;
 
 namespace TestNamespace
 {

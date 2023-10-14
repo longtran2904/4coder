@@ -77,6 +77,7 @@
 // [X] Fix open the same lister multiple times bug
 
 #define clamp_loop(x, size) ((x) < 0 ? ((size) - 1) : ((x) % (size)))
+function b32 F4_ARGBIsValid(ARGB_Color color);
 
 #include "4coder_long_index.h"
 

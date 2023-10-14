@@ -33,7 +33,7 @@ cursor_roundness = 10;
 
 // mark_thickness is a pixel count value setting the
 // thickness of the mark wire box in original mode
-mark_thickness = 2;
+mark_thickness = 4;
 
 // lister_roundess is a value [0,50] setting the radius of
 // the lister items' roundness as a percentage of their height

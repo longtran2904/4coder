@@ -1,12 +1,9 @@
 
 //~NOTE(long): Helper Functions
 
-function Buffer_ID Long_Buffer_GetJumpBuffer(Application_Links* app)
+function Buffer_ID Long_Buffer_GetSearchBuffer(Application_Links* app)
 {
-    Buffer_ID result = get_locked_jump_buffer(app);
-    if (!result)
-    result = get_buffer_by_name(app, search_name, Access_Always);
-    return result;
+    return get_buffer_by_name(app, search_name, Access_Always);
 }
 
 function String8 Long_Buffer_PushLine(Application_Links* app, Arena* arena, Buffer_ID buffer, i64 pos)
@@ -201,17 +198,33 @@ function void Long_PointStack_Push(Application_Links* app, Buffer_ID buffer, i64
     stack->bot = clamp_loop(stack->bot + 1, size);
 }
 
-function void Long_JumpToLocation(Application_Links* app, View_ID view,
-                                  Buffer_ID current_buffer, i64 current_pos, Buffer_ID target_buffer, i64 target_pos)
+// NOTE(long): This function was copied from center_view. It was modified to snap the current scroll position to the target position.
+// If you want to snap the current view to the center, call center_view first, then call this function.
+function void Long_SnapView(Application_Links* app)
 {
+    View_ID view = get_active_view(app, Access_ReadVisible);
+    Buffer_Scroll scroll = view_get_buffer_scroll(app, view);
+    scroll.position = scroll.target;
+    view_set_buffer_scroll(app, view, scroll, SetBufferScroll_SnapCursorIntoView);
+    no_mark_snap_to_cursor(app, view);
+}
+
+function void Long_JumpToLocation(Application_Links* app, View_ID view, Buffer_ID target_buffer, i64 target_pos,
+                                  Buffer_ID current_buffer = 0, i64 current_pos = 0)
+{
+    if (!current_buffer)
+    current_buffer = view_get_buffer(app, view, Access_Always);
+    if (!current_pos)
+    current_pos = view_get_cursor_pos(app, view);
+    
     Long_PointStack_Push(app, current_buffer, current_pos, view);
     F4_JumpToLocation(app, view, target_buffer, target_pos);
     Long_PointStack_Push(app, target_buffer, target_pos, view);
 }
 
-function void Long_JumpToLocation(Application_Links* app, View_ID view, Buffer_ID target_buffer, i64 target_pos)
+function void Long_PointStack_SetCurrent(Long_Point_Stack* stack, i32 index)
 {
-    Long_JumpToLocation(app, view, view_get_buffer(app, view, Access_Always), view_get_cursor_pos(app, view), target_buffer, target_pos);
+    stack->current = clamp_loop(index + 1, ArrayCount(stack->markers));
 }
 
 #define Long_IteratePointStack(app, stack, start, end, advance, size, func) \
@@ -254,45 +267,68 @@ CUSTOM_DOC("List jump history")
     if (result.buffer != 0)
     {
         F4_JumpToLocation(app, get_this_ctx_view(app, Access_Always), result.buffer, result.pos);
-        stack->current = clamp_loop(result.user_index + 1, size);
+        Long_PointStack_SetCurrent(stack, (i32)result.user_index);
     }
 }
 
-function void Long_JumpToNextPointStack(Application_Links* app, i32 start, i32 end, i32 advance)
+function b32 Long_IsPosValid(Application_Links* app, View_ID view, Buffer_ID buffer, i64 pos, i64 current_pos)
 {
-    Long_Point_Stack* stack = Long_GetPointStack(app);
+    b32 result = pos != current_pos;
+    if (current_pos > pos)
+    {
+        Scratch_Block scratch(app);
+        Buffer_Cursor cursor = view_compute_cursor(app, view, seek_pos(pos));
+        String8 string = push_buffer_range(app, scratch, buffer, Ii64(pos, current_pos));
+        u64 non_whitespace = string_find_first_non_whitespace(string);
+        if (non_whitespace == string.size)
+        result = false;
+    }
+    return result;
+}
+
+function void Long_PointStack_JumpNext(Application_Links* app, View_ID view, i32 advance, b32 exit_if_current = 0)
+{
+    if (!view)
+    view = get_active_view(app, Access_Always);
+    Long_Point_Stack* stack = Long_GetPointStack(app, view);
     if (stack->top == stack->bot)
     return;
     
-    View_ID view = get_active_view(app, Access_Visible);
-    if (view != 0)
+    i32 size = ArrayCount(stack->markers);
+    Buffer_ID current_buffer = view_get_buffer(app, view, Access_Always);
+    i64 current_pos = view_get_cursor_pos(app, view);
+    
+    i32 end = 0;
+    if (advance == 0)
     {
-        i32 size = ArrayCount(stack->markers);
-        Buffer_ID current_buffer = view_get_buffer(app, view, Access_Always);
-        i64 current_pos = view_get_cursor_pos(app, view);
-        
-        Long_IteratePointStack(app, stack, clamp_loop(start, size), clamp_loop(end, size), advance, size,
-                               if (buffer != current_buffer || pos != current_pos)
-                               {
-                                   F4_JumpToLocation(app, view, buffer, pos);
-                                   stack->current = clamp_loop(i + 1, size);
-                                   break;
-                               });
+        end = stack->bot - 1;
+        advance = -1;
     }
+    else if (advance > 0) end = stack->top;
+    else if (advance < 0) end = stack->bot - 1;
+    
+    Long_IteratePointStack(app, stack, clamp_loop(stack->current - 1, size), clamp_loop(end, size), advance, size,
+                           // NOTE(long): If virtual whitespace is enabled, we can't jump to the start of the line
+                           // Long_IsPosValid will check for that and make sure pos is different from the current pos
+                           if (buffer == current_buffer && pos == current_pos && exit_if_current) break;
+                           if (buffer != current_buffer || Long_IsPosValid(app, view, buffer, pos, current_pos))
+                           {
+                               F4_JumpToLocation(app, view, buffer, pos);
+                               Long_PointStack_SetCurrent(stack, i);
+                               break;
+                           });
 }
 
 CUSTOM_COMMAND_SIG(long_undo_jump)
 CUSTOM_DOC("Read from the current point stack and jump there; if already there go to the previous option")
 {
-    Long_Point_Stack* stack = Long_GetPointStack(app);
-    Long_JumpToNextPointStack(app, stack->current - 1, stack->bot - 1, -1);
+    Long_PointStack_JumpNext(app, 0, -1);
 }
 
 CUSTOM_COMMAND_SIG(long_redo_jump)
 CUSTOM_DOC("Read from the current point stack and jump there; if already there go to the next option")
 {
-    Long_Point_Stack* stack = Long_GetPointStack(app);
-    Long_JumpToNextPointStack(app, stack->current - 1, stack->top - 0, +1);
+    Long_PointStack_JumpNext(app, 0, +1);
 }
 
 CUSTOM_COMMAND_SIG(long_push_new_jump)
@@ -304,13 +340,13 @@ CUSTOM_DOC("Push the current position to the point stack; if the stack's current
 
 //~ NOTE(long): List/Search Commands
 
-global Buffer_ID long_buffer_before_search = 0;
-
-function void Long_JumpToBuffer(Application_Links* app, View_ID view, Buffer_ID buffer)
+function void Long_JumpToBuffer(Application_Links* app, View_ID view, Buffer_ID buffer, b32 push_src = 1, b32 push_dst = 1)
 {
-    Long_PointStack_Push(app, view_get_buffer(app, view, Access_Always), view_get_cursor_pos(app, view));
+    if (push_src)
+    Long_PointStack_Push(app, view_get_buffer(app, view, Access_Always), view_get_cursor_pos(app, view), view);
     view_set_buffer(app, view, buffer, 0);
-    Long_PointStack_Push(app, buffer, view_get_cursor_pos(app, view));
+    if (push_dst)
+    Long_PointStack_Push(app, buffer, view_get_cursor_pos(app, view), view);
 }
 
 function b32 Long_IsSearchBuffer(Application_Links* app, Buffer_ID buffer)
@@ -415,33 +451,30 @@ CUSTOM_DOC("Interactively switch to an open buffer.")
     if (buffer != 0)
     {
         View_ID view = get_this_ctx_view(app, Access_Always);
-        if (Long_IsSearchBuffer(app, buffer))
-        long_buffer_before_search = view_get_buffer(app, view, 0);
         Long_JumpToBuffer(app, view, buffer);
     }
 }
 
-CUSTOM_UI_COMMAND_SIG/*CUSTOM_COMMAND_SIG*/(long_switch_to_jump_buffer)
-CUSTOM_DOC("Interactively kill an open buffer.")
+CUSTOM_UI_COMMAND_SIG/*CUSTOM_COMMAND_SIG*/(long_switch_to_search_buffer)
+CUSTOM_DOC("Switch to the search buffer.")
 {
-    view_set_buffer(app, get_this_ctx_view(app, Access_Always), Long_Buffer_GetJumpBuffer(app), 0);
+    Long_JumpToBuffer(app, get_this_ctx_view(app, Access_Always), Long_Buffer_GetSearchBuffer(app), 1, 0);
 }
 
 function void Long_KillBuffer(Application_Links* app, Buffer_ID buffer, View_ID view)
 {
     // NOTE(long): `buffer_view` is the view that has the buffer while `view` is the view that shows the kill options
     View_ID buffer_view = get_first_view_with_buffer(app, buffer);
-    
     // NOTE(long): Must do this check before killing the buffer
     b32 is_search_buffer = Long_IsSearchBuffer(app, buffer);
-    // NOTE(long): I don't need this check here because the search buffer is never dirty and always killable
+    // NOTE(long): killed always equals to false because the search buffer is never dirty and always killable
     b32 killed = try_buffer_kill(app, buffer, view, 0) == BufferKillResult_Killed;
     
-    if (is_search_buffer && killed)
+    if (is_search_buffer && killed && buffer_view)
     {
-        if (!get_first_view_with_buffer(app, long_buffer_before_search))
-        view_set_buffer(app, buffer_view, long_buffer_before_search, 0);
-        long_buffer_before_search = 0;
+        Long_PointStack_JumpNext(app, buffer_view, 0, 1);
+        Long_SnapView(app);
+        view_set_active(app, view);
     }
 }
 
@@ -459,17 +492,17 @@ CUSTOM_DOC("Kills the current buffer.")
     Long_KillBuffer(app, buffer, view);
 }
 
-CUSTOM_COMMAND_SIG(long_kill_jump_buffer)
-CUSTOM_DOC("Kills the current locked jump buffer.")
+CUSTOM_COMMAND_SIG(long_kill_search_buffer)
+CUSTOM_DOC("Kills the current search jump buffer.")
 {
-    Long_KillBuffer(app, Long_Buffer_GetJumpBuffer(app), get_active_view(app, Access_ReadVisible));
+    Long_KillBuffer(app, Long_Buffer_GetSearchBuffer(app), get_active_view(app, Access_ReadVisible));
 }
 
 CUSTOM_COMMAND_SIG(long_view_jump_list_with_lister)
 CUSTOM_DOC("When executed on a buffer with jumps, creates a persistent lister for all the jumps")
 {
     View_ID view = get_active_view(app, Access_Always);
-    Buffer_ID jump_buffer = Long_Buffer_GetJumpBuffer(app);
+    Buffer_ID jump_buffer = Long_Buffer_GetSearchBuffer(app);
     Marker_List* list = get_or_make_list_for_buffer(app, &global_heap, jump_buffer);
     
     if (list != 0)
@@ -509,21 +542,15 @@ CUSTOM_DOC("When executed on a buffer with jumps, creates a persistent lister fo
 function Buffer_ID Long_CreateOrSwitchBuffer(Application_Links *app, String_Const_u8 name_string, View_ID default_target_view)
 {
     Buffer_ID search_buffer = get_buffer_by_name(app, name_string, Access_Always);
-    long_buffer_before_search = view_get_buffer(app, default_target_view, Access_Always);
-    Scratch_Block scratch(app);
-    
+    b32 jump_to_buffer = 1;
     if (search_buffer)
     {
+        View_ID target_view = get_first_view_with_buffer(app, search_buffer);
+        if (target_view)
         {
-            View_ID target_view = get_first_view_with_buffer(app, search_buffer);
-            if (!target_view)
-            {
-                target_view = default_target_view;
-                view_set_buffer(app, target_view, search_buffer, 0);
-            }
-            view_set_active(app, target_view);
+            default_target_view = target_view;
+            jump_to_buffer = 0;
         }
-        
         buffer_set_setting(app, search_buffer, BufferSetting_ReadOnly, true);
         clear_buffer(app, search_buffer);
         buffer_send_end_signal(app, search_buffer);
@@ -533,10 +560,10 @@ function Buffer_ID Long_CreateOrSwitchBuffer(Application_Links *app, String_Cons
         search_buffer = create_buffer(app, name_string, BufferCreate_AlwaysNew);
         buffer_set_setting(app, search_buffer, BufferSetting_Unimportant, true);
         buffer_set_setting(app, search_buffer, BufferSetting_ReadOnly, true);
-        view_set_buffer(app, default_target_view, search_buffer, 0);
-        view_set_active(app, default_target_view);
     }
     
+    Long_JumpToBuffer(app, default_target_view, search_buffer, jump_to_buffer, 0);
+    view_set_active(app, default_target_view);
     return(search_buffer);
 }
 
@@ -908,36 +935,48 @@ function void Long_GoToDefinition(Application_Links* app, b32 same_panel)
         {
             Token_Array array = get_token_array_from_buffer(app, buffer);
             note = Long_Index_LookupBestNote(app, buffer, &array, token);
-            if (note && note->range.min == token->pos && LONG_INDEX_FILTER_NOTE(note))
+            if (note)
             {
-                F4_Index_Note* next_note = note;
-                do
+                if (note->range.min == token->pos)
                 {
-                    next_note = next_note->next;
-                    if (!next_note)
-                    next_note = Long_Index_LookupNote(note->string);
-                    if (next_note == note)
-                    break;
-                } while (!LONG_INDEX_FILTER_NOTE(next_note));
-                
-                if (next_note)
-                note = next_note;
+                    if (LONG_INDEX_FILTER_NOTE(note))
+                    {
+                        F4_Index_Note* next_note = note;
+                        do
+                        {
+                            next_note = next_note->next;
+                            if (!next_note)
+                            next_note = Long_Index_LookupNote(note->string);
+                            if (next_note == note)
+                            break;
+                        } while (!LONG_INDEX_FILTER_NOTE(next_note));
+                        
+                        if (next_note) note = next_note;
+                    }
+                }
+                else
+                {
+                    if (note->flags & F4_Index_NoteFlag_Prototype)
+                    note = Long_Index_GetDefNote(note);
+                }
             }
         }
     }
     
     // NOTE(long): This was copied from F4_GoToDefinition and modified so it calls Long_JumpToLocation
-    if (note)
+    if (note && note->file)
     {
         if(!same_panel)
         view = get_next_view_looped_primary_panels(app, view, Access_Always);
         
         // NOTE(long): The difference between F4_JumpToLocation and F4_GoToDefinition is:
-        // 1. The first one scroll quickly to the target while the second one snap to the target instantly
-        // (scroll.position.line_number/pixel_shift.y = scroll.target.line_number/pixel_shift.y)
+        // 1. The first one scroll to the target while the second one snap to the target instantly (scroll.position = scroll.target)
         // 2. The first one call view_set_preferred_x (I don't really know what this function does)
         // For simplicity, I just use Long_JumpToLocation (which calls F4_JumpToLocation) for all jumping behaviors
+        // And if I want to snap the view directly, I just call Long_SnapView
         Long_JumpToLocation(app, view, note->file->buffer, note->range.min);
+        if (!same_panel)
+        Long_SnapView(app);
     }
 }
 
@@ -1036,6 +1075,9 @@ function String8 _Long_PushNoteTag(Application_Links* app, Arena* arena, F4_Inde
     
     if (note->parent)
     result = push_stringf(arena, "<%.*s> %.*s", string_expand(note->parent->string), string_expand(result));
+    
+    // NOTE(long): Long_Lister_PushIndexNote will never iterate over a namespace note
+    // This case only runs in long_write_to_file_all_identifiers
     if (Long_Index_IsNamespace(note))
     result = push_stringf(arena, "%.*s%s[namespace]", string_expand(result), result.size ? " " : "");
     
@@ -1054,9 +1096,7 @@ function LONG_INDEX_FILTER(Long_Filter_Declarations)
 
 function LONG_INDEX_FILTER(Long_Filter_FunctionAndType)
 {
-    b32 is_type = note->kind == F4_Index_NoteKind_Type && !Long_Index_IsGenericArgument(note);
-    b32 is_func = note->kind == F4_Index_NoteKind_Function && range_size(note->range); // range_size is for filtering lambda
-    return is_type || is_func;
+    return Long_Filter_Func(note) || Long_Filter_Type(note);
 }
 
 function LONG_INDEX_FILTER(Long_Filter_Note)
@@ -1118,6 +1158,7 @@ function void _Long_SearchDefinition(Application_Links* app, NoteFilter* filter,
     for (Buffer_ID buffer = project_wide ? get_buffer_next(app, 0, Access_Always) : view_get_buffer(app, view, Access_Always);
          buffer; buffer = get_buffer_next(app, buffer, Access_Always))
     {
+        Long_Index_ProfileBlock(app, "[Long] Search Definition");
         F4_Index_File* file = F4_Index_LookupFile(app, buffer);
         String8 filename = push_buffer_base_name(app, scratch, buffer);
         for (F4_Index_Note* note = file ? file->first_note : 0; note; note = note->next_sibling)
@@ -1133,7 +1174,10 @@ function void _Long_SearchDefinition(Application_Links* app, NoteFilter* filter,
     if (!l_result.canceled && l_result.user_data)
     block_copy_struct(&result, (LongListerData*)l_result.user_data);
     if (result.buffer != 0)
-    Long_JumpToLocation(app, view, result.buffer, result.pos);
+    {
+        Long_JumpToLocation(app, view, result.buffer, result.pos);
+        Long_SnapView(app);
+    }
 }
 
 CUSTOM_UI_COMMAND_SIG/*CUSTOM_COMMAND_SIG*/(long_search_for_definition__project_wide)
@@ -1161,8 +1205,8 @@ function void _Long_PushNoteString(Application_Links* app, Arena* arena, String8
     system_error_box("PushNoteString is overflowed");
     if (!((note->scope_range.min == note->scope_range.max) || (note->scope_range.min && note->scope_range.max)))
     {
-        String8 string = push_stringf(arena, "Note: %.*s (%d, %d) isn't initialized correctly!",
-                                      string_expand(note->string), note->scope_range.min, note->scope_range.max);
+        String8 string = push_stringf(arena, "Note: %.*s:%d (%d, %d) isn't initialized correctly!",
+                                      string_expand(note->string), note->range.min, note->scope_range.min, note->scope_range.max);
         system_error_box((char*)string.str);
     }
     
@@ -1520,11 +1564,50 @@ CUSTOM_DOC("Finds the first scope that starts after the cursor, then finds the t
 
 //~ NOTE(long): Misc Commands
 
-CUSTOM_COMMAND_SIG(reload_all_themes_default_folder)
+String8 current_theme_name = {};
+#define DEFAULT_THEME_NAME S8Lit("4coder")
+
+function void Long_UpdateCurrentTheme(Color_Table* table)
+{
+    for (Color_Table_Node* node = global_theme_list.first; node != 0; node = node->next)
+    {
+        if (&node->table == table)
+        {
+            current_theme_name = node->name;
+            return;
+        }
+    }
+    current_theme_name = DEFAULT_THEME_NAME;
+}
+
+CUSTOM_COMMAND_SIG(long_reload_all_themes_default_folder)
 CUSTOM_DOC("Clears and reloads all the theme files in the default theme folder.")
 {
+    Scratch_Block scratch(app);
+    String8 current_name = push_string_copy(scratch, current_theme_name);
     clear_all_themes(app);
     load_themes_default_folder(app);
+    
+    current_theme_name = DEFAULT_THEME_NAME;
+    for (Color_Table_Node* node = global_theme_list.first; node != 0; node = node->next)
+    {
+        if (string_match(node->name, current_name))
+        {
+            current_theme_name = node->name;
+            active_color_table = node->table;
+        }
+    }
+}
+
+CUSTOM_UI_COMMAND_SIG(long_theme_lister)
+CUSTOM_DOC("Opens an interactive list of all registered themes.")
+{
+    Color_Table* color_table = get_color_table_from_user(app);
+    if (color_table != 0)
+    {
+        active_color_table = *color_table;
+        Long_UpdateCurrentTheme(color_table);
+    }
 }
 
 CUSTOM_COMMAND_SIG(long_macro_toggle_recording)

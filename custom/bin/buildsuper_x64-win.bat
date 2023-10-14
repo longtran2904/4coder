@@ -34,7 +34,7 @@ if "%2" == "release" (set mode=%release%)
 set binname=%3
 if "%binname%" == "" set binname="custom_4coder"
 
-set opts=/W4 /wd4310 /wd4100 /wd4201 /wd4505 /wd4996 /wd4127 /wd4510 /wd4512 /wd4610 /wd4457 /WX /we4701 /wd4706
+set opts=/W4 /wd4310 /wd4100 /wd4201 /wd4505 /wd4996 /wd4127 /wd4510 /wd4512 /wd4610 /wd4457 /WX /we4701 /wd4706 /wd4189
 set opts=%opts% /GR- /nologo /FC
 set opts=%opts% -I"%custom_root%"
 set opts=%opts% /D OS_WINDOWS=1 /D OS_LINUX=0 /D OS_MAC=0

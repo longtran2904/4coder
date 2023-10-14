@@ -237,8 +237,8 @@ F4_Cursor_RenderEmacsStyle(Application_Links *app, View_ID view_id, b32 is_activ
                 
                 // NOTE(rjf): Draw main cursor.
                 {
-                    C4_RenderCursorSymbolThingy(app, global_cursor_rect, roundness, 4.f, cursor_color, cursor_type);
-					C4_RenderCursorSymbolThingy(app, target_cursor, roundness, 4.f, cursor_color, cursor_type);
+                    C4_RenderCursorSymbolThingy(app, global_cursor_rect, roundness, outline_thickness, cursor_color, cursor_type);
+					C4_RenderCursorSymbolThingy(app, target_cursor     , roundness, outline_thickness, cursor_color, cursor_type);
                 }
                 
                 // NOTE(rjf): GLOW IT UP
@@ -265,9 +265,9 @@ F4_Cursor_RenderEmacsStyle(Application_Links *app, View_ID view_id, b32 is_activ
             
             // paint_text_color_pos(app, text_layout_id, cursor_pos,
             // fcolor_id(defcolor_at_cursor));
-            C4_RenderCursorSymbolThingy(app, global_mark_rect, roundness, 2.f,
+            C4_RenderCursorSymbolThingy(app, global_mark_rect, roundness, 2.0f,
                                         fcolor_resolve(fcolor_change_alpha(fcolor_argb(mark_color), 0.5f)), mark_type);
-			C4_RenderCursorSymbolThingy(app, target_mark, roundness, 2.f,
+			C4_RenderCursorSymbolThingy(app, target_mark, roundness, 2.0f,
                                         fcolor_resolve(fcolor_change_alpha(fcolor_argb(mark_color), 0.75f)), mark_type);
         }
     }

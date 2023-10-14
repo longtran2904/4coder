@@ -7,6 +7,12 @@
 [NULL] test_global_2 { declaration [global] }
 [{] test_local_1 { <{> declaration [local] }
 [{] test_local_2 { <{> declaration [local] }
+[{] TestA { <{> declaration [local] }
+NULL: stuff1
+[{] TestB { <{> declaration [local] }
+[{] TestB { <{> declaration [local] }
+NULL: stuff2
+[{] TestA { <{> declaration [local] }
 [NULL] MyGenericType { type }
 [MyGenericType] T { <MyGenericType> type [generic] }
 [MyGenericType] a { <MyGenericType> declaration [field] }
@@ -41,6 +47,24 @@
 [EnumTest] B { <EnumTest> constant }
 [EnumTest] C { <EnumTest> constant }
 NULL: fjldasd
+[NULL] Base { type }
+[Base] a { <Base> declaration [field] }
+[NULL] Interface { type }
+[Interface] b { <Interface> declaration [field] }
+[NULL] Derive { type }
+[NULL] Base { type }
+[NULL] Interface { type }
+[Derive] c { <Derive> declaration [field] }
+[NULL] DeriveDerive { type }
+[NULL] Derive { type }
+[NULL] DeriveDerive { type }
+[Base] a { <Base> declaration [field] }
+[NULL] DeriveDerive { type }
+[Derive] c { <Derive> declaration [field] }
+[NULL] Derive { type }
+[NULL] a { declaration [global] }
+[NULL] a { declaration [global] }
+[Base] a { <Base> declaration [field] }
 [] TestNamespace { <> type [namespace] }
 [TestNamespace] Namespace { <TestNamespace> declaration [field] }
 [] TestNamespace { <> type [namespace] }
@@ -166,8 +190,16 @@ NULL: UNKNOW
 [Vector2] Vector3 { <Vector2> operator }
 [NULL] Vector2 { type }
 [Vector3] v { <Vector3> declaration [argument] }
+[Vector2] Vector2 { <Vector2> constructor }
+[Vector2] x { <Vector2> declaration [argument] }
+[Vector2] y { <Vector2> declaration [argument] }
+[NULL] Vector2 { type }
+[NULL] vector2 { declaration [global] }
+[Vector2] Vector2 { <Vector2> constructor }
+[NULL] test_global_1 { declaration [global] }
+[NULL] test_global_2 { declaration [global] }
 NULL: NewLine
-NULL: a
+[NULL] a { declaration [global] }
 NULL: b
 NULL: SomeOtherThing
 NULL: Multiple
@@ -214,24 +246,24 @@ NULL: SomeFunc
 [property] set { <property> setter }
 [set] b { <set> declaration [local] }
 NULL: SomeOtherFunc
-[] x { <> declaration [argument] }
-[] y { <> declaration [argument] }
-[] z { <> declaration [argument] }
+NULL: x
+NULL: y
+NULL: z
 [Test] Something { <Test> function }
 [Something] a { <Something> declaration [local] }
 NULL: A
 NULL: System
 NULL: Action
 [Something] b { <Something> declaration [local] }
-[] e { <> declaration [argument] }
-[] f { <> declaration [argument] }
-[] g { <> declaration [argument] }
+NULL: e
+[Test] f { <Test> declaration [field] }
+NULL: g
 [Something] a { <Something> declaration [local] }
 [Something] b { <Something> declaration [local] }
 [{] b { <{> declaration [local] }
-[] e { <> declaration [argument] }
-[] f { <> declaration [argument] }
-[] g { <> declaration [argument] }
+NULL: e
+[Test] f { <Test> declaration [field] }
+NULL: g
 [Test] DoStuff { <Test> declaration [field] }
 [{] b { <{> declaration [local] }
 [Something] c { <Something> declaration [local] }
@@ -281,7 +313,7 @@ NULL: Action
 [Something] a { <Something> declaration [local] }
 [NULL] Test { type }
 [{] t { <{> declaration [local] }
-[NULL] Test { type }
+[Test] Test { <Test> constructor }
 [{] t { <{> declaration [local] }
 [Test] DoStuff { <Test> declaration [field] }
 [{] t { <{> declaration [local] }
@@ -289,7 +321,7 @@ NULL: Action
 [NULL] CreateTest { function }
 [Test] Something { <Test> function }
 NULL: something
-[NULL] Vector2 { type }
+[Vector2] Vector2 { <Vector2> constructor }
 NULL: TestIf
 NULL: ifDecl
 [Test] DoStuff { <Test> declaration [field] }
@@ -330,10 +362,10 @@ NULL: Serializable
 NULL: Something
 [Optional] something { <Optional> declaration [field] }
 [Optional] ConstantNumber { <Optional> declaration [field] }
-[Optional] SmoothFunc { <Optional> type }
+[Optional] SmoothFunc { <Optional> function }
 [SmoothFunc] a { <SmoothFunc> declaration [argument] }
 [SmoothFunc] b { <SmoothFunc> declaration [argument] }
-[Optional] SomeOtherDelegate { <Optional> type }
+[Optional] SomeOtherDelegate { <Optional> function }
 [SomeOtherDelegate] arr { <SomeOtherDelegate> declaration [argument] }
 NULL: b
 NULL: Generic
@@ -352,7 +384,7 @@ NULL: Generic
 [NULL] Optional { type }
 [Optional] T { <Optional> type [generic] }
 [T] optional { <T> declaration [argument] }
-NULL: a
+[NULL] a { declaration [global] }
 NULL: b
 NULL: b
 [T] c { <T> declaration [local] }
@@ -729,24 +761,24 @@ NULL: Now
 NULL: ToString
 [FindAllEntityProperties] SaveEntityProperties { <FindAllEntityProperties> function }
 [FindAllEntityProperties] builder { <FindAllEntityProperties> declaration [local] }
-[] assets { <> declaration [local] }
+[{] assets { <{> declaration [local] }
 NULL: UnityEditor
 NULL: AssetDatabase
 NULL: FindAssets
 NULL: List
 [NULL] Entity { type }
-[] entities { <> declaration [local] }
+[{] entities { <{> declaration [local] }
 NULL: List
 [NULL] Entity { type }
-[] assets { <> declaration [local] }
+[{] assets { <{> declaration [local] }
 NULL: Length
-[] asset { <> declaration [local] }
-[] assets { <> declaration [local] }
+[{] asset { <{> declaration [local] }
+[{] assets { <{> declaration [local] }
 [{] path { <{> declaration [local] }
 NULL: UnityEditor
 NULL: AssetDatabase
 NULL: GUIDToAssetPath
-[] asset { <> declaration [local] }
+[{] asset { <{> declaration [local] }
 [NULL] Entity { type }
 [{] entity { <{> declaration [local] }
 NULL: UnityEditor
@@ -755,27 +787,27 @@ NULL: LoadAssetAtPath
 [NULL] Entity { type }
 [{] path { <{> declaration [local] }
 [{] entity { <{> declaration [local] }
-[] entities { <> declaration [local] }
+[{] entities { <{> declaration [local] }
 NULL: Add
 [{] entity { <{> declaration [local] }
-[] entities { <> declaration [local] }
+[{] entities { <{> declaration [local] }
 [FindAllEntityProperties] SaveEntityProperties { <FindAllEntityProperties> function }
 [FindAllEntityProperties] builder { <FindAllEntityProperties> declaration [local] }
 [NULL] Entity { type }
-[] assets { <> declaration [local] }
+[{] assets { <{> declaration [local] }
 NULL: FindObjectsOfType
 [NULL] Entity { type }
 NULL: List
 [NULL] Entity { type }
-[] entities { <> declaration [local] }
+[{] entities { <{> declaration [local] }
 NULL: List
 [NULL] Entity { type }
-[] assets { <> declaration [local] }
+[{] assets { <{> declaration [local] }
 NULL: Length
-[] entities { <> declaration [local] }
+[{] entities { <{> declaration [local] }
 NULL: AddRange
-[] assets { <> declaration [local] }
-[] entities { <> declaration [local] }
+[{] assets { <{> declaration [local] }
+[{] entities { <{> declaration [local] }
 [FindAllEntityProperties] message { <FindAllEntityProperties> declaration [local] }
 [] UnityEngine { <> type [namespace] }
 NULL: Object
@@ -910,13 +942,13 @@ NULL: GetAllString
 [PrintProperty] names { <PrintProperty> declaration [local] }
 [PrintProperty] indentLevel { <PrintProperty> declaration [argument] }
 NULL: toString
-[] name { <> declaration [argument] }
-[] i { <> declaration [argument] }
-[] name { <> declaration [argument] }
+[NULL] name { constant }
+[PrintProperty] i { <PrintProperty> declaration [local] }
+[NULL] name { constant }
 NULL: MathUtils
 NULL: HasFlag
 [PrintProperty] property { <PrintProperty> declaration [local] }
-[] i { <> declaration [argument] }
+[PrintProperty] i { <PrintProperty> declaration [local] }
 [PrintProperty] builder { <PrintProperty> declaration [argument] }
 [PrintProperty] builder { <PrintProperty> declaration [argument] }
 [FindAllEntityProperties] SerializeType { <FindAllEntityProperties> function }
@@ -985,9 +1017,9 @@ NULL: GameUtils
 NULL: IsSerializableType
 [] data { <> declaration [argument] }
 NULL: type
-[] data { <> declaration [argument] }
-[] recursive { <> declaration [argument] }
-[] recursive { <> declaration [argument] }
+NULL: data
+NULL: recursive
+NULL: recursive
 [GameManager] InitTilemap { <GameManager> function }
 NULL: List
 NULL: RoomInstance
@@ -1196,7 +1228,7 @@ NULL: Sign
 [CalculateMoveRegion] dirY { <CalculateMoveRegion> declaration [argument] }
 NULL: Vector3Int
 [CalculateMoveRegion] hitPos { <CalculateMoveRegion> declaration [local] }
-NULL: notDecl
+[CalculateMoveRegion] notDecl { <CalculateMoveRegion> declaration [local] }
 NULL: Vector3Int
 [CalculateMoveRegion] empPos { <CalculateMoveRegion> declaration [local] }
 NULL: Vector3Int
@@ -1237,7 +1269,7 @@ NULL: Vector2Int
 [{] minGroundPos { <{> declaration [local] }
 NULL: Vector2Int
 [{] minWallPos { <{> declaration [local] }
-[NULL] Vector2 { type }
+[Vector2] Vector2 { <Vector2> constructor }
 [NULL] Vector2 { type }
 [{] maxPos { <{> declaration [local] }
 NULL: MathUtils
@@ -1251,11 +1283,11 @@ NULL: MathUtils
 NULL: CreateRectMinMax
 [{] minPos { <{> declaration [local] }
 [CalculateMoveRegion] extents { <CalculateMoveRegion> declaration [argument] }
-[NULL] Vector2 { type }
+[Vector2] Vector2 { <Vector2> constructor }
 [CalculateMoveRegion] dirY { <CalculateMoveRegion> declaration [argument] }
 [{] maxPos { <{> declaration [local] }
 [CalculateMoveRegion] extents { <CalculateMoveRegion> declaration [argument] }
-[NULL] Vector2 { type }
+[Vector2] Vector2 { <Vector2> constructor }
 [CalculateMoveRegion] dirY { <CalculateMoveRegion> declaration [argument] }
 NULL: GameDebug
 NULL: DrawBox
@@ -1336,16 +1368,16 @@ NULL: decrease
 NULL: InputType
 NULL: Debug_ShakeDecrease
 NULL: range
-[NULL] RangedFloat { type }
+[RangedFloat] RangedFloat { <RangedFloat> constructor }
 NULL: Enum
 NULL: GetValues
 NULL: ShakeMode
 NULL: Length
 NULL: updateValue
-[] value { <> declaration [argument] }
-[] dir { <> declaration [argument] }
-[] value { <> declaration [argument] }
-[] dir { <> declaration [argument] }
+NULL: value
+NULL: dir
+NULL: value
+NULL: dir
 NULL: callback
 [] mode { <> declaration [argument] }
 NULL: GameDebug
@@ -1393,15 +1425,15 @@ NULL: Debug_SlowTime
 NULL: value
 NULL: f
 NULL: range
-[NULL] RangedFloat { type }
+[RangedFloat] RangedFloat { <RangedFloat> constructor }
 NULL: f
 NULL: updateValue
-[] value { <> declaration [argument] }
-[] dir { <> declaration [argument] }
-[] value { <> declaration [argument] }
+NULL: value
+NULL: dir
+NULL: value
 NULL: Mathf
 NULL: Pow
-[] dir { <> declaration [argument] }
+NULL: dir
 NULL: changed
 [] scale { <> declaration [argument] }
 NULL: Time
@@ -1969,7 +2001,7 @@ NULL: Sign
 [NULL] Vector2 { type }
 NULL: transform
 NULL: position
-[NULL] Vector2 { type }
+[Vector2] Vector2 { <Vector2> constructor }
 [UseAbility] ability { <UseAbility> declaration [argument] }
 [EntityAbility] flags { <EntityAbility> declaration [field] }
 [Property] HasProperty { <Property> function }
@@ -2037,7 +2069,7 @@ NULL: Vector3
 [Entity] spriteExtents { <Entity> declaration [field] }
 NULL: y
 [{] playerUp { <{> declaration [local] }
-[NULL] Vector2 { type }
+[Vector2] Vector2 { <Vector2> constructor }
 [Entity] spriteExtents { <Entity> declaration [field] }
 NULL: x
 NULL: Color
@@ -2321,13 +2353,13 @@ NULL: extents
 [EntityProperty] SpawnCellWhenDie { <EntityProperty> constant }
 [Entity] deathVFX { <Entity> declaration [field] }
 [EntityVFX] done { <EntityVFX> declaration [field] }
-[] dropValue { <> declaration [local] }
+[{] dropValue { <{> declaration [local] }
 [Entity] valueRange { <Entity> declaration [field] }
 [RangedInt] randomValue { <RangedInt> declaration [property] }
-[] i { <> declaration [local] }
-[] i { <> declaration [local] }
-[] dropValue { <> declaration [local] }
-[] i { <> declaration [local] }
+[{] i { <{> declaration [local] }
+[{] i { <{> declaration [local] }
+[{] dropValue { <{> declaration [local] }
+[{] i { <{> declaration [local] }
 NULL: ObjectPooler
 NULL: Spawn
 NULL: PoolType
@@ -2404,7 +2436,7 @@ NULL: x
 NULL: y
 [Entity] abilities { <Entity> declaration [field] }
 [EntityAbility] flags { <EntityAbility> declaration [field] }
-[NULL] Property { type }
+[Property] Property { <Property> constructor }
 [Entity] AbilityFlag { <Entity> type }
 [Entity] AbilityFlag { <Entity> type }
 [AbilityFlag] ExecuteWhenOutOfMoveRegion { <AbilityFlag> constant }
@@ -2472,25 +2504,25 @@ NULL: text
 NULL: ToString
 [Entity] spawnVFX { <Entity> declaration [field] }
 [Entity] EntityVFX { <Entity> type }
-[Entity] properties { <Entity> declaration [field] }
-[NULL] Property { type }
+[EntityVFX] properties { <EntityVFX> declaration [field] }
+[Property] Property { <Property> constructor }
 [Entity] VFXProperty { <Entity> type }
 [Entity] VFXProperty { <Entity> type }
 [VFXProperty] ScaleOverTime { <VFXProperty> constant }
 [Entity] VFXProperty { <Entity> type }
 [VFXProperty] FadeTextWhenDone { <VFXProperty> constant }
-NULL: scaleTime
+[EntityVFX] scaleTime { <EntityVFX> declaration [field] }
 [Entity] moveTime { <Entity> declaration [field] }
-NULL: scaleOffset
+[EntityVFX] scaleOffset { <EntityVFX> declaration [field] }
 [NULL] Vector2 { type }
 NULL: one
-NULL: fadeTime
+[EntityVFX] fadeTime { <EntityVFX> declaration [field] }
 NULL: f
 NULL: f
-NULL: fontSize
+[EntityVFX] fontSize { <EntityVFX> declaration [field] }
 [InitDamagePopup] isCritical { <InitDamagePopup> declaration [argument] }
 NULL: f
-NULL: textColor
+[EntityVFX] textColor { <EntityVFX> declaration [field] }
 [InitDamagePopup] isCritical { <InitDamagePopup> declaration [argument] }
 NULL: Color
 NULL: red
@@ -2778,11 +2810,11 @@ NULL: z
 [Entity] EntityVFX { <Entity> type }
 [{] playerVFX { <{> declaration [local] }
 [Entity] EntityVFX { <Entity> type }
-NULL: shakeMode
+[EntityVFX] shakeMode { <EntityVFX> declaration [field] }
 NULL: ShakeMode
 NULL: PlayerJump
-NULL: waitTime
-NULL: particles
+[EntityVFX] waitTime { <EntityVFX> declaration [field] }
+[EntityVFX] particles { <EntityVFX> declaration [field] }
 NULL: ParticleSystem
 [Entity] velocity { <Entity> declaration [field] }
 NULL: x
@@ -2807,7 +2839,7 @@ NULL: AudioType
 NULL: Player_Jump
 [{] playerVFX { <{> declaration [local] }
 [EntityVFX] scaleOffset { <EntityVFX> declaration [field] }
-[NULL] Vector2 { type }
+[Vector2] Vector2 { <Vector2> constructor }
 [{] playerVFX { <{> declaration [local] }
 [EntityVFX] rotateTime { <EntityVFX> declaration [field] }
 [{] playerVFX { <{> declaration [local] }
@@ -2830,7 +2862,7 @@ NULL: AudioType
 NULL: Player_Land
 [{] playerVFX { <{> declaration [local] }
 [EntityVFX] scaleOffset { <EntityVFX> declaration [field] }
-[NULL] Vector2 { type }
+[Vector2] Vector2 { <Vector2> constructor }
 [Entity] velocity { <Entity> declaration [field] }
 NULL: x
 NULL: CapsuleCollider2D
@@ -2855,12 +2887,12 @@ NULL: Vertical
 [EntityState] Falling { <EntityState> constant }
 [{] playerVFX { <{> declaration [local] }
 [Entity] EntityVFX { <Entity> type }
-[Entity] properties { <Entity> declaration [field] }
-[NULL] Property { type }
+[EntityVFX] properties { <EntityVFX> declaration [field] }
+[Property] Property { <Property> constructor }
 [Entity] VFXProperty { <Entity> type }
 [Entity] VFXProperty { <Entity> type }
 [VFXProperty] StopAnimation { <VFXProperty> constant }
-NULL: nextAnimation
+[EntityVFX] nextAnimation { <EntityVFX> declaration [field] }
 [{] playerVFX { <{> declaration [local] }
 [Update] isGrounded { <Update> declaration [local] }
 [NULL] Vector2 { type }
@@ -2931,7 +2963,7 @@ NULL: VFX
 NULL: Debug
 NULL: Log
 [PlayVFX] vfx { <PlayVFX> declaration [argument] }
-NULL: name
+[NULL] name { constant }
 [PlayVFX] vfx { <PlayVFX> declaration [argument] }
 NULL: timeline
 NULL: min
@@ -3044,7 +3076,7 @@ NULL: deltaTime
 [ChangeOverTime] endValue { <ChangeOverTime> declaration [argument] }
 [PlayVFX] after { <PlayVFX> declaration [local] }
 NULL: Vector3
-[] rotation { <> declaration [local] }
+[{] rotation { <{> declaration [local] }
 NULL: Vector3
 NULL: zero
 [PlayVFX] vfx { <PlayVFX> declaration [argument] }
@@ -3052,25 +3084,25 @@ NULL: flags
 NULL: HasProperty
 NULL: VFXFlag
 NULL: FlipX
-[] rotation { <> declaration [local] }
+[{] rotation { <{> declaration [local] }
 NULL: x
 [PlayVFX] vfx { <PlayVFX> declaration [argument] }
 NULL: flags
 NULL: HasProperty
 NULL: VFXFlag
 NULL: FlipY
-[] rotation { <> declaration [local] }
+[{] rotation { <{> declaration [local] }
 NULL: y
 [PlayVFX] vfx { <PlayVFX> declaration [argument] }
 NULL: flags
 NULL: HasProperty
 NULL: VFXFlag
 NULL: FlipZ
-[] rotation { <> declaration [local] }
+[{] rotation { <{> declaration [local] }
 NULL: z
 NULL: transform
 NULL: Rotate
-[] rotation { <> declaration [local] }
+[{] rotation { <{> declaration [local] }
 [Entity] anim { <Entity> declaration [field] }
 NULL: IsNullOrEmpty
 [PlayVFX] vfx { <PlayVFX> declaration [argument] }
@@ -3382,7 +3414,7 @@ NULL: WaitForEndOfFrame
 [Entity] TargetType { <Entity> type }
 [TargetType] Input { <TargetType> constant }
 [Entity] targetDir { <Entity> declaration [field] }
-[NULL] Vector2 { type }
+[Vector2] Vector2 { <Vector2> constructor }
 NULL: GameInput
 NULL: GetAxis
 NULL: AxisType
@@ -3485,7 +3517,7 @@ NULL: GetMouseDir
 NULL: transform
 NULL: Direction
 [Entity] targetPos { <Entity> declaration [field] }
-[NULL] Vector2 { type }
+[Vector2] Vector2 { <Vector2> constructor }
 [Entity] offsetDir { <Entity> declaration [field] }
 [Entity] targetOffset { <Entity> declaration [field] }
 [Entity] targetDir { <Entity> declaration [field] }
@@ -3510,7 +3542,7 @@ NULL: x
 [Entity] targetDir { <Entity> declaration [field] }
 NULL: y
 [Entity] velocity { <Entity> declaration [field] }
-[NULL] Vector2 { type }
+[Vector2] Vector2 { <Vector2> constructor }
 [Entity] targetDir { <Entity> declaration [field] }
 NULL: x
 [Entity] speed { <Entity> declaration [field] }
@@ -3533,7 +3565,7 @@ NULL: transform
 NULL: position
 [Entity] targetPos { <Entity> declaration [field] }
 [Entity] velocity { <Entity> declaration [field] }
-[NULL] Vector2 { type }
+[Vector2] Vector2 { <Vector2> constructor }
 [Entity] speed { <Entity> declaration [field] }
 [Entity] speedY { <Entity> declaration [field] }
 NULL: Time
@@ -3657,7 +3689,7 @@ NULL: Rotate
 [Entity] rb { <Entity> declaration [field] }
 NULL: velocity
 [StartFalling] startFalling { <StartFalling> declaration [argument] }
-[NULL] Vector2 { type }
+[Vector2] Vector2 { <Vector2> constructor }
 [Entity] fallDir { <Entity> declaration [field] }
 [RangedFloat] randomValue { <RangedFloat> declaration [property] }
 NULL: Random
@@ -3701,13 +3733,13 @@ NULL: max
 NULL: VFX
 [TestPlayerVFX] vfx1 { <TestPlayerVFX> declaration [local] }
 [TestPlayerVFX] CreateTestVFX { <TestPlayerVFX> function }
-[NULL] RangedFloat { type }
-[NULL] Vector2 { type }
+[RangedFloat] RangedFloat { <RangedFloat> constructor }
+[Vector2] Vector2 { <Vector2> constructor }
 NULL: VFX
 [TestPlayerVFX] vfx2 { <TestPlayerVFX> declaration [local] }
 [TestPlayerVFX] CreateTestVFX { <TestPlayerVFX> function }
-[NULL] RangedFloat { type }
-[NULL] Vector2 { type }
+[RangedFloat] RangedFloat { <RangedFloat> constructor }
+[Vector2] Vector2 { <Vector2> constructor }
 NULL: StartCoroutine
 [Entity] PlayVFX { <Entity> function }
 [TestPlayerVFX] vfx1 { <TestPlayerVFX> declaration [local] }
@@ -3727,7 +3759,7 @@ NULL: ScriptableObject
 NULL: CreateInstance
 NULL: VFX
 [CreateTestVFX] vfx { <CreateTestVFX> declaration [local] }
-NULL: name
+[NULL] name { constant }
 [CreateTestVFX] name { <CreateTestVFX> declaration [argument] }
 [CreateTestVFX] vfx { <CreateTestVFX> declaration [local] }
 NULL: offset
@@ -3914,7 +3946,7 @@ NULL: Vector3Int
 [{] groundPos { <{> declaration [local] }
 [Entity] moveRegion { <Entity> declaration [field] }
 NULL: Rect
-[NULL] Vector2 { type }
+[Vector2] Vector2 { <Vector2> constructor }
 NULL: transform
 NULL: position
 NULL: x
@@ -4082,7 +4114,7 @@ NULL: Play
 [PlayVFX] vfx { <PlayVFX> declaration [argument] }
 [EntityVFX] particles { <EntityVFX> declaration [field] }
 [PlayVFX] i { <PlayVFX> declaration [local] }
-NULL: main
+[NULL] main { function }
 NULL: duration
 [PlayVFX] vfx { <PlayVFX> declaration [argument] }
 [EntityVFX] effectObj { <EntityVFX> declaration [field] }
@@ -4407,4 +4439,4 @@ NULL: deltaTime
 [DecreaseTrailWidth] trail { <DecreaseTrailWidth> declaration [argument] }
 NULL: widthMultiplier
 [DecreaseTrailWidth] startWidth { <DecreaseTrailWidth> declaration [local] }
-Note count: 4409
+Note count: 4441

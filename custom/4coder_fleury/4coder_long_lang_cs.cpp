@@ -1,5 +1,45 @@
 
+#if LONG_INDEX_INLINE
+#define Long_CS_ParseStr(ctx, str)             Long_Index_ParseStr    (ctx, str)
+#define Long_CS_ParseToken(ctx, str)           Long_Index_ParseStr    (ctx, S8Lit(str))
+#define Long_CS_ParseKind(ctx, kind, range)    Long_Index_ParseKind   (ctx, kind, range)
+#define Long_CS_ParseSubKind(ctx, kind, range) Long_Index_ParseSubKind(ctx, kind, range)
+#define Long_CS_PeekToken(ctx, str)            Long_Index_PeekStr     (ctx, S8Lit(str))
+#define Long_CS_PeekTwo(ctx, strA, strB)       Long_CS_PeekTwoStr     (ctx, S8Lit(strA), S8Lit(strB))
+#else
+#define Long_CS_ParseStr(ctx, string)          Long_Index_ParsePattern(ctx, "%t", string.str)
+#define Long_CS_ParseToken(ctx, str)           Long_Index_ParsePattern(ctx, "%t", str)
+#define Long_CS_ParseKind(ctx, kind, range)    Long_Index_ParsePattern(ctx, "%k", kind, range)
+#define Long_CS_ParseSubKind(ctx, kind, range) Long_Index_ParsePattern(ctx, "%b", kind, range)
+#define Long_CS_PeekToken(ctx, str)            Long_Index_PeekPattern (ctx, "%t", str)
+#define Long_CS_PeekTwo(ctx, strA, strB)       Long_Index_PeekPattern (ctx, "%t%t", strA, strB)
+#endif
+
 #define Long_CS_SkipExpression(ctx) Long_Index_SkipExpression(ctx, TokenCsKind_Comma, TokenCsKind_Semicolon)
+
+function b32 Long_CS_PeekTwoStr(F4_Index_ParseCtx* ctx, String8 strA, String8 strB)
+{
+    F4_Index_ParseCtx ctx_restore = *ctx;
+    b32 result = 0;
+    String8 strings[2] = { strA, strB };
+    
+    for (i32 i = 0; i < 2; ++i)
+    {
+        Token* token = token_it_read(&ctx->it);
+        if (token)
+        result = string_match(strings[i], string_substring(ctx->string, Ii64(token)));
+        else
+            ctx->done = 1;
+        
+        if(result)
+        F4_Index_ParseCtx_Inc(ctx, F4_Index_TokenSkipFlag_SkipAll);
+        else
+            break;
+    }
+    
+    *ctx = ctx_restore;
+    return result;
+}
 
 function b32 Long_CS_IsTokenSelection(Token* token)
 {
@@ -21,7 +61,7 @@ typedef u32 Long_ParseFlags;
 // TODO(long): Clean this into a generic index function
 function b32 Long_CS_ParseDecl(F4_Index_ParseCtx* ctx, Range_i64* base_range, Range_i64* name_range,
                                String8* base_keywords, u64 keyword_count, Long_ParseFlags flags,
-                               char* start_token = 0, b32* optional_start_token = 0, char* end_token = 0)
+                               String8 start_token = {}, b32* optional_start_token = 0, String8 end_token = {})
 {
     Long_Index_ProfileScope(ctx->app, "[Long] Parse Decl");
     b32 result = true;
@@ -29,41 +69,66 @@ function b32 Long_CS_ParseDecl(F4_Index_ParseCtx* ctx, Range_i64* base_range, Ra
     Range_i64 base = {};
     Range_i64 name = {};
     
-    if (start_token)
+    if (start_token.str)
     {
         b32* dest = optional_start_token ? optional_start_token : &result;
-        *dest = Long_Index_ParsePattern(ctx, "%t", start_token);
+        *dest = Long_CS_ParseStr(ctx, start_token);
     }
     
     b32 has_base_type = !(flags & Long_ParseFlag_NoBase);
     if (has_base_type || base_keywords)
     {
         Range_i64 type_range = {};
-        if (has_base_type && Long_Index_ParsePattern(ctx, "%k", TokenBaseKind_ParentheticalOpen, &base)) // NOTE(long): Tupple
+        if (has_base_type && Long_CS_ParseKind(ctx, TokenBaseKind_ParentheticalOpen, &base)) // NOTE(long): Tupple
         {
             result = Long_Index_SkipExpression(ctx, TokenCsKind_Comma, 0);
             Long_Index_SkipExpression(ctx, 0, 0);
-            Long_Index_ParsePattern(ctx, "%k", TokenBaseKind_ParentheticalClose, &type_range);
+            Long_CS_ParseKind(ctx, TokenBaseKind_ParentheticalClose, &type_range);
         }
         else while (result && !ctx->done)
         {
             Long_Index_ProfileBlock(ctx->app, "[Long] Parse Base Type");
             {
-                Long_Index_ProfileBlock(ctx->app, "[Long] Parse Identifier");
-                if (base_keywords && Long_Index_ParsePattern(ctx, "%k", TokenBaseKind_Keyword, &type_range))
+#if true//LONG_INDEX_INLINE
+                result = false;
+                F4_Index_ParseCtx temp_ctx = *ctx;
+                
+                Token* token = token_it_read(&ctx->it);
+                if (token)
+                {
+                    if (base_keywords && token->kind == TokenBaseKind_Keyword)
+                    {
+                        type_range = Ii64(token);
+                        result = Long_Index_IsMatch(ctx, type_range, base_keywords, keyword_count);
+                    }
+                    else if (has_base_type && token->kind == TokenBaseKind_Identifier)
+                    {
+                        type_range = Ii64(token);
+                        result = true;
+                    }
+                }
+                else
+                    ctx->done = 1;
+                
+                if (result)
+                F4_Index_ParseCtx_Inc(ctx, F4_Index_TokenSkipFlag_SkipAll);
+                else
+                    *ctx = temp_ctx;
+#else
+                if (base_keywords && Long_CS_ParseKind(ctx, TokenBaseKind_Keyword, &type_range))
                 result = Long_Index_IsMatch(ctx, type_range, base_keywords, keyword_count);
                 else if (has_base_type)
-                result = Long_Index_ParsePattern(ctx, "%k", TokenBaseKind_Identifier, &type_range);
+                result = Long_CS_ParseKind(ctx, TokenBaseKind_Identifier, &type_range);
                 else
                     result = false;
+#endif
             }
             
             if (result)
             {
-                Long_Index_ProfileBlock(ctx->app, "[Long] Parse Operator");
                 if (base == Range_i64{})
                 base.start = type_range.start;
-                if (Long_Index_PeekPattern(ctx, "%t", "[") || Long_Index_PeekPattern(ctx, "%t", "<"))
+                if (Long_CS_PeekToken(ctx, "[") || Long_CS_PeekToken(ctx, "<"))
                 {
                     result = Long_Index_SkipBody(ctx);
                     Long_Index_PeekPrevious(ctx, type_range.end = Ii64(Long_Index_Token(ctx)).end);
@@ -83,23 +148,23 @@ function b32 Long_CS_ParseDecl(F4_Index_ParseCtx* ctx, Range_i64* base_range, Ra
         if (flags & Long_ParseFlag_NoName) name = Ii64(Long_Index_Token(ctx)->pos);
         else
         {
-            result = Long_Index_ParsePattern(ctx, "%k", TokenBaseKind_Identifier, &name);
+            result = Long_CS_ParseKind(ctx, TokenBaseKind_Identifier, &name);
             if (!result && (flags & Long_ParseFlag_Operator))
-            result = (Long_Index_ParsePattern(ctx, "%k", TokenBaseKind_Operator, &name) ||
-                      Long_Index_ParsePattern(ctx, "%k", TokenBaseKind_Keyword , &name));
+            result = (Long_CS_ParseKind(ctx, TokenBaseKind_Operator, &name) ||
+                      Long_CS_ParseKind(ctx, TokenBaseKind_Keyword , &name));
         }
     }
     
     b32 has_arg = (flags & Long_ParseFlag_HasArg);
     if (result && has_arg)
     {
-        if (Long_Index_PeekPattern(ctx, "%t", "<"))
+        if (Long_CS_PeekToken(ctx, "<"))
         Long_Index_SkipBody(ctx, 0, 1);
         // NOTE(long): Always pass over the '(' to differentiate between normal function and lambda
-        result = Long_Index_ParsePattern(ctx, "%t", "(");
+        result = Long_CS_ParseToken(ctx, "(");
     }
     
-    if (result && end_token)
+    if (result && end_token.str)
     {
         Long_Index_BeginCtxChange(ctx);
         if (has_arg)
@@ -108,7 +173,7 @@ function b32 Long_CS_ParseDecl(F4_Index_ParseCtx* ctx, Range_i64* base_range, Ra
             Long_Index_SkipBody(ctx, 0, 1);
         }
         if (result)
-        result = Long_Index_ParsePattern(ctx, "%t", end_token);
+        result = Long_CS_ParseStr(ctx, end_token);
         Long_Index_EndCtxChange(ctx);
     }
     
@@ -124,13 +189,13 @@ function b32 Long_CS_ParseDecl(F4_Index_ParseCtx* ctx, Range_i64* base_range, Ra
 
 function void Long_CS_ParseGeneric(F4_Index_ParseCtx* ctx)
 {
-    if (Long_Index_ParsePattern(ctx, "%t", "<"))
+    if (Long_CS_ParseToken(ctx, "<"))
     {
         Range_i64 generic;
-        while (Long_Index_ParsePattern(ctx, "%k", TokenBaseKind_Identifier, &generic))
+        while (Long_CS_ParseKind(ctx, TokenBaseKind_Identifier, &generic))
         {
             Long_Index_MakeNote(ctx, {}, generic, F4_Index_NoteKind_Type, 0);
-            if (!Long_Index_ParsePattern(ctx, "%t", ","))
+            if (!Long_CS_ParseToken(ctx, ","))
             break;
         }
     }
@@ -138,40 +203,6 @@ function void Long_CS_ParseGeneric(F4_Index_ParseCtx* ctx)
 
 internal F4_LANGUAGE_INDEXFILE(Long_CS_IndexFile)
 {
-    String8 cs_types[] =
-    {
-        S8Lit("bool"   ),
-        S8Lit("byte"   ),
-        S8Lit("sbyte"  ),
-        S8Lit("char"   ),
-        S8Lit("decimal"),
-        S8Lit("double" ),
-        S8Lit("float"  ),
-        S8Lit("int"    ),
-        S8Lit("uint"   ),
-        S8Lit("nint"   ),
-        S8Lit("nuint"  ),
-        S8Lit("long"   ),
-        S8Lit("ulong"  ),
-        S8Lit("short"  ),
-        S8Lit("ushort" ),
-        S8Lit("object" ),
-        S8Lit("string" ),
-        S8Lit("dynamic"),
-        S8Lit("void"   ),
-        S8Lit("var"    ),
-    };
-    
-    String8 cs_type_keywords[] =
-    {
-        S8Lit("enum"), // NOTE(long): enum has to be at the top of the list
-        S8Lit("struct"),
-        S8Lit("class"),
-        S8Lit("interface"),
-    };
-    
-    String8 cs_operator[] = { S8Lit("operator") };
-    
     while (!ctx->done)
     {
         Long_Index_ProfileBlock(ctx->app, "[Long] Parse CS");
@@ -181,7 +212,41 @@ internal F4_LANGUAGE_INDEXFILE(Long_CS_IndexFile)
         F4_Index_NoteKind kind = {};
         b32 initialized = Long_Index_IsParentInitialized(ctx);
         
-        if (0){}
+        String8 cs_types[] =
+        {
+            S8Lit("bool"   ),
+            S8Lit("byte"   ),
+            S8Lit("sbyte"  ),
+            S8Lit("char"   ),
+            S8Lit("decimal"),
+            S8Lit("double" ),
+            S8Lit("float"  ),
+            S8Lit("int"    ),
+            S8Lit("uint"   ),
+            S8Lit("nint"   ),
+            S8Lit("nuint"  ),
+            S8Lit("long"   ),
+            S8Lit("ulong"  ),
+            S8Lit("short"  ),
+            S8Lit("ushort" ),
+            S8Lit("object" ),
+            S8Lit("string" ),
+            S8Lit("dynamic"),
+            S8Lit("void"   ),
+            S8Lit("var"    ),
+        };
+        
+        String8 cs_type_keywords[] =
+        {
+            S8Lit("enum"), // NOTE(long): enum has to be at the top of the list
+            S8Lit("struct"),
+            S8Lit("class"),
+            S8Lit("interface"),
+        };
+        
+        String8 cs_operator[] = { S8Lit("operator") };
+        
+        if (0) {}
         
         //~ NOTE(long): Parent Scope Changes
         else if (ctx->active_parent && Long_Index_CtxScope(ctx).max == Long_Index_Token(ctx)->pos)
@@ -190,17 +255,17 @@ internal F4_LANGUAGE_INDEXFILE(Long_CS_IndexFile)
             Long_Index_CtxScope(ctx) = {};
             Long_Index_PopParent(ctx);
         }
-        else if (!initialized && Long_Index_PeekPattern(ctx, "%t", "=>") && !Long_Index_PeekPattern(ctx, "%t%t", "=>", "{"))
+        else if (!initialized && Long_CS_PeekToken(ctx, "=>") && !Long_CS_PeekTwo(ctx, "=>", "{"))
         {
             Long_Index_BlockCtxChange(ctx, Long_Index_BlockCtxScope(ctx, Long_CS_SkipExpression(ctx)));
-            Long_Index_ParsePattern(ctx, "%t", "=>");
+            Long_CS_ParseToken(ctx, "=>");
         }
-        else if (!initialized && Long_Index_PeekPattern(ctx, "%t", ";"))
+        else if (!initialized && Long_CS_PeekToken(ctx, ";"))
         {
             Long_Index_BlockCtxScope(ctx, 0);
         }
         
-        else if (Long_Index_ParsePattern(ctx, "%t", "{"))
+        else if (Long_CS_ParseToken(ctx, "{"))
         {
             Long_Index_PeekPrevious(ctx,
                                     {
@@ -212,7 +277,7 @@ internal F4_LANGUAGE_INDEXFILE(Long_CS_IndexFile)
                                         Long_Index_StartCtxScope(ctx);
                                     });
         }
-        else if (ctx->active_parent && Long_Index_PeekPattern(ctx, "%t", "}"))
+        else if (ctx->active_parent && Long_CS_PeekToken(ctx, "}"))
         {
             // NOTE(long): The last leaf namespace can have scope_range in one file while (base)range in other files
             // So it must be cleared here at the end of its scope
@@ -226,26 +291,26 @@ internal F4_LANGUAGE_INDEXFILE(Long_CS_IndexFile)
         }
         
         //~ NOTE(long): Namespaces
-        else if (Long_Index_ParsePattern(ctx, "%b", TokenCsKind_Namespace, &base))
+        else if (Long_CS_ParseSubKind(ctx, TokenCsKind_Namespace, &base))
         {
-            while (Long_Index_ParsePattern(ctx, "%k", TokenBaseKind_Identifier, &name))
+            while (Long_CS_ParseKind(ctx, TokenBaseKind_Identifier, &name))
             {
                 Long_Index_MakeNamespace(ctx, base, name);
-                if (!Long_Index_ParsePattern(ctx, "%t", "."))
+                if (!Long_CS_ParseToken(ctx, "."))
                 break;
             }
         }
         
         //~ NOTE(long): Using
-        else if (Long_Index_ParsePattern(ctx, "%b", TokenCsKind_Using, &base))
+        else if (Long_CS_ParseSubKind(ctx, TokenCsKind_Using, &base))
         {
             String8ListNode* node = push_array(&ctx->file->arena, String8ListNode, 1);
             sll_stack_push(ctx->file->references, node);
-            while (Long_Index_ParsePattern(ctx, "%k", TokenBaseKind_Identifier, &name))
+            while (Long_CS_ParseKind(ctx, TokenBaseKind_Identifier, &name))
             {
                 String8 using_name = push_string_copy(&ctx->file->arena, F4_Index_StringFromRange(ctx, name));
                 string_list_push(&ctx->file->arena, &node->list, using_name);
-                if (!Long_Index_ParsePattern(ctx, "%t", "."))
+                if (!Long_CS_ParseToken(ctx, "."))
                 break;
             }
         }
@@ -258,7 +323,7 @@ internal F4_LANGUAGE_INDEXFILE(Long_CS_IndexFile)
         }
         
         //~ NOTE(long): Functions
-        else if (Long_CS_ParseDecl(ctx, &base, &name, ExpandArray(cs_types), Long_ParseFlag_HasArg, "delegate", &use_modifier))
+        else if (Long_CS_ParseDecl(ctx, &base, &name, ExpandArray(cs_types), Long_ParseFlag_HasArg, S8Lit("delegate"), &use_modifier))
         {
             Long_Index_MakeNote(ctx, base, name, use_modifier ? F4_Index_NoteKind_Type : F4_Index_NoteKind_Function);
             Long_Index_BeginCtxChange(ctx);
@@ -285,15 +350,15 @@ internal F4_LANGUAGE_INDEXFILE(Long_CS_IndexFile)
         
         //~ NOTE(long): Getters/Setters
         else if (Long_Index_CtxCompare(ctx, kind == F4_Index_NoteKind_Decl) &&
-                 (Long_Index_PeekPattern(ctx, "%t%t", "get", "=>") || Long_Index_PeekPattern(ctx, "%t%t", "set", "=>") ||
-                  Long_Index_PeekPattern(ctx, "%t%t", "get", "{" ) || Long_Index_PeekPattern(ctx, "%t%t", "set", "{" )))
+                 (Long_CS_PeekTwo(ctx, "get", "=>") || Long_CS_PeekTwo(ctx, "set", "=>") ||
+                  Long_CS_PeekTwo(ctx, "get", "{" ) || Long_CS_PeekTwo(ctx, "set", "{" )))
         {
-            Long_Index_ParsePattern(ctx, "%k", TokenBaseKind_Identifier, &name);
+            Long_CS_ParseKind(ctx, TokenBaseKind_Identifier, &name);
             Long_Index_MakeNote(ctx, {}, name, F4_Index_NoteKind_Function);
         }
         
         //~ NOTE(long): Lambda (Anonymous Function)
-        else if (Long_CS_ParseDecl(ctx, &base, &name, 0, 0, Long_ParseFlag_NoName|Long_ParseFlag_Anonymous, 0, 0, "=>"))
+        else if (Long_CS_ParseDecl(ctx, &base, &name, 0, 0, Long_ParseFlag_NoName|Long_ParseFlag_Anonymous, {}, 0, S8Lit("=>")))
         {
             Long_Index_MakeNote(ctx, base, name, F4_Index_NoteKind_Function);
         }
@@ -306,7 +371,7 @@ internal F4_LANGUAGE_INDEXFILE(Long_CS_IndexFile)
         }
         
         //~ NOTE(long): Declarations
-        else if (Long_CS_ParseDecl(ctx, &base, &name, ExpandArray(cs_types), 0, "out", &use_modifier))
+        else if (Long_CS_ParseDecl(ctx, &base, &name, ExpandArray(cs_types), 0, S8Lit("out"), &use_modifier))
         {
             kind = F4_Index_NoteKind_Decl;
             
@@ -314,12 +379,12 @@ internal F4_LANGUAGE_INDEXFILE(Long_CS_IndexFile)
             Long_Index_MakeNote(ctx, base, name, kind);
             if (use_modifier)
             Long_Index_PopParent(ctx);
-            else if (!range_size(base) || (!Long_Index_PeekPattern(ctx, "%t", "=>") && !Long_Index_PeekPattern(ctx, "%t", "{")))
+            else if (!range_size(base) || (!Long_CS_PeekToken(ctx, "=>") && !Long_CS_PeekToken(ctx, "{")))
             {
                 Long_Index_BeginCtxChange(ctx);
                 
                 i64 start_pos = Long_Index_Token(ctx)->pos;
-                if (Long_Index_ParsePattern(ctx, "%t", "="))
+                if (Long_CS_ParseToken(ctx, "="))
                 Long_CS_SkipExpression(ctx);
                 i64 end_pos = Long_Index_Token(ctx)->pos;
                 Long_Index_CtxScope(ctx) = { start_pos, end_pos };
@@ -328,7 +393,7 @@ internal F4_LANGUAGE_INDEXFILE(Long_CS_IndexFile)
             }
         }
         
-        else if (Long_Index_ParsePattern(ctx, "%k", TokenBaseKind_Identifier, &name))
+        else if (Long_CS_ParseKind(ctx, TokenBaseKind_Identifier, &name))
         {
             F4_Index_Note* prev_sibling = ctx->active_parent ? ctx->active_parent->last_child : ctx->file->last_note;
             if (prev_sibling && prev_sibling->kind == F4_Index_NoteKind_Decl && prev_sibling->scope_range.max)
@@ -377,16 +442,17 @@ internal F4_LANGUAGE_INDEXFILE(Long_CS_IndexFile)
         }
         
         //~ NOTE(long): Parse Define Macro
-        else if (Long_Index_ParsePattern(ctx, "%b", TokenCsKind_PPDefine, &name) ||
-                 Long_Index_ParsePattern(ctx, "%b", TokenCsKind_PPRegion,     0) ||
-                 Long_Index_ParsePattern(ctx, "%b", TokenCsKind_PPIf    ,     0) ||
-                 Long_Index_ParsePattern(ctx, "%b", TokenCsKind_PPElIf  ,     0))
+        else if (Long_CS_ParseSubKind(ctx, TokenCsKind_PPDefine, 0))
         {
-            if (name.min)
-            {
-                Long_Index_ParsePattern(ctx, "%k", TokenBaseKind_Identifier, &name);
-                Long_Index_MakeNote(ctx, {}, name, F4_Index_NoteKind_Macro, 0);
-            }
+            Long_CS_ParseKind(ctx, TokenBaseKind_Identifier, &name);
+            Long_Index_MakeNote(ctx, {}, name, F4_Index_NoteKind_Macro, 0);
+            goto SKIP_PP_BODY;
+        }
+        else if (Long_CS_ParseSubKind(ctx, TokenCsKind_PPRegion,     0) ||
+                 Long_CS_ParseSubKind(ctx, TokenCsKind_PPIf    ,     0) ||
+                 Long_CS_ParseSubKind(ctx, TokenCsKind_PPElIf  ,     0))
+        {
+            SKIP_PP_BODY:
             F4_Index_SkipSoftTokens(ctx, 1);
         }
         
@@ -430,23 +496,28 @@ Long_CS_ParsePosContext(Application_Links* app, Arena* arena, Buffer_ID buffer, 
         }
         else if (paren_nest >= 0)
         {
-            if (token->kind == TokenBaseKind_Identifier && (i < 2 || (i == 2 && access_found)) && tooltip_count == 0)
+            if (token->kind == TokenBaseKind_Identifier && tooltip_count == 0)
             {
-                LOOKUP:
-                F4_Index_Note* note = Long_Index_LookupBestNote(app, buffer, array, token);
-                if (note)
+                b32 field_accessing = (i == 2 && access_found);
+                b32 inside_token = range_contains_inclusive(Ii64(token), pos);
+                if (field_accessing || inside_token)
                 {
-                    i32 index = access_found;
-                    if (note->kind == F4_Index_NoteKind_Function)
+                    LOOKUP:
+                    F4_Index_Note* note = Long_Index_LookupBestNote(app, buffer, array, token);
+                    if (note)
                     {
-                        index = has_arg ? arg_idx : -1; // NOTE(long): -1 means don't highlight any argument
-                        arg_idx = 0;
-                    }
-                    
-                    if (note->range.min != token->pos)
-                    {
-                        F4_Language_PosContext_PushData(arena, &first, &last, note, 0, index);
-                        tooltip_count++;
+                        i32 index = access_found;
+                        if (note->kind == F4_Index_NoteKind_Function)
+                        {
+                            index = has_arg ? arg_idx : -1; // NOTE(long): -1 means don't highlight any argument
+                            arg_idx = 0;
+                        }
+                        
+                        if (note->range.min != token->pos)
+                        {
+                            F4_Language_PosContext_PushData(arena, &first, &last, note, 0, index);
+                            tooltip_count++;
+                        }
                     }
                 }
             }
@@ -488,25 +559,53 @@ internal F4_LANGUAGE_HIGHLIGHT(Long_CS_Highlight)
         if (token->kind == TokenBaseKind_Identifier)
         {
             F4_Index_Note* note = Long_Index_LookupBestNote(app, buffer, array, token);
-            if (note && note->parent)
+            if (note)
             {
                 switch (note->kind)
                 {
                     case F4_Index_NoteKind_Decl:
                     {
-                        ARGB_Color color;
+                        if (note->parent)
+                        {
+                            ARGB_Color color;
+                            if (Long_Index_IsArgument(note))
+                            color = F4_ARGBFromID(color_table, long_color_index_param);
+                            else if (note->parent->kind == F4_Index_NoteKind_Type)
+                            color = F4_ARGBFromID(color_table, long_color_index_field);
+                            else
+                                color = F4_ARGBFromID(color_table, long_color_index_local);
+                            
+                            if (!F4_ARGBIsValid(color))
+                            color = F4_ARGBFromID(color_table, defcolor_text_default);
+                            paint_text_color(app, text_layout_id, Ii64(token), color);
+                        }
+                    } break;
+                    
+                    case F4_Index_NoteKind_Type:
+                    {
+                        if (Long_Index_IsNamespace(note)) break;
                         
-                        if (Long_Index_IsArgument(note))
-                        color = F4_ARGBFromID(color_table, long_color_index_param);
-                        else if (note->parent->kind == F4_Index_NoteKind_Type)
-                        color = F4_ARGBFromID(color_table, long_color_index_field);
-                        else
-                            color = F4_ARGBFromID(color_table, long_color_index_local);
-                        
-                        if (!F4_ARGBIsValid(color))
-                        color = F4_ARGBFromID(color_table, defcolor_text_default);
-                        
+                        NOTE_TYPE_CASE:
+                        Scratch_Block scratch(app);
+                        String8 base_type = push_buffer_range(app, scratch, note->file->buffer, note->base_range);
+                        String8 types[] = { S8Lit("struct"), S8Lit("enum") };
+                        ARGB_Color color = F4_ARGBFromID(color_table, fleury_color_index_product_type);
+                        if (Long_Index_IsMatch(base_type, ExpandArray(types)))
+                        {
+                            ARGB_Color value_type_color = F4_ARGBFromID(color_table, fleury_color_index_sum_type);
+                            if (F4_ARGBIsValid(value_type_color))
+                            color = value_type_color;
+                        }
                         paint_text_color(app, text_layout_id, Ii64(token), color);
+                    } break;
+                    
+                    case F4_Index_NoteKind_Function:
+                    {
+                        if (note->parent && note->parent->kind == F4_Index_NoteKind_Type && string_match(note->string, note->parent->string))
+                        {
+                            note = note->parent;
+                            goto NOTE_TYPE_CASE;
+                        }
                     } break;
                 }
             }

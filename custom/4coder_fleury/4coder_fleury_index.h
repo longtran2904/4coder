@@ -45,10 +45,11 @@ struct F4_Index_Note
     F4_Index_NoteKind kind;
     F4_Index_NoteFlags flags;
     F4_Index_File *file;
-	int file_generation;
     Range_i64 range;
+	int file_generation;
     
     // NOTE(long): These are the only new fields that I add
+    F4_Index_Note* ref;
     Range_i64 scope_range;
     Range_i64 base_range;
 };

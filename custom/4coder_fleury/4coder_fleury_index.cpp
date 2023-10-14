@@ -257,8 +257,39 @@ F4_Index_InsertNote(F4_Index_ParseCtx *ctx, F4_Index_Note *note, Range_i64 name_
         // NOTE(rjf): Push to duplicate chain.
         {
             F4_Index_Note *list_head = Long_Index_LookupNote(string);
+            Long_Index_ProfileBlock(ctx->app, "[Long] Insert Note");
+#if LONG_INDEX_INSERT_QUEUE
+            if(list_head != 0)
+            {
+                note->next = list_head;
+                note->hash_next = list_head->hash_next;
+                note->hash_prev = list_head->hash_prev;
+                
+                list_head->prev = note;
+                list_head->hash_next = list_head->hash_prev = 0;
+                
+                if (note->hash_next)
+                note->hash_next->hash_prev = note;
+                
+                if (note->hash_prev)
+                note->hash_prev->hash_next = note;
+                else
+                    f4_index.note_table[slot] = note;
+            }
+            else
+            {
+                note->hash_next = f4_index.note_table[slot];
+                if(f4_index.note_table[slot])
+                f4_index.note_table[slot]->hash_prev = note;
+                f4_index.note_table[slot] = note;
+                note->hash_prev = 0;
+                note->next = 0;
+            }
+            note->prev = 0;
+#else
             F4_Index_Note *list_tail = list_head;
-            for(F4_Index_Note *note = list_tail; note; list_tail = note, note = note->next);
+            for (F4_Index_Note *note = list_tail; note; list_tail = note, note = note->next);
+            
             if(list_tail != 0)
             {
                 list_tail->next = note;
@@ -277,8 +308,9 @@ F4_Index_InsertNote(F4_Index_ParseCtx *ctx, F4_Index_Note *note, Range_i64 name_
                 note->hash_prev = 0;
                 note->prev = 0;
             }
+            note->next = 0;
+#endif
         }
-        note->next = 0;
         
         // NOTE(rjf): Push to tree.
         {
@@ -710,6 +742,7 @@ function void
 F4_Index_Tick(Application_Links *app)
 {
     Scratch_Block scratch(app);
+    b32 modified = global_buffer_modified_set.first != 0;
     for (Buffer_Modified_Node *node = global_buffer_modified_set.first; node != 0;node = node->next)
     {
         Temp_Memory_Block temp(scratch);
@@ -730,4 +763,14 @@ F4_Index_Tick(Application_Links *app)
         F4_Index_Unlock();
         buffer_clear_layout_cache(app, buffer_id);
     }
+    
+#if LONG_INDEX_PRELOAD_REF
+    if (modified)
+    {
+        Long_Index_ProfileScope(app, "[Long] Init References");
+        F4_Index_Lock();
+        Long_Index_PreloadRef(app);
+        F4_Index_Unlock();
+    }
+#endif
 }
