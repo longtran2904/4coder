@@ -5,7 +5,7 @@ keys_global =
     { "exit_4coder",                     "F4",     "Alt"              },
     { "change_active_panel",             "Comma",  "Control"          },
     { "change_active_panel_backwards",   "Comma",  "Control", "Shift" },
-    { "project_go_to_root_directory",    "Home",   "Alt"              },
+    { "project_go_to_root_directory",    "H",      "Alt"              },
     { "f4_toggle_compilation_expand",    "Insert"                     },
     { "change_to_build_panel",           "Period", "Alt"              },
     { "close_build_panel",               "Comma",  "Alt"              },
@@ -18,17 +18,17 @@ keys_global =
     { "toggle_filebar",                           "B",             "Alt" },
     
     // NOTE(rjf): Files
-    { "interactive_new",                       "N", "Control"          },
-    { "setup_new_project",                     "N", "Control", "Shift" },
-    { "interactive_open_or_new",               "O", "Control"          },
-    { "f4_interactive_open_or_new_in_project", "O", "Alt"              },
-    { "f4_open_project",                       "O", "Control", "Shift" },
-    { "long_interactive_kill_buffer",          "K", "Control"          },
-    { "long_interactive_switch_buffer",        "I", "Control"          },
-    { "save_all_dirty_buffers",                "S", "Control", "Shift" },
-    { "f4_recent_files_menu",                  "V", "Alt"              },
-    { "long_reload_all_themes_default_folder", "H", "Control", "Shift" },
-    { "long_theme_lister",                     "H", "Control"          },
+    { "interactive_new",                         "N", "Control"          },
+    { "setup_new_project",                       "N", "Control", "Shift" },
+    { "interactive_open_or_new",                 "O", "Control"          },
+    { "f4_interactive_open_or_new_in_project",   "O", "Alt"              },
+    { "f4_open_project",                         "O", "Control", "Shift" },
+    { "long_interactive_kill_buffer",            "K", "Control"          },
+    { "long_interactive_switch_buffer",          "I", "Control"          },
+    { "save_all_dirty_buffers",                  "S", "Control", "Shift" },
+    { "f4_recent_files_menu",                    "V", "Alt"              },
+    { "long_reload_all_themes_default_folder",   "H", "Control", "Shift" },
+    { "long_theme_lister",                       "H", "Control"          },
     { "long_kill_search_buffer",                 "K", "Control", "Alt"   },
     { "long_switch_to_search_buffer",            "I", "Control", "Alt"   },
     
@@ -93,15 +93,11 @@ keys_file =
     // NOTE(long): Shift binding will make notepad-mode unselectable
     { "move_left",                                       "Left"                  },
     { "move_left_whitespace_or_token_boundary",          "Left",  "Control"      },
-    { "long_move_left_boundary",                         "Left",  "Shift"        },
     { "move_left_alpha_numeric_or_camel_boundary",       "Left",  "Alt"          },
-    { "long_move_left_alpha_numeric_or_camel_boundary",  "Left",  "Alt", "Shift" },
     
     { "move_right",                                      "Right"                 },
     { "move_right_whitespace_or_token_boundary",         "Right", "Control"      },
-    { "long_move_right_boundary",                        "Right", "Shift"        },
     { "move_right_alpha_numeric_or_camel_boundary",      "Right", "Alt"          },
-    { "long_move_right_alpha_numeric_or_camel_boundary", "Right", "Alt", "Shift" },
     
     // NOTE(rjf): Up/Down Arrow Keys
     { "move_up",                       "Up" },
@@ -110,8 +106,8 @@ keys_file =
     { "move_line_down",                "Down", "Alt" },
 	{ "move_up_to_blank_line_end",     "Up", "Control" },
     { "move_down_to_blank_line_end",   "Down", "Control" },
-    { "f4_move_up_token_occurrence",   "Up", "Control", "Alt" },
-    { "f4_move_down_token_occurrence", "Down", "Control", "Alt" },
+    { "long_move_up_token_occurrence",   "Up", "Control", "Alt" },
+    { "long_move_down_token_occurrence", "Down", "Control", "Alt" },
 	
     // NOTE(rjf): Alternative Movement Keys
     { "seek_end_of_line",                    "End"      },
@@ -120,10 +116,10 @@ keys_file =
     { "page_down",                           "PageDown" },
     { "goto_beginning_of_file",              "PageUp",   "Control" },
     { "goto_end_of_file",                    "PageDown", "Control" },
-    { "f4_move_to_next_divider_comment",     "Down",     "Control", "Shift" },
-    { "f4_move_to_prev_divider_comment",     "Up",       "Control", "Shift" },
-    { "long_move_to_next_function_and_type", "Down",     "Control", "Shift", "Alt" },
-    { "long_move_to_prev_function_and_type", "Up",       "Control", "Shift", "Alt" },
+    { "f4_move_to_prev_divider_comment",     "PageUp",   "Control", "Shift" },
+    { "f4_move_to_next_divider_comment",     "PageDown", "Control", "Shift" },
+    { "long_move_to_prev_function_and_type", "Up",       "Shift"  , "Alt" },
+    { "long_move_to_next_function_and_type", "Down",     "Shift"  , "Alt" },
     
     // NOTE(rjf): Mark
     { "set_mark",         "Space", "Control" },
@@ -134,9 +130,9 @@ keys_file =
     //             Shift => Sensitive-String vs Insensitive-Substring
     
     // NOTE(rjf): Search
-    { "f4_search",                                                         "F", "Control" },
-    { "f4_reverse_search",                                                 "R", "Control" },
-    { "search_identifier",                                                 "T", "Control" },
+    { "long_search",                                                         "F", "Control" },
+    { "long_reverse_search",                                                 "R", "Control" },
+    { "long_search_identifier",                                                 "T", "Control" },
     { "goto_line",                                                         "G", "Control" },
     { "long_search_case_sensitive",                                 "F", "Control", "Shift"},
     { "long_reverse_search_case_sensitive",                         "R", "Control", "Shift"},
@@ -154,9 +150,9 @@ keys_file =
     
     // NOTE(rjf): Replace
     { "replace_in_range",                              "A", "Control" },
-    { "query_replace",                                 "Q", "Control" },
-    { "query_replace_identifier",                      "Q", "Control", "Shift" },
-    { "query_replace_selection",                       "Q", "Alt" },
+    { "long_query_replace",                                 "Q", "Control" },
+    { "long_query_replace_identifier",                      "Q", "Control", "Shift" },
+    { "long_query_replace_selection",                       "Q", "Alt" },
     
     // NOTE(rjf): Clipboard
     { "copy",                                          "C", "Control" },
@@ -183,10 +179,11 @@ keys_file =
     { "long_kill_buffer",                              "K", "Control", "Shift" },
     { "reopen",                                        "O", "Alt",     "Shift" },
     { "save",                                          "S", "Control"          },
-    { "save_all_dirty_buffers",                        "S", "Control", "Shift" },
     { "redo",                                          "Y", "Control"          },
     { "undo",                                          "Z", "Control"          },
     { "view_buffer_other_panel",                       "W", "Control", "Shift" },
+    
+    // TODO(long): Should I bind undo/redo_all_buffers
     
     // NOTE(rjf): Meta
     { "swap_panels",                                   "W", "Control" },
@@ -226,10 +223,10 @@ keys_code =
     
     { "select_prev_scope_absolute",                          "LeftBracket",  "Control" },
     { "select_next_scope_absolute",                          "RightBracket", "Control" },
-    { "long_select_prev_scope_after_current",                "LeftBracket",  "Control", "Shift" },
-    { "select_next_scope_after_current",                     "RightBracket", "Control", "Shift" },
-    { "select_prev_top_most_scope",                          "LeftBracket",  "Control", "Alt"   },
-    { "long_select_next_top_most_scope",                     "RightBracket", "Control", "Alt"   },
+    { "long_select_upper_scope",                             "LeftBracket",  "Control", "Shift" },
+    { "long_select_lower_scope",                             "RightBracket", "Control", "Shift" },
+    { "long_select_prev_scope_current_level",                "LeftBracket",  "Control", "Alt"   },
+    { "long_select_next_scope_current_level",                "RightBracket", "Control", "Alt"   },
     
     /* NOTE(long): Will I ever actually use this?
     { "write_block",                                         "1",            "Control" },

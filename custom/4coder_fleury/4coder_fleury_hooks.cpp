@@ -226,6 +226,11 @@ F4_RenderBuffer(Application_Links *app, View_ID view_id, Face_ID face_id,
     f32 cursor_roundness = metrics.normal_advance*cursor_roundness_100*0.01f;
     f32 mark_thickness = (f32)def_get_config_u64(app, vars_save_string_lit("mark_thickness"));
     
+    // NOTE(long): Jump list highlights
+    {
+        Long_Highlight_DrawList(app, buffer, text_layout_id, cursor_roundness);
+    }
+    
     // NOTE(rjf): Cursor
     switch (fcoder_mode)
     {
@@ -373,8 +378,9 @@ F4_DrawFileBar(Application_Links *app, View_ID view_id, Buffer_ID buffer, Face_I
     
     Fancy_Line list = {};
     String_Const_u8 unique_name = push_buffer_unique_name(app, scratch, buffer);
-    push_fancy_string(scratch, &list, base_color, unique_name);
-    push_fancy_stringf(scratch, &list, base_color, " - Row: %3.lld Col: %3.lld Pos: %3.lld -", cursor.line, cursor.col, cursor.pos);
+    push_fancy_string (scratch, &list, base_color, unique_name);
+    push_fancy_stringf(scratch, &list, base_color, " - ID: %3.d Row: %3.lld Col: %3.lld Pos: %3.lld -",
+                       buffer, cursor.line, cursor.col, cursor.pos);
     
     Managed_Scope scope = buffer_get_managed_scope(app, buffer);
     Line_Ending_Kind *eol_setting = scope_attachment(app, scope, buffer_eol_setting,

@@ -236,7 +236,7 @@ function b32 Long_Index_SkipBody(Application_Links* app, Token_Iterator_Array* i
     return paren_nest == 0 && scope_nest == 0 && gener_nest == 0 && (dec ? (final_nest >= 0) : (final_nest <= 0));
 }
 
-// NOTE(long): This function was ripped from F4_Index_ParsePattern and modified so that it takes a va_list and output a Range_i64
+// COPYPASTA(long): F4_Index_ParsePattern
 function b32 _Long_Index_ParsePattern(F4_Index_ParseCtx* ctx, char* fmt, va_list _args)
 {
     Long_Index_ProfileScope(ctx->app, "[Long] Parse Pattern");
@@ -433,7 +433,7 @@ function void Long_Index_EraseNote(Application_Links* app, F4_Index_Note* note)
     }
 }
 
-// NOTE(long): This function was ripped from _F4_Index_FreeNoteTree and modified so that it uses IterateValidNoteInFile
+// COPYPASTA(long): _F4_Index_FreeNoteTree
 function void Long_Index_FreeNoteTree(F4_Index_Note *note)
 {
     Long_Index_IterateValidNoteInFile(child, note)
@@ -1227,6 +1227,10 @@ function void Long_Index_DrawTooltip(Application_Links* app, Rect_f32 screen_rec
 function void Long_Index_DrawPosContext(Application_Links* app, View_ID view, F4_Language_PosContextData* first_ctx)
 {
     if (!long_global_pos_context_open) return;
+    
+    // NOTE(long): In emacs style, has_highlight_range is only true when searching/multi-selecting
+    b32 has_highlight_range = *scope_attachment(app, view_get_managed_scope(app, view), view_highlight_buffer, Buffer_ID) != 0;
+    if (has_highlight_range) return;
     
     Vec2_f32 offset = {};
     Rect_f32 screen = view_get_screen_rect(app, view);

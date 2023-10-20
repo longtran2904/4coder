@@ -544,7 +544,7 @@ generic_parse_statement(Code_Index_File *index, Generic_Parse_State *state){
         if (token->kind == TokenBaseKind_ScopeOpen  ||
             token->kind == TokenBaseKind_ScopeClose ||
             token->kind == TokenBaseKind_ParentheticalOpen
-            )
+        )
         {
             result->is_closed = true;
             result->close = Ii64(token->pos);
@@ -693,7 +693,7 @@ generic_parse_scope(Code_Index_File *index, Generic_Parse_State *state){
             
 #if LONG_CS_INDENT_ATTRIBUTE
             if (token->sub_kind == TokenCsKind_BrackOp)
-                continue;
+            continue;
 #endif
             
             // NOTE(allen): after a parenthetical group we consider ourselves immediately
@@ -937,7 +937,7 @@ layout_index_x_shift(Application_Links *app, Layout_Reflex *reflex, Code_Index_N
 #if LONG_INDEX_INDENT_PAREN
                     && (!nest->parent || nest->parent->kind != CodeIndexNest_Paren || nest->nest_array.ptrs)
 #endif
-                    ){
+                ){
                     result += regular_indent;
                 }
             }break;
