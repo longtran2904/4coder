@@ -712,19 +712,6 @@ function b32 Long_Query_User_String(Application_Links *app, Query_Bar *bar, Stri
     return(success);
 }
 
-// COPYPASTA(long): get_query_string
-function String8 Long_Get_Query_String(Application_Links *app, char *query_str, u8 *string_space, i32 space_size){
-    Query_Bar_Group group(app);
-    Query_Bar bar = {};
-    bar.prompt = SCu8((u8*)query_str);
-    bar.string = SCu8(string_space, (u64)0);
-    bar.string_capacity = space_size;
-    if (!Long_Query_User_String(app, &bar, string_u8_empty)){
-        bar.string.size = 0;
-    }
-    return(bar.string);
-}
-
 function Range_i32 Long_Highlight_GetRange(Locked_Jump_State state, i32 selection_offset)
 {
     Range_i32 result;
@@ -735,21 +722,94 @@ function Range_i32 Long_Highlight_GetRange(Locked_Jump_State state, i32 selectio
     return result;
 }
 
-function b32 Long_SearchBuffer_MultiSelect(Application_Links* app, String8 search_string)
+function Marker* Long_SearchBuffer_GetMarkers(Application_Links* app, Arena* arena, Managed_Scope search_scope,
+                                              Buffer_ID buffer, i32* out_count)
 {
+    Managed_Scope scopes[2];
+    scopes[0] = search_scope;
+    scopes[1] = buffer_get_managed_scope(app, buffer);
+    Managed_Scope comp_scope = get_managed_scope_with_multiple_dependencies(app, scopes, ArrayCount(scopes));
+    Managed_Object* markers_object = scope_attachment(app, comp_scope, sticky_jump_marker_handle, Managed_Object);
+    
+    i32 count = managed_object_get_item_count(app, *markers_object);
+    *out_count = count;
+    
+    Marker* markers = push_array(arena, Marker, count);
+    managed_object_load_data(app, *markers_object, 0, count, markers);
+    return markers;
+}
+
+function void Long_SearchBuffer_Jump(Application_Links* app, Locked_Jump_State state, Sticky_Jump jump)
+{
+    goto_jump_in_order(app, state.list, state.view, { jump.jump_buffer_id, jump.jump_pos });
+    view_set_cursor_and_preferred_x(app, state.view, seek_line_col(jump.list_line, 1));
+}
+
+function Sticky_Jump Long_SearchBuffer_NearestJump(Application_Links* app, View_ID view, Locked_Jump_State state, Managed_Scope scope)
+{
+    Scratch_Block scratch(app);
+    Buffer_ID current_buffer = view_get_buffer(app, view, 0);
+    i64 pos = view_get_cursor_pos(app, view);
+    Long_PointStack_Push(app, current_buffer, pos, view);
+    
+    i32 list_index = -1;
+    Sticky_Jump_Stored* storage = 0;
+    
+    i32 count;
+    Marker* markers = Long_SearchBuffer_GetMarkers(app, scratch, scope, current_buffer, &count);
+    if (markers)
+    {
+        i32 marker_index = binary_search(&markers->pos, sizeof(*markers), count, pos);
+        storage = get_all_stored_jumps_from_list(app, scratch, state.list);
+        for (i32 i = 0; i < state.list->jump_count; ++i)
+        {
+            if (storage[i].jump_buffer_id == current_buffer && storage[i].index_into_marker_array == marker_index)
+            {
+                list_index = i;
+                break;
+            }
+        }
+    }
+    
+    Sticky_Jump result = {};
+    if (list_index >= 0)
+    {
+        result.list_line        = storage[list_index].list_line;
+        result.list_colon_index = storage[list_index].list_colon_index;
+        result.is_sub_error     = storage[list_index].is_sub_error;
+        result.jump_buffer_id   = storage[list_index].jump_buffer_id;
+        result.jump_pos = markers[storage[list_index].index_into_marker_array].pos;
+    }
+    return result;
+}
+
+function void Long_SearchBuffer_MultiSelect(Application_Links* app, View_ID view, Buffer_ID search_buffer, String8 search_string)
+{
+    if (get_active_view(app, Access_ReadVisible) != view)
+    view_set_active(app, view); 
+    
     Query_Bar_Group group(app);
     Query_Bar bar = {};
     if (!start_query_bar(app, &bar, 0))
-    return false;
+    return;
     
-    Managed_Scope scope = buffer_get_managed_scope(app, Long_Buffer_GetSearchBuffer(app));
+    Managed_Scope scope = buffer_get_managed_scope(app, search_buffer);
+    {
+        lock_jump_buffer(app, search_buffer);
+        Locked_Jump_State jump_state = get_locked_jump_state(app, &global_heap);
+        Sticky_Jump jump = Long_SearchBuffer_NearestJump(app, view, jump_state, scope);
+        if (jump.jump_buffer_id)
+        Long_SearchBuffer_Jump(app, jump_state, jump);
+        else
+            goto_first_jump(app);
+    }
+    
     i32* selection_offset = scope_attachment(app, scope, long_start_selection_offset, i32);
     i64* size = scope_attachment(app, scope, long_search_string_size, i64);
+    *size = search_string.size;
     
     b32 abort = false, in_replace_mode = false, exit_to_jump_highlight = false;
     def_set_config_b32(vars_save_string_lit("use_jump_highlight"), 0);
-    
-    View_ID view = get_active_view(app, Access_ReadVisible);
     
     u8 backing_buffer[LONG_QUERY_STRING_SIZE];
     block_copy(backing_buffer, search_string.str, search_string.size);
@@ -899,8 +959,11 @@ function b32 Long_SearchBuffer_MultiSelect(Application_Links* app, String8 searc
     def_set_config_b32(vars_save_string_lit("use_jump_highlight"), 1);
     else
         long_kill_search_buffer(app);
+    
+    if (abort)
+    Long_PointStack_JumpNext(app, view, 0, 1);
+    
     view_disable_highlight_range(app, view);
-    return !abort;
 }
 
 function void Long_ListAllLocations(Application_Links *app, String_Const_u8 needle, List_All_Locations_Flag flags, b32 all_buffer)
@@ -924,18 +987,20 @@ function void Long_ListAllLocations(Application_Links *app, String_Const_u8 need
     String8 no_match = S8Lit("no matches");
     String8 search_result = push_buffer_range(app, scratch, search_buffer, Ii64_size(0, no_match.size));
     if (!string_match(search_result, no_match))
-    {
-        Managed_Scope scope = buffer_get_managed_scope(app, search_buffer);
-        i64* size = scope_attachment(app, scope, long_search_string_size, i64);
-        *size = needle.size;
-        
-        Long_PointStack_Push(app, current_buffer, view_get_cursor_pos(app, view), view);
-        lock_jump_buffer(app, search_buffer);
-        goto_first_jump(app);
-        b32 abort = !Long_SearchBuffer_MultiSelect(app, needle);
-        if (abort)
-        Long_PointStack_JumpNext(app, view, 0, 1);
+    Long_SearchBuffer_MultiSelect(app, view, search_buffer, needle);
+}
+
+// COPYPASTA(long): get_query_string
+function String8 Long_Get_Query_String(Application_Links *app, char *query_str, u8 *string_space, i32 space_size){
+    Query_Bar_Group group(app);
+    Query_Bar bar = {};
+    bar.prompt = SCu8((u8*)query_str);
+    bar.string = SCu8(string_space, (u64)0);
+    bar.string_capacity = space_size;
+    if (!Long_Query_User_String(app, &bar, string_u8_empty)){
+        bar.string.size = 0;
     }
+    return(bar.string);
 }
 
 function void Long_ListAllLocations_Query(Application_Links *app, char* query, List_All_Locations_Flag flags, b32 all_buffer)
@@ -1010,19 +1075,13 @@ function void Long_Highlight_DrawList(Application_Links *app, Buffer_ID buffer, 
     Buffer_ID search_buffer = Long_Buffer_GetSearchBuffer(app);
     if (search_buffer && string_match(locked_buffer, search_name))
     {
-        Managed_Scope scopes[2];
-        scopes[0] = buffer_get_managed_scope(app, search_buffer);
-        scopes[1] = buffer_get_managed_scope(app, buffer);
-        Managed_Scope comp_scope = get_managed_scope_with_multiple_dependencies(app, scopes, ArrayCount(scopes));
-        Managed_Object* markers_object = scope_attachment(app, comp_scope, sticky_jump_marker_handle, Managed_Object);
+        Managed_Scope scope = buffer_get_managed_scope(app, search_buffer);
+        i64 size = *scope_attachment(app, scope, long_search_string_size, i64);
+        i32 selection_offset = *scope_attachment(app, scope, long_start_selection_offset, i32);
         
         Scratch_Block scratch(app);
-        i32 count = managed_object_get_item_count(app, *markers_object);
-        Marker* markers = push_array(scratch, Marker, count);
-        managed_object_load_data(app, *markers_object, 0, count, markers);
-        
-        i64 size = *scope_attachment(app, scopes[0], long_search_string_size, i64);
-        i32 selection_offset = *scope_attachment(app, scopes[0], long_start_selection_offset, i32);
+        i32 count;
+        Marker* markers = Long_SearchBuffer_GetMarkers(app, scratch, scope, buffer, &count);
         
         Range_i32 select_range;
         {
@@ -1040,16 +1099,14 @@ function void Long_Highlight_DrawList(Application_Links *app, Buffer_ID buffer, 
         for (i32 i = 0; i < count; i += 1)
         {
             Range_i64 range = Ii64_size(markers[i].pos, size);
-            draw_character_block(app, layout, range, 0.f, fcolor_id(defcolor_highlight_white));
             // NOTE(long): If the user only has one selection, the MultiSelect function already handles it
-            if (range_size(select_range) != 0)
+            if (range_size(select_range) != 0 && range_contains_inclusive(select_range, i))
             {
-                if (range_contains_inclusive(select_range, i))
-                {
-                    draw_character_block(app, layout, range, roundness, fcolor_id(defcolor_highlight));
-                    paint_text_color_fcolor(app, layout, range, fcolor_id(defcolor_at_highlight));
-                }
+                draw_character_block(app, layout, range, roundness, fcolor_id(defcolor_highlight));
+                paint_text_color_fcolor(app, layout, range, fcolor_id(defcolor_at_highlight));
             }
+            else
+                draw_character_block(app, layout, range, 0.f, fcolor_id(fleury_color_token_minor_highlight));
         }
     }
 }
@@ -1107,6 +1164,7 @@ function void Long_ISearch(Application_Links* app, Scan_Direction start_scan, i6
         
         String_Const_u8 string = to_writable(&in);
         b32 string_change = false;
+        b32 trigger_command = true;
         
         if (match_key_code(&in, KeyCode_Return) || match_key_code(&in, KeyCode_Tab))
         {
@@ -1126,6 +1184,11 @@ function void Long_ISearch(Application_Links* app, Scan_Direction start_scan, i6
             }
         }
         
+        else if (match_key_code(&in, KeyCode_E) && has_modifier(&in, KeyCode_Control))
+        {
+            center_view(app);
+        }
+        
         else if (match_key_code(&in, KeyCode_V) && has_modifier(&in, KeyCode_Control))
         {
             Scratch_Block scratch(app);
@@ -1137,14 +1200,6 @@ function void Long_ISearch(Application_Links* app, Scan_Direction start_scan, i6
                 bar.string = bar_string.string;
                 string_change = true;
             }
-        }
-        
-        else if (string.str != 0 && string.size > 0)
-        {
-            String_u8 bar_string = Su8(bar.string, sizeof(bar_string_space));
-            string_append(&bar_string, string);
-            bar.string = bar_string.string;
-            string_change = true;
         }
         
         else if (match_key_code(&in, KeyCode_Backspace))
@@ -1165,6 +1220,18 @@ function void Long_ISearch(Application_Links* app, Scan_Direction start_scan, i6
             }
         }
         
+        else
+        {
+            trigger_command = false;
+            if (string.str != 0 && string.size > 0)
+            {
+                String_u8 bar_string = Su8(bar.string, sizeof(bar_string_space));
+                string_append(&bar_string, string);
+                bar.string = bar_string.string;
+                string_change = true;
+            }
+        }
+        
         b32 do_scan_action = false;
         b32 do_scroll_wheel = false;
         Scan_Direction change_scan = scan;
@@ -1180,39 +1247,8 @@ function void Long_ISearch(Application_Links* app, Scan_Direction start_scan, i6
                 change_scan = Scan_Backward;
                 do_scan_action = true;
             }
-            
-            else
-            {
-                // NOTE(allen): is the user trying to execute another command?
-                View_Context ctx = view_current_context(app, view);
-                Command_Binding binding = map_get_binding_recursive(ctx.mapping, mapping_get_map(ctx.mapping, ctx.map_id), &in.event);
-                
-                if (binding.custom == 0) leave_current_input_unhandled(app);
-                else
-                {
-                    if (binding.custom == search)
-                    {
-                        change_scan = Scan_Forward;
-                        do_scan_action = true;
-                    }
-                    else if (binding.custom == reverse_search)
-                    {
-                        change_scan = Scan_Backward;
-                        do_scan_action = true;
-                    }
-                    
-                    else
-                    {
-                        Command_Metadata* metadata = get_command_metadata(binding.custom);
-                        if (metadata && metadata->is_ui)
-                        {
-                            view_enqueue_command_function(app, view, binding.custom);
-                            break;
-                        }
-                        binding.custom(app);
-                    }
-                }
-            }
+            else if (!trigger_command)
+            leave_current_input_unhandled(app);
         }
         
         if (string_change || do_scan_action)
@@ -1351,7 +1387,7 @@ function void Long_Query_Replace(Application_Links *app, String_Const_u8 replace
     Buffer_ID buffer = view_get_buffer(app, view, Access_ReadVisible);
     
     Query_Bar bar = {};
-    bar.prompt = string_u8_litexpr("Replace? (y)es, (Page)Up, (Page)Down, (esc)\n");
+    bar.prompt = string_u8_litexpr("Replace? (enter), (Page)Up, (Page)Down, (esc)\n");
     start_query_bar(app, &bar, 0);
     
     Vec2_f32 old_margin = {};
@@ -1385,8 +1421,7 @@ function void Long_Query_Replace(Application_Links *app, String_Const_u8 replace
         }
         
         b32 replaced = false;
-        if (range_size(match) > 0 &&
-            (match_key_code(&in, KeyCode_Y) || match_key_code(&in, KeyCode_Return) || match_key_code(&in, KeyCode_Tab)))
+        if (range_size(match) > 0 && (match_key_code(&in, KeyCode_Return) || match_key_code(&in, KeyCode_Tab)))
         {
             buffer_replace_range(app, buffer, match, w);
             pos = match.start + w.size;
@@ -1395,6 +1430,7 @@ function void Long_Query_Replace(Application_Links *app, String_Const_u8 replace
             if (scan == Scan_Forward) goto FORWARD;
             else                      goto BACKWARD;
         }
+        
         else if (match_key_code(&in, KeyCode_PageDown) || match_key_code(&in, KeyCode_Down))
         {
             FORWARD:
@@ -1408,6 +1444,7 @@ function void Long_Query_Replace(Application_Links *app, String_Const_u8 replace
             }
             else if (replaced) size = 0;
         }
+        
         else if (match_key_code(&in, KeyCode_PageUp  ) || match_key_code(&in, KeyCode_Up  ))
         {
             BACKWARD:
@@ -1421,6 +1458,9 @@ function void Long_Query_Replace(Application_Links *app, String_Const_u8 replace
             }
             else if (replaced) size = 0;
         }
+        
+        else if (match_key_code(&in, KeyCode_E) && has_modifier(&in, KeyCode_Control))
+        center_view(app);
     }
     
     view_disable_highlight_range(app, view);

@@ -130,10 +130,10 @@ keys_file =
     //             Shift => Sensitive-String vs Insensitive-Substring
     
     // NOTE(rjf): Search
-    { "long_search",                                                         "F", "Control" },
-    { "long_reverse_search",                                                 "R", "Control" },
-    { "long_search_identifier",                                                 "T", "Control" },
-    { "goto_line",                                                         "G", "Control" },
+    { "long_search",                                                "F", "Control" },
+    { "long_reverse_search",                                        "R", "Control" },
+    { "long_search_identifier",                                     "T", "Control" },
+    { "goto_line",                                                  "G", "Control" },
     { "long_search_case_sensitive",                                 "F", "Control", "Shift"},
     { "long_reverse_search_case_sensitive",                         "R", "Control", "Shift"},
     { "long_search_identifier_case_sensitive",                      "T", "Control", "Shift"},
