@@ -79,6 +79,8 @@ build_language_model(void){
     sm_direct_token_kind("LiteralCharacterUTF32");
 	
     sm_direct_token_kind("PPErrorMessage");
+    sm_direct_token_kind("PPWarningMessage");
+    sm_direct_token_kind("PPRegionName");
     
     sm_select_base_kind(TokenBaseKind_Keyword);
     sm_direct_token_kind("KeywordGeneric");
@@ -342,6 +344,8 @@ with
     Flag *is_pp_body      = sm_add_flag(FlagResetRule_KeepState);
     Flag *is_include_body = sm_add_flag(FlagResetRule_KeepState);
     Flag *is_error_body   = sm_add_flag(FlagResetRule_KeepState);
+    Flag *is_warning_body = sm_add_flag(FlagResetRule_KeepState);
+    Flag *is_region_body  = sm_add_flag(FlagResetRule_KeepState);
     
     sm_flag_bind(is_pp_body, TokenBaseFlag_PreprocessorBody);
     
@@ -351,6 +355,8 @@ with
     AddState(whitespace);
     AddState(whitespace_end_pp);
     AddState(error_body);
+    AddState(warning_body);
+    AddState(region_body);
     AddState(backslash);
     
     AddState(operator_or_fnumber_dot);
@@ -450,7 +456,11 @@ with
 	sm_case("$", pre_inter);
     
     sm_case_flagged(is_error_body, true, " \r\t\f\v", error_body);
+    sm_case_flagged(is_warning_body, true, " \r\t\f\v", warning_body);
+    sm_case_flagged(is_region_body, true, " \r\t\f\v", region_body);
     sm_case_flagged(is_error_body, false, " \r\t\f\v", whitespace);
+    sm_case_flagged(is_warning_body, false, " \r\t\f\v", whitespace);
+    sm_case_flagged(is_region_body, false, " \r\t\f\v", whitespace);
     sm_case("\n", whitespace_end_pp);
     sm_case("\\", backslash);
     
@@ -512,6 +522,8 @@ with
     sm_set_flag(is_pp_body, false);
     sm_set_flag(is_include_body, false);
     sm_set_flag(is_error_body, false);
+    sm_set_flag(is_warning_body, false);
+    sm_set_flag(is_region_body, false);
     sm_fallback_peek(whitespace);
     
     ////
@@ -529,6 +541,38 @@ with
         sm_case_eof_peek(emit);
     }
     sm_fallback(error_body);
+    
+    ////
+    
+    sm_select_state(warning_body);
+    sm_case("\r", warning_body);
+    {
+        Emit_Rule *emit = sm_emit_rule();
+        sm_emit_handler_direct("PPWarningMessage");
+        sm_case_peek("\n", emit);
+    }
+    {
+        Emit_Rule *emit = sm_emit_rule();
+        sm_emit_handler_direct("PPWarningMessage");
+        sm_case_eof_peek(emit);
+    }
+    sm_fallback(warning_body);
+    
+    ////
+    
+    sm_select_state(region_body);
+    sm_case("\r", region_body);
+    {
+        Emit_Rule *emit = sm_emit_rule();
+        sm_emit_handler_direct("PPRegionName");
+        sm_case_peek("\n", emit);
+    }
+    {
+        Emit_Rule *emit = sm_emit_rule();
+        sm_emit_handler_direct("PPRegionName");
+        sm_case_eof_peek(emit);
+    }
+    sm_fallback(region_body);
     
     ////
     
@@ -877,6 +921,8 @@ with
         Emit_Rule *emit = sm_emit_rule();
         //sm_emit_check_set_flag("PPInclude", is_include_body, true);
         sm_emit_check_set_flag("PPError", is_error_body, true);
+        sm_emit_check_set_flag("PPWarning", is_warning_body, true);
+        sm_emit_check_set_flag("PPRegion", is_region_body, true);
         sm_emit_handler_keys_delim(pp_directive_set);
         sm_fallback_peek(emit);
     }

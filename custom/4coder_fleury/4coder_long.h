@@ -88,7 +88,7 @@
 // [ ] Strip out *lego* buffer 
 // [ ] Strip out unused f4 commands
 
-#define clamp_loop(x, size) ((x) < 0 ? ((size) - 1) : ((x) % (size)))
+#define clamp_loop(x, size) ((((x) % (size)) + (size)) % (size)) //((x) < 0 ? ((size) - 1) : ((x) % (size)))
 function b32 F4_ARGBIsValid(ARGB_Color color);
 function void Long_Highlight_DrawList(Application_Links *app, Buffer_ID buffer, Text_Layout_ID layout, f32 roundness);
 

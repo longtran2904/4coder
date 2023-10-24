@@ -33,6 +33,10 @@ using UnityEngine;
 namespace UnityEngine { class MyEngine; }
 MyEngine myEngine;
 
+#error My Error
+#warning My Warning
+#region My Region
+
 int test_global_1, test_global_2;
 {
     int test_local_1, test_local_2;

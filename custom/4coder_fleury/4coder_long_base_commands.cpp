@@ -61,7 +61,7 @@ function String8 Long_Buffer_GetNameWithoutPrjPath(Application_Links* app, Arena
             {
                 ref_dir = string_mod_replace_character(ref_dir, '/', '\\');
                 if (ref_dir.str[ref_dir.size - 1] == '\\')
-                ref_dir.size--;
+                    ref_dir.size--;
                 if (string_match(string_prefix(filepath, ref_dir.size), ref_dir))
                 {
                     filepath = string_skip(filepath, ref_dir.size);
@@ -76,12 +76,12 @@ function String8 Long_Buffer_GetNameWithoutPrjPath(Application_Links* app, Arena
     if (filepath.size)
     {
         if (filepath.str[filepath.size - 1] == '\\')
-        filepath.size--;
+            filepath.size--;
     }
     
     String8 result = {};
     if (filepath.size)
-    result = push_string_copy(arena, filepath);
+        result = push_string_copy(arena, filepath);
     return result;
 }
 
@@ -128,7 +128,7 @@ function String8 Long_Lister_GetHeaderString(Application_Links* app, Arena* aren
         {
             String8 filepath = Long_Buffer_GetNameWithoutPrjPath(app, arena, data.buffer);
             if (filepath.size)
-            result = push_stringf(arena, "[%.*s] ", string_expand(filepath));
+                result = push_stringf(arena, "[%.*s] ", string_expand(filepath));
         }
         else
         {
@@ -150,7 +150,7 @@ function b32 Long_IsPosValid(Application_Links* app, View_ID view, Buffer_ID buf
         String8 string = push_buffer_range(app, scratch, buffer, Ii64(pos, current_pos));
         u64 non_whitespace = string_find_first_non_whitespace(string);
         if (non_whitespace == string.size)
-        result = false;
+            result = false;
     }
     return result;
 }
@@ -202,7 +202,7 @@ CUSTOM_ID(attachment, long_point_stacks);
 function Long_Point_Stack* Long_GetPointStack(Application_Links* app, View_ID view = 0)
 {
     if (view == 0)
-    view = get_active_view(app, Access_Always);
+        view = get_active_view(app, Access_Always);
     return scope_attachment(app, view_get_managed_scope(app, view), long_point_stacks, Long_Point_Stack);
 }
 
@@ -228,7 +228,7 @@ function void Long_PointStack_Push(Application_Links* app, Buffer_ID buffer, i64
         Buffer_ID top_buffer = 0; i64 top_pos = 0;
         Long_ReadPointStack(app, stack, clamp_loop(stack->top - 1, size), &top_buffer, &top_pos);
         if (buffer == top_buffer && pos == top_pos)
-        return;
+            return;
     }
     
     // NOTE(long): Free and assign the new item to the top (current) position
@@ -250,16 +250,16 @@ function void Long_PointStack_Push(Application_Links* app, Buffer_ID buffer, i64
     stack->top = next_top;
     stack->current = next_top;
     if (next_top == stack->bot)
-    stack->bot = clamp_loop(stack->bot + 1, size);
+        stack->bot = clamp_loop(stack->bot + 1, size);
 }
 
 function void Long_JumpToLocation(Application_Links* app, View_ID view, Buffer_ID target_buffer, i64 target_pos,
                                   Buffer_ID current_buffer = 0, i64 current_pos = 0)
 {
     if (!current_buffer)
-    current_buffer = view_get_buffer(app, view, Access_Always);
+        current_buffer = view_get_buffer(app, view, Access_Always);
     if (!current_pos)
-    current_pos = view_get_cursor_pos(app, view);
+        current_pos = view_get_cursor_pos(app, view);
     
     Long_PointStack_Push(app, current_buffer, current_pos, view);
     F4_JumpToLocation(app, view, target_buffer, target_pos);
@@ -306,7 +306,7 @@ CUSTOM_DOC("List jump history")
     
     LongListerData result = {};
     if (!l_result.canceled && l_result.user_data)
-    block_copy_struct(&result, (LongListerData*)l_result.user_data);
+        block_copy_struct(&result, (LongListerData*)l_result.user_data);
     
     if (result.buffer != 0)
     {
@@ -318,10 +318,10 @@ CUSTOM_DOC("List jump history")
 function void Long_PointStack_JumpNext(Application_Links* app, View_ID view, i32 advance, b32 exit_if_current = 0)
 {
     if (!view)
-    view = get_active_view(app, Access_Always);
+        view = get_active_view(app, Access_Always);
     Long_Point_Stack* stack = Long_GetPointStack(app, view);
     if (stack->top == stack->bot)
-    return;
+        return;
     
     i32 size = ArrayCount(stack->markers);
     Buffer_ID current_buffer = view_get_buffer(app, view, Access_Always);
@@ -388,7 +388,7 @@ function void Long_Buffer_OutputBuffer(Application_Links *app, Lister *lister, B
 #else
     String8 filepath = Long_Buffer_GetNameWithoutPrjPath(app, scratch, buffer);
     if (filepath.size)
-    status = push_stringf(scratch, "<%.*s>%s%.*s", string_expand(filepath), dirty ? " " : "", string_expand(status));
+        status = push_stringf(scratch, "<%.*s>%s%.*s", string_expand(filepath), dirty ? " " : "", string_expand(status));
     lister_add_item(lister, buffer_name, status, IntAsPtr(buffer), 0);
 #endif
 }
@@ -406,8 +406,8 @@ function void Long_Buffer_GenerateLists(Application_Links* app, Lister* lister)
     {
         Buffer_ID new_buffer_id = view_get_buffer(app, view, Access_Always);
         for (i32 i = 0; i < viewed_buffer_count; i += 1)
-        if (new_buffer_id == viewed_buffers[i])
-        goto skip0;
+            if (new_buffer_id == viewed_buffers[i])
+            goto skip0;
         viewed_buffers[viewed_buffer_count++] = new_buffer_id;
         skip0:;
     }
@@ -416,11 +416,11 @@ function void Long_Buffer_GenerateLists(Application_Links* app, Lister* lister)
     for (Buffer_ID buffer = get_buffer_next(app, 0, Access_Always); buffer != 0; buffer = get_buffer_next(app, buffer, Access_Always))
     {
         for (i32 i = 0; i < viewed_buffer_count; i += 1)
-        if (buffer == viewed_buffers[i])
-        goto skip1;
+            if (buffer == viewed_buffers[i])
+            goto skip1;
         
         if (!buffer_has_name_with_star(app, buffer))
-        Long_Buffer_OutputBuffer(app, lister, buffer);
+            Long_Buffer_OutputBuffer(app, lister, buffer);
         skip1:;
     }
     
@@ -428,17 +428,17 @@ function void Long_Buffer_GenerateLists(Application_Links* app, Lister* lister)
     for (Buffer_ID buffer = get_buffer_next(app, 0, Access_Always); buffer != 0; buffer = get_buffer_next(app, buffer, Access_Always))
     {
         for (i32 i = 0; i < viewed_buffer_count; i += 1)
-        if (buffer == viewed_buffers[i])
-        goto skip2;
+            if (buffer == viewed_buffers[i])
+            goto skip2;
         
         if (buffer_has_name_with_star(app, buffer))
-        Long_Buffer_OutputBuffer(app, lister, buffer);
+            Long_Buffer_OutputBuffer(app, lister, buffer);
         skip2:;
     }
     
     // Buffers That Are Open in Views
     for (i32 i = 0; i < viewed_buffer_count; i += 1)
-    Long_Buffer_OutputBuffer(app, lister, viewed_buffers[i]);
+        Long_Buffer_OutputBuffer(app, lister, viewed_buffers[i]);
 }
 
 function Buffer_ID Long_Buffer_RunLister(Application_Links *app, char* query)
@@ -500,10 +500,10 @@ CUSTOM_DOC("When executed on a buffer with jumps, creates a persistent lister fo
 function void Long_JumpToBuffer(Application_Links* app, View_ID view, Buffer_ID buffer, b32 push_src = 1, b32 push_dst = 1)
 {
     if (push_src)
-    Long_PointStack_Push(app, view_get_buffer(app, view, Access_Always), view_get_cursor_pos(app, view), view);
+        Long_PointStack_Push(app, view_get_buffer(app, view, Access_Always), view_get_cursor_pos(app, view), view);
     view_set_buffer(app, view, buffer, 0);
     if (push_dst)
-    Long_PointStack_Push(app, buffer, view_get_cursor_pos(app, view), view);
+        Long_PointStack_Push(app, buffer, view_get_cursor_pos(app, view), view);
 }
 
 CUSTOM_UI_COMMAND_SIG/*CUSTOM_COMMAND_SIG*/(long_interactive_switch_buffer)
@@ -611,12 +611,12 @@ function String_Match_List Long_FindAllMatches(Application_Links *app, Arena *ar
             
             string_match_list_filter_flags(&matches, must_have, must_not_have);
             if (matches.count > 0)
-            buffer_matches = buffer_matches.count ? string_match_list_merge_front_to_back(&buffer_matches, &matches) : matches;
+                buffer_matches = buffer_matches.count ? string_match_list_merge_front_to_back(&buffer_matches, &matches) : matches;
         }
         
         all_matches = string_match_list_join(&all_matches, &buffer_matches);
         if (current)
-        break;
+            break;
     }
     return all_matches;
 }
@@ -716,7 +716,7 @@ function Range_i32 Long_Highlight_GetRange(Locked_Jump_State state, i32 selectio
 {
     Range_i32 result;
     if (selection_offset == state.list->jump_count)
-    result = Ii32_size(0, state.list->jump_count - 1);
+        result = Ii32_size(0, state.list->jump_count - 1);
     else
         result = Ii32_size(state.list_index, selection_offset);
     return result;
@@ -786,20 +786,21 @@ function Sticky_Jump Long_SearchBuffer_NearestJump(Application_Links* app, View_
 function void Long_SearchBuffer_MultiSelect(Application_Links* app, View_ID view, Buffer_ID search_buffer, String8 search_string)
 {
     if (get_active_view(app, Access_ReadVisible) != view)
-    view_set_active(app, view); 
+        view_set_active(app, view); 
     
     Query_Bar_Group group(app);
     Query_Bar bar = {};
     if (!start_query_bar(app, &bar, 0))
-    return;
+        return;
     
+    auto_center_after_jumps = false;
     Managed_Scope scope = buffer_get_managed_scope(app, search_buffer);
     {
         lock_jump_buffer(app, search_buffer);
         Locked_Jump_State jump_state = get_locked_jump_state(app, &global_heap);
         Sticky_Jump jump = Long_SearchBuffer_NearestJump(app, view, jump_state, scope);
         if (jump.jump_buffer_id)
-        Long_SearchBuffer_Jump(app, jump_state, jump);
+            Long_SearchBuffer_Jump(app, jump_state, jump);
         else
             goto_first_jump(app);
     }
@@ -873,7 +874,7 @@ function void Long_SearchBuffer_MultiSelect(Application_Links* app, View_ID view
                         if (location.buffer_id != buffer)
                         {
                             if (batch_head)
-                            buffer_batch_edit(app, buffer, batch_head);
+                                buffer_batch_edit(app, buffer, batch_head);
                             batch_head = batch_tail = 0;
                             buffer = location.buffer_id;
                         }
@@ -881,7 +882,7 @@ function void Long_SearchBuffer_MultiSelect(Application_Links* app, View_ID view
                         sll_queue_push(batch_head, batch_tail, batch);
                         
                         if (i == select_range.max && batch_head)
-                        buffer_batch_edit(app, buffer, batch_head);
+                            buffer_batch_edit(app, buffer, batch_head);
                     }
                 }
                 global_history_edit_group_end(app);
@@ -900,7 +901,7 @@ function void Long_SearchBuffer_MultiSelect(Application_Links* app, View_ID view
             if (current_location.pos != new_pos || current_location.buffer_id != new_buffer)
             {
                 if (has_modifier(&in, KeyCode_Shift) && *selection_offset != jump_count)
-                *selection_offset -= advance;
+                    *selection_offset -= advance;
                 else
                     *selection_offset  = 0;
             }
@@ -916,23 +917,26 @@ function void Long_SearchBuffer_MultiSelect(Application_Links* app, View_ID view
         else if (match_key_code(&in, KeyCode_Right)) *size += 1;
         
         else if (match_key_code(&in, KeyCode_A) && has_modifier(&in, KeyCode_Control))
-        *selection_offset = (*selection_offset == jump_count) ? 0 : jump_count;
+            *selection_offset = (*selection_offset == jump_count) ? 0 : jump_count;
+        
+        else if (match_key_code(&in, KeyCode_E) && has_modifier(&in, KeyCode_Control))
+            center_view(app);
         
         else if (match_key_code(&in, KeyCode_Q) && has_modifier(&in, KeyCode_Control))
-        in_replace_mode = !in_replace_mode;
+            in_replace_mode = !in_replace_mode;
         
         else if (in_replace_mode && match_key_code(&in, KeyCode_V) && has_modifier(&in, KeyCode_Control))
-        string_append(&buffer_string, push_clipboard_index(scratch, 0, 0));
+            string_append(&buffer_string, push_clipboard_index(scratch, 0, 0));
         
         else if (in_replace_mode && string.str != 0 && string.size > 0)
-        string_append(&buffer_string, string);
+            string_append(&buffer_string, string);
         
         else if (in_replace_mode && match_key_code(&in, KeyCode_Backspace))
         {
             if (is_unmodified_key(&in.event))
-            buffer_string.size = Long_UTF8_Backspace(buffer_string.str, buffer_string.size);
+                buffer_string.size = Long_UTF8_Backspace(buffer_string.str, buffer_string.size);
             else if (has_modifier(&in, KeyCode_Control))
-            buffer_string.size = 0;
+                buffer_string.size = 0;
         }
         
         else
@@ -956,27 +960,28 @@ function void Long_SearchBuffer_MultiSelect(Application_Links* app, View_ID view
     }
     
     if (exit_to_jump_highlight)
-    def_set_config_b32(vars_save_string_lit("use_jump_highlight"), 1);
+        def_set_config_b32(vars_save_string_lit("use_jump_highlight"), 1);
     else
         long_kill_search_buffer(app);
     
     if (abort)
-    Long_PointStack_JumpNext(app, view, 0, 1);
+        Long_PointStack_JumpNext(app, view, 0, 1);
     
+    auto_center_after_jumps = true;
     view_disable_highlight_range(app, view);
 }
 
 function void Long_ListAllLocations(Application_Links *app, String_Const_u8 needle, List_All_Locations_Flag flags, b32 all_buffer)
 {
     if (!needle.size)
-    return;
+        return;
     String_Match_Flag must_have_flags = 0;
     if (HasFlag(flags, ListAllLocationsFlag_CaseSensitive))
-    AddFlag(must_have_flags, StringMatch_CaseSensitive);
+        AddFlag(must_have_flags, StringMatch_CaseSensitive);
     
     String_Match_Flag must_not_have_flags = 0;
     if (!HasFlag(flags, ListAllLocationsFlag_MatchSubstring))
-    AddFlag(must_not_have_flags, StringMatch_LeftSideSloppy|StringMatch_RightSideSloppy);
+        AddFlag(must_not_have_flags, StringMatch_LeftSideSloppy|StringMatch_RightSideSloppy);
     
     View_ID view = get_active_view(app, Access_Always);
     Buffer_ID current_buffer = view_get_buffer(app, view, Access_Always);
@@ -987,7 +992,7 @@ function void Long_ListAllLocations(Application_Links *app, String_Const_u8 need
     String8 no_match = S8Lit("no matches");
     String8 search_result = push_buffer_range(app, scratch, search_buffer, Ii64_size(0, no_match.size));
     if (!string_match(search_result, no_match))
-    Long_SearchBuffer_MultiSelect(app, view, search_buffer, needle);
+        Long_SearchBuffer_MultiSelect(app, view, search_buffer, needle);
 }
 
 // COPYPASTA(long): get_query_string
@@ -1070,7 +1075,7 @@ CUSTOM_DOC("Reads a token or word under the cursor and lists all exact case-inse
 function void Long_Highlight_DrawList(Application_Links *app, Buffer_ID buffer, Text_Layout_ID layout, f32 roundness)
 {
     if (def_get_config_b32(vars_save_string_lit("use_jump_highlight")))
-    return;
+        return;
     
     Buffer_ID search_buffer = Long_Buffer_GetSearchBuffer(app);
     if (search_buffer && string_match(locked_buffer, search_name))
@@ -1160,7 +1165,7 @@ function void Long_ISearch(Application_Links* app, Scan_Direction start_scan, i6
         
         in = get_next_input(app, EventPropertyGroup_Any, EventProperty_Escape);
         if (in.abort)
-        break;
+            break;
         
         String_Const_u8 string = to_writable(&in);
         b32 string_change = false;
@@ -1248,18 +1253,18 @@ function void Long_ISearch(Application_Links* app, Scan_Direction start_scan, i6
                 do_scan_action = true;
             }
             else if (!trigger_command)
-            leave_current_input_unhandled(app);
+                leave_current_input_unhandled(app);
         }
         
         if (string_change || do_scan_action)
         {
             if (do_scan_action)
-            scan = change_scan;
+                scan = change_scan;
             b32 backward = scan == Scan_Backward;
             
             i64 offset = 0;
             if (string_change)
-            offset = (backward ? +1 : -1);
+                offset = (backward ? +1 : -1);
             
             Buffer_Seek_String_Flags flags = 0;
             if (backward)    flags |= BufferSeekString_Backward;
@@ -1274,7 +1279,7 @@ function void Long_ISearch(Application_Links* app, Scan_Direction start_scan, i6
             }
         }
         else if (do_scroll_wheel)
-        mouse_wheel_scroll(app);
+            mouse_wheel_scroll(app);
     }
     
     view_disable_highlight_range(app, view);
@@ -1371,7 +1376,7 @@ function void Long_Query_Replace(Application_Links *app, String_Const_u8 replace
     replace.string = replace_str;
     
     if (add_replace_query_bar)
-    start_query_bar(app, &replace, 0);
+        start_query_bar(app, &replace, 0);
     
     u8 with_space[1024];
     Query_Bar with = {};
@@ -1401,7 +1406,7 @@ function void Long_Query_Replace(Application_Links *app, String_Const_u8 replace
     i64 pos = start_pos;
     seek_string_forward(app, buffer, pos - 1, 0, r, &pos);
     if (pos == buffer_get_size(app, buffer))
-    pos = start_pos;
+        pos = start_pos;
     
     i64 size = r.size;
     Scan_Direction scan = Scan_Forward;
@@ -1416,7 +1421,7 @@ function void Long_Query_Replace(Application_Links *app, String_Const_u8 replace
         if (in.abort)
         {
             if (!has_modifier(&in, KeyCode_Shift))
-            pos = start_pos;
+                pos = start_pos;
             break;
         }
         
@@ -1460,7 +1465,7 @@ function void Long_Query_Replace(Application_Links *app, String_Const_u8 replace
         }
         
         else if (match_key_code(&in, KeyCode_E) && has_modifier(&in, KeyCode_Control))
-        center_view(app);
+            center_view(app);
     }
     
     view_disable_highlight_range(app, view);
@@ -1483,10 +1488,10 @@ CUSTOM_DOC("Queries the user for two strings, and incrementally replaces every o
         bar.string = SCu8(replace_space, (u64)0);
         bar.string_capacity = sizeof(replace_space);
         if (!Long_Query_User_String(app, &bar, string_u8_empty))
-        bar.string.size = 0;
+            bar.string.size = 0;
         String8 replace = bar.string;
         if (replace.size > 0)
-        Long_Query_Replace(app, replace, view_get_cursor_pos(app, view), false);
+            Long_Query_Replace(app, replace, view_get_cursor_pos(app, view), false);
     }
 }
 
@@ -1559,9 +1564,9 @@ function void Long_GoToDefinition(Application_Links* app, b32 same_panel)
                         {
                             next_note = next_note->next;
                             if (!next_note)
-                            next_note = Long_Index_LookupNote(note->string);
+                                next_note = Long_Index_LookupNote(note->string);
                             if (next_note == note)
-                            break;
+                                break;
                         } while (!LONG_INDEX_FILTER_NOTE(next_note));
                         
                         if (next_note) note = next_note;
@@ -1570,7 +1575,7 @@ function void Long_GoToDefinition(Application_Links* app, b32 same_panel)
                 else
                 {
                     if (note->flags & F4_Index_NoteFlag_Prototype)
-                    note = Long_Index_GetDefNote(note);
+                        note = Long_Index_GetDefNote(note);
                 }
             }
         }
@@ -1580,7 +1585,7 @@ function void Long_GoToDefinition(Application_Links* app, b32 same_panel)
     if (note && note->file)
     {
         if(!same_panel)
-        view = get_next_view_looped_primary_panels(app, view, Access_Always);
+            view = get_next_view_looped_primary_panels(app, view, Access_Always);
         
         // NOTE(long): The difference between F4_JumpToLocation and F4_GoToDefinition is:
         // 1. The first one scroll to the target while the second one snap to the target instantly (scroll.position = scroll.target)
@@ -1589,7 +1594,7 @@ function void Long_GoToDefinition(Application_Links* app, b32 same_panel)
         // And if I want to snap the view directly, I just call Long_SnapView
         Long_JumpToLocation(app, view, note->file->buffer, note->range.min);
         if (!same_panel)
-        Long_SnapView(app);
+            Long_SnapView(app);
     }
 }
 
@@ -1633,7 +1638,7 @@ function String8 _Long_PushNoteTag(Application_Links* app, Arena* arena, F4_Inde
             if (note->base_range.min)
             {
                 if (Long_Index_MatchNote(app, note, note->base_range, S8Lit("operator")))
-                type = S8Lit("operator");
+                    type = S8Lit("operator");
             }
             else if (!range_size(note->range)) type = S8Lit("lambda");
             else if (note->parent)
@@ -1643,15 +1648,15 @@ function String8 _Long_PushNoteTag(Application_Links* app, Arena* arena, F4_Inde
                     case F4_Index_NoteKind_Type:
                     {
                         if (string_match(note->string, note->parent->string))
-                        type = S8Lit("constructor");
+                            type = S8Lit("constructor");
                     } break;
                     
                     case F4_Index_NoteKind_Decl:
                     {
                         if (string_match(note->string, S8Lit("get")))
-                        type = S8Lit("getter");
+                            type = S8Lit("getter");
                         if (string_match(note->string, S8Lit("set")))
-                        type = S8Lit("setter");
+                            type = S8Lit("setter");
                     } break;
                 }
             }
@@ -1665,9 +1670,9 @@ function String8 _Long_PushNoteTag(Application_Links* app, Arena* arena, F4_Inde
             if (note->parent)
             {
                 if (Long_Index_IsArgument(note))
-                string = S8Lit("argument");
+                    string = S8Lit("argument");
                 else if (note->parent->kind == F4_Index_NoteKind_Function || note->parent->kind == F4_Index_NoteKind_Scope)
-                string = S8Lit("local");
+                    string = S8Lit("local");
                 else if (note->parent->kind == F4_Index_NoteKind_Type)
                 {
                     string = S8Lit("field");
@@ -1675,7 +1680,7 @@ function String8 _Long_PushNoteTag(Application_Links* app, Arena* arena, F4_Inde
                     {
                         if (Long_Index_MatchNote(app, note, Ii64_size(note->scope_range.min, 2), S8Lit("=>")) ||
                             Long_Index_MatchNote(app, note, Ii64_size(note->scope_range.min, 1), S8Lit("{")))
-                        string = S8Lit("property");
+                            string = S8Lit("property");
                     }
                 }
             }
@@ -1688,12 +1693,12 @@ function String8 _Long_PushNoteTag(Application_Links* app, Arena* arena, F4_Inde
     }
     
     if (note->parent)
-    result = push_stringf(arena, "<%.*s> %.*s", string_expand(note->parent->string), string_expand(result));
+        result = push_stringf(arena, "<%.*s> %.*s", string_expand(note->parent->string), string_expand(result));
     
     // NOTE(long): Long_Lister_PushIndexNote will never iterate over a namespace note
     // This case only runs in long_write_to_file_all_identifiers
     if (Long_Index_IsNamespace(note))
-    result = push_stringf(arena, "%.*s%s[namespace]", string_expand(result), result.size ? " " : "");
+        result = push_stringf(arena, "%.*s%s[namespace]", string_expand(result), result.size ? " " : "");
     
     return result;
 }
@@ -1719,20 +1724,20 @@ function LONG_INDEX_FILTER(Long_Filter_Note)
     F4_Index_Note* parent = note->parent;
     
     if (note->kind == F4_Index_NoteKind_Scope)
-    result = false;
+        result = false;
     else if (parent)
     {
         if (parent->kind == F4_Index_NoteKind_Function || (parent->kind == F4_Index_NoteKind_Scope && !Long_Index_IsNamespace(parent)))
-        result = false; // Local
+            result = false; // Local
         else if (note->kind == F4_Index_NoteKind_Decl)
         {
             if (Long_Index_IsArgument(note))
-            result = false; // Argument
+                result = false; // Argument
             else if (parent->kind == F4_Index_NoteKind_Type)
-            result = false; // Field
+                result = false; // Field
         }
         else if (Long_Index_IsGenericArgument(note))
-        result = false; // Generic Argument
+            result = false; // Generic Argument
     }
     
     return result;
@@ -1747,7 +1752,7 @@ function void Long_Lister_PushIndexNote(Application_Links* app, Arena* arena, Li
         
         String8List list = {};
         if (note->base_range.max)
-        string_list_push(scratch, &list, push_buffer_range(app, scratch, buffer, note->base_range));
+            string_list_push(scratch, &list, push_buffer_range(app, scratch, buffer, note->base_range));
         string_list_push(scratch, &list, push_buffer_range(app, scratch, buffer, Long_Index_ArgumentRange(note)));
         String8 string = string_list_flatten(arena, list, S8Lit(" "), 0, 0);
         string = string_condense_whitespace(scratch, string);
@@ -1756,7 +1761,7 @@ function void Long_Lister_PushIndexNote(Application_Links* app, Arena* arena, Li
     }
     
     Long_Index_IterateValidNoteInFile(child, note)
-    Long_Lister_PushIndexNote(app, arena, lister, child, filter);
+        Long_Lister_PushIndexNote(app, arena, lister, child, filter);
 }
 
 function void _Long_SearchDefinition(Application_Links* app, NoteFilter* filter, b32 project_wide)
@@ -1776,9 +1781,9 @@ function void _Long_SearchDefinition(Application_Links* app, NoteFilter* filter,
         F4_Index_File* file = F4_Index_LookupFile(app, buffer);
         String8 filename = push_buffer_base_name(app, scratch, buffer);
         for (F4_Index_Note* note = file ? file->first_note : 0; note; note = note->next_sibling)
-        Long_Lister_PushIndexNote(app, scratch, lister, note, filter);
+            Long_Lister_PushIndexNote(app, scratch, lister, note, filter);
         if (!project_wide)
-        break;
+            break;
     }
     F4_Index_Unlock();
     
@@ -1786,7 +1791,7 @@ function void _Long_SearchDefinition(Application_Links* app, NoteFilter* filter,
     Lister_Result l_result = run_lister(app, lister);
     LongListerData result = {};
     if (!l_result.canceled && l_result.user_data)
-    block_copy_struct(&result, (LongListerData*)l_result.user_data);
+        block_copy_struct(&result, (LongListerData*)l_result.user_data);
     if (result.buffer != 0)
     {
         Long_JumpToLocation(app, view, result.buffer, result.pos);
@@ -1817,7 +1822,7 @@ function void _Long_PushNoteString(Application_Links* app, Arena* arena, String8
                                    F4_Index_Note* note, NoteFilter* filter)
 {
     if (*noteCount > 3000)
-    system_error_box("PushNoteString is overflowed");
+        system_error_box("PushNoteString is overflowed");
     if (!((note->scope_range.min == note->scope_range.max) || (note->scope_range.min && note->scope_range.max)))
     {
         String8 string = push_stringf(arena, "Note: %.*s:%d (%d, %d) isn't initialized correctly!",
@@ -1832,14 +1837,14 @@ function void _Long_PushNoteString(Application_Links* app, Arena* arena, String8
         u64 size = note->string.size;
         u8* str = note->string.str;
         if (size && (str[size-1] == '\r' || str[size-1] == '\n'))
-        --size;
+            --size;
         String8 parentName = note->parent ? note->parent->string : S8Lit("NULL");
         String8 string = push_stringf(arena, "[%.*s] %.*s { %.*s }", string_expand(parentName), size, str, string_expand(tag));
         string_list_push(arena, list, string);
     }
     
     Long_Index_IterateValidNoteInFile(child, note)
-    _Long_PushNoteString(app, arena, list, noteCount, child, filter);
+        _Long_PushNoteString(app, arena, list, noteCount, child, filter);
 }
 
 function void Long_WriteToBuffer(Application_Links* app, Arena* arena, String8 name, String8 string)
@@ -1864,7 +1869,7 @@ function void Long_WriteNoteTreeToFile(Application_Links* app, String8 name, Not
         int noteCount = 0;
         F4_Index_File* file = F4_Index_LookupFile(app, buffer);
         for (F4_Index_Note *note = file ? file->first_note : 0; note; note = note->next_sibling)
-        _Long_PushNoteString(app, scratch, &list, &noteCount, note, filter);
+            _Long_PushNoteString(app, scratch, &list, &noteCount, note, filter);
         string_list_push(scratch, &list, push_stringf(scratch, "Note count: %d", noteCount));
     }
     F4_Index_Unlock();
@@ -1913,7 +1918,7 @@ CUSTOM_DOC("Save all identifiers in the hash table.")
                 u64 size = note->string.size;
                 u8* str = note->string.str;
                 if (size && (str[size-1] == '\r' || str[size-1] == '\n'))
-                --size;
+                    --size;
                 Range_i64 range = Ii64(token);
                 String8 parentName = note->parent ? note->parent->string : S8Lit("NULL");
                 String8 string = push_stringf(scratch, "[%.*s] %.*s { %.*s }", string_expand(parentName), size, str, string_expand(tag));
@@ -1928,7 +1933,7 @@ CUSTOM_DOC("Save all identifiers in the hash table.")
         }
         
         if (!token_it_inc_non_whitespace(&it))
-        break;
+            break;
     }
     
     string_list_push(scratch, &list, push_stringf(scratch, "Note count: %d", list.node_count));
@@ -1981,7 +1986,7 @@ CUSTOM_DOC("Set the mark and cursor to the start and end of the current line")
     View_ID view = get_active_view(app, Access_Read);
     f4_home_first_non_whitespace(app);
     if (view_get_mark_pos(app, view) == view_get_cursor_pos(app, view))
-    f4_home_first_non_whitespace(app);
+        f4_home_first_non_whitespace(app);
     view_set_mark(app, view, seek_pos(view_get_cursor_pos(app, view)));
     seek_end_of_line(app);
     no_mark_snap_to_cursor(app, view);
@@ -2030,7 +2035,7 @@ function i64 Long_Boundary(Application_Links *app, Buffer_ID buffer, Side side, 
                 {
                     Token_Iterator_Array it = token_iterator_pos(0, &tokens, pos);
                     if (it.ptr->pos == pos)
-                    token_it_dec_all(&it);
+                        token_it_dec_all(&it);
                     result = it.ptr->pos;
                 }
             } break;
@@ -2062,14 +2067,14 @@ function i64 Long_Boundary_AlphaNumericCamel(Application_Links *app, Buffer_ID b
     {
         i64 an_next_pos = boundary_alpha_numeric(app, buffer, flip_side(side), flip_direction(direction), an_pos);
         if (direction == Scan_Backward && an_next_pos < pos)
-        an_pos = Max(an_pos, an_next_pos);
+            an_pos = Max(an_pos, an_next_pos);
         else if (direction == Scan_Forward && an_next_pos > pos)
-        an_pos = Min(an_pos, an_next_pos);
+            an_pos = Min(an_pos, an_next_pos);
     }
     
     i64 result = 0;
     if (direction == Scan_Backward)
-    result = Max(an_pos, cap_pos);
+        result = Max(an_pos, cap_pos);
     else
         result = Min(an_pos, cap_pos);
     return result;
@@ -2108,7 +2113,7 @@ function F4_Index_Note* Long_Scan_Note(Scan_Direction dir, F4_Index_Note* note, 
         if (scan_note)
         {
             if (dir == Scan_Backward || !result)
-            result = scan_note;
+                result = scan_note;
             break;
         }
     }
@@ -2290,7 +2295,7 @@ function b32 Long_FindNestSide(Application_Links *app, Buffer_ID buffer, i64 pos
     if (balanced &&
         (delim == NestDelim_Open  && scan == Scan_Forward) ||
         (delim == NestDelim_Close && scan == Scan_Backward))
-    balanced = false;
+        balanced = false;
     
     b32 (*next_token)(Token_Iterator_Array* it) = token_it_inc;
     if (scan == Scan_Backward) next_token = token_it_dec;
@@ -2317,11 +2322,11 @@ function b32 Long_FindNestSide(Application_Links *app, Buffer_ID buffer, i64 pos
             {
                 level += (token_delim == delim)?-1:1;
                 if (level == 0 && token_delim == delim)
-                goto SUCCESS;
+                    goto SUCCESS;
             }
             
             if (!next_token(&it))
-            break;
+                break;
         }
     }
     
@@ -2335,7 +2340,7 @@ function Range_i64 Long_GetNextScopeAfterPos(Application_Links* app, View_ID vie
     Find_Nest_Flag flags = FindNest_Scope;
     if (find_nest_side(app, buffer, pos + 1, flags, Scan_Forward, NestDelim_Open, &range) &&
         find_nest_side(app, buffer, range.end, flags|FindNest_Balanced|FindNest_EndOfToken, Scan_Forward, NestDelim_Close, &range.end))
-    return range;
+        return range;
     return {};
 }
 
@@ -2349,7 +2354,7 @@ function Range_i64 Long_GetScopeFromPos(Application_Links* app, View_ID view, Bu
     {
         if (Long_FindNestSide(app, buffer, pos - 1, flags, Scan_Backward, NestDelim_Open, &range) &&
             find_nest_side(app, buffer, range.max, flags|FindNest_EndOfToken, Scan_Forward, NestDelim_Close, &range.max))
-        result = range;
+            result = range;
     }
     else
     {
@@ -2418,7 +2423,7 @@ CUSTOM_DOC("Find the first child scope that starts inside the current selected s
     
     Range_i64 range = Long_GetNextScopeAfterPos(app, view, buffer, pos);
     if (!surrounding_nest.max || range.min < surrounding_nest.max)
-    select_scope(app, view, range);
+        select_scope(app, view, range);
 }
 
 //~ NOTE(long): Misc Commands
@@ -2475,7 +2480,7 @@ CUSTOM_COMMAND_SIG(long_macro_toggle_recording)
 CUSTOM_DOC("Toggle macro recording")
 {
     if (global_keyboard_macro_is_recording)
-    keyboard_macro_finish_recording(app);
+        keyboard_macro_finish_recording(app);
     else
         keyboard_macro_start_recording(app);
 }
@@ -2487,5 +2492,5 @@ CUSTOM_DOC("If the current file is a *.cpp or *.h, attempts to open the correspo
     Buffer_ID buffer = view_get_buffer(app, view, Access_Always);
     Buffer_ID new_buffer = 0;
     if (get_cpp_matching_file(app, buffer, &new_buffer))
-    Long_JumpToBuffer(app, view, new_buffer);
+        Long_JumpToBuffer(app, view, new_buffer);
 }

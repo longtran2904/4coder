@@ -1100,48 +1100,15 @@ function void Long_Index_DrawTooltip(Application_Links* app, Rect_f32 screen_rec
         f32 start_x = tooltip_pos.x;
         Rect_f32 rects[3] = {};
         i32 counts[3] = {};
+        i32 option_count = ArrayCount(long_global_context_opts);
         
-        for (opt = 0; opt < ArrayCount(long_global_context_opts); ++opt)
+        for (opt = 0; opt < option_count; ++opt)
         {
-            ARGB_Color option_colors[] =
-            {
-                finalize_color(fleury_color_index_decl, 0),
-                finalize_color(fleury_color_index_function, 0),
-                finalize_color(fleury_color_index_product_type, 0),
-            };
-            ARGB_Color color = option_colors[opt];
-            
-            String8 option_names[] =
-            {
-                S8Lit("DECLS"),
-                S8Lit("FUNCS"),
-                S8Lit("TYPES"),
-            };
-            String8 string = option_names[opt];
-            
             i32 member_count = 0;
             for (F4_Index_Note* child = note->first_child; child; child = child->next_sibling)
             if (long_global_context_opts[opt](child))
             member_count++;
             counts[opt] = member_count;
-            string = push_stringf(scratch, "[%.*s(%d)]", string_expand(string), member_count);
-            
-            Rect_f32 rect = Long_Index_DrawString(app, string, tooltip_pos, face, line_height, padding * 1.5f, color);
-            rects[opt] = rect;
-            if (opt < ArrayCount(long_global_context_opts) - 1)
-            {
-                f32 width = rect_width(rect);
-                tooltip_pos.x += width;
-                // NOTE(long): This width is of the current option, not the next option
-                // So if the next option is _way_ bigger than then current one, this code will not newline it, but it's not a problem currently
-                f32 onscreen_percent = .75f;
-                if (tooltip_pos.x + width * onscreen_percent > screen_rect.x1)
-                {
-                    tooltip_pos.x  = start_x;
-                    tooltip_pos.y += rect_height(rect);
-                }
-            }
-            else tooltip_pos.y += rect_height(rect);
         }
         
         {
@@ -1149,7 +1116,7 @@ function void Long_Index_DrawTooltip(Application_Links* app, Rect_f32 screen_rec
             b32 empty = false;
             while (!counts[highlight])
             {
-                highlight = (highlight + 1) % ArrayCount(long_global_context_opts);
+                highlight = (highlight + 1) % option_count;
                 if (highlight == long_active_pos_context_option)
                 {
                     empty = true;
@@ -1160,11 +1127,51 @@ function void Long_Index_DrawTooltip(Application_Links* app, Rect_f32 screen_rec
             
             if (!empty)
             {
-                // NOTE(long): Because the header for each options use a much bigger padding, I like to increase the highlight's y slightly
-                Vec2_f32 end_pos = rects[highlight].p1 - Vec2_f32 { padding, padding * 1.5f };
-                Rect_f32 rect = Rf32(rects[highlight].x0 + padding, end_pos.y, end_pos.x, end_pos.y + 2);
-                draw_rectangle(app, rect, 1, highlight_color);
                 long_active_pos_context_option = highlight;
+                
+                FColor option_colors[] =
+                {
+                    fcolor_id(fleury_color_index_decl),
+                    fcolor_id(fleury_color_index_function),
+                    fcolor_id(fleury_color_index_product_type),
+                };
+                
+                char* option_names[] =
+                {
+                    "DECL",
+                    "FUNC",
+                    "TYPE",
+                };
+                
+                i32 prev_idx = clamp_loop(highlight - 1, option_count);
+                i32 next_idx = clamp_loop(highlight + 1, option_count);
+                Fancy_Line list = {};
+                
+                push_fancy_stringf(scratch, &list, option_colors[prev_idx], "<(%.2d)", counts[prev_idx]);
+                list.last->post_margin = .5f;
+                
+                f32 beg_offset = get_fancy_line_width(app, face, &list);
+                push_fancy_stringf(scratch, &list, option_colors[highlight], "[%s(%.2d)]", option_names[highlight], counts[highlight]);
+                f32 end_offset = get_fancy_line_width(app, face, &list);
+                
+                push_fancy_stringf(scratch, &list, option_colors[next_idx], "(%.2d)>", counts[next_idx]);
+                list.last->pre_margin = .5f;
+                
+                f32 title_padding = padding * 1.5f;
+                Vec2_f32 padding_vec = Vec2_f32{ title_padding, title_padding };
+                Rect_f32 rect = Rf32_xy_wh(tooltip_pos, get_fancy_line_dim(app, face, &list) + padding_vec * 2);
+                Vec2_f32 text_pos = tooltip_pos + padding_vec;
+                
+                F4_DrawTooltipRect(app, rect);
+                draw_fancy_line(app, face, fcolor_zero(), &list, text_pos);
+                tooltip_pos.y += rect_height(rect);
+                
+                // NOTE(long): Because the title uses a much bigger padding, I like to increase the highlight's y slightly
+                f32 highlight_y = rect.y1 - title_padding;
+                Rect_f32 highlight_rect = Rf32_xy_wh(text_pos.x + beg_offset, highlight_y, end_offset - beg_offset, 2);
+                highlight_rect.x0 += padding;
+                highlight_rect.x1 -= padding;
+                draw_rectangle(app, highlight_rect, 1, highlight_color);
             }
         }
         
