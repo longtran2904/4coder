@@ -465,7 +465,7 @@ generic_parse_paren(Code_Index_File *index, Generic_Parse_State *state);
 
 function Code_Index_Nest*
 generic_parse_statement(Code_Index_File *index, Generic_Parse_State *state){
-#if LONG_INDEX
+#if LONG_INDEX_INDENT_STATEMENT
     generic_parse_skip_soft_tokens(index, state);
 #endif
     Token *token = token_it_read(&state->it);
@@ -476,8 +476,17 @@ generic_parse_statement(Code_Index_File *index, Generic_Parse_State *state){
     result->file = index;
     
     state->in_statement = true;
-#if LONG_INDEX
+#if LONG_INDEX_INDENT_STATEMENT
     b32 is_keyword = token->kind == TokenBaseKind_Keyword;
+    i64 start_paren_pos = 0;
+    if (token_it_inc(&state->it))
+    {
+        Token* paren_token = token_it_read(&state->it);
+        b32 is_next_paren = token_it_read(&state->it)->kind == TokenBaseKind_ParentheticalOpen;
+        if (is_next_paren)
+            start_paren_pos = paren_token->pos;
+        token_it_dec(&state->it);
+    }
 #endif
     
     for (;;){
@@ -503,8 +512,8 @@ generic_parse_statement(Code_Index_File *index, Generic_Parse_State *state){
             }
         }
         
-#if LONG_INDEX
-        if (is_keyword && token->kind == TokenBaseKind_ParentheticalOpen)
+#if LONG_INDEX_INDENT_STATEMENT
+        if (is_keyword && token->pos == start_paren_pos)
         {
             Code_Index_Nest *nest = generic_parse_paren(index, state);
             nest->parent = result;
@@ -530,6 +539,14 @@ generic_parse_statement(Code_Index_File *index, Generic_Parse_State *state){
             result->close = close;
             break;
         }
+        
+        if (token->kind == TokenBaseKind_ParentheticalOpen)
+        {
+            Code_Index_Nest* nest = generic_parse_paren(index, state);
+            nest->parent = result;
+            code_index_push_nest(&result->nest_list, nest);
+            continue;
+        }
 #endif
         
 #if LONG_INDEX_INDENT_PAREN
@@ -543,8 +560,8 @@ generic_parse_statement(Code_Index_File *index, Generic_Parse_State *state){
         
         if (token->kind == TokenBaseKind_ScopeOpen  ||
             token->kind == TokenBaseKind_ScopeClose ||
-            token->kind == TokenBaseKind_ParentheticalOpen
-        )
+            token->kind == TokenBaseKind_ParentheticalOpen // NOTE(long): This case is already handled above so it will never get here
+            )
         {
             result->is_closed = true;
             result->close = Ii64(token->pos);
@@ -561,7 +578,7 @@ generic_parse_statement(Code_Index_File *index, Generic_Parse_State *state){
         generic_parse_inc(state);
     }
     
-#if LONG_INDEX
+#if LONG_INDEX_INDENT_STATEMENT
     result->nest_array = code_index_nest_ptr_array_from_list(state->arena, &result->nest_list);
 #endif
     
@@ -690,11 +707,6 @@ generic_parse_scope(Code_Index_File *index, Generic_Parse_State *state){
             Code_Index_Nest *nest = generic_parse_paren(index, state);
             nest->parent = result;
             code_index_push_nest(&result->nest_list, nest);
-            
-#if LONG_CS_INDENT_ATTRIBUTE
-            if (token->sub_kind == TokenCsKind_BrackOp)
-            continue;
-#endif
             
             // NOTE(allen): after a parenthetical group we consider ourselves immediately
             // transitioning into a statement
@@ -937,7 +949,7 @@ layout_index_x_shift(Application_Links *app, Layout_Reflex *reflex, Code_Index_N
 #if LONG_INDEX_INDENT_PAREN
                     && (!nest->parent || nest->parent->kind != CodeIndexNest_Paren || nest->nest_array.ptrs)
 #endif
-                ){
+                    ){
                     result += regular_indent;
                 }
             }break;

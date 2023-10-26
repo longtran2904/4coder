@@ -390,7 +390,7 @@ typedef int socklen_t;
 // }
 
 // NOTE(long): Macros for all my modifications in the 4coder and fleury layer
-#define LONG_INDEX 1
+#define LONG_INDEX_INDENT_STATEMENT 1
 #define LONG_INDEX_INLINE 0
 #define LONG_INDEX_INSERT_QUEUE 1
 #define LONG_INDEX_GET_COLOR 1
@@ -400,9 +400,6 @@ typedef int socklen_t;
 #define LONG_INDEX_PRELOAD_REF 0
 
 #define LONG_CS_LEXER 1
-#if LONG_CS_LEXER
-#define LONG_CS_INDENT_ATTRIBUTE 1
-#endif
 
 #define LONG_LISTER_FILTER_TAG 1
 #define LONG_ENABLE_INDEX_PROFILE 1
@@ -485,7 +482,7 @@ void custom_layer_init(Application_Links *app)
     default_framework_init(app);
     global_frame_arena = make_arena(get_base_allocator_system());
     permanent_arena = make_arena(get_base_allocator_system());
-    
+
     // NOTE(rjf): Set up hooks.
     {
         set_all_default_hooks(app);
@@ -498,10 +495,11 @@ void custom_layer_init(Application_Links *app)
         set_custom_hook(app, HookID_DeltaRule,               F4_DeltaRule);
         set_custom_hook(app, HookID_BufferEditRange,         F4_BufferEditRange);
         set_custom_hook_memory_size(app, HookID_DeltaRule, delta_ctx_size(sizeof(Vec2_f32)));
-        
+
         set_custom_hook(app, HookID_EndBuffer, Long_EndBuffer);
+        set_custom_hook(app, HookID_SaveFile,  Long_SaveFile);
     }
-    
+
     // NOTE(rjf): Set up mapping.
     {
         Thread_Context *tctx = get_thread_context(app);
@@ -514,12 +512,12 @@ void custom_layer_init(Application_Links *app)
         }
         F4_SetAbsolutelyNecessaryBindings(&framework_mapping);
     }
-    
+
     // NOTE(rjf): Set up custom code index.
     {
         F4_Index_Initialize();
     }
-    
+
     // NOTE(rjf): Register languages.
     {
         F4_RegisterLanguages();
@@ -549,63 +547,63 @@ CUSTOM_COMMAND_SIG(fleury_startup)
 CUSTOM_DOC("Fleury startup event")
 {
     ProfileScope(app, "default startup");
-    
+
     User_Input input = get_current_input(app);
     if(!match_core_code(&input, CoreCode_Startup))
     {
         return;
     }
-    
+
     //~ NOTE(rjf): Default 4coder initialization.
     String_Const_u8_Array file_names = input.event.core.file_names;
     load_themes_default_folder(app);
     default_4coder_initialize(app, file_names);
-    
+
     //~ NOTE(rjf): Open special buffers.
     {
         // NOTE(rjf): Open compilation buffer.
         {
             Buffer_ID buffer = create_buffer(app, string_u8_litexpr("*compilation*"),
-                                             BufferCreate_NeverAttachToFile |
-                                             BufferCreate_AlwaysNew);
+                    BufferCreate_NeverAttachToFile |
+                    BufferCreate_AlwaysNew);
             buffer_set_setting(app, buffer, BufferSetting_Unimportant, true);
             buffer_set_setting(app, buffer, BufferSetting_ReadOnly, true);
         }
-        
+
         // NOTE(rjf): Open lego buffer.
         {
             Buffer_ID buffer = create_buffer(app, string_u8_litexpr("*lego*"),
-                                             BufferCreate_NeverAttachToFile |
-                                             BufferCreate_AlwaysNew);
+                    BufferCreate_NeverAttachToFile |
+                    BufferCreate_AlwaysNew);
             buffer_set_setting(app, buffer, BufferSetting_Unimportant, true);
             buffer_set_setting(app, buffer, BufferSetting_ReadOnly, true);
         }
-        
+
         // NOTE(rjf): Open calc buffer.
         {
             Buffer_ID buffer = create_buffer(app, string_u8_litexpr("*calc*"),
-                                             BufferCreate_NeverAttachToFile |
-                                             BufferCreate_AlwaysNew);
+                    BufferCreate_NeverAttachToFile |
+                    BufferCreate_AlwaysNew);
             buffer_set_setting(app, buffer, BufferSetting_Unimportant, true);
         }
-        
+
         // NOTE(rjf): Open peek buffer.
         {
             Buffer_ID buffer = create_buffer(app, string_u8_litexpr("*peek*"),
-                                             BufferCreate_NeverAttachToFile |
-                                             BufferCreate_AlwaysNew);
+                    BufferCreate_NeverAttachToFile |
+                    BufferCreate_AlwaysNew);
             buffer_set_setting(app, buffer, BufferSetting_Unimportant, true);
         }
-        
+
         // NOTE(rjf): Open LOC buffer.
         {
             Buffer_ID buffer = create_buffer(app, string_u8_litexpr("*loc*"),
-                                             BufferCreate_NeverAttachToFile |
-                                             BufferCreate_AlwaysNew);
+                    BufferCreate_NeverAttachToFile |
+                    BufferCreate_AlwaysNew);
             buffer_set_setting(app, buffer, BufferSetting_Unimportant, true);
         }
     }
-    
+
     //~ NOTE(rjf): Initialize panels
     {
         Buffer_Identifier comp = buffer_identifier(string_u8_litexpr("*compilation*"));
@@ -614,12 +612,12 @@ CUSTOM_DOC("Fleury startup event")
         Buffer_ID comp_id = buffer_identifier_to_id(app, comp);
         Buffer_ID left_id = buffer_identifier_to_id(app, left);
         Buffer_ID right_id = buffer_identifier_to_id(app, right);
-        
+
         // NOTE(rjf): Left Panel
         View_ID view = get_active_view(app, Access_Always);
         new_view_settings(app, view);
         view_set_buffer(app, view, left_id, 0);
-        
+
         // NOTE(rjf): Bottom panel
         View_ID compilation_view = 0;
         {
@@ -633,19 +631,19 @@ CUSTOM_DOC("Fleury startup event")
             global_compilation_view = compilation_view;
             view_set_buffer(app, compilation_view, comp_id, 0);
         }
-        
+
         view_set_active(app, view);
-        
+
         // NOTE(rjf): Right Panel
         open_panel_vsplit(app);
-        
+
         View_ID right_view = get_active_view(app, Access_Always);
         view_set_buffer(app, right_view, right_id, 0);
-        
+
         // NOTE(rjf): Restore Active to Left
         view_set_active(app, view);
     }
-    
+
     //~ NOTE(rjf): Auto-Load Project.
     {
         b32 auto_load = def_get_config_b32(vars_save_string_lit("automatically_load_project"));
@@ -654,25 +652,25 @@ CUSTOM_DOC("Fleury startup event")
             load_project(app);
         }
     }
-    
+
     //~ NOTE(rjf): Set misc options.
     {
         global_battery_saver = def_get_config_b32(vars_save_string_lit("f4_battery_saver"));
     }
-    
+
     //~ NOTE(rjf): Initialize audio.
     {
         def_audio_init();
     }
-    
+
     //~ NOTE(rjf): Initialize stylish fonts.
     {
         Scratch_Block scratch(app);
         String_Const_u8 bin_path = system_get_path(scratch, SystemPath_Binary);
-        
+
         // NOTE(rjf): Fallback font.
         Face_ID face_that_should_totally_be_there = get_face_id(app, 0);
-        
+
         // NOTE(rjf): Title font.
         {
             Face_Description desc = {0};
@@ -683,7 +681,7 @@ CUSTOM_DOC("Fleury startup event")
                 desc.parameters.italic = 0;
                 desc.parameters.hinting = 0;
             }
-            
+
             if(IsFileReadable(desc.font.file_name))
             {
                 global_styled_title_face = try_create_new_face(app, &desc);
@@ -693,7 +691,7 @@ CUSTOM_DOC("Fleury startup event")
                 global_styled_title_face = face_that_should_totally_be_there;
             }
         }
-        
+
         // NOTE(rjf): Label font.
         {
             Face_Description desc = {0};
@@ -704,7 +702,7 @@ CUSTOM_DOC("Fleury startup event")
                 desc.parameters.italic = 1;
                 desc.parameters.hinting = 0;
             }
-            
+
             if(IsFileReadable(desc.font.file_name))
             {
                 global_styled_label_face = try_create_new_face(app, &desc);
@@ -714,11 +712,11 @@ CUSTOM_DOC("Fleury startup event")
                 global_styled_label_face = face_that_should_totally_be_there;
             }
         }
-        
+
         // NOTE(rjf): Small code font.
         {
             Face_Description normal_code_desc = get_face_description(app, get_face_id(app, 0));
-            
+
             Face_Description desc = {0};
             {
                 desc.font.file_name =  push_u8_stringf(scratch, "%.*sfonts/Inconsolata-Regular.ttf", string_expand(bin_path));
@@ -727,7 +725,7 @@ CUSTOM_DOC("Fleury startup event")
                 desc.parameters.italic = 1;
                 desc.parameters.hinting = 0;
             }
-            
+
             if(IsFileReadable(desc.font.file_name))
             {
                 global_small_code_face = try_create_new_face(app, &desc);
@@ -738,7 +736,7 @@ CUSTOM_DOC("Fleury startup event")
             }
         }
     }
-    
+
     //~ NOTE(rjf): Prep virtual whitespace.
     {
         def_enable_virtual_whitespace = def_get_config_b32(vars_save_string_lit("enable_virtual_whitespace"));

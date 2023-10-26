@@ -65,6 +65,12 @@ function void Long_Index_DrawTooltip(Application_Links* app, Rect_f32 screen_rec
 function void Long_Index_DrawPosContext(Application_Links* app, View_ID view, F4_Language_PosContextData* first_ctx);
 function void Long_Index_DrawCodePeek(Application_Links* app, View_ID view);
 
+//- NOTE(long): Buffer Functions
+function void Long_Index_IndentBuffer(Application_Links* app, Buffer_ID buffer, Indent_Flag flags, i32 tab_width, i32 indent_width);
+function void Long_Index_IndentBuffer(Application_Links* app, Buffer_ID buffer);
+function i32 Long_SaveFile(Application_Links *app, Buffer_ID buffer_id);
+function i32 Long_EndBuffer(Application_Links* app, Buffer_ID buffer_id);
+
 //~ NOTE(long): Macros
 
 #define Long_Index_HasScopeRange(note) ((note)->scope_range.min > (note)->range.max)
