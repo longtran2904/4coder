@@ -1084,6 +1084,54 @@ CUSTOM_DOC("Reads a token or word under the cursor and lists all exact case-inse
     Long_ListAllLocations_Identifier(app, ListAllLocationsFlag_CaseSensitive|ListAllLocationsFlag_MatchSubstring, 0);
 }
 
+function b32 Long_F32_Invalid(f32 f)
+{
+    return f == max_f32 || f == min_f32 || f == -max_f32 || f == -min_f32;
+}
+
+function b32 Long_Rf32_Invalid(Rect_f32 r)
+{
+    return (Long_F32_Invalid(r.x0) ||
+            Long_F32_Invalid(r.x1) ||
+            Long_F32_Invalid(r.y0) ||
+            Long_F32_Invalid(r.y1));
+}
+
+function void Long_DrawBlock(Application_Links* app, Text_Layout_ID layout, Range_i64 range, f32 roundness, FColor color)
+{
+    for (i64 i = range.first; i < range.one_past_last; ++i)
+        if (Long_Rf32_Invalid(text_layout_character_on_screen(app, layout, i)))
+            return;
+    draw_character_block(app, layout, range, roundness, color);
+}
+
+// COPYPASTA(long): draw_highlight_range
+function b32 Long_Highlight_DrawRange(Application_Links *app, View_ID view_id,
+                                      Buffer_ID buffer, Text_Layout_ID text_layout_id,
+                                      f32 roundness){
+    b32 has_highlight_range = false;
+    Managed_Scope scope = view_get_managed_scope(app, view_id);
+    Buffer_ID *highlight_buffer = scope_attachment(app, scope, view_highlight_buffer, Buffer_ID);
+    if (*highlight_buffer != 0){
+        if (*highlight_buffer != buffer){
+            view_disable_highlight_range(app, view_id);
+        }
+        else{
+            has_highlight_range = true;
+            Managed_Object *highlight = scope_attachment(app, scope, view_highlight_range, Managed_Object);
+            Marker marker_range[2];
+            if (managed_object_load_data(app, *highlight, 0, 2, marker_range)){
+                Range_i64 range = Ii64(marker_range[0].pos, marker_range[1].pos);
+                Long_DrawBlock(app, text_layout_id, range, roundness,
+                               fcolor_id(defcolor_highlight));
+                paint_text_color_fcolor(app, text_layout_id, range,
+                                        fcolor_id(defcolor_at_highlight));
+            }
+        }
+    }
+    return(has_highlight_range);
+}
+
 // COPYPASTA(long): draw_jump_highlights
 function void Long_Highlight_DrawList(Application_Links *app, Buffer_ID buffer, Text_Layout_ID layout, f32 roundness)
 {
@@ -1120,11 +1168,11 @@ function void Long_Highlight_DrawList(Application_Links *app, Buffer_ID buffer, 
             // NOTE(long): If the user only has one selection, the MultiSelect function already handles it
             if (range_size(select_range) != 0 && range_contains_inclusive(select_range, i))
             {
-                draw_character_block(app, layout, range, roundness, fcolor_id(defcolor_highlight));
+                Long_DrawBlock(app, layout, range, roundness, fcolor_id(defcolor_highlight));
                 paint_text_color_fcolor(app, layout, range, fcolor_id(defcolor_at_highlight));
             }
             else
-                draw_character_block(app, layout, range, 0.f, fcolor_id(fleury_color_token_minor_highlight));
+                Long_DrawBlock(app, layout, range, 0.f, fcolor_id(fleury_color_token_minor_highlight));
         }
     }
 }

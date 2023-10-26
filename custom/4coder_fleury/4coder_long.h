@@ -37,6 +37,7 @@
 // [X] Polish the index lister (show parent as tag, pos/line number, the entire function/type signature)
 // [X] Show file location in the file lister
 // [X] Show the number of items
+// [X] Copy-paste and delete all in the lister's query bar
 // [ ] Differentiate type/flag/parent tag (`function` vs `[forward]` vs '<MyParent>`)
 // [ ] Show rare command lister
 // [ ] Show description/footer of an item
@@ -49,12 +50,12 @@
 // [X] Highlight the current argument in the tooltip
 // [X] Make the code peek system works with F4_Index_Note
 // [X] Split PosContext entries into fields/functions/types and cap the number of entries
+// [X] Make auto_indent_buffer use virtual whitespace
 // [ ] Autocompletion using PosContext or casey/jack's system
 // [ ] Unite all code peeking systems and bindings (fleury_code_peek, f4_autocomplete, word_complete_drop_down, and fleury_pos_context)
 // [ ] Fix error annotation locations
 // [ ] Expand macros in a popup window
 // [ ] String/Comment indent as code
-// [ ] Make auto_indent_buffer use virtual whitespace
 
 //~ TODO LANGUAGE
 // [X] Have syntax color for locals, fields, arguments
@@ -76,6 +77,7 @@
 // [X] Fix opening the same lister multiple times bug
 // [X] Fix jump to buffer before search bug
 // [X] Fix jump to whitespace when enabling virtual_whitespace bug
+// [X] Fix highlight the entire buffer bug
 // [ ] Fix copy outside 4coder bug
 // [ ] Fix switching to the build panel when the user accidentally kills it
 // [ ] Fix undo/redo camera scroll bug
@@ -91,6 +93,7 @@
 #define clamp_loop(x, size) ((((x) % (size)) + (size)) % (size)) //((x) < 0 ? ((size) - 1) : ((x) % (size)))
 function b32 F4_ARGBIsValid(ARGB_Color color);
 function void Long_Highlight_DrawList(Application_Links *app, Buffer_ID buffer, Text_Layout_ID layout, f32 roundness);
+function b32 Long_Highlight_DrawRange(Application_Links *app, View_ID view, Buffer_ID buffer, Text_Layout_ID layout, f32 roundness);
 
 #include "4coder_long_index.h"
 
