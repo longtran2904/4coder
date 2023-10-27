@@ -28,8 +28,6 @@ function String8 Long_Buffer_GetNameWithoutPrjPath(Application_Links* app, Arena
     {
         String8 buffer_name = push_buffer_base_name(app, scratch, buffer);
         filepath = string_chop(filepath, buffer_name.size);
-        // NOTE(long): the push_buffer_base_name returns a string with '\\'
-        //filepath = string_mod_replace_character(filepath, '/', '\\');
     }
 
     Variable_Handle prj_var = vars_read_key(vars_get_root(), vars_save_string_lit("prj_config"));
@@ -281,7 +279,7 @@ function void Long_PointStack_SetCurrent(Long_Point_Stack* stack, i32 index)
         func; \
     }
 
-CUSTOM_UI_COMMAND_SIG/*CUSTOM_COMMAND_SIG*/(long_list_all_jump_points)
+CUSTOM_UI_COMMAND_SIG(long_point_lister)
 CUSTOM_DOC("List jump history")
 {
     Scratch_Block scratch(app);
@@ -456,7 +454,7 @@ function Buffer_ID Long_Buffer_RunLister(Application_Links *app, char* query)
     return result;
 }
 
-CUSTOM_COMMAND_SIG(long_view_jump_list_with_lister)
+CUSTOM_UI_COMMAND_SIG(long_jump_lister)
 CUSTOM_DOC("When executed on a buffer with jumps, creates a persistent lister for all the jumps")
 {
     View_ID view = get_active_view(app, Access_Always);
@@ -506,7 +504,7 @@ function void Long_JumpToBuffer(Application_Links* app, View_ID view, Buffer_ID 
         Long_PointStack_Push(app, buffer, view_get_cursor_pos(app, view), view);
 }
 
-CUSTOM_UI_COMMAND_SIG/*CUSTOM_COMMAND_SIG*/(long_interactive_switch_buffer)
+CUSTOM_UI_COMMAND_SIG(long_interactive_switch_buffer)
 CUSTOM_DOC("Interactively switch to an open buffer.")
 {
     // COPYPASTA(long): interactive_switch_buffer
@@ -518,7 +516,7 @@ CUSTOM_DOC("Interactively switch to an open buffer.")
     }
 }
 
-CUSTOM_UI_COMMAND_SIG/*CUSTOM_COMMAND_SIG*/(long_switch_to_search_buffer)
+CUSTOM_UI_COMMAND_SIG(long_switch_to_search_buffer)
 CUSTOM_DOC("Switch to the search buffer.")
 {
     Long_JumpToBuffer(app, get_this_ctx_view(app, Access_Always), Long_Buffer_GetSearchBuffer(app), 1, 0);
@@ -541,7 +539,7 @@ function void Long_KillBuffer(Application_Links* app, Buffer_ID buffer, View_ID 
     }
 }
 
-CUSTOM_UI_COMMAND_SIG/*CUSTOM_COMMAND_SIG*/(long_interactive_kill_buffer)
+CUSTOM_UI_COMMAND_SIG(long_interactive_kill_buffer)
 CUSTOM_DOC("Interactively kill an open buffer.")
 {
     Long_KillBuffer(app, Long_Buffer_RunLister(app, "Kill:"), get_this_ctx_view(app, Access_Always));
@@ -566,6 +564,178 @@ CUSTOM_DOC("Audo-indents the entire current buffer.")
 {
     Buffer_ID buffer = view_get_buffer(app, get_active_view(app, Access_ReadWriteVisible), Access_ReadWriteVisible);
     Long_Index_IndentBuffer(app, buffer);
+}
+
+struct Long_Buffer_History
+{
+    History_Record_Index index;
+    Record_Info record;
+};
+
+CUSTOM_ID(attachment, long_buffer_history);
+
+function Long_Buffer_History* Long_Buffer_GetAttachedHistory(Application_Links* app, Buffer_ID buffer)
+{
+    return scope_attachment(app, buffer_get_managed_scope(app, buffer), long_buffer_history, Long_Buffer_History);
+}
+
+function Long_Buffer_History Long_Buffer_GetCurrentHistory(Application_Links* app, Buffer_ID buffer, i32 offset = 0)
+{
+    History_Record_Index current = buffer_history_get_current_state_index(app, buffer);
+    Record_Info record = buffer_history_get_record_info(app, buffer, current + offset);
+    return { current, record };
+}
+
+CUSTOM_UI_COMMAND_SIG(long_history_lister)
+CUSTOM_DOC("Opens an interactive list of the current buffer history.")
+{
+    Scratch_Block scratch(app);
+    Lister_Block lister(app, scratch);
+    lister_set_default_handlers(lister);
+
+    View_ID view = get_active_view(app, Access_ReadWriteVisible);
+    Buffer_ID buffer = view_get_buffer(app, view, Access_ReadWriteVisible);
+    History_Record_Index current = buffer_history_get_current_state_index(app, buffer);
+    History_Record_Index max = buffer_history_get_max_record_index(app, buffer);
+
+    for (History_Record_Index i = 0; i <= max; ++i)
+    {
+        Record_Info record = buffer_history_get_record_info(app, buffer, i);
+        String8 line = push_stringf(scratch, "[%d, %d]: \"%.*s\" \"%.*s\"", i, record.edit_number,
+                                    string_expand(record.single_string_backward), string_expand(record.single_string_forward));
+        String8 tag = (i == current) ? S8Lit("current") : String8{};
+        Long_Lister_AddItem(app, lister, line, tag, buffer, record.pos_before_edit, i);
+    }
+
+    Long_Buffer_History history = *Long_Buffer_GetAttachedHistory(app, buffer);
+    lister_set_query(lister, push_u8_stringf(scratch, "Max: %d, Current: %d, Buffer Edit: (%d, %d)",
+                                             max, current, history.index, history.record.edit_number));
+
+    Lister_Result l_result = run_lister(app, lister);
+    if (!l_result.canceled && l_result.user_data)
+    {
+        History_Record_Index index = (History_Record_Index)((LongListerData*)l_result.user_data)->user_index;
+        Assert(index >= 0 && index <= max);
+        if (index != current)
+        {
+            buffer_history_set_current_state_index(app, buffer, index);
+            i64 new_pos;
+            if (index < current)
+                new_pos = record_get_new_cursor_position_undo(app, buffer, index);
+            else
+                new_pos = record_get_new_cursor_position_redo(app, buffer, index);
+            view_set_cursor_and_preferred_x(app, view, seek_pos(new_pos));
+        }
+    }
+}
+
+function b32 Long_Buffer_CompareCurrentHistory(Application_Links* app, Buffer_ID buffer, i32 offset = 0)
+{
+    Long_Buffer_History current = Long_Buffer_GetCurrentHistory(app, buffer, offset);
+    Long_Buffer_History history = *Long_Buffer_GetAttachedHistory(app, buffer);
+    b32 result = current.index == history.index && current.record.edit_number == history.record.edit_number;
+    return result;
+}
+
+function b32 Long_Buffer_CheckHistoryAndSetDirty(Application_Links* app, Buffer_ID buffer = 0, i32 offset = 0)
+{
+    if (!buffer)
+        buffer = view_get_buffer(app, get_active_view(app, Access_ReadWriteVisible), Access_ReadWriteVisible);
+
+    Dirty_State dirty = buffer_get_dirty_state(app, buffer);
+    b32 result = Long_Buffer_CompareCurrentHistory(app, buffer, offset);
+    if (result)
+        buffer_set_dirty_state(app, buffer, RemFlag(dirty, DirtyState_UnsavedChanges));
+
+    return result;
+}
+
+// NOTE(long): Because an undo can be deferred later, I can't call CheckHistory after calling undo(app).
+// I must call it inside the fade_finish callback, or in the do_immedite_undo check.
+// But a redo, on the other hand, always executes immediately, so I can safely call it right afterward.
+
+// COPYPASTA(long): undo__fade_finish
+function void Long_Undo_FinishFade(Application_Links *app, Fade_Range* range)
+{
+    History_Record_Index current = buffer_history_get_current_state_index(app, range->buffer_id);
+    if (current > 0)
+    {
+        buffer_history_set_current_state_index(app, range->buffer_id, current - 1);
+        Long_Buffer_CheckHistoryAndSetDirty(app, range->buffer_id);
+    }
+}
+
+// COPYPASTA(long): undo
+CUSTOM_COMMAND_SIG(long_undo)
+CUSTOM_DOC("Advances backwards through the undo history of the current buffer.")
+{
+    View_ID view = get_active_view(app, Access_ReadWriteVisible);
+    Buffer_ID buffer = view_get_buffer(app, view, Access_ReadWriteVisible);
+    undo__flush_fades(app, buffer);
+
+    History_Record_Index current = buffer_history_get_current_state_index(app, buffer);
+    if (current > 0){
+        Record_Info record = buffer_history_get_record_info(app, buffer, current);
+        i64 new_position = record_get_new_cursor_position_undo(app, buffer, current, record);
+
+        b32 do_immedite_undo = true;
+        f32 undo_fade_time = 0.33f;
+        b32 enable_undo_fade_out = def_get_config_b32(vars_save_string_lit("enable_undo_fade_out"));
+        if (enable_undo_fade_out &&
+            undo_fade_time > 0.f &&
+            record.kind == RecordKind_Single &&
+            record.single_string_backward.size == 0){
+            b32 has_hard_character = false;
+            for (u64 i = 0; i < record.single_string_forward.size; i += 1){
+                if (!character_is_whitespace(record.single_string_forward.str[i])){
+                    has_hard_character = true;
+                    break;
+                }
+            }
+            if (has_hard_character){
+                Range_i64 range = Ii64_size(record.single_first, record.single_string_forward.size);
+                ARGB_Color color = fcolor_resolve(fcolor_id(defcolor_undo)) & 0xFFFFFF;
+                Fade_Range *fade = buffer_post_fade(app, buffer, undo_fade_time, range, color);
+                fade->negate_fade_direction = true;
+                fade->finish_call = Long_Undo_FinishFade;
+                do_immedite_undo = false;
+                if (new_position > range.max){
+                    new_position -= range_size(range);
+                }
+            }
+        }
+
+        if (do_immedite_undo){
+            buffer_history_set_current_state_index(app, buffer, current - 1);
+            Long_Buffer_CheckHistoryAndSetDirty(app, buffer);
+            if (record.single_string_backward.size > 0){
+                Range_i64 range = Ii64_size(record.single_first, record.single_string_backward.size);
+                ARGB_Color color = fcolor_resolve(fcolor_id(defcolor_undo));
+                buffer_post_fade(app, buffer, undo_fade_time, range, color);
+            }
+        }
+
+        view_set_cursor_and_preferred_x(app, view, seek_pos(new_position));
+    }
+}
+
+CUSTOM_COMMAND_SIG(long_redo)
+CUSTOM_DOC("Advances forwards through the undo history of the current buffer.")
+{
+    redo(app);
+    Long_Buffer_CheckHistoryAndSetDirty(app);
+}
+
+CUSTOM_COMMAND_SIG(long_save)
+CUSTOM_DOC("Saves the current buffer.")
+{
+    Scratch_Block scratch(app);
+    Buffer_ID buffer = view_get_buffer(app, get_active_view(app, Access_ReadVisible), Access_ReadVisible);
+    String_Const_u8 file_name = push_buffer_file_name(app, scratch, buffer);
+    buffer_save(app, buffer, file_name, 0);
+    Long_Buffer_History  current = Long_Buffer_GetCurrentHistory(app, buffer);
+    Long_Buffer_History* history = Long_Buffer_GetAttachedHistory(app, buffer);
+    *history = current;
 }
 
 //~ NOTE(long): Search/Jump Commands
@@ -855,8 +1025,7 @@ function void Long_SearchBuffer_MultiSelect(Application_Links* app, View_ID view
         ID_Pos_Jump_Location current_location;
         if (get_jump_from_list(app, jump_state.list, jump_state.list_index, &current_location))
         {
-            // NOTE(long): Even though Long_Highlight_DrawList already draw the current selection,
-            // calling this here will signal the fleury's render hook to disable drawing the cursor.
+            // NOTE(long): Calling this here will signal the fleury's render hook to disable drawing the cursor.
             isearch__update_highlight(app, view, Ii64_size(current_location.pos, *size));
         }
 
@@ -865,6 +1034,8 @@ function void Long_SearchBuffer_MultiSelect(Application_Links* app, View_ID view
 
         if (match_key_code(&in, KeyCode_Return) || match_key_code(&in, KeyCode_Tab))
         {
+            Long_PointStack_Push(app, current_location.buffer_id, current_location.pos, view);
+
             if (in_replace_mode)
             {
                 Range_i32 select_range = Long_Highlight_GetRange(jump_state, *selection_offset);
@@ -1868,19 +2039,19 @@ function void _Long_SearchDefinition(Application_Links* app, NoteFilter* filter,
     }
 }
 
-CUSTOM_UI_COMMAND_SIG/*CUSTOM_COMMAND_SIG*/(long_search_for_definition__project_wide)
+CUSTOM_UI_COMMAND_SIG(long_search_for_definition__project_wide)
 CUSTOM_DOC("List all definitions in the index and jump to the one selected by the user.")
 {
     _Long_SearchDefinition(app, LONG_INDEX_FILTER_NOTE, 1);
 }
 
-CUSTOM_UI_COMMAND_SIG/*CUSTOM_COMMAND_SIG*/(long_search_for_definition__current_file)
+CUSTOM_UI_COMMAND_SIG(long_search_for_definition__current_file)
 CUSTOM_DOC("List all definitions in the current file and jump to the one selected by the user.")
 {
     _Long_SearchDefinition(app, LONG_INDEX_FILTER_NOTE, 0);
 }
 
-CUSTOM_UI_COMMAND_SIG/*CUSTOM_COMMAND_SIG*/(long_search_for_definition_no_filter__project_file)
+CUSTOM_UI_COMMAND_SIG(long_search_for_definition_no_filter__project_file)
 CUSTOM_DOC("List all definitions in the current file and jump to the one selected by the user.")
 {
     _Long_SearchDefinition(app, 0, 1);
@@ -1947,25 +2118,25 @@ function void Long_WriteNoteTreeToFile(Application_Links* app, String8 name, Not
     Long_WriteToBuffer(app, scratch, name, string);
 }
 
-CUSTOM_UI_COMMAND_SIG/*CUSTOM_COMMAND_SIG*/(long_write_to_file_all_definitions)
+CUSTOM_COMMAND_SIG(long_write_to_file_all_definitions)
 CUSTOM_DOC("Save all definitions in the hash table.")
 {
     Long_WriteNoteTreeToFile(app, S8Lit("definitions.txt"), 0);
 }
 
-CUSTOM_UI_COMMAND_SIG/*CUSTOM_COMMAND_SIG*/(long_write_to_file_all_empty_scopes)
+CUSTOM_COMMAND_SIG(long_write_to_file_all_empty_scopes)
 CUSTOM_DOC("Save all definitions in the hash table.")
 {
     Long_WriteNoteTreeToFile(app, S8Lit("scopes.txt"), Long_Filter_Empty_Scopes);
 }
 
-CUSTOM_UI_COMMAND_SIG/*CUSTOM_COMMAND_SIG*/(long_write_to_file_all_declarations)
+CUSTOM_COMMAND_SIG(long_write_to_file_all_declarations)
 CUSTOM_DOC("Save all definitions in the hash table.")
 {
     Long_WriteNoteTreeToFile(app, S8Lit("declarations.txt"), Long_Filter_Declarations);
 }
 
-CUSTOM_UI_COMMAND_SIG/*CUSTOM_COMMAND_SIG*/(long_write_to_file_all_identifiers)
+CUSTOM_COMMAND_SIG(long_write_to_file_all_identifiers)
 CUSTOM_DOC("Save all identifiers in the hash table.")
 {
     Buffer_ID buffer = view_get_buffer(app, get_active_view(app, Access_Always), Access_Always);

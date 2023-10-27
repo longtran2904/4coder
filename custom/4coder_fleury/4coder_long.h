@@ -62,14 +62,14 @@
 // [X] Render cpp pos context
 // [X] Make a cs parser
 // [ ] Rework cpp parser
-// [ ] Custom language indentation
-// [ ] Custom language position context
+// [ ] Custom language indentation API
+// [ ] Custom language position context API
 // [ ] Correct function/type overloading name
 
 //~ TODO FILE/BUFFER
 // [X] Create read-only buffers from a path
 // [X] Open/Create matching files in the same panel
-// [ ] Don't save/write a file if the file's content is the same
+// [X] Don't save/write a buffer if the current history state is already saved
 // [ ] Open most recent modified file on startup
 // [ ] Open theme file
 
@@ -78,9 +78,9 @@
 // [X] Fix jump to buffer before search bug
 // [X] Fix jump to whitespace when enabling virtual_whitespace bug
 // [X] Fix highlight the entire buffer bug
+// [X] Fix undo/redo camera scroll bug
 // [ ] Fix copy outside 4coder bug
 // [ ] Fix switching to the build panel when the user accidentally kills it
-// [ ] Fix undo/redo camera scroll bug
 
 //~ TODO MISC
 // [X] Reload all themes from the default folder

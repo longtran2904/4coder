@@ -663,6 +663,7 @@ run_lister(Application_Links *app, Lister *lister){
                                 lister_update_filtered_list(app, lister);
                             }
                         }
+                        else goto DEFAULT;
                     } break;
 
                     case KeyCode_Backspace:
@@ -741,6 +742,7 @@ run_lister(Application_Links *app, Lister *lister){
                         }
                     }break;
 
+                    DEFAULT:
                     default:
                     {
                         if (lister->handlers.key_stroke != 0){

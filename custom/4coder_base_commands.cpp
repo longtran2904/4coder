@@ -11,12 +11,12 @@ write_text(Application_Links *app, String_Const_u8 insert){
     if (insert.str != 0 && insert.size > 0){
         View_ID view = get_active_view(app, Access_ReadWriteVisible);
         if_view_has_highlighted_range_delete_range(app, view);
-        
+
         i64 pos = view_get_cursor_pos(app, view);
         pos = view_get_character_legal_pos_from_pos(app, view, pos);
-        
+
         Buffer_ID buffer = view_get_buffer(app, view, Access_ReadWriteVisible);
-        
+
         // NOTE(allen): consecutive inserts merge logic
         History_Record_Index first_index = buffer_history_get_current_state_index(app, buffer);
         b32 do_merge = false;
@@ -39,16 +39,16 @@ write_text(Application_Links *app, String_Const_u8 insert){
                 }
             }
         }
-        
+
         // NOTE(allen): perform the edit
         b32 edit_success = buffer_replace_range(app, buffer, Ii64(pos), insert);
-        
+
         // NOTE(allen): finish merging records if necessary
         if (do_merge){
             History_Record_Index last_index = buffer_history_get_current_state_index(app, buffer);
             buffer_history_merge_record_range(app, buffer, first_index, last_index, RecordMergeFlag_StateInRange_MoveStateForward);
         }
-        
+
         // NOTE(allen): finish updating the cursor
         if (edit_success){
             view_set_cursor_and_preferred_x(app, view, seek_pos(pos + insert.size));
@@ -591,7 +591,7 @@ clean_all_lines_buffer(Application_Links *app, Buffer_ID buffer, Clean_All_Lines
     Scratch_Block scratch(app);
     Batch_Edit *batch_first = 0;
     Batch_Edit *batch_last = 0;
-    
+
     i64 line_count = buffer_get_line_count(app, buffer);
     for (i64 line_number = 1; line_number <= line_count; line_number += 1){
         i64 line_start = get_line_side_pos(app, buffer, line_number, Side_Min);
@@ -626,11 +626,11 @@ clean_all_lines_buffer(Application_Links *app, Buffer_ID buffer, Clean_All_Lines
                         break;
                     }
                 }
-                
+
                 if (mode == CleanAllLinesMode_RemoveBlankLines || start_offset > 0){
                     i64 start = start_offset + line_start;
                     i64 end   = end_offset   + line_start;
-                    
+
                     Batch_Edit *batch = push_array(scratch, Batch_Edit, 1);
                     sll_queue_push(batch_first, batch_last, batch);
                     batch->edit.text = SCu8();
@@ -639,7 +639,7 @@ clean_all_lines_buffer(Application_Links *app, Buffer_ID buffer, Clean_All_Lines
             }
         }
     }
-    
+
     if (batch_first != 0){
         buffer_batch_edit(app, buffer, batch_first);
     }
@@ -732,7 +732,7 @@ CUSTOM_DOC("Set face size of the face used by the current buffer.")
     Buffer_ID buffer = view_get_buffer(app, view, Access_Always);
     Face_ID face_id = get_face_id(app, buffer);
     Face_Description description = get_face_description(app, face_id);
-    
+
     Query_Bar_Group group(app);
     u8 string_space[256];
     Query_Bar bar = {};
@@ -773,7 +773,7 @@ CUSTOM_DOC("Set face size of the face used by the current buffer; if any other b
     View_ID view = get_active_view(app, Access_Always);
     Buffer_ID buffer = view_get_buffer(app, view, Access_Always);
     Face_ID face_id = get_face_id(app, buffer);
-    
+
     b32 is_shared = false;
     for (Buffer_ID buf_it = get_buffer_next(app, 0, Access_Always);
          buf_it != 0;
@@ -786,7 +786,7 @@ CUSTOM_DOC("Set face size of the face used by the current buffer; if any other b
             is_shared = true;
         }
     }
-    
+
     if (is_shared){
         Face_Description description = get_face_description(app, face_id);
         face_id = try_create_new_face(app, &description);
@@ -794,7 +794,7 @@ CUSTOM_DOC("Set face size of the face used by the current buffer; if any other b
             buffer_set_face(app, buffer, face_id);
         }
     }
-    
+
     set_face_size(app);
 }
 
@@ -886,35 +886,35 @@ isearch(Application_Links *app, Scan_Direction start_scan, i64 first_pos,
     if (!buffer_exists(app, buffer)){
         return;
     }
-    
+
     i64 buffer_size = buffer_get_size(app, buffer);
-    
+
     Query_Bar_Group group(app);
     Query_Bar bar = {};
     if (start_query_bar(app, &bar, 0) == 0){
         return;
     }
-    
+
     Vec2_f32 old_margin = {};
     Vec2_f32 old_push_in = {};
     view_get_camera_bounds(app, view, &old_margin, &old_push_in);
-    
+
     Vec2_f32 margin = old_margin;
     margin.y = clamp_bot(200.f, margin.y);
     view_set_camera_bounds(app, view, margin, old_push_in);
-    
+
     Scan_Direction scan = start_scan;
     i64 pos = first_pos;
-    
+
     u8 bar_string_space[256];
     bar.string = SCu8(bar_string_space, query_init.size);
     block_copy(bar.string.str, query_init.str, query_init.size);
-    
+
     String_Const_u8 isearch_str = string_u8_litexpr("I-Search: ");
     String_Const_u8 rsearch_str = string_u8_litexpr("Reverse-I-Search: ");
-    
+
     u64 match_size = bar.string.size;
-    
+
     User_Input in = {};
     for (;;){
         switch (scan){
@@ -928,14 +928,14 @@ isearch(Application_Links *app, Scan_Direction start_scan, i64 first_pos,
             }break;
         }
         isearch__update_highlight(app, view, Ii64_size(pos, match_size));
-        
+
         in = get_next_input(app, EventPropertyGroup_Any, EventProperty_Escape);
         if (in.abort){
             break;
         }
-        
+
         String_Const_u8 string = to_writable(&in);
-        
+
         b32 string_change = false;
         if (match_key_code(&in, KeyCode_Return) ||
             match_key_code(&in, KeyCode_Tab)){
@@ -971,7 +971,7 @@ isearch(Application_Links *app, Scan_Direction start_scan, i64 first_pos,
                 }
             }
         }
-        
+
         b32 do_scan_action = false;
         b32 do_scroll_wheel = false;
         Scan_Direction change_scan = scan;
@@ -1017,7 +1017,7 @@ isearch(Application_Links *app, Scan_Direction start_scan, i64 first_pos,
                 }
             }
         }
-        
+
         if (string_change){
             switch (scan){
                 case Scan_Forward:
@@ -1029,7 +1029,7 @@ isearch(Application_Links *app, Scan_Direction start_scan, i64 first_pos,
                         match_size = bar.string.size;
                     }
                 }break;
-                
+
                 case Scan_Backward:
                 {
                     i64 new_pos = 0;
@@ -1053,7 +1053,7 @@ isearch(Application_Links *app, Scan_Direction start_scan, i64 first_pos,
                         match_size = bar.string.size;
                     }
                 }break;
-                
+
                 case Scan_Backward:
                 {
                     i64 new_pos = 0;
@@ -1069,9 +1069,9 @@ isearch(Application_Links *app, Scan_Direction start_scan, i64 first_pos,
             mouse_wheel_scroll(app);
         }
     }
-    
+
     view_disable_highlight_range(app, view);
-    
+
     if (in.abort){
         u64 size = bar.string.size;
         size = clamp_top(size, sizeof(previous_isearch_query) - 1);
@@ -1079,7 +1079,7 @@ isearch(Application_Links *app, Scan_Direction start_scan, i64 first_pos,
         previous_isearch_query[size] = 0;
         view_set_cursor_and_preferred_x(app, view, seek_pos(first_pos));
     }
-    
+
     view_set_camera_bounds(app, view, old_margin, old_push_in);
 }
 
@@ -1145,13 +1145,13 @@ query_user_replace_pair(Application_Links *app, Arena *arena){
     replace->prompt = string_u8_litexpr("Replace: ");
     replace->string = SCu8(replace_space, (u64)0);
     replace->string_capacity = KB(1);
-    
+
     Query_Bar *with = push_array(arena, Query_Bar, 1);
     u8 *with_space = push_array(arena, u8, KB(1));
     with->prompt = string_u8_litexpr("With: ");
     with->string = SCu8(with_space, (u64)0);
     with->string_capacity = KB(1);
-    
+
     String_Pair result = {};
     if (query_user_string(app, replace) && replace->string.size != 0 && query_user_string(app, with)){
         result.valid = true;
@@ -1195,7 +1195,7 @@ CUSTOM_COMMAND_SIG(replace_in_all_buffers)
 CUSTOM_DOC("Queries the user for a needle and string. Replaces all occurences of needle with string in all editable buffers.")
 {
     global_history_edit_group_begin(app);
-    
+
     Scratch_Block scratch(app);
     Query_Bar_Group group(app);
     String_Pair pair = query_user_replace_pair(app, scratch);
@@ -1205,7 +1205,7 @@ CUSTOM_DOC("Queries the user for a needle and string. Replaces all occurences of
         Range_i64 range = buffer_range(app, buffer);
         replace_in_range(app, buffer, range, pair.a, pair.b);
     }
-    
+
     global_history_edit_group_end(app);
 }
 
@@ -1213,17 +1213,17 @@ function void
 query_replace_base(Application_Links *app, View_ID view, Buffer_ID buffer_id, i64 pos, String_Const_u8 r, String_Const_u8 w){
     i64 new_pos = 0;
     seek_string_forward(app, buffer_id, pos - 1, 0, r, &new_pos);
-    
+
     User_Input in = {};
     for (;;){
         Range_i64 match = Ii64(new_pos, new_pos + r.size);
         isearch__update_highlight(app, view, match);
-        
+
         in = get_next_input(app, EventProperty_AnyKey, EventProperty_MouseButton);
         if (in.abort || match_key_code(&in, KeyCode_Escape) || !is_unmodified_key(&in.event)){
             break;
         }
-        
+
         i64 size = buffer_get_size(app, buffer_id);
         if (match.max <= size &&
             (match_key_code(&in, KeyCode_Y) ||
@@ -1235,16 +1235,16 @@ query_replace_base(Application_Links *app, View_ID view, Buffer_ID buffer_id, i6
         else{
             pos = match.max;
         }
-        
+
         seek_string_forward(app, buffer_id, pos, 0, r, &new_pos);
     }
-    
+
     view_disable_highlight_range(app, view);
-    
+
     if (in.abort){
         return;
     }
-    
+
     view_set_cursor_and_preferred_x(app, view, seek_pos(pos));
 }
 
@@ -1254,29 +1254,29 @@ query_replace_parameter(Application_Links *app, String_Const_u8 replace_str, i64
     Query_Bar replace = {};
     replace.prompt = string_u8_litexpr("Replace: ");
     replace.string = replace_str;
-    
+
     if (add_replace_query_bar){
         start_query_bar(app, &replace, 0);
     }
-    
+
     Query_Bar with = {};
     u8 with_space[1024];
     with.prompt = string_u8_litexpr("With: ");
     with.string = SCu8(with_space, (u64)0);
     with.string_capacity = sizeof(with_space);
-    
+
     if (query_user_string(app, &with)){
         String_Const_u8 r = replace.string;
         String_Const_u8 w = with.string;
-        
+
         View_ID view = get_active_view(app, Access_ReadVisible);
         Buffer_ID buffer = view_get_buffer(app, view, Access_ReadVisible);
         i64 pos = start_pos;
-        
+
         Query_Bar bar = {};
         bar.prompt = string_u8_litexpr("Replace? (y)es, (n)ext, (esc)\n");
         start_query_bar(app, &bar, 0);
-        
+
         query_replace_base(app, view, buffer, pos, r, w);
     }
 }
@@ -1342,7 +1342,7 @@ CUSTOM_DOC("Read from the top of the point stack and jump there; if already ther
     if (view != 0){
         Buffer_ID buffer = view_get_buffer(app, view, Access_Always);
         i64 pos = view_get_cursor_pos(app, view);
-        
+
         for (;;){
             Buffer_ID stack_buffer = 0;
             i64 stack_pos = 0;
@@ -1407,14 +1407,14 @@ CUSTOM_DOC("Deletes the file of the current buffer if 4coder has the appropriate
                             delete_file_base(app, file_name, buffer);
                             cancelled = true;
                         }break;
-                        
+
                         case KeyCode_Shift:
                         case KeyCode_Control:
                         case KeyCode_Alt:
                         case KeyCode_Command:
                         case KeyCode_CapsLock:
                         {}break;
-                        
+
                         default:
                         {
                             cancelled = true;
@@ -1431,11 +1431,11 @@ CUSTOM_DOC("Queries the user for a file name and saves the contents of the curre
 {
     View_ID view = get_active_view(app, Access_Always);
     Buffer_ID buffer = view_get_buffer(app, view, Access_Always);
-    
+
     Scratch_Block scratch(app);
     Query_Bar_Group group(app);
     String_Const_u8 buffer_name = push_buffer_unique_name(app, scratch, buffer);
-    
+
     // Query the user
     u8 name_space[4096];
     Query_Bar bar = {};
@@ -1464,9 +1464,9 @@ CUSTOM_DOC("Queries the user for a new name and renames the file of the current 
 {
     View_ID view = get_active_view(app, Access_Always);
     Buffer_ID buffer = view_get_buffer(app, view, Access_Always);
-    
+
     Scratch_Block scratch(app);
-    
+
     String_Const_u8 file_name = push_buffer_file_name(app, scratch, buffer);
     if (file_name.size > 0){
         // Query the user
@@ -1498,9 +1498,9 @@ CUSTOM_COMMAND_SIG(make_directory_query)
 CUSTOM_DOC("Queries the user for a name and creates a new directory with the given name.")
 {
     Scratch_Block scratch(app);
-    
+
     String_Const_u8 hot = push_hot_directory(app, scratch);
-    
+
     // Query the user
     Query_Bar_Group group(app);
     u8 name_space[4096];
@@ -1508,10 +1508,10 @@ CUSTOM_DOC("Queries the user for a name and creates a new directory with the giv
     bar.prompt = push_u8_stringf(scratch, "Make directory at '%.*s': ", string_expand(hot));
     bar.string = SCu8(name_space, (u64)0);
     bar.string_capacity = sizeof(name_space);
-    
+
     if (!query_user_string(app, &bar)) return;
     if (bar.string.size == 0) return;
-    
+
     String_Const_u8 cmd = push_u8_stringf(scratch, "mkdir %.*s", string_expand(bar.string));
     exec_system_command(app, 0, buffer_identifier(0), hot, cmd, 0);
 }
@@ -1582,22 +1582,22 @@ CUSTOM_DOC("Reads a filename from surrounding '\"' characters and attempts to op
     Buffer_ID buffer = view_get_buffer(app, view, Access_ReadVisible);
     if (buffer_exists(app, buffer)){
         Scratch_Block scratch(app);
-        
+
         i64 pos = view_get_cursor_pos(app, view);
-        
+
         Range_i64 range = enclose_pos_inside_quotes(app, buffer, pos);
-        
+
         String_Const_u8 quoted_name = push_buffer_range(app, scratch, buffer, range);
-        
+
         String_Const_u8 file_name = push_buffer_file_name(app, scratch, buffer);
         String_Const_u8 path = string_remove_last_folder(file_name);
-        
+
         if (character_is_slash(string_get_character(path, path.size - 1))){
             path = string_chop(path, 1);
         }
-        
+
         String_Const_u8 new_file_name = push_u8_stringf(scratch, "%.*s/%.*s", string_expand(path), string_expand(quoted_name));
-        
+
         view = get_next_view_looped_primary_panels(app, view, Access_Always);
         if (view != 0){
             if (view_open_file(app, view, new_file_name, true)){
@@ -1634,7 +1634,7 @@ get_cpp_matching_file(Application_Links *app, Buffer_ID buffer, Buffer_ID *buffe
             new_extensions[0] = string_u8_litexpr("cpp");
             new_extensions_count = 1;
         }
-        
+
         String_Const_u8 file_without_extension = string_file_without_extension(file_name);
         for (i32 i = 0; i < new_extensions_count; i += 1){
             Temp_Memory temp = begin_temp(scratch);
@@ -1646,7 +1646,7 @@ get_cpp_matching_file(Application_Links *app, Buffer_ID buffer, Buffer_ID *buffe
             }
             end_temp(temp);
         }
-        
+
         if (!result && new_extensions_count > 0){
             String_Const_u8 new_file_name = push_u8_stringf(scratch, "%.*s.%.*s", string_expand(file_without_extension), string_expand(new_extensions[0]));
             if (open_file(app, buffer_out, new_file_name, false, false)){
@@ -1654,7 +1654,7 @@ get_cpp_matching_file(Application_Links *app, Buffer_ID buffer, Buffer_ID *buffe
             }
         }
     }
-    
+
     return(result);
 }
 
@@ -1692,15 +1692,15 @@ CUSTOM_DOC("Swaps the active panel with it's sibling.")
     for (;parent != 0;){
         Panel_ID child_1 = panel_get_child(app, parent, Side_Min);
         Panel_ID child_2 = panel_get_child(app, parent, Side_Max);
-        
+
         View_ID view_1 = panel_get_view(app, child_1, Access_Always);
         View_ID view_2 = panel_get_view(app, child_2, Access_Always);
-        
+
         if (!view_get_is_passive(app, view_1) && !view_get_is_passive(app, view_2)){
             panel_swap_children(app, parent);
             break;
         }
-        
+
         parent = panel_get_parent(app, parent);
     }
 }
@@ -1839,12 +1839,12 @@ CUSTOM_DOC("Advances backwards through the undo history of the current buffer.")
     View_ID view = get_active_view(app, Access_ReadWriteVisible);
     Buffer_ID buffer = view_get_buffer(app, view, Access_ReadWriteVisible);
     undo__flush_fades(app, buffer);
-    
+
     History_Record_Index current = buffer_history_get_current_state_index(app, buffer);
     if (current > 0){
         Record_Info record = buffer_history_get_record_info(app, buffer, current);
         i64 new_position = record_get_new_cursor_position_undo(app, buffer, current, record);
-        
+
         b32 do_immedite_undo = true;
         f32 undo_fade_time = 0.33f;
         b32 enable_undo_fade_out = def_get_config_b32(vars_save_string_lit("enable_undo_fade_out"));
@@ -1871,7 +1871,7 @@ CUSTOM_DOC("Advances backwards through the undo history of the current buffer.")
                 }
             }
         }
-        
+
         if (do_immedite_undo){
             buffer_history_set_current_state_index(app, buffer, current - 1);
             if (record.single_string_backward.size > 0){
@@ -1880,7 +1880,7 @@ CUSTOM_DOC("Advances backwards through the undo history of the current buffer.")
                 buffer_post_fade(app, buffer, undo_fade_time, range, color);
             }
         }
-        
+
         view_set_cursor_and_preferred_x(app, view, seek_pos(new_position));
     }
 }
@@ -1891,22 +1891,22 @@ CUSTOM_DOC("Advances forwards through the undo history of the current buffer.")
     View_ID view = get_active_view(app, Access_ReadWriteVisible);
     Buffer_ID buffer = view_get_buffer(app, view, Access_ReadWriteVisible);
     undo__flush_fades(app, buffer);
-    
+
     History_Record_Index current = buffer_history_get_current_state_index(app, buffer);
     History_Record_Index max_index = buffer_history_get_max_record_index(app, buffer);
     if (current < max_index){
-        Record_Info record = buffer_history_get_record_info(app, buffer, current);
+        Record_Info record = buffer_history_get_record_info(app, buffer, current + 1);
         i64 new_position = record_get_new_cursor_position_redo(app, buffer, current + 1, record);
-        
+
         buffer_history_set_current_state_index(app, buffer, current + 1);
-        
+
         if (record.single_string_forward.size > 0){
             Range_i64 range = Ii64_size(record.single_first, record.single_string_forward.size);
             ARGB_Color color = fcolor_resolve(fcolor_id(defcolor_undo));
             f32 undo_fade_time = 0.33f;
             buffer_post_fade(app, buffer, undo_fade_time, range, color);
         }
-        
+
         view_set_cursor_and_preferred_x(app, view, seek_pos(new_position));
     }
 }
@@ -1919,7 +1919,7 @@ CUSTOM_DOC("Advances backward through the undo history in the buffer containing 
     Buffer_ID first_buffer_match = 0;
     Buffer_ID last_buffer_match = 0;
     i32 match_count = 0;
-    
+
     {
         for (Buffer_ID buffer = get_buffer_next(app, 0, Access_Always);
              buffer != 0;
@@ -1940,11 +1940,11 @@ CUSTOM_DOC("Advances backward through the undo history in the buffer containing 
             }
         }
     }
-    
+
     Buffer_ID *match_buffers = push_array(scratch, Buffer_ID, match_count);
     i64 *new_positions = push_array(scratch, i64, match_count);
     match_count = 0;
-    
+
     if (highest_edit_number != -1){
         for (Buffer_ID buffer = first_buffer_match;
              buffer != 0;
@@ -1978,7 +1978,7 @@ CUSTOM_DOC("Advances backward through the undo history in the buffer containing 
             }
         }
     }
-    
+
     view_buffer_set(app, match_buffers, new_positions, match_count);
 }
 
@@ -1986,12 +1986,12 @@ CUSTOM_COMMAND_SIG(redo_all_buffers)
 CUSTOM_DOC("Advances forward through the undo history in the buffer containing the most recent regular edit.")
 {
     Scratch_Block scratch(app);
-    
+
     i32 lowest_edit_number = 0x7FFFFFFF;
     Buffer_ID first_buffer_match = 0;
     Buffer_ID last_buffer_match = 0;
     i32 match_count = 0;
-    
+
     {
         for (Buffer_ID buffer = get_buffer_next(app, 0, Access_Always);
              buffer != 0;
@@ -2013,11 +2013,11 @@ CUSTOM_DOC("Advances forward through the undo history in the buffer containing t
             }
         }
     }
-    
+
     Buffer_ID *match_buffers = push_array(scratch, Buffer_ID, match_count);
     i64 *new_positions = push_array(scratch, i64, match_count);
     match_count = 0;
-    
+
     if (lowest_edit_number != -1){
         for (Buffer_ID buffer = first_buffer_match;
              buffer != 0;
@@ -2052,7 +2052,7 @@ CUSTOM_DOC("Advances forward through the undo history in the buffer containing t
             }
         }
     }
-    
+
     view_buffer_set(app, match_buffers, new_positions, match_count);
 }
 
