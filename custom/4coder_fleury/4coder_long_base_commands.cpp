@@ -593,8 +593,8 @@ CUSTOM_DOC("Opens an interactive list of the current buffer history.")
     Lister_Block lister(app, scratch);
     lister_set_default_handlers(lister);
 
-    View_ID view = get_active_view(app, Access_ReadWriteVisible);
-    Buffer_ID buffer = view_get_buffer(app, view, Access_ReadWriteVisible);
+    View_ID view = get_active_view(app, Access_Always);
+    Buffer_ID buffer = view_get_buffer(app, view, Access_Always);
     History_Record_Index current = buffer_history_get_current_state_index(app, buffer);
     History_Record_Index max = buffer_history_get_max_record_index(app, buffer);
 
