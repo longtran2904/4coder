@@ -90,12 +90,8 @@
 // [ ] Strip out *lego* buffer 
 // [ ] Strip out unused f4 commands
 
-#define clamp_loop(x, size) ((((x) % (size)) + (size)) % (size)) //((x) < 0 ? ((size) - 1) : ((x) % (size)))
-function b32 F4_ARGBIsValid(ARGB_Color color);
-function void Long_Highlight_DrawList(Application_Links *app, Buffer_ID buffer, Text_Layout_ID layout, f32 roundness);
-function b32 Long_Highlight_DrawRange(Application_Links *app, View_ID view, Buffer_ID buffer, Text_Layout_ID layout, f32 roundness);
-
 #include "4coder_long_index.h"
+#include "4coder_long_base_commands.h"
 
 #if LONG_ENABLE_PROFILE
 #include "4coder_profile_static_enable.cpp"

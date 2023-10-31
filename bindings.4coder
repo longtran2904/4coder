@@ -9,7 +9,7 @@ keys_global =
     { "f4_toggle_compilation_expand",    "Insert"                     },
     { "change_to_build_panel",           "Period", "Alt"              },
     { "close_build_panel",               "Comma",  "Alt"              },
-    { "f4_switch_syntax_option",         "Equal",    "Control"        },
+    { "toggle_virtual_whitespace",       "Equal",  "Control"          },
 
     { "long_macro_toggle_recording",     "U",      "Control"          },
     { "keyboard_macro_replay",           "U",      "Control", "Shift" },
@@ -156,7 +156,7 @@ keys_file =
 
     // NOTE(rjf): Clipboard
     { "copy",                                          "C", "Control" },
-    { "paste_and_indent",                              "V", "Control" },
+    { "long_paste_and_indent",                         "V", "Control" },
     { "long_paste_and_replace_range",                  "V", "Control", "Shift" },
     { "long_select_current_line",                      "A", "Control", "Shift" },
     { "cut",                                           "X", "Control" },
@@ -178,7 +178,7 @@ keys_file =
     // NOTE(rjf): File
     { "long_kill_buffer",                              "K", "Control", "Shift" },
     { "reopen",                                        "O", "Alt",     "Shift" },
-    { "long_save",                                     "S", "Control"          },
+    { "save",                                          "S", "Control"          },
     { "long_redo",                                     "Y", "Control"          },
     { "long_undo",                                     "Z", "Control"          },
     { "view_buffer_other_panel",                       "W", "Control", "Shift" },

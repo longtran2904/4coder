@@ -7,7 +7,7 @@ F4_RenderBuffer(Application_Links *app, View_ID view_id, Face_ID face_id,
 {
     Scratch_Block scratch(app);
     ProfileScope(app, "[Fleury] Render Buffer");
-    
+
     // NOTE(long): When fading out an undo, the BufferEditRange hook will run before the Tick hook, making the note tree outdated.
     // Later, the RenderCaller hook will try to look up the color based on the old tree and crash the program.
     // 1. F4_Language_LexFullInput_NoBreaks (BufferEditRange) will modify the Token list and the buffer (buffer_mark_as_modified)
@@ -15,29 +15,28 @@ F4_RenderBuffer(Application_Links *app, View_ID view_id, Face_ID face_id,
     // 3. F4_Index_Tick (F4_Tick/HookID_Tick) updates the note tree correctly and clears the global_buffer_modified_set
     // (F4_Tick -> default_tick -> code_index_update_tick -> buffer_modified_set_clear)
     // Calling the Tick function here will fix the problem.
-    
-    // This bug only happens when you undo some text, not when you redo/delete/type the text.
+
+    // This bug only happens when you undo/paste some text, not when you redo/delete/type the text.
     // The render hook always runs after the tick hook and global_buffer_modified_set is always empty in the latter case
     for (Buffer_Modified_Node* node = global_buffer_modified_set.first; node; node = node->next)
     {
         if (node->buffer == buffer)
         {
-            // NOTE(long): Maybe only call F4_Index_Tick on this buffer
-            F4_Tick(app, frame_info);
+            Long_Index_UpdateTick(app);
             break;
         }
     }
-    
+
     View_ID active_view = get_active_view(app, Access_Always);
     b32 is_active_view = (active_view == view_id);
     Rect_f32 prev_clip = draw_set_clip(app, rect);
-    
+
     // NOTE(allen): Token colorizing
     Token_Array token_array = get_token_array_from_buffer(app, buffer);
     if(token_array.tokens != 0)
     {
         F4_SyntaxHighlight(app, text_layout_id, &token_array);
-        
+
         // NOTE(allen): Scan for TODOs and NOTEs
         b32 use_comment_keywords = def_get_config_b32(vars_save_string_lit("use_comment_keywords"));
         if(use_comment_keywords)
@@ -57,17 +56,17 @@ F4_RenderBuffer(Application_Links *app, View_ID view_id, Face_ID face_id,
         Range_i64 visible_range = text_layout_get_visible_range(app, text_layout_id);
         paint_text_color_fcolor(app, text_layout_id, visible_range, fcolor_id(defcolor_text_default));
     }
-    
+
     i64 cursor_pos = view_correct_cursor(app, view_id);
     view_correct_mark(app, view_id);
-    
+
     // NOTE(allen): Scope highlight
     b32 use_scope_highlight = def_get_config_b32(vars_save_string_lit("use_scope_highlight"));
     if (use_scope_highlight){
         Color_Array colors = finalize_color_array(defcolor_back_cycle);
         draw_scope_highlight(app, buffer, text_layout_id, cursor_pos, colors.vals, colors.count);
     }
-    
+
     // NOTE(rjf): Brace highlight
     {
         Color_Array colors = finalize_color_array(fleury_color_brace_highlight);
@@ -77,7 +76,7 @@ F4_RenderBuffer(Application_Links *app, View_ID view_id, Face_ID face_id,
                                      colors.vals, colors.count);
         }
     }
-    
+
     // NOTE(allen): Line highlight
     {
         b32 highlight_line_at_cursor = def_get_config_b32(vars_save_string_lit("highlight_line_at_cursor"));
@@ -90,7 +89,7 @@ F4_RenderBuffer(Application_Links *app, View_ID view_id, Face_ID face_id,
                                 fcolor_id(defcolor_highlight_cursor_line));
         }
     }
-    
+
     // NOTE(rjf): Error/Search Highlight
     {
         b32 use_error_highlight = def_get_config_b32(vars_save_string_lit("use_error_highlight"));
@@ -103,7 +102,7 @@ F4_RenderBuffer(Application_Links *app, View_ID view_id, Face_ID face_id,
                 draw_jump_highlights(app, buffer, text_layout_id, compilation_buffer,
                                      fcolor_id(defcolor_highlight_junk));
             }
-            
+
             // NOTE(allen): Search highlight
             if (use_jump_highlight){
                 Buffer_ID jump_buffer = get_locked_jump_buffer(app);
@@ -114,31 +113,31 @@ F4_RenderBuffer(Application_Links *app, View_ID view_id, Face_ID face_id,
             }
         }
     }
-    
+
     // NOTE(rjf): Error annotations
     {
         String_Const_u8 name = string_u8_litexpr("*compilation*");
         Buffer_ID compilation_buffer = get_buffer_by_name(app, name, Access_Always);
         F4_RenderErrorAnnotations(app, buffer, text_layout_id, compilation_buffer);
     }
-    
+
     // NOTE(jack): Token Occurance Highlight
     if (!def_get_config_b32(vars_save_string_lit("f4_disable_cursor_token_occurance"))) 
     {
         ProfileScope(app, "[Fleury] Token Occurance Highlight");
-        
+
         // NOTE(jack): Get the active cursor's token string
         Buffer_ID active_cursor_buffer = view_get_buffer(app, active_view, Access_Always);
         i64 active_cursor_pos = view_get_cursor_pos(app, active_view);
         Token_Array active_cursor_buffer_tokens = get_token_array_from_buffer(app, active_cursor_buffer);
         Token_Iterator_Array active_cursor_it = token_iterator_pos(0, &active_cursor_buffer_tokens, active_cursor_pos);
         Token *active_cursor_token = token_it_read(&active_cursor_it);
-        
+
         String_Const_u8 active_cursor_string = string_u8_litexpr("");
         if(active_cursor_token)
         {
             active_cursor_string = push_buffer_range(app, scratch, active_cursor_buffer, Ii64(active_cursor_token));
-            
+
             // Loop the visible tokens
             Range_i64 visible_range = text_layout_get_visible_range(app, text_layout_id);
             i64 first_index = token_index_from_pos(&token_array, visible_range.first);
@@ -150,12 +149,12 @@ F4_RenderBuffer(Application_Links *app, View_ID view_id, Face_ID face_id,
                 {
                     break;
                 }
-                
+
                 if (token->kind == TokenBaseKind_Identifier)
                 {
                     Range_i64 token_range = Ii64(token);
                     String_Const_u8 token_string = push_buffer_range(app, scratch, buffer, token_range);
-                    
+
                     // NOTE(jack) If this is the buffers cursor token, highlight it with an Underline
                     if (range_contains(token_range, view_get_cursor_pos(app, view_id)))
                     {
@@ -170,10 +169,10 @@ F4_RenderBuffer(Application_Links *app, View_ID view_id, Face_ID face_id,
                         F4_RenderRangeHighlight(app, view_id, text_layout_id,
                                                 token_range, F4_RangeHighlightKind_MinorUnderline,
                                                 fcolor_resolve(fcolor_id(fleury_color_token_minor_highlight)));
-                        
+
                     } 
                 }
-                
+
                 if(!token_it_inc_non_whitespace(&it))
                 {
                     break;
@@ -185,7 +184,7 @@ F4_RenderBuffer(Application_Links *app, View_ID view_id, Face_ID face_id,
     else
     {
         ProfileScope(app, "[Fleury] Token Highlight");
-        
+
         Token_Iterator_Array it = token_iterator_pos(0, &token_array, cursor_pos);
         Token *token = token_it_read(&it);
         if(token && token->kind == TokenBaseKind_Identifier)
@@ -196,41 +195,41 @@ F4_RenderBuffer(Application_Links *app, View_ID view_id, Face_ID face_id,
                                     fcolor_resolve(fcolor_id(fleury_color_token_highlight)));
         }
     }
-    
+
     // NOTE(rjf): Flashes
     {
         F4_RenderFlashes(app, view_id, text_layout_id);
     }
-    
+
     // NOTE(allen): Color parens
     if(def_get_config_b32(vars_save_string_lit("use_paren_helper")))
     {
         Color_Array colors = finalize_color_array(defcolor_text_cycle);
         draw_paren_highlight(app, buffer, text_layout_id, cursor_pos, colors.vals, colors.count);
     }
-    
+
     // NOTE(rjf): Divider Comments
     {
         F4_RenderDividerComments(app, buffer, view_id, text_layout_id);
     }
-    
+
     // NOTE(rjf): Cursor Mark Range
     if(is_active_view && fcoder_mode == FCoderMode_Original)
     {
         F4_HighlightCursorMarkRange(app, view_id);
     }
-    
+
     // NOTE(allen): Cursor shape
     Face_Metrics metrics = get_face_metrics(app, face_id);
     u64 cursor_roundness_100 = def_get_config_u64(app, vars_save_string_lit("cursor_roundness"));
     f32 cursor_roundness = metrics.normal_advance*cursor_roundness_100*0.01f;
     f32 mark_thickness = (f32)def_get_config_u64(app, vars_save_string_lit("mark_thickness"));
-    
+
     // NOTE(long): Jump list highlights
     {
         Long_Highlight_DrawList(app, buffer, text_layout_id, cursor_roundness);
     }
-    
+
     // NOTE(rjf): Cursor
     switch (fcoder_mode)
     {
@@ -238,7 +237,7 @@ F4_RenderBuffer(Application_Links *app, View_ID view_id, Face_ID face_id,
         {
             F4_Cursor_RenderEmacsStyle(app, view_id, is_active_view, buffer, text_layout_id, cursor_roundness, mark_thickness, frame_info);
         }break;
-        
+
         case FCoderMode_NotepadLike:
         {
             F4_Cursor_RenderNotepadStyle(app, view_id, is_active_view, buffer, text_layout_id, cursor_roundness,
@@ -246,20 +245,20 @@ F4_RenderBuffer(Application_Links *app, View_ID view_id, Face_ID face_id,
             break;
         }
     }
-    
+
     // NOTE(rjf): Brace annotations
     {
         F4_Brace_RenderCloseBraceAnnotation(app, buffer, text_layout_id, cursor_pos);
     }
-    
+
     // NOTE(rjf): Brace lines
     {
         F4_Brace_RenderLines(app, buffer, view_id, text_layout_id, cursor_pos);
     }
-    
+
     // NOTE(allen): put the actual text on the actual screen
     draw_text_layout_default(app, text_layout_id);
-    
+
     // NOTE(rjf): Interpret buffer as calc code, if it's the calc buffer.
     {
         Buffer_ID calc_buffer_id = get_buffer_by_name(app, string_u8_litexpr("*calc*"), AccessFlag_Read);
@@ -268,14 +267,14 @@ F4_RenderBuffer(Application_Links *app, View_ID view_id, Face_ID face_id,
             F4_CLC_RenderBuffer(app, buffer, view_id, text_layout_id, frame_info);
         }
     }
-    
+
     // NOTE(rjf): Draw calc comments.
     {
         F4_CLC_RenderComments(app, buffer, view_id, text_layout_id, frame_info);
     }
-    
+
     draw_set_clip(app, prev_clip);
-    
+
     // NOTE(rjf): Draw tooltips and stuff.
     if(active_view == view_id)
     {
@@ -284,21 +283,21 @@ F4_RenderBuffer(Application_Links *app, View_ID view_id, Face_ID face_id,
 #if LONG_INDEX_POS_CONTEXT
             F4_Language* language = F4_LanguageFromBuffer(app, buffer);
             if (language)
-            Long_Index_DrawPosContext(app, view_id, language->PosContext(app, scratch, buffer, cursor_pos));
+                Long_Index_DrawPosContext(app, view_id, language->PosContext(app, scratch, buffer, cursor_pos));
 #else
             F4_PosContext_Render(app, view_id, buffer, text_layout_id, cursor_pos);
 #endif
         }
-        
+
         // NOTE(rjf): Draw tooltip list.
         {
             Mouse_State mouse = get_mouse_state(app);
-            
+
             Rect_f32 view_rect = view_get_screen_rect(app, view_id);
-            
+
             Face_ID tooltip_face_id = global_small_code_face;
             Face_Metrics tooltip_face_metrics = get_face_metrics(app, tooltip_face_id);
-            
+
             Rect_f32 tooltip_rect =
             {
                 (f32)mouse.x + 16,
@@ -306,22 +305,22 @@ F4_RenderBuffer(Application_Links *app, View_ID view_id, Face_ID face_id,
                 (f32)mouse.x + 16,
                 (f32)mouse.y + 16 + tooltip_face_metrics.line_height + 8,
             };
-            
+
             for(int i = 0; i < global_tooltip_count; ++i)
             {
                 String_Const_u8 string = global_tooltips[i].string;
                 tooltip_rect.x1 = tooltip_rect.x0;
                 tooltip_rect.x1 += get_string_advance(app, tooltip_face_id, string) + 4;
-                
+
                 if(tooltip_rect.x1 > view_rect.x1)
                 {
                     f32 difference = tooltip_rect.x1 - view_rect.x1;
                     tooltip_rect.x1 = (float)(int)(tooltip_rect.x1 - difference);
                     tooltip_rect.x0 = (float)(int)(tooltip_rect.x0 - difference);
                 }
-                
+
                 F4_DrawTooltipRect(app, tooltip_rect);
-                
+
                 draw_string(app, tooltip_face_id, string,
                             V2f32(tooltip_rect.x0 + 4,
                                   tooltip_rect.y0 + 4),
@@ -329,7 +328,7 @@ F4_RenderBuffer(Application_Links *app, View_ID view_id, Face_ID face_id,
             }
         }
     }
-    
+
     // NOTE(rjf): Draw inactive rectangle
     if(is_active_view == 0)
     {
@@ -340,7 +339,7 @@ F4_RenderBuffer(Application_Links *app, View_ID view_id, Face_ID face_id,
             draw_rectangle(app, view_rect, 0.f, color);
         }
     }
-    
+
     // NOTE(rjf): Render code peek.
     {
         if(!view_get_is_passive(app, view_id) &&
@@ -353,12 +352,12 @@ F4_RenderBuffer(Application_Links *app, View_ID view_id, Face_ID face_id,
 #endif
         }
     }
-    
+
     // NOTE(rjf): Draw power mode.
     {
         F4_PowerMode_RenderBuffer(app, view_id, face_id, frame_info);
     }
-    
+
 }
 
 //~ NOTE(rjf): Render hook
@@ -367,21 +366,21 @@ function void
 F4_DrawFileBar(Application_Links *app, View_ID view_id, Buffer_ID buffer, Face_ID face_id, Rect_f32 bar)
 {
     Scratch_Block scratch(app);
-    
+
     draw_rectangle_fcolor(app, bar, 0.f, fcolor_id(defcolor_bar));
-    
+
     FColor base_color = fcolor_id(defcolor_base);
     FColor pop2_color = fcolor_id(defcolor_pop2);
-    
+
     i64 cursor_position = view_get_cursor_pos(app, view_id);
     Buffer_Cursor cursor = view_compute_cursor(app, view_id, seek_pos(cursor_position));
-    
+
     Fancy_Line list = {};
     String_Const_u8 unique_name = push_buffer_unique_name(app, scratch, buffer);
     push_fancy_string (scratch, &list, base_color, unique_name);
     push_fancy_stringf(scratch, &list, base_color, " - ID: %3.d Row: %3.lld Col: %3.lld Pos: %3.lld -",
                        buffer, cursor.line, cursor.col, cursor.pos);
-    
+
     Managed_Scope scope = buffer_get_managed_scope(app, buffer);
     Line_Ending_Kind *eol_setting = scope_attachment(app, scope, buffer_eol_setting,
                                                      Line_Ending_Kind);
@@ -390,18 +389,18 @@ F4_DrawFileBar(Application_Links *app, View_ID view_id, Buffer_ID buffer, Face_I
         {
             push_fancy_string(scratch, &list, base_color, string_u8_litexpr(" bin"));
         }break;
-        
+
         case LineEndingKind_LF:
         {
             push_fancy_string(scratch, &list, base_color, string_u8_litexpr(" lf"));
         }break;
-        
+
         case LineEndingKind_CRLF:
         {
             push_fancy_string(scratch, &list, base_color, string_u8_litexpr(" crlf"));
         }break;
     }
-    
+
     u8 space[3];
     {
         Dirty_State dirty = buffer_get_dirty_state(app, buffer);
@@ -417,13 +416,17 @@ F4_DrawFileBar(Application_Links *app, View_ID view_id, Buffer_ID buffer, Face_I
         }
         push_fancy_string(scratch, &list, pop2_color, str.string);
     }
-    
+
     push_fancy_string(scratch, &list, base_color, S8Lit(" Syntax Mode: "));
     push_fancy_string(scratch, &list, base_color, F4_SyntaxOptionString());
-    
+
+    push_fancy_string(scratch, &list, base_color, S8Lit(" - Virtual Whitespace: "));
+    b32 enable_virtual_whitespace = def_get_config_b32(vars_save_string_lit("enable_virtual_whitespace"));
+    push_fancy_string(scratch, &list, base_color, enable_virtual_whitespace ? S8Lit("On") : S8Lit("Off"));
+
     Vec2_f32 p = bar.p0 + V2f32(2.f, 2.f);
     draw_fancy_line(app, face_id, fcolor_zero(), &list, p);
-    
+
     if(!def_get_config_b32(vars_save_string_lit("f4_disable_progress_bar")))
     {
         f32 progress = (f32)cursor.line / (f32)buffer_get_line_count(app, buffer);
@@ -446,20 +449,20 @@ function void
 F4_Render(Application_Links *app, Frame_Info frame_info, View_ID view_id)
 {
     F4_RecentFiles_RefreshView(app, view_id);
-    
+
     ProfileScope(app, "[Fleury] Render");
     Scratch_Block scratch(app);
-    
+
     View_ID active_view = get_active_view(app, Access_Always);
     b32 is_active_view = (active_view == view_id);
-    
+
     f32 margin_size = (f32)def_get_config_u64(app, vars_save_string_lit("f4_margin_size"));
     Rect_f32 view_rect = view_get_screen_rect(app, view_id);
     Rect_f32 region = rect_inner(view_rect, margin_size);
-    
+
     Buffer_ID buffer = view_get_buffer(app, view_id, Access_Always);
     String_Const_u8 buffer_name = push_buffer_base_name(app, scratch, buffer);
-    
+
     //~ NOTE(rjf): Draw background.
     {
         ARGB_Color color = fcolor_resolve(fcolor_id(defcolor_back));
@@ -479,7 +482,7 @@ F4_Render(Application_Links *app, Frame_Info frame_info, View_ID view_id)
         draw_rectangle(app, region, 0.f, color);
         draw_margin(app, view_rect, region, color);
     }
-    
+
     //~ NOTE(rjf): Draw margin.
     {
         ARGB_Color color = fcolor_resolve(fcolor_id(defcolor_margin));
@@ -491,14 +494,14 @@ F4_Render(Application_Links *app, Frame_Info frame_info, View_ID view_id)
         }
         draw_margin(app, view_rect, region, color);
     }
-    
+
     Rect_f32 prev_clip = draw_set_clip(app, region);
-    
+
     Face_ID face_id = get_face_id(app, buffer);
     Face_Metrics face_metrics = get_face_metrics(app, face_id);
     f32 line_height = face_metrics.line_height;
     f32 digit_advance = face_metrics.decimal_digit_advance;
-    
+
     // NOTE(allen): file bar
     b64 showing_file_bar = false;
     if(view_get_setting(app, view_id, ViewSetting_ShowFileBar, &showing_file_bar) && showing_file_bar)
@@ -507,21 +510,21 @@ F4_Render(Application_Links *app, Frame_Info frame_info, View_ID view_id)
         F4_DrawFileBar(app, view_id, buffer, face_id, pair.min);
         region = pair.max;
     }
-    
+
     Buffer_Scroll scroll = view_get_buffer_scroll(app, view_id);
     Buffer_Point_Delta_Result delta = delta_apply(app, view_id, frame_info.animation_dt, scroll);
-    
+
     if(!block_match_struct(&scroll.position, &delta.point))
     {
         block_copy_struct(&scroll.position, &delta.point);
         view_set_buffer_scroll(app, view_id, scroll, SetBufferScroll_NoCursorChange);
     }
-    
+
     if(delta.still_animating)
     {
         animate_in_n_milliseconds(app, 0);
     }
-    
+
     // NOTE(allen): query bars
     {
         Query_Bar *space[32];
@@ -537,7 +540,7 @@ F4_Render(Application_Links *app, Frame_Info frame_info, View_ID view_id)
             }
         }
     }
-    
+
     // NOTE(allen): FPS hud
     if(show_fps_hud)
     {
@@ -546,7 +549,7 @@ F4_Render(Application_Links *app, Frame_Info frame_info, View_ID view_id)
         region = pair.min;
         animate_in_n_milliseconds(app, 1000);
     }
-    
+
     // NOTE(allen): layout line numbers
     Rect_f32 line_number_rect = {};
     if(def_get_config_b32(vars_save_string_lit("show_line_number_margins")))
@@ -556,7 +559,7 @@ F4_Render(Application_Links *app, Frame_Info frame_info, View_ID view_id)
         line_number_rect.x1 += 4;
         region = pair.max;
     }
-    
+
     // NOTE(allen): begin buffer render
     Buffer_Point buffer_point = scroll.position;
     if(is_active_view)
@@ -564,21 +567,21 @@ F4_Render(Application_Links *app, Frame_Info frame_info, View_ID view_id)
         buffer_point.pixel_shift.y += F4_PowerMode_ScreenShake()*1.f;
     }
     Text_Layout_ID text_layout_id = text_layout_create(app, buffer, region, buffer_point);
-    
+
     // NOTE(allen): draw line numbers
     if(def_get_config_b32(vars_save_string_lit("show_line_number_margins")))
     {
         draw_line_number_margin(app, view_id, buffer, face_id, text_layout_id, line_number_rect);
     }
-    
+
     // NOTE(allen): draw the buffer
     F4_RenderBuffer(app, view_id, face_id, buffer, text_layout_id, region, frame_info);
-    
+
     // NOTE(rjf): Render command server
 #if OS_WINDOWS
     CS_render_caller(app, frame_info, view_id);
 #endif
-    
+
     text_layout_free(app, text_layout_id);
     draw_set_clip(app, prev_clip);
 }
@@ -591,7 +594,7 @@ F4_DoFullLex_ASYNC_Inner(Async_Context *actx, Buffer_ID buffer_id)
     Application_Links *app = actx->app;
     ProfileScope(app, "[F4] Async Lex");
     Scratch_Block scratch(app);
-    
+
     String_Const_u8 contents = {};
     {
         ProfileBlock(app, "[F4] Async Lex Contents (before mutex)");
@@ -600,20 +603,20 @@ F4_DoFullLex_ASYNC_Inner(Async_Context *actx, Buffer_ID buffer_id)
         contents = push_whole_buffer(app, scratch, buffer_id);
         release_global_frame_mutex(app);
     }
-    
+
     i32 limit_factor = 10000;
-    
+
     Token_List list = {};
     b32 canceled = false;
-    
+
     F4_Language *language = F4_LanguageFromBuffer(app, buffer_id);
-    
+
     // NOTE(rjf): Fall back to C++ if we don't have a proper language.
     if(language == 0)
     {
         language = F4_LanguageFromString(S8Lit("cpp"));
     }
-    
+
     if(language != 0)
     {
         void *lexing_state = push_array_zero(scratch, u8, language->lex_state_size);
@@ -632,7 +635,7 @@ F4_DoFullLex_ASYNC_Inner(Async_Context *actx, Buffer_ID buffer_id)
             }
         }
     }
-    
+
     if(!canceled)
     {
         ProfileBlock(app, "[F4] Async Lex Save Results (before mutex)");
@@ -669,12 +672,12 @@ F4_DoFullLex_ASYNC(Async_Context *actx, String_Const_u8 data)
 function BUFFER_HOOK_SIG(F4_BeginBuffer)
 {
     ProfileScope(app, "[Fleury] Begin Buffer");
-    
+
     Scratch_Block scratch(app);
     b32 treat_as_code = false;
     String_Const_u8 file_name = push_buffer_file_name(app, scratch, buffer_id);
     String_Const_u8 buffer_name = push_buffer_base_name(app, scratch, buffer_id);
-    
+
     // NOTE(rjf): Treat as code if the config tells us to.
     if(treat_as_code == false)
     {
@@ -693,7 +696,7 @@ function BUFFER_HOOK_SIG(F4_BeginBuffer)
             }
         }
     }
-    
+
     // NOTE(rjf): Treat as code for *calc* and *peek* buffers.
     if(treat_as_code == false)
     {
@@ -709,7 +712,7 @@ function BUFFER_HOOK_SIG(F4_BeginBuffer)
             }
         }
     }
-    
+
     // NOTE(rjf): Treat as code if we've identified the language of a file.
     if(treat_as_code == false)
     {
@@ -719,19 +722,19 @@ function BUFFER_HOOK_SIG(F4_BeginBuffer)
             treat_as_code = true;
         }
     }
-    
+
     String_ID file_map_id = vars_save_string_lit("keys_file");
     String_ID code_map_id = vars_save_string_lit("keys_code");
-    
+
     Command_Map_ID map_id = (treat_as_code) ? (code_map_id) : (file_map_id);
     Managed_Scope scope = buffer_get_managed_scope(app, buffer_id);
     Command_Map_ID *map_id_ptr = scope_attachment(app, scope, buffer_map_id, Command_Map_ID);
     *map_id_ptr = map_id;
-    
+
     Line_Ending_Kind setting = guess_line_ending_kind_from_buffer(app, buffer_id);
     Line_Ending_Kind *eol_setting = scope_attachment(app, scope, buffer_eol_setting, Line_Ending_Kind);
     *eol_setting = setting;
-    
+
     // NOTE(allen): Decide buffer settings
     b32 wrap_lines = true;
     b32 use_lexer = false;
@@ -740,24 +743,24 @@ function BUFFER_HOOK_SIG(F4_BeginBuffer)
         wrap_lines = def_get_config_b32(vars_save_string_lit("enable_code_wrapping"));
         use_lexer = true;
     }
-    
+
     if(string_match(buffer_name, string_u8_litexpr("*compilation*")))
     {
         wrap_lines = false;
     }
-    
+
     if (use_lexer)
     {
         ProfileBlock(app, "begin buffer kick off lexer");
         Async_Task *lex_task_ptr = scope_attachment(app, scope, buffer_lex_task, Async_Task);
         *lex_task_ptr = async_task_no_dep(&global_async_system, F4_DoFullLex_ASYNC, make_data_struct(&buffer_id));
     }
-    
+
     {
         b32 *wrap_lines_ptr = scope_attachment(app, scope, buffer_wrap_lines, b32);
         *wrap_lines_ptr = wrap_lines;
     }
-    
+
     if (use_lexer)
     {
         buffer_set_layout(app, buffer_id, layout_virt_indent_index_generic);
@@ -772,8 +775,8 @@ function BUFFER_HOOK_SIG(F4_BeginBuffer)
             buffer_set_layout(app, buffer_id, layout_generic);
         }
     }
-    
-    
+
+
     // no meaning for return
     return(0);
 }
@@ -785,28 +788,28 @@ function Layout_Item_List
 F4_LayoutInner(Application_Links *app, Arena *arena, Buffer_ID buffer, Range_i64 range, Face_ID face, f32 width, Layout_Virtual_Indent virt_indent)
 {
     Layout_Item_List list = get_empty_item_list(range);
-    
+
     Scratch_Block scratch(app);
     String_Const_u8 text = push_buffer_range(app, scratch, buffer, range);
-    
+
     Face_Advance_Map advance_map = get_face_advance_map(app, face);
     Face_Metrics metrics = get_face_metrics(app, face);
     f32 tab_width = (f32)def_get_config_u64(app, vars_save_string_lit("default_tab_width"));
     tab_width = clamp_bot(1, tab_width);
     LefRig_TopBot_Layout_Vars pos_vars = get_lr_tb_layout_vars(&advance_map, &metrics, tab_width, width);
-    
+
     if (text.size == 0){
         lr_tb_write_blank(&pos_vars, face, arena, &list, range.first);
     }
     else{
         b32 skipping_leading_whitespace = (virt_indent == LayoutVirtualIndent_On);
         Newline_Layout_Vars newline_vars = get_newline_layout_vars();
-        
+
         u8 *ptr = text.str;
         u8 *end_ptr = ptr + text.size;
         for (;ptr < end_ptr;){
             Character_Consume_Result consume = utf8_consume(ptr, (u64)(end_ptr - ptr));
-            
+
             i64 index = layout_index_from_ptr(ptr, text.str, range.first);
             switch (consume.codepoint){
                 case '\t':
@@ -821,43 +824,43 @@ F4_LayoutInner(Application_Links *app, Arena *arena, Buffer_ID buffer, Range_i64
                         lr_tb_advance_x_without_item(&pos_vars, advance);
                     }
                 }break;
-                
+
                 default:
                 {
                     newline_layout_consume_default(&newline_vars);
                     lr_tb_write(&pos_vars, face, arena, &list, index, consume.codepoint);
                 }break;
-                
+
                 case '\r':
                 {
                     newline_layout_consume_CR(&newline_vars, index);
                 }break;
-                
+
                 case '\n':
                 {
                     i64 newline_index = newline_layout_consume_LF(&newline_vars, index);
                     lr_tb_write_blank(&pos_vars, face, arena, &list, newline_index);
                     lr_tb_next_line(&pos_vars);
                 }break;
-                
+
                 case max_u32:
                 {
                     newline_layout_consume_default(&newline_vars);
                     lr_tb_write_byte(&pos_vars, face, arena, &list, index, *ptr);
                 }break;
             }
-            
+
             ptr += consume.inc;
         }
-        
+
         if (newline_layout_consume_finish(&newline_vars)){
             i64 index = layout_index_from_ptr(ptr, text.str, range.first);
             lr_tb_write_blank(&pos_vars, face, arena, &list, index);
         }
     }
-    
+
     layout_item_list_finish(&list, -pos_vars.line_to_text_shift);
-    
+
     return(list);
 }
 
@@ -874,13 +877,13 @@ F4_Tick(Application_Links *app, Frame_Info frame_info)
 {
     linalloc_clear(&global_frame_arena);
     global_tooltip_count = 0;
-    
+
     F4_TickColors(app, frame_info);
     F4_Index_Tick(app);
     F4_CLC_Tick(frame_info);
     F4_PowerMode_Tick(app, frame_info);
     F4_UpdateFlashes(app, frame_info);
-    
+
     // NOTE(rjf): Default tick stuff from the 4th dimension:
     default_tick(app, frame_info);
 }
@@ -899,11 +902,11 @@ function BUFFER_EDIT_RANGE_SIG(F4_BufferEditRange)
 {
     // buffer_id, new_range, original_size
     ProfileScope(app, "[F4] Buffer Edit Range");
-    
+
     Range_i64 old_range = Ii64(old_cursor_range.min.pos, old_cursor_range.max.pos);
-    
+
     buffer_shift_fade_ranges(buffer_id, old_range.max, (new_range.max - old_range.max));
-    
+
     {
         code_index_lock();
         Code_Index_File *file = code_index_get_file(buffer_id);
@@ -912,43 +915,43 @@ function BUFFER_EDIT_RANGE_SIG(F4_BufferEditRange)
         }
         code_index_unlock();
     }
-    
+
     i64 insert_size = range_size(new_range);
     i64 text_shift = replace_range_shift(old_range, insert_size);
-    
+
     Scratch_Block scratch(app);
-    
+
     Managed_Scope scope = buffer_get_managed_scope(app, buffer_id);
     Async_Task *lex_task_ptr = scope_attachment(app, scope, buffer_lex_task, Async_Task);
-    
+
     Base_Allocator *allocator = managed_scope_allocator(app, scope);
     b32 do_full_relex = false;
-    
+
     if (async_task_is_running_or_pending(&global_async_system, *lex_task_ptr)){
         async_task_cancel(app, &global_async_system, *lex_task_ptr);
         buffer_unmark_as_modified(buffer_id);
         do_full_relex = true;
         *lex_task_ptr = 0;
     }
-    
+
     Token_Array *ptr = scope_attachment(app, scope, attachment_tokens, Token_Array);
     if (ptr != 0 && ptr->tokens != 0){
         ProfileBlockNamed(app, "attempt resync", profile_attempt_resync);
-        
+
         i64 token_index_first = token_relex_first(ptr, old_range.first, 1);
         i64 token_index_resync_guess =
             token_relex_resync(ptr, old_range.one_past_last, 16);
-        
+
         if (token_index_resync_guess - token_index_first >= 4000){
             do_full_relex = true;
         }
         else{
             Token *token_first = ptr->tokens + token_index_first;
             Token *token_resync = ptr->tokens + token_index_resync_guess;
-            
+
             Range_i64 relex_range = Ii64(token_first->pos, token_resync->pos + token_resync->size + text_shift);
             String_Const_u8 partial_text = push_buffer_range(app, scratch, buffer_id, relex_range);
-            
+
             //~ NOTE(rjf): Lex
             F4_Language *language = F4_LanguageFromBuffer(app, buffer_id);
             // NOTE(rjf): Fall back to C++ if we don't have a proper language.
@@ -958,33 +961,33 @@ function BUFFER_EDIT_RANGE_SIG(F4_BufferEditRange)
             }
             Token_List relex_list = F4_Language_LexFullInput_NoBreaks(app, language, scratch, partial_text);
             //~
-            
+
             if (relex_range.one_past_last < buffer_get_size(app, buffer_id)){
                 token_drop_eof(&relex_list);
             }
-            
+
             Token_Relex relex = token_relex(relex_list, relex_range.first - text_shift, ptr->tokens, token_index_first, token_index_resync_guess);
-            
+
             ProfileCloseNow(profile_attempt_resync);
-            
+
             if (!relex.successful_resync){
                 do_full_relex = true;
             }
             else{
                 ProfileBlock(app, "apply resync");
-                
+
                 i64 token_index_resync = relex.first_resync_index;
-                
+
                 Range_i64 head = Ii64(0, token_index_first);
                 Range_i64 replaced = Ii64(token_index_first, token_index_resync);
                 Range_i64 tail = Ii64(token_index_resync, ptr->count);
                 i64 resynced_count = (token_index_resync_guess + 1) - token_index_resync;
                 i64 relexed_count = relex_list.total_count - resynced_count;
                 i64 tail_shift = relexed_count - (token_index_resync - token_index_first);
-                
+
                 i64 new_tokens_count = ptr->count + tail_shift;
                 Token *new_tokens = base_array(allocator, Token, new_tokens_count);
-                
+
                 Token *old_tokens = ptr->tokens;
                 block_copy_array_shift(new_tokens, old_tokens, head, 0);
                 token_fill_memory_from_list(new_tokens + replaced.first, &relex_list, relexed_count);
@@ -995,23 +998,23 @@ function BUFFER_EDIT_RANGE_SIG(F4_BufferEditRange)
                     old_tokens[i].pos += text_shift;
                 }
                 block_copy_array_shift(new_tokens, ptr->tokens, tail, tail_shift);
-                
+
                 base_free(allocator, ptr->tokens);
-                
+
                 ptr->tokens = new_tokens;
                 ptr->count = new_tokens_count;
                 ptr->max = new_tokens_count;
-                
+
                 buffer_mark_as_modified(buffer_id);
             }
         }
     }
-    
+
     if (do_full_relex){
         *lex_task_ptr = async_task_no_dep(&global_async_system, F4_DoFullLex_ASYNC,
                                           make_data_struct(&buffer_id));
     }
-    
+
     // no meaning for return
     return(0);
 }

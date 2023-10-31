@@ -559,13 +559,6 @@ CUSTOM_DOC("Kills the current search jump buffer.")
     Long_KillBuffer(app, Long_Buffer_GetSearchBuffer(app), get_active_view(app, Access_ReadVisible));
 }
 
-CUSTOM_COMMAND_SIG(long_indent_whole_file)
-CUSTOM_DOC("Audo-indents the entire current buffer.")
-{
-    Buffer_ID buffer = view_get_buffer(app, get_active_view(app, Access_ReadWriteVisible), Access_ReadWriteVisible);
-    Long_Index_IndentBuffer(app, buffer);
-}
-
 struct Long_Buffer_History
 {
     History_Record_Index index;
@@ -595,20 +588,33 @@ CUSTOM_DOC("Opens an interactive list of the current buffer history.")
 
     View_ID view = get_active_view(app, Access_Always);
     Buffer_ID buffer = view_get_buffer(app, view, Access_Always);
+
     History_Record_Index current = buffer_history_get_current_state_index(app, buffer);
-    History_Record_Index max = buffer_history_get_max_record_index(app, buffer);
+    History_Record_Index max     = buffer_history_get_max_record_index(app, buffer);
+    Long_Buffer_History  history = *Long_Buffer_GetAttachedHistory(app, buffer);
 
     for (History_Record_Index i = 0; i <= max; ++i)
     {
         Record_Info record = buffer_history_get_record_info(app, buffer, i);
         String8 line = push_stringf(scratch, "[%d, %d]: \"%.*s\" \"%.*s\"", i, record.edit_number,
                                     string_expand(record.single_string_backward), string_expand(record.single_string_forward));
-        String8 tag = (i == current) ? S8Lit("current") : String8{};
+
+        String8 tag = {};
+        {
+            b32 isCurrent = i == current;
+            b32 isSaved = record.edit_number == history.record.edit_number && i == history.index;
+            if (isCurrent && isSaved)
+                tag = S8Lit("current saved");
+            else if (isCurrent)
+                tag = S8Lit("current");
+            else if (isSaved)
+                tag = S8Lit("saved");
+        }
+
         Long_Lister_AddItem(app, lister, line, tag, buffer, record.pos_before_edit, i);
     }
 
-    Long_Buffer_History history = *Long_Buffer_GetAttachedHistory(app, buffer);
-    lister_set_query(lister, push_u8_stringf(scratch, "Max: %d, Current: %d, Buffer Edit: (%d, %d)",
+    lister_set_query(lister, push_u8_stringf(scratch, "Max: %d, Current: %d, Saved: (%d, %d)",
                                              max, current, history.index, history.record.edit_number));
 
     Lister_Result l_result = run_lister(app, lister);
@@ -726,16 +732,134 @@ CUSTOM_DOC("Advances forwards through the undo history of the current buffer.")
     Long_Buffer_CheckHistoryAndSetDirty(app);
 }
 
-CUSTOM_COMMAND_SIG(long_save)
-CUSTOM_DOC("Saves the current buffer.")
+function i32 Long_EndBuffer(Application_Links* app, Buffer_ID buffer_id)
 {
+    F4_Index_Lock();
+    F4_Index_File* file = F4_Index_LookupFile(app, buffer_id);
+    if (file)
+    {
+        // NOTE(long): This is like F4_Index_ClearFile but doesn't reset the first/last_note pointer because EraseNote needs those.
+        {
+            for(F4_Index_Note *note = file->first_note; note; note = note->next_sibling)
+                Long_Index_FreeNoteTree(note);
+            linalloc_clear(&file->arena);
+        }
+
+        for (F4_Index_Note* note = file->first_note; note; note = note->next_sibling)
+            Long_Index_EraseNote(app, note);
+
+        F4_Index_EraseFile(app, buffer_id);
+#if LONG_INDEX_PRELOAD_REF
+        Long_Index_PreloadRef(app);
+#endif
+    }
+    F4_Index_Unlock();
+    return end_buffer_close_jump_list(app, buffer_id);
+}
+
+// COPYPASTA(long): default_file_save
+function i32 Long_SaveFile(Application_Links *app, Buffer_ID buffer_id)
+{
+    ProfileScope(app, "[Long] Save File");
+
+    b32 auto_indent = def_get_config_b32(vars_save_string_lit("automatically_indent_text_on_save"));
+    b32 is_virtual = def_get_config_b32(vars_save_string_lit("enable_virtual_whitespace"));
+    History_Record_Index index = buffer_history_get_current_state_index(app, buffer_id);
+    if (auto_indent && is_virtual && index)
+        Long_Index_IndentBuffer(app, buffer_id, {}, true);
+
+    Long_Buffer_History  current = Long_Buffer_GetCurrentHistory (app, buffer_id);
+    Long_Buffer_History* history = Long_Buffer_GetAttachedHistory(app, buffer_id);
+
     Scratch_Block scratch(app);
-    Buffer_ID buffer = view_get_buffer(app, get_active_view(app, Access_ReadVisible), Access_ReadVisible);
-    String_Const_u8 file_name = push_buffer_file_name(app, scratch, buffer);
-    buffer_save(app, buffer, file_name, 0);
-    Long_Buffer_History  current = Long_Buffer_GetCurrentHistory(app, buffer);
-    Long_Buffer_History* history = Long_Buffer_GetAttachedHistory(app, buffer);
+    String8 name = push_buffer_base_name(app, scratch, buffer_id);
+    print_message(app, push_stringf(scratch, "Saving Buffer: \"%.*s\", Current Undo: %.3d, Previous Saved: (%.3d, %.3d)\n",
+                                    string_expand(name), current.index, history->index, history->record.edit_number));
+
     *history = current;
+
+    Managed_Scope scope = buffer_get_managed_scope(app, buffer_id);
+    Line_Ending_Kind *eol = scope_attachment(app, scope, buffer_eol_setting, Line_Ending_Kind);
+
+    switch (*eol)
+    {
+        case LineEndingKind_LF:   rewrite_lines_to_lf  (app, buffer_id); break;
+        case LineEndingKind_CRLF: rewrite_lines_to_crlf(app, buffer_id); break;
+    }
+
+    // no meaning for return
+    return 0;
+}
+
+CUSTOM_COMMAND_SIG(long_indent_whole_file)
+CUSTOM_DOC("Audo-indents the entire current buffer.")
+{
+    Buffer_ID buffer = view_get_buffer(app, get_active_view(app, Access_ReadWriteVisible), Access_ReadWriteVisible);
+    Long_Index_IndentBuffer(app, buffer, {});
+}
+
+function void Long_Indent_CursorRange(Application_Links* app, b32 merge_history)
+{
+    View_ID view = get_active_view(app, Access_ReadWriteVisible);
+    Buffer_ID buffer = view_get_buffer(app, view, Access_ReadWriteVisible);
+    Range_i64 range = get_view_range(app, view);
+    Long_Index_IndentBuffer(app, buffer, range, merge_history);
+    move_past_lead_whitespace(app, view, buffer);
+}
+
+CUSTOM_COMMAND_SIG(long_indent_range)
+CUSTOM_DOC("Auto-indents the range between the cursor and the mark.")
+{
+    Long_Indent_CursorRange(app, 0);
+}
+
+// COPYPASTA(long): write_text_and_auto_indent
+CUSTOM_COMMAND_SIG(long_write_text_and_auto_indent)
+CUSTOM_DOC("Inserts text and auto-indents the line on which the cursor sits if any of the text contains 'layout punctuation' such as ;:{}()[]# and new lines.")
+{
+    ProfileScope(app, "write and auto indent");
+    User_Input in = get_current_input(app);
+    String_Const_u8 insert = to_writable(&in);
+    if (insert.str != 0 && insert.size > 0){
+        b32 do_auto_indent = false;
+        for (u64 i = 0; !do_auto_indent && i < insert.size; i += 1){
+            switch (insert.str[i]){
+                case ';': case ':':
+                case '{': case '}':
+                case '(': case ')':
+                case '[': case ']':
+                case '#':
+                case '\n': case '\t':
+                {
+                    do_auto_indent = true;
+                }break;
+            }
+        }
+        if (do_auto_indent){
+            View_ID view = get_active_view(app, Access_ReadWriteVisible);
+            Buffer_ID buffer = view_get_buffer(app, view, Access_ReadWriteVisible);
+
+            Range_i64 pos = {};
+            if (view_has_highlighted_range(app, view)){
+                pos = get_view_range(app, view);
+            }
+            else{
+                pos.min = pos.max = view_get_cursor_pos(app, view);
+            }
+
+            write_text_input(app);
+
+            i64 end_pos = view_get_cursor_pos(app, view);
+            pos.min = Min(pos.min, end_pos);
+            pos.max = Max(pos.max, end_pos);
+
+            Long_Index_IndentBuffer(app, buffer, pos, true);
+            move_past_lead_whitespace(app, view, buffer);
+        }
+        else{
+            write_text_input(app);
+        }
+    }
 }
 
 //~ NOTE(long): Search/Jump Commands
@@ -1180,11 +1304,12 @@ function void Long_ListAllLocations(Application_Links *app, String_Const_u8 need
 }
 
 // COPYPASTA(long): get_query_string
-function String8 Long_Get_Query_String(Application_Links *app, char *query_str, u8 *string_space, i32 space_size){
+function String8 Long_Get_Query_String(Application_Links *app, char *query_str, u8 *string_space, i32 space_size, u64 init_size = 0)
+{
     Query_Bar_Group group(app);
     Query_Bar bar = {};
     bar.prompt = SCu8((u8*)query_str);
-    bar.string = SCu8(string_space, (u64)0);
+    bar.string = SCu8(string_space, init_size);
     bar.string_capacity = space_size;
     if (!Long_Query_User_String(app, &bar, string_u8_empty)){
         bar.string.size = 0;
@@ -1195,7 +1320,7 @@ function String8 Long_Get_Query_String(Application_Links *app, char *query_str, 
 function void Long_ListAllLocations_Query(Application_Links *app, char* query, List_All_Locations_Flag flags, b32 all_buffer)
 {
     Scratch_Block scratch(app);
-    u8 *space = push_array(scratch, u8, KB(1));
+    u8* space = push_array(scratch, u8, LONG_QUERY_STRING_SIZE);
     String_Const_u8 needle = Long_Get_Query_String(app, query, space, LONG_QUERY_STRING_SIZE);
     Long_ListAllLocations(app, needle, flags, all_buffer);
 }
@@ -1204,6 +1329,12 @@ function void Long_ListAllLocations_Identifier(Application_Links *app, List_All_
 {
     Scratch_Block scratch(app);
     String_Const_u8 needle = push_token_or_word_under_active_cursor(app, scratch);
+    if (needle.size <= LONG_QUERY_STRING_SIZE)
+    {
+        u8* space = push_array(scratch, u8, LONG_QUERY_STRING_SIZE);
+        block_copy(space, needle.str, needle.size);
+        needle = Long_Get_Query_String(app, "List Locations For Identifier: ", space, LONG_QUERY_STRING_SIZE, needle.size);
+    }
     Long_ListAllLocations(app, needle, flags, all_buffer);
 }
 
@@ -1376,7 +1507,7 @@ function void Long_ISearch(Application_Links* app, Scan_Direction start_scan, i6
     Scan_Direction scan = start_scan;
     i64 pos = first_pos;
 
-    u8 bar_string_space[256];
+    u8 bar_string_space[LONG_QUERY_STRING_SIZE];
     bar.string = SCu8(bar_string_space, query_init.size);
     block_copy(bar.string.str, query_init.str, query_init.size);
 
@@ -1610,7 +1741,7 @@ function void Long_Query_Replace(Application_Links *app, String_Const_u8 replace
     if (add_replace_query_bar)
         start_query_bar(app, &replace, 0);
 
-    u8 with_space[1024];
+    u8 with_space[LONG_QUERY_STRING_SIZE];
     Query_Bar with = {};
     with.prompt = S8Lit("With: ");
     with.string = SCu8(with_space, (u64)0);
@@ -1721,7 +1852,7 @@ CUSTOM_DOC("Queries the user for two strings, and incrementally replaces every o
     Buffer_ID buffer = view_get_buffer(app, view, Access_ReadWriteVisible);
     if (buffer != 0)
     {
-        u8 replace_space[1024];
+        u8 replace_space[LONG_QUERY_STRING_SIZE];
         Query_Bar_Group group(app);
         Query_Bar bar = {};
         bar.prompt = S8Lit("Replace: ");
@@ -2217,7 +2348,17 @@ CUSTOM_DOC("replace the text between the mark and the cursor with the text from 
             }
         }
     }
-    auto_indent_range(app);
+
+    Long_Index_UpdateTick(app);
+    Long_Indent_CursorRange(app, 1);
+}
+
+CUSTOM_COMMAND_SIG(long_paste_and_indent)
+CUSTOM_DOC("Paste from the top of clipboard and run auto-indent on the newly pasted text.")
+{
+    paste(app);
+    Long_Index_UpdateTick(app);
+    Long_Indent_CursorRange(app, 1);
 }
 
 CUSTOM_COMMAND_SIG(long_select_current_line)

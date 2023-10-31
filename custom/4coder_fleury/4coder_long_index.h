@@ -45,6 +45,7 @@ function b32 Long_Index_ParseKind(F4_Index_ParseCtx* ctx, Token_Base_Kind kind, 
 function b32 Long_Index_ParseSubKind(F4_Index_ParseCtx* ctx, i64 sub_kind, Range_i64* out_range);
 
 //- NOTE(long): Init Functions
+function void Long_Index_UpdateTick(Application_Links* app);
 function F4_Index_Note* Long_Index_MakeNote(F4_Index_ParseCtx* ctx, Range_i64 base_range, Range_i64 range, F4_Index_NoteKind kind,
                                             b32 push_parent = true);
 function F4_Index_Note* Long_Index_MakeNamespace(F4_Index_ParseCtx* ctx, Range_i64 base, Range_i64 name);
@@ -67,7 +68,7 @@ function void Long_Index_DrawCodePeek(Application_Links* app, View_ID view);
 
 //- NOTE(long): Buffer Functions
 function void Long_Index_IndentBuffer(Application_Links* app, Buffer_ID buffer, Indent_Flag flags, i32 tab_width, i32 indent_width);
-function void Long_Index_IndentBuffer(Application_Links* app, Buffer_ID buffer);
+function void Long_Index_IndentBuffer(Application_Links* app, Buffer_ID buffer, Range_i64 range, b32 merge_history = false);
 function i32 Long_SaveFile(Application_Links *app, Buffer_ID buffer_id);
 function i32 Long_EndBuffer(Application_Links* app, Buffer_ID buffer_id);
 
@@ -78,16 +79,16 @@ function i32 Long_EndBuffer(Application_Links* app, Buffer_ID buffer_id);
 #define Long_Index_ArgumentRange(note) (Range_i64{ (note)->range.min, Max((note)->range.max, (note)->scope_range.min) })
 
 #define Long_Index_IterateValidNoteInFile(child, note) \
-for (F4_Index_Note* child = (note)->first_child; \
-child != ((note)->last_child ? (note)->last_child->next_sibling : 0); \
-child = child->next_sibling) if (!Long_Index_IsNamespace(child))
+    for (F4_Index_Note* child = (note)->first_child; \
+         child != ((note)->last_child ? (note)->last_child->next_sibling : 0); \
+         child = child->next_sibling) if (!Long_Index_IsNamespace(child))
 
 #define Long_Index_IterateValidNoteInFile_Dir(child, note, forward) \
-F4_Index_Note* start = (forward) ? (note)->first_child : (note)->last_child; \
-F4_Index_Note* end   = (forward) ? (note)->last_child : (note)->first_child; \
-if (end) end = (forward) ? end->next_sibling : end->prev_sibling;\
-for (F4_Index_Note* child = start; child != end; child = (forward) ? child->next_sibling : child->prev_sibling) \
-if (!Long_Index_IsNamespace(child))
+    F4_Index_Note* start = (forward) ? (note)->first_child : (note)->last_child; \
+    F4_Index_Note* end   = (forward) ? (note)->last_child : (note)->first_child; \
+    if (end) end = (forward) ? end->next_sibling : end->prev_sibling;\
+    for (F4_Index_Note* child = start; child != end; child = (forward) ? child->next_sibling : child->prev_sibling) \
+    if (!Long_Index_IsNamespace(child))
 
 #define Long_Index_Token(ctx) token_it_read(&(ctx)->it)
 #define Long_Index_CtxScope(ctx) (ctx)->active_parent->scope_range
@@ -101,13 +102,13 @@ if (!Long_Index_IsNamespace(child))
 #define Long_Index_EndCtxChange(ctx) *(ctx) = __currentCtx__
 
 #define Long_Index_BlockCtxScope(ctx, stm) do { \
-Long_Index_StartCtxScope(ctx); stm; Long_Index_EndCtxScope(ctx); \
-} while (0)
+        Long_Index_StartCtxScope(ctx); stm; Long_Index_EndCtxScope(ctx); \
+    } while (0)
 #define Long_Index_BlockCtxChange(ctx, stm) do { \
-Long_Index_BeginCtxChange(ctx); stm; Long_Index_EndCtxChange(ctx); \
-} while (0)
+        Long_Index_BeginCtxChange(ctx); stm; Long_Index_EndCtxChange(ctx); \
+    } while (0)
 #define Long_Index_PeekPrevious(ctx, stm) do { \
-if (token_it_dec(&(ctx)->it)) { stm; token_it_inc(&(ctx)->it); } \
-} while (0)
+        if (token_it_dec(&(ctx)->it)) { stm; token_it_inc(&(ctx)->it); } \
+    } while (0)
 
 #endif //4CODER_LONG_INDEX_H

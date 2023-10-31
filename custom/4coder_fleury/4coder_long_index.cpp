@@ -359,6 +359,12 @@ function b32 Long_Index_ParsePattern(F4_Index_ParseCtx* ctx, char* fmt, ...)
 
 //~ NOTE(long): Indexing Function
 
+function void Long_Index_UpdateTick(Application_Links* app)
+{
+    F4_Index_Tick(app);
+    code_index_update_tick(app);
+}
+
 function F4_Index_Note InitializeNamespaceRootBecauseCppIsAStupidLanguage()
 {
     F4_Index_Note stupid_placeholder = {};
@@ -465,31 +471,6 @@ function void Long_Index_FreeNoteTree(F4_Index_Note *note)
         if (!hash_prev)
             f4_index.note_table[note->hash % ArrayCount(f4_index.note_table)] = next ? next : hash_next;
     }
-}
-
-function i32 Long_EndBuffer(Application_Links* app, Buffer_ID buffer_id)
-{
-    F4_Index_Lock();
-    F4_Index_File* file = F4_Index_LookupFile(app, buffer_id);
-    if (file)
-    {
-        // NOTE(long): This is like F4_Index_ClearFile but doesn't reset the first/last_note pointer because EraseNote needs those.
-        {
-            for(F4_Index_Note *note = file->first_note; note; note = note->next_sibling)
-                Long_Index_FreeNoteTree(note);
-            linalloc_clear(&file->arena);
-        }
-
-        for (F4_Index_Note* note = file->first_note; note; note = note->next_sibling)
-            Long_Index_EraseNote(app, note);
-
-        F4_Index_EraseFile(app, buffer_id);
-#if LONG_INDEX_PRELOAD_REF
-        Long_Index_PreloadRef(app);
-#endif
-    }
-    F4_Index_Unlock();
-    return end_buffer_close_jump_list(app, buffer_id);
 }
 
 function F4_Index_Note* Long_Index_MakeNote(F4_Index_ParseCtx* ctx, Range_i64 base_range, Range_i64 range, F4_Index_NoteKind kind,
@@ -1282,7 +1263,7 @@ function void Long_Index_DrawCodePeek(Application_Links* app, View_ID view)
         {
             Token_Array array = get_token_array_from_buffer(app, buffer);
             note = Long_Index_LookupBestNote(app, buffer, &array, token);
-            if (note && note->range.min == token->pos && (note->flags & F4_Index_NoteFlag_Prototype))
+            if (note->flags & F4_Index_NoteFlag_Prototype)
                 note = Long_Index_GetDefNote(note);
         }
     }
@@ -1433,7 +1414,8 @@ function void Long_Index_IndentBuffer(Application_Links* app, Buffer_ID buffer, 
     code_index_unlock();
 }
 
-function void Long_Index_IndentBuffer(Application_Links* app, Buffer_ID buffer)
+// TODO(long): Actually indent only the range pass in rather than the whole buffer
+function void Long_Index_IndentBuffer(Application_Links* app, Buffer_ID buffer, Range_i64 range, b32 merge_history)
 {
     i32 tab_width = clamp_bot((i32)def_get_config_u64(app, vars_save_string_lit("default_tab_width")), 1);
     i32 indent_width = (i32)def_get_config_u64(app, vars_save_string_lit("indent_width"));
@@ -1443,28 +1425,12 @@ function void Long_Index_IndentBuffer(Application_Links* app, Buffer_ID buffer)
     if (def_get_config_b32(vars_save_string_lit("indent_with_tabs")))
         AddFlag(flags, Indent_UseTab);
 
+    History_Record_Index first = buffer_history_get_current_state_index(app, buffer);
     Long_Index_IndentBuffer(app, buffer, flags, tab_width, indent_width);
-}
-
-// COPYPASTA(long): default_file_save
-function i32 Long_SaveFile(Application_Links *app, Buffer_ID buffer_id)
-{
-    ProfileScope(app, "[Long] Save File");
-
-    b32 auto_indent = def_get_config_b32(vars_save_string_lit("automatically_indent_text_on_save"));
-    b32 is_virtual = def_get_config_b32(vars_save_string_lit("enable_virtual_whitespace"));
-    if (auto_indent && is_virtual)
-        Long_Index_IndentBuffer(app, buffer_id);
-
-    Managed_Scope scope = buffer_get_managed_scope(app, buffer_id);
-    Line_Ending_Kind *eol = scope_attachment(app, scope, buffer_eol_setting, Line_Ending_Kind);
-
-    switch (*eol)
+    if (merge_history)
     {
-        case LineEndingKind_LF:   rewrite_lines_to_lf  (app, buffer_id); break;
-        case LineEndingKind_CRLF: rewrite_lines_to_crlf(app, buffer_id); break;
+        History_Record_Index last = buffer_history_get_current_state_index(app, buffer);
+        if (first < last)
+            buffer_history_merge_record_range(app, buffer, first, last, RecordMergeFlag_StateInRange_MoveStateForward);
     }
-
-    // no meaning for return
-    return 0;
 }

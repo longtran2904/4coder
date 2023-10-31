@@ -4,6 +4,11 @@
 
 // TOP
 
+//- NOTE(long): Forward declare here because this file is included in "4coder_default_include"
+function String8 Long_Lister_GetHeaderString(Application_Links* app, Arena* arena, Lister_Node* node);
+function void lister__backspace_text_field__default(Application_Links *app);
+//-
+
 function Vec2_f32
 panel_space_from_screen_space(Vec2_f32 p, Vec2_f32 file_region_p0){
     return(p - file_region_p0);
@@ -174,8 +179,6 @@ function void
 lister_zero_scroll(Lister *lister){
     block_zero_struct(&lister->scroll);
 }
-
-function String8 Long_Lister_GetHeaderString(Application_Links* app, Arena* arena, Lister_Node* node);
 
 function void
 lister_render(Application_Links *app, Frame_Info frame_info, View_ID view){
@@ -601,8 +604,6 @@ lister_user_data_at_p(Application_Links *app, View_ID view, Lister *lister, Vec2
 
     return(result);
 }
-
-function void lister__backspace_text_field__default(Application_Links *app);
 
 function Lister_Result
 run_lister(Application_Links *app, Lister *lister){
