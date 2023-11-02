@@ -1421,7 +1421,7 @@ function void Long_Index_IndentBuffer(Application_Links* app, Buffer_ID buffer, 
     i32 indent_width = (i32)def_get_config_u64(app, vars_save_string_lit("indent_width"));
 
     Indent_Flag flags = 0;
-    AddFlag(flags, Indent_ClearLine);
+    //AddFlag(flags, Indent_ClearLine);
     if (def_get_config_b32(vars_save_string_lit("indent_with_tabs")))
         AddFlag(flags, Indent_UseTab);
 

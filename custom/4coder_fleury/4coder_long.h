@@ -27,6 +27,7 @@
 // [X] Paste from clipboard to search bar
 // [X] List and query multiple selections
 // [X] Query replace forward and backward using (Page)Up/Down
+// [ ] Select the start/end/cursor pos of all lines in range 
 // [ ] Replace wildcard with grep
 // [ ] Search for definitions like Hoogle
 // [ ] Find all references (using the index system)
@@ -51,6 +52,7 @@
 // [X] Make the code peek system works with F4_Index_Note
 // [X] Split PosContext entries into fields/functions/types and cap the number of entries
 // [X] Make auto_indent_buffer use virtual whitespace
+// [ ] Draw multiple cursors for the multi-select system
 // [ ] Autocompletion using PosContext or casey/jack's system
 // [ ] Unite all code peeking systems and bindings (fleury_code_peek, f4_autocomplete, word_complete_drop_down, and fleury_pos_context)
 // [ ] Fix error annotation locations
@@ -79,7 +81,7 @@
 // [X] Fix jump to whitespace when enabling virtual_whitespace bug
 // [X] Fix highlight the entire buffer bug
 // [X] Fix undo/redo camera scroll bug
-// [ ] Fix copy outside 4coder bug
+// [X] Fix copy outside 4coder bug
 // [ ] Fix switching to the build panel when the user accidentally kills it
 
 //~ TODO MISC
