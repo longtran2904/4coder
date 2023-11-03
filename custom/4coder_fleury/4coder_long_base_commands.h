@@ -6,7 +6,7 @@
 #define clamp_loop(x, size) ((((x) % (size)) + (size)) % (size))
 
 //- NOTE(long): Highlight functions
-function void Long_Highlight_DrawList(Application_Links *app, Buffer_ID buffer, Text_Layout_ID layout, f32 roundness);
+function void Long_Highlight_DrawList(Application_Links *app, Buffer_ID buffer, Text_Layout_ID layout, f32 roundness, f32 thickness);
 function b32  Long_Highlight_DrawRange(Application_Links *app, View_ID view, Buffer_ID buffer, Text_Layout_ID layout, f32 roundness);
 
 // NOTE(long): Fleury's functions

@@ -501,11 +501,25 @@ internal F4_LANGUAGE_POSCONTEXT(F4_CPP_PosContext)
                     {
 #if 0
                         F4_Language_PosContext_PushData_Call(arena, &first, &last, push_buffer_range(app, arena, buffer, Ii64(name)), arg_idx);
+                        count += 1;
+                        arg_idx = 0;
 #else
-                        F4_Index_Note* note = Long_Index_LookupBestNote(app, buffer, &tokens, token);
-                        F4_Language_PosContext_PushData(arena, &first, &last, note, 0, arg_idx);
-                        if (note)
+                        F4_Index_Note* note = Long_Index_LookupBestNote(app, buffer, &tokens, name);
+                        
+                        Range_i64 argument_range = {};
+                        if (note && note->file->buffer == buffer)
                         {
+                            Token_Iterator_Array note_iter = token_iterator_pos(0, &tokens, note->range.max);
+                            if (note_iter.ptr->kind == TokenBaseKind_Whitespace || note_iter.ptr->kind == TokenBaseKind_Comment)
+                                token_it_inc(&note_iter);
+                            if (Long_Index_SkipBody(app, &note_iter, buffer, 0, 1))
+                                argument_range = Range_i64{ note->range.min, note_iter.ptr->pos };
+                        }
+                        
+                        if (note && (note->file->buffer != buffer || !range_contains(argument_range, name->pos)))
+                        {
+                            F4_Language_PosContext_PushData(arena, &first, &last, note, 0, arg_idx);
+                            
                             Token_Array note_array = get_token_array_from_buffer(app, note->file->buffer);
                             Token_Iterator_Array note_iter = token_iterator_pos(0, &note_array, note->range.max);
                             if (note_iter.ptr->kind == TokenBaseKind_Whitespace || note_iter.ptr->kind == TokenBaseKind_Comment)
@@ -566,10 +580,11 @@ internal F4_LANGUAGE_POSCONTEXT(F4_CPP_PosContext)
                                 last->highlight_range = highlight_range;
                                 last->range = range;
                             }
+                            
+                            count += 1;
+                            arg_idx = 0;
                         }
 #endif
-                        count += 1;
-                        arg_idx = 0;
                     }
                 }
                 else if(token->sub_kind == TokenCppKind_ParenOp)

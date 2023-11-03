@@ -27,12 +27,12 @@ function b32 Long_CS_PeekTwoStr(F4_Index_ParseCtx* ctx, String8 strA, String8 st
     {
         Token* token = token_it_read(&ctx->it);
         if (token)
-        result = string_match(strings[i], string_substring(ctx->string, Ii64(token)));
+            result = string_match(strings[i], string_substring(ctx->string, Ii64(token)));
         else
             ctx->done = 1;
         
         if(result)
-        F4_Index_ParseCtx_Inc(ctx, F4_Index_TokenSkipFlag_SkipAll);
+            F4_Index_ParseCtx_Inc(ctx, F4_Index_TokenSkipFlag_SkipAll);
         else
             break;
     }
@@ -111,14 +111,14 @@ function b32 Long_CS_ParseDecl(F4_Index_ParseCtx* ctx, Range_i64* base_range, Ra
                     ctx->done = 1;
                 
                 if (result)
-                F4_Index_ParseCtx_Inc(ctx, F4_Index_TokenSkipFlag_SkipAll);
+                    F4_Index_ParseCtx_Inc(ctx, F4_Index_TokenSkipFlag_SkipAll);
                 else
                     *ctx = temp_ctx;
 #else
                 if (base_keywords && Long_CS_ParseKind(ctx, TokenBaseKind_Keyword, &type_range))
-                result = Long_Index_IsMatch(ctx, type_range, base_keywords, keyword_count);
+                    result = Long_Index_IsMatch(ctx, type_range, base_keywords, keyword_count);
                 else if (has_base_type)
-                result = Long_CS_ParseKind(ctx, TokenBaseKind_Identifier, &type_range);
+                    result = Long_CS_ParseKind(ctx, TokenBaseKind_Identifier, &type_range);
                 else
                     result = false;
 #endif
@@ -127,7 +127,7 @@ function b32 Long_CS_ParseDecl(F4_Index_ParseCtx* ctx, Range_i64* base_range, Ra
             if (result)
             {
                 if (base == Range_i64{})
-                base.start = type_range.start;
+                    base.start = type_range.start;
                 if (Long_CS_PeekToken(ctx, "[") || Long_CS_PeekToken(ctx, "<"))
                 {
                     result = Long_Index_SkipBody(ctx);
@@ -136,7 +136,7 @@ function b32 Long_CS_ParseDecl(F4_Index_ParseCtx* ctx, Range_i64* base_range, Ra
             }
             
             if (!Long_CS_IsTokenSelection(Long_Index_Token(ctx)))
-            break;
+                break;
             
             token_it_inc(&ctx->it);
         }
@@ -150,8 +150,8 @@ function b32 Long_CS_ParseDecl(F4_Index_ParseCtx* ctx, Range_i64* base_range, Ra
         {
             result = Long_CS_ParseKind(ctx, TokenBaseKind_Identifier, &name);
             if (!result && (flags & Long_ParseFlag_Operator))
-            result = (Long_CS_ParseKind(ctx, TokenBaseKind_Operator, &name) ||
-                      Long_CS_ParseKind(ctx, TokenBaseKind_Keyword , &name));
+                result = (Long_CS_ParseKind(ctx, TokenBaseKind_Operator, &name) ||
+                          Long_CS_ParseKind(ctx, TokenBaseKind_Keyword , &name));
         }
     }
     
@@ -159,7 +159,7 @@ function b32 Long_CS_ParseDecl(F4_Index_ParseCtx* ctx, Range_i64* base_range, Ra
     if (result && has_arg)
     {
         if (Long_CS_PeekToken(ctx, "<"))
-        Long_Index_SkipBody(ctx, 0, 1);
+            Long_Index_SkipBody(ctx, 0, 1);
         // NOTE(long): Always pass over the '(' to differentiate between normal function and lambda
         result = Long_CS_ParseToken(ctx, "(");
     }
@@ -173,7 +173,7 @@ function b32 Long_CS_ParseDecl(F4_Index_ParseCtx* ctx, Range_i64* base_range, Ra
             Long_Index_SkipBody(ctx, 0, 1);
         }
         if (result)
-        result = Long_CS_ParseStr(ctx, end_token);
+            result = Long_CS_ParseStr(ctx, end_token);
         Long_Index_EndCtxChange(ctx);
     }
     
@@ -196,7 +196,7 @@ function void Long_CS_ParseGeneric(F4_Index_ParseCtx* ctx)
         {
             Long_Index_MakeNote(ctx, {}, generic, F4_Index_NoteKind_Type, 0);
             if (!Long_CS_ParseToken(ctx, ","))
-            break;
+                break;
         }
     }
 }
@@ -252,7 +252,7 @@ internal F4_LANGUAGE_INDEXFILE(Long_CS_IndexFile)
         else if (ctx->active_parent && Long_Index_CtxScope(ctx).max == Long_Index_Token(ctx)->pos)
         {
             if (Long_Index_IsNamespace(ctx->active_parent))
-            Long_Index_CtxScope(ctx) = {};
+                Long_Index_CtxScope(ctx) = {};
             Long_Index_PopParent(ctx);
         }
         else if (!initialized && Long_CS_PeekToken(ctx, "=>") && !Long_CS_PeekTwo(ctx, "=>", "{"))
@@ -270,10 +270,10 @@ internal F4_LANGUAGE_INDEXFILE(Long_CS_IndexFile)
             Long_Index_PeekPrevious(ctx,
                                     {
                                         if (initialized)
-                                        Long_Index_MakeNote(ctx, {}, Ii64(Long_Index_Token(ctx)), F4_Index_NoteKind_Scope);
+                                            Long_Index_MakeNote(ctx, {}, Ii64(Long_Index_Token(ctx)), F4_Index_NoteKind_Scope);
                                         // NOTE(long): namespaces are always uninitialized
                                         else if (ctx->active_parent && Long_Index_IsNamespace(ctx->active_parent))
-                                        Long_Index_PushNamespaceScope(ctx);
+                                            Long_Index_PushNamespaceScope(ctx);
                                         Long_Index_StartCtxScope(ctx);
                                     });
         }
@@ -282,7 +282,7 @@ internal F4_LANGUAGE_INDEXFILE(Long_CS_IndexFile)
             // NOTE(long): The last leaf namespace can have scope_range in one file while (base)range in other files
             // So it must be cleared here at the end of its scope
             if (Long_Index_IsNamespace(ctx->active_parent))
-            Long_Index_PopNamespaceScope(ctx);
+                Long_Index_PopNamespaceScope(ctx);
             else
                 Long_Index_EndCtxScope(ctx);
             do Long_Index_PopParent(ctx);
@@ -297,7 +297,7 @@ internal F4_LANGUAGE_INDEXFILE(Long_CS_IndexFile)
             {
                 Long_Index_MakeNamespace(ctx, base, name);
                 if (!Long_CS_ParseToken(ctx, "."))
-                break;
+                    break;
             }
         }
         
@@ -311,7 +311,7 @@ internal F4_LANGUAGE_INDEXFILE(Long_CS_IndexFile)
                 String8 using_name = push_string_copy(&ctx->file->arena, F4_Index_StringFromRange(ctx, name));
                 string_list_push(&ctx->file->arena, &node->list, using_name);
                 if (!Long_CS_ParseToken(ctx, "."))
-                break;
+                    break;
             }
         }
         
@@ -338,7 +338,7 @@ internal F4_LANGUAGE_INDEXFILE(Long_CS_IndexFile)
                  Long_CS_ParseDecl(ctx, &base, &name, 0, 0, Long_ParseFlag_Anonymous))
         {
             if (string_match(F4_Index_StringFromRange(ctx, name), ctx->active_parent->string))
-            Long_Index_MakeNote(ctx, {}, name, F4_Index_NoteKind_Function);
+                Long_Index_MakeNote(ctx, {}, name, F4_Index_NoteKind_Function);
         }
         
         //~ NOTE(long): Operators
@@ -378,14 +378,14 @@ internal F4_LANGUAGE_INDEXFILE(Long_CS_IndexFile)
             DECLARATION:
             Long_Index_MakeNote(ctx, base, name, kind);
             if (use_modifier)
-            Long_Index_PopParent(ctx);
+                Long_Index_PopParent(ctx);
             else if (!range_size(base) || (!Long_CS_PeekToken(ctx, "=>") && !Long_CS_PeekToken(ctx, "{")))
             {
                 Long_Index_BeginCtxChange(ctx);
                 
                 i64 start_pos = Long_Index_Token(ctx)->pos;
                 if (Long_CS_ParseToken(ctx, "="))
-                Long_CS_SkipExpression(ctx);
+                    Long_CS_SkipExpression(ctx);
                 i64 end_pos = Long_Index_Token(ctx)->pos;
                 Long_Index_CtxScope(ctx) = { start_pos, end_pos };
                 
@@ -426,19 +426,19 @@ internal F4_LANGUAGE_INDEXFILE(Long_CS_IndexFile)
                     case F4_Index_NoteKind_Function: // NOTE(long): This is for lambda's arguments
                     {
                         if (range_size(ctx->active_parent->range) == 0 && Long_Index_CtxScope(ctx) == Range_i64{})
-                        kind = F4_Index_NoteKind_Decl;
+                            kind = F4_Index_NoteKind_Decl;
                     } break;
                     
                     case F4_Index_NoteKind_Type: // NOTE(long): This is for all the fields of an enum
                     {
                         if (Long_Index_IsMatch(ctx, ctx->active_parent->base_range, cs_type_keywords, 1))
-                        kind = F4_Index_NoteKind_Constant;
+                            kind = F4_Index_NoteKind_Constant;
                     } break;
                 }
             }
             
             if (kind != F4_Index_NoteKind_Null)
-            goto DECLARATION;
+                goto DECLARATION;
         }
         
         //~ NOTE(long): Parse Define Macro
@@ -478,7 +478,7 @@ Long_CS_ParsePosContext(Application_Links* app, Arena* arena, Buffer_ID buffer, 
         Token* token = token_it_read(&it);
         
         if (token->kind == TokenBaseKind_ParentheticalClose && i > 0)
-        paren_nest--;
+            paren_nest--;
         else if (token->kind == TokenBaseKind_ParentheticalOpen)
         {
             i32 old_nest = paren_nest;
@@ -513,7 +513,7 @@ Long_CS_ParsePosContext(Application_Links* app, Arena* arena, Buffer_ID buffer, 
                             arg_idx = 0;
                         }
                         
-                        if (note->range.min != token->pos)
+                        if (note->file->buffer != buffer || !range_contains(Long_Index_ArgumentRange(note), token->pos))
                         {
                             F4_Language_PosContext_PushData(arena, &first, &last, note, 0, index);
                             tooltip_count++;
@@ -523,14 +523,14 @@ Long_CS_ParsePosContext(Application_Links* app, Arena* arena, Buffer_ID buffer, 
             }
             
             if (!access_found)
-            access_found = Long_CS_IsTokenSelection(token);
+                access_found = Long_CS_IsTokenSelection(token);
             
             if (token->sub_kind == TokenCsKind_Comma && i > 0)
-            arg_idx++;
+                arg_idx++;
         }
         
         if (!token_it_dec(&it))
-        break;
+            break;
     }
     
     return first;
@@ -554,7 +554,7 @@ internal F4_LANGUAGE_HIGHLIGHT(Long_CS_Highlight)
     {
         Token* token = token_it_read(&it);
         if(!token || token->pos >= visible_range.one_past_last)
-        break;
+            break;
         
         if (token->kind == TokenBaseKind_Identifier)
         {
@@ -569,14 +569,14 @@ internal F4_LANGUAGE_HIGHLIGHT(Long_CS_Highlight)
                         {
                             ARGB_Color color;
                             if (Long_Index_IsArgument(note))
-                            color = F4_ARGBFromID(color_table, long_color_index_param);
+                                color = F4_ARGBFromID(color_table, long_color_index_param);
                             else if (note->parent->kind == F4_Index_NoteKind_Type)
-                            color = F4_ARGBFromID(color_table, long_color_index_field);
+                                color = F4_ARGBFromID(color_table, long_color_index_field);
                             else
                                 color = F4_ARGBFromID(color_table, long_color_index_local);
                             
                             if (!F4_ARGBIsValid(color))
-                            color = F4_ARGBFromID(color_table, defcolor_text_default);
+                                color = F4_ARGBFromID(color_table, defcolor_text_default);
                             paint_text_color(app, text_layout_id, Ii64(token), color);
                         }
                     } break;
@@ -594,7 +594,7 @@ internal F4_LANGUAGE_HIGHLIGHT(Long_CS_Highlight)
                         {
                             ARGB_Color value_type_color = F4_ARGBFromID(color_table, fleury_color_index_sum_type);
                             if (F4_ARGBIsValid(value_type_color))
-                            color = value_type_color;
+                                color = value_type_color;
                         }
                         paint_text_color(app, text_layout_id, Ii64(token), color);
                     } break;
@@ -612,7 +612,7 @@ internal F4_LANGUAGE_HIGHLIGHT(Long_CS_Highlight)
         }
         
         if(!token_it_inc(&it))
-        break;
+            break;
     }
     
     // NOTE(long): The Highlight function will get called before draw_text_layout_default inside F4_RenderBuffer,
@@ -645,7 +645,7 @@ function void Long_CS_ParsePos(Application_Links* app, F4_Index_File* file, Toke
         list->total_size += string.size;
         
         if (token_it_dec(it) && Long_CS_IsTokenSelection(it->ptr) && token_it_dec(it))
-        Long_Index_ParseSelection(app, arena, it, buffer, list);
+            Long_Index_ParseSelection(app, arena, it, buffer, list);
     }
 }
 #endif

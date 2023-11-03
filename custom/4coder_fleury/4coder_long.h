@@ -52,7 +52,8 @@
 // [X] Make the code peek system works with F4_Index_Note
 // [X] Split PosContext entries into fields/functions/types and cap the number of entries
 // [X] Make auto_indent_buffer use virtual whitespace
-// [ ] Draw multiple cursors for the multi-select system
+// [X] Render at the monitor's refresh rate
+// [X] Draw multiple cursors for the multi-select system
 // [ ] Autocompletion using PosContext or casey/jack's system
 // [ ] Unite all code peeking systems and bindings (fleury_code_peek, f4_autocomplete, word_complete_drop_down, and fleury_pos_context)
 // [ ] Fix error annotation locations

@@ -29,7 +29,7 @@ function String8 Long_Buffer_GetNameWithoutPrjPath(Application_Links* app, Arena
         String8 buffer_name = push_buffer_base_name(app, scratch, buffer);
         filepath = string_chop(filepath, buffer_name.size);
     }
-
+    
     Variable_Handle prj_var = vars_read_key(vars_get_root(), vars_save_string_lit("prj_config"));
     b32 has_prj_path = false;
     if (filepath.size)
@@ -46,7 +46,7 @@ function String8 Long_Buffer_GetNameWithoutPrjPath(Application_Links* app, Arena
             }
         }
     }
-
+    
     if (filepath.size && !has_prj_path)
     {
         Variable_Handle reference_path_var = vars_read_key(prj_var, vars_save_string_lit("reference_paths"));
@@ -70,13 +70,13 @@ function String8 Long_Buffer_GetNameWithoutPrjPath(Application_Links* app, Arena
             }
         }
     }
-
+    
     if (filepath.size)
     {
         if (filepath.str[filepath.size - 1] == '\\')
             filepath.size--;
     }
-
+    
     String8 result = {};
     if (filepath.size)
         result = push_string_copy(arena, filepath);
@@ -219,7 +219,7 @@ function void Long_PointStack_Push(Application_Links* app, Buffer_ID buffer, i64
     Long_Point_Stack* stack = Long_GetPointStack(app, view);
     i32 size = ArrayCount(stack->markers);
     stack->top = stack->current;
-
+    
     // NOTE(long): Only push a point if it isn't the same as the current one
     if (stack->bot != stack->top)
     {
@@ -228,21 +228,21 @@ function void Long_PointStack_Push(Application_Links* app, Buffer_ID buffer, i64
         if (buffer == top_buffer && pos == top_pos)
             return;
     }
-
+    
     // NOTE(long): Free and assign the new item to the top (current) position
     {
         i32 index = stack->top;
         stack->buffers[index] = buffer;
-
+        
         Managed_Object object = alloc_buffer_markers_on_buffer(app, buffer, 1, 0);
         Marker* marker = (Marker*)managed_object_get_pointer(app, object);
         marker->pos = pos;
         marker->lean_right = false;
-
+        
         managed_object_free(app, stack->markers[index]);
         stack->markers[index] = object;
     }
-
+    
     // NOTE(long): Increase the top (and bot if need to)
     i32 next_top = clamp_loop(stack->top + 1, size);
     stack->top = next_top;
@@ -258,7 +258,7 @@ function void Long_JumpToLocation(Application_Links* app, View_ID view, Buffer_I
         current_buffer = view_get_buffer(app, view, Access_Always);
     if (!current_pos)
         current_pos = view_get_cursor_pos(app, view);
-
+    
     Long_PointStack_Push(app, current_buffer, current_pos, view);
     F4_JumpToLocation(app, view, target_buffer, target_pos);
     Long_PointStack_Push(app, target_buffer, target_pos, view);
@@ -285,10 +285,10 @@ CUSTOM_DOC("List jump history")
     Scratch_Block scratch(app);
     Lister_Block lister(app, scratch);
     lister_set_default_handlers(lister);
-
+    
     Long_Point_Stack* stack = Long_GetPointStack(app);
     i32 size = ArrayCount(stack->markers);
-
+    
 #define MAX_LISTER_NAME_SIZE 80
     Long_IteratePointStack(app, stack, stack->bot, stack->top, 1, size,
                            {
@@ -298,14 +298,14 @@ CUSTOM_DOC("List jump history")
                                String8 tag = (i == stack->current - 1) ? S8Lit("current") : String8{};
                                Long_Lister_AddItem(app, lister, line, tag, buffer, pos, i);
                            });
-
+    
     lister_set_query(lister, push_u8_stringf(scratch, "Top: %d, Bot: %d, Current: %d", stack->top, stack->bot, stack->current));
     Lister_Result l_result = run_lister(app, lister);
-
+    
     LongListerData result = {};
     if (!l_result.canceled && l_result.user_data)
         block_copy_struct(&result, (LongListerData*)l_result.user_data);
-
+    
     if (result.buffer != 0)
     {
         F4_JumpToLocation(app, get_this_ctx_view(app, Access_Always), result.buffer, result.pos);
@@ -320,11 +320,11 @@ function void Long_PointStack_JumpNext(Application_Links* app, View_ID view, i32
     Long_Point_Stack* stack = Long_GetPointStack(app, view);
     if (stack->top == stack->bot)
         return;
-
+    
     i32 size = ArrayCount(stack->markers);
     Buffer_ID current_buffer = view_get_buffer(app, view, Access_Always);
     i64 current_pos = view_get_cursor_pos(app, view);
-
+    
     i32 end = 0;
     if (advance == 0)
     {
@@ -333,7 +333,7 @@ function void Long_PointStack_JumpNext(Application_Links* app, View_ID view, i32
     }
     else if (advance > 0) end = stack->top;
     else if (advance < 0) end = stack->bot - 1;
-
+    
     Long_IteratePointStack(app, stack, clamp_loop(stack->current - 1, size), clamp_loop(end, size), advance, size,
                            // NOTE(long): If virtual whitespace is enabled, we can't jump to the start of the line
                            // Long_IsPosValid will check for that and make sure pos is different from the current pos
@@ -395,10 +395,10 @@ function void Long_Buffer_OutputBuffer(Application_Links *app, Lister *lister, B
 function void Long_Buffer_GenerateLists(Application_Links* app, Lister* lister)
 {
     lister_begin_new_item_set(app, lister);
-
+    
     Buffer_ID viewed_buffers[16];
     i32 viewed_buffer_count = 0;
-
+    
     // List currently viewed buffers
     for (View_ID view = get_view_next(app, 0, Access_Always); view != 0; view = get_view_next(app, view, Access_Always))
     {
@@ -409,31 +409,31 @@ function void Long_Buffer_GenerateLists(Application_Links* app, Lister* lister)
         viewed_buffers[viewed_buffer_count++] = new_buffer_id;
         skip0:;
     }
-
+    
     // Regular Buffers
     for (Buffer_ID buffer = get_buffer_next(app, 0, Access_Always); buffer != 0; buffer = get_buffer_next(app, buffer, Access_Always))
     {
         for (i32 i = 0; i < viewed_buffer_count; i += 1)
             if (buffer == viewed_buffers[i])
                 goto skip1;
-
+        
         if (!buffer_has_name_with_star(app, buffer))
             Long_Buffer_OutputBuffer(app, lister, buffer);
         skip1:;
     }
-
+    
     // Buffers Starting with *
     for (Buffer_ID buffer = get_buffer_next(app, 0, Access_Always); buffer != 0; buffer = get_buffer_next(app, buffer, Access_Always))
     {
         for (i32 i = 0; i < viewed_buffer_count; i += 1)
             if (buffer == viewed_buffers[i])
                 goto skip2;
-
+        
         if (buffer_has_name_with_star(app, buffer))
             Long_Buffer_OutputBuffer(app, lister, buffer);
         skip2:;
     }
-
+    
     // Buffers That Are Open in Views
     for (i32 i = 0; i < viewed_buffer_count; i += 1)
         Long_Buffer_OutputBuffer(app, lister, viewed_buffers[i]);
@@ -460,16 +460,16 @@ CUSTOM_DOC("When executed on a buffer with jumps, creates a persistent lister fo
     View_ID view = get_active_view(app, Access_Always);
     Buffer_ID jump_buffer = Long_Buffer_GetSearchBuffer(app);
     Marker_List* list = get_or_make_list_for_buffer(app, &global_heap, jump_buffer);
-
+    
     if (list != 0)
     {
         Jump_Lister_Result jump = {};
-
+        
         Scratch_Block scratch(app);
         Lister_Block lister(app, scratch);
         lister_set_query(lister, "Jump:");
         lister_set_default_handlers(lister);
-
+        
         for (i32 i = 0; i < list->jump_count; i += 1)
         {
             ID_Pos_Jump_Location location = {};
@@ -483,14 +483,14 @@ CUSTOM_DOC("When executed on a buffer with jumps, creates a persistent lister fo
                 Long_Lister_AddItem(app, lister, line, {}, buffer, pos, i);
             }
         }
-
+        
         Lister_Result l_result = run_lister(app, lister);
         if (!l_result.canceled && l_result.user_data)
         {
             jump.success = true;
             jump.index = (i32)((LongListerData*)l_result.user_data)->user_index;
         }
-
+        
         jump_to_jump_lister_result(app, view, list, &jump);
     }
 }
@@ -530,7 +530,7 @@ function void Long_KillBuffer(Application_Links* app, Buffer_ID buffer, View_ID 
     b32 is_search_buffer = Long_IsSearchBuffer(app, buffer);
     // NOTE(long): killed always equals to false because the search buffer is never dirty and always killable
     b32 killed = try_buffer_kill(app, buffer, view, 0) == BufferKillResult_Killed;
-
+    
     if (is_search_buffer && killed && buffer_view)
     {
         Long_PointStack_JumpNext(app, buffer_view, 0, 1);
@@ -559,6 +559,8 @@ CUSTOM_DOC("Kills the current search jump buffer.")
     Long_KillBuffer(app, Long_Buffer_GetSearchBuffer(app), get_active_view(app, Access_ReadVisible));
 }
 
+//- NOTE(long): History Commands
+
 struct Long_Buffer_History
 {
     History_Record_Index index;
@@ -585,20 +587,20 @@ CUSTOM_DOC("Opens an interactive list of the current buffer history.")
     Scratch_Block scratch(app);
     Lister_Block lister(app, scratch);
     lister_set_default_handlers(lister);
-
+    
     View_ID view = get_active_view(app, Access_Always);
     Buffer_ID buffer = view_get_buffer(app, view, Access_Always);
-
+    
     History_Record_Index current = buffer_history_get_current_state_index(app, buffer);
     History_Record_Index max     = buffer_history_get_max_record_index(app, buffer);
     Long_Buffer_History  history = *Long_Buffer_GetAttachedHistory(app, buffer);
-
+    
     for (History_Record_Index i = 0; i <= max; ++i)
     {
         Record_Info record = buffer_history_get_record_info(app, buffer, i);
         String8 line = push_stringf(scratch, "[%d, %d]: \"%.*s\" \"%.*s\"", i, record.edit_number,
                                     string_expand(record.single_string_backward), string_expand(record.single_string_forward));
-
+        
         String8 tag = {};
         {
             b32 isCurrent = i == current;
@@ -610,13 +612,13 @@ CUSTOM_DOC("Opens an interactive list of the current buffer history.")
             else if (isSaved)
                 tag = S8Lit("saved");
         }
-
+        
         Long_Lister_AddItem(app, lister, line, tag, buffer, record.pos_before_edit, i);
     }
-
+    
     lister_set_query(lister, push_u8_stringf(scratch, "Max: %d, Current: %d, Saved: (%d, %d)",
                                              max, current, history.index, history.record.edit_number));
-
+    
     Lister_Result l_result = run_lister(app, lister);
     if (!l_result.canceled && l_result.user_data)
     {
@@ -647,20 +649,21 @@ function b32 Long_Buffer_CheckHistoryAndSetDirty(Application_Links* app, Buffer_
 {
     if (!buffer)
         buffer = view_get_buffer(app, get_active_view(app, Access_ReadWriteVisible), Access_ReadWriteVisible);
-
+    
     Dirty_State dirty = buffer_get_dirty_state(app, buffer);
     b32 result = Long_Buffer_CompareCurrentHistory(app, buffer, offset);
     if (result)
         buffer_set_dirty_state(app, buffer, RemFlag(dirty, DirtyState_UnsavedChanges));
-
+    
     return result;
 }
+
+//- COPYPASTA(long): undo__fade_finish, undo, redo, undo_all_buffers, redo_all_buffers
 
 // NOTE(long): Because an undo can be deferred later, I can't call CheckHistory after calling undo(app).
 // I must call it inside the fade_finish callback, or in the do_immedite_undo check.
 // But a redo, on the other hand, always executes immediately, so I can safely call it right afterward.
 
-// COPYPASTA(long): undo__fade_finish
 function void Long_Undo_FinishFade(Application_Links *app, Fade_Range* range)
 {
     History_Record_Index current = buffer_history_get_current_state_index(app, range->buffer_id);
@@ -671,19 +674,18 @@ function void Long_Undo_FinishFade(Application_Links *app, Fade_Range* range)
     }
 }
 
-// COPYPASTA(long): undo
 CUSTOM_COMMAND_SIG(long_undo)
 CUSTOM_DOC("Advances backwards through the undo history of the current buffer.")
 {
     View_ID view = get_active_view(app, Access_ReadWriteVisible);
     Buffer_ID buffer = view_get_buffer(app, view, Access_ReadWriteVisible);
     undo__flush_fades(app, buffer);
-
+    
     History_Record_Index current = buffer_history_get_current_state_index(app, buffer);
     if (current > 0){
         Record_Info record = buffer_history_get_record_info(app, buffer, current);
         i64 new_position = record_get_new_cursor_position_undo(app, buffer, current, record);
-
+        
         b32 do_immedite_undo = true;
         f32 undo_fade_time = 0.33f;
         b32 enable_undo_fade_out = def_get_config_b32(vars_save_string_lit("enable_undo_fade_out"));
@@ -710,7 +712,7 @@ CUSTOM_DOC("Advances backwards through the undo history of the current buffer.")
                 }
             }
         }
-
+        
         if (do_immedite_undo){
             buffer_history_set_current_state_index(app, buffer, current - 1);
             Long_Buffer_CheckHistoryAndSetDirty(app, buffer);
@@ -720,7 +722,7 @@ CUSTOM_DOC("Advances backwards through the undo history of the current buffer.")
                 buffer_post_fade(app, buffer, undo_fade_time, range, color);
             }
         }
-
+        
         view_set_cursor_and_preferred_x(app, view, seek_pos(new_position));
     }
 }
@@ -731,6 +733,24 @@ CUSTOM_DOC("Advances forwards through the undo history of the current buffer.")
     redo(app);
     Long_Buffer_CheckHistoryAndSetDirty(app);
 }
+
+CUSTOM_COMMAND_SIG(long_undo_all_buffers)
+CUSTOM_DOC("Advances backward through the undo history in the buffer containing the most recent regular edit.")
+{
+    undo_all_buffers(app);
+    for (Buffer_ID buffer = get_buffer_next(app, 0, Access_Always); buffer; buffer = get_buffer_next(app, buffer, Access_Always))
+        Long_Buffer_CheckHistoryAndSetDirty(app, buffer);
+}
+
+CUSTOM_COMMAND_SIG(long_redo_all_buffers)
+CUSTOM_DOC("Advances forward through the undo history in the buffer containing the most recent regular edit.")
+{
+    redo_all_buffers(app);
+    for (Buffer_ID buffer = get_buffer_next(app, 0, Access_Always); buffer; buffer = get_buffer_next(app, buffer, Access_Always))
+        Long_Buffer_CheckHistoryAndSetDirty(app, buffer);
+}
+
+//-
 
 function i32 Long_EndBuffer(Application_Links* app, Buffer_ID buffer_id)
 {
@@ -744,10 +764,10 @@ function i32 Long_EndBuffer(Application_Links* app, Buffer_ID buffer_id)
                 Long_Index_FreeNoteTree(note);
             linalloc_clear(&file->arena);
         }
-
+        
         for (F4_Index_Note* note = file->first_note; note; note = note->next_sibling)
             Long_Index_EraseNote(app, note);
-
+        
         F4_Index_EraseFile(app, buffer_id);
 #if LONG_INDEX_PRELOAD_REF
         Long_Index_PreloadRef(app);
@@ -761,32 +781,32 @@ function i32 Long_EndBuffer(Application_Links* app, Buffer_ID buffer_id)
 function i32 Long_SaveFile(Application_Links *app, Buffer_ID buffer_id)
 {
     ProfileScope(app, "[Long] Save File");
-
+    
     b32 auto_indent = def_get_config_b32(vars_save_string_lit("automatically_indent_text_on_save"));
     b32 is_virtual = def_get_config_b32(vars_save_string_lit("enable_virtual_whitespace"));
     History_Record_Index index = buffer_history_get_current_state_index(app, buffer_id);
     if (auto_indent && is_virtual && index)
         Long_Index_IndentBuffer(app, buffer_id, {}, true);
-
+    
     Long_Buffer_History  current = Long_Buffer_GetCurrentHistory (app, buffer_id);
     Long_Buffer_History* history = Long_Buffer_GetAttachedHistory(app, buffer_id);
-
+    
     Scratch_Block scratch(app);
     String8 name = push_buffer_base_name(app, scratch, buffer_id);
     print_message(app, push_stringf(scratch, "Saving Buffer: \"%.*s\", Current Undo: %.3d, Previous Saved: (%.3d, %.3d)\n",
                                     string_expand(name), current.index, history->index, history->record.edit_number));
-
+    
     *history = current;
-
+    
     Managed_Scope scope = buffer_get_managed_scope(app, buffer_id);
     Line_Ending_Kind *eol = scope_attachment(app, scope, buffer_eol_setting, Line_Ending_Kind);
-
+    
     switch (*eol)
     {
         case LineEndingKind_LF:   rewrite_lines_to_lf  (app, buffer_id); break;
         case LineEndingKind_CRLF: rewrite_lines_to_crlf(app, buffer_id); break;
     }
-
+    
     // no meaning for return
     return 0;
 }
@@ -838,7 +858,7 @@ CUSTOM_DOC("Inserts text and auto-indents the line on which the cursor sits if a
         if (do_auto_indent){
             View_ID view = get_active_view(app, Access_ReadWriteVisible);
             Buffer_ID buffer = view_get_buffer(app, view, Access_ReadWriteVisible);
-
+            
             Range_i64 pos = {};
             if (view_has_highlighted_range(app, view)){
                 pos = get_view_range(app, view);
@@ -846,13 +866,13 @@ CUSTOM_DOC("Inserts text and auto-indents the line on which the cursor sits if a
             else{
                 pos.min = pos.max = view_get_cursor_pos(app, view);
             }
-
+            
             write_text_input(app);
-
+            
             i64 end_pos = view_get_cursor_pos(app, view);
             pos.min = Min(pos.min, end_pos);
             pos.max = Max(pos.max, end_pos);
-
+            
             Long_Index_IndentBuffer(app, buffer, pos, true);
             move_past_lead_whitespace(app, view, buffer);
         }
@@ -890,7 +910,7 @@ function Buffer_ID Long_CreateOrSwitchBuffer(Application_Links *app, String_Cons
         buffer_set_setting(app, search_buffer, BufferSetting_Unimportant, true);
         buffer_set_setting(app, search_buffer, BufferSetting_ReadOnly, true);
     }
-
+    
     Long_JumpToBuffer(app, default_target_view, search_buffer, jump_to_buffer, 0);
     view_set_active(app, default_target_view);
     return(search_buffer);
@@ -903,18 +923,18 @@ function String_Match_List Long_FindAllMatches(Application_Links *app, Arena *ar
     for (Buffer_ID buffer = current ? current : get_buffer_next(app, 0, 0); buffer; buffer = get_buffer_next(app, buffer, 0))
     {
         String_Match_List buffer_matches = {};
-
+        
         for (i32 i = 0; i < match_patterns.count; i += 1)
         {
             Range_i64 range = buffer_range(app, buffer);
             String_Match_List matches = buffer_find_all_matches(app, arena, buffer, i, range, match_patterns.vals[i],
                                                                 &character_predicate_alpha_numeric_underscore_utf8, Scan_Forward);
-
+            
             string_match_list_filter_flags(&matches, must_have, must_not_have);
             if (matches.count > 0)
                 buffer_matches = buffer_matches.count ? string_match_list_merge_front_to_back(&buffer_matches, &matches) : matches;
         }
-
+        
         all_matches = string_match_list_join(&all_matches, &buffer_matches);
         if (current)
             break;
@@ -937,13 +957,13 @@ function b32 Long_Query_User_String(Application_Links *app, Query_Bar *bar, Stri
     if (start_query_bar(app, bar, 0) == 0){
         return(false);
     }
-
+    
     if (init_string.size > 0){
         String_u8 string = Su8(bar->string.str, bar->string.size, bar->string_capacity);
         string_append(&string, init_string);
         bar->string.size = string.string.size;
     }
-
+    
     b32 success = true;
     for (;;){
         User_Input in = get_next_input(app, EventPropertyGroup_Any,
@@ -952,7 +972,7 @@ function b32 Long_Query_User_String(Application_Links *app, Query_Bar *bar, Stri
             success = false;
             break;
         }
-
+        
         Scratch_Block scratch(app);
         b32 good_insert = false;
         String_Const_u8 insert_string = to_writable(&in);
@@ -965,7 +985,7 @@ function b32 Long_Query_User_String(Application_Links *app, Query_Bar *bar, Stri
                                            string_u8_litexpr(""));
             good_insert = true;
         }
-
+        
         if (in.event.kind == InputEventKind_KeyStroke &&
             (in.event.key.code == KeyCode_Return || in.event.key.code == KeyCode_Tab)){
             break;
@@ -1009,7 +1029,7 @@ function b32 Long_Query_User_String(Application_Links *app, Query_Bar *bar, Stri
             }
         }
     }
-
+    
     return(success);
 }
 
@@ -1031,10 +1051,10 @@ function Marker* Long_SearchBuffer_GetMarkers(Application_Links* app, Arena* are
     scopes[1] = buffer_get_managed_scope(app, buffer);
     Managed_Scope comp_scope = get_managed_scope_with_multiple_dependencies(app, scopes, ArrayCount(scopes));
     Managed_Object* markers_object = scope_attachment(app, comp_scope, sticky_jump_marker_handle, Managed_Object);
-
+    
     i32 count = managed_object_get_item_count(app, *markers_object);
     *out_count = count;
-
+    
     Marker* markers = push_array(arena, Marker, count);
     managed_object_load_data(app, *markers_object, 0, count, markers);
     return markers;
@@ -1052,10 +1072,10 @@ function Sticky_Jump Long_SearchBuffer_NearestJump(Application_Links* app, View_
     Buffer_ID current_buffer = view_get_buffer(app, view, 0);
     i64 pos = view_get_cursor_pos(app, view);
     Long_PointStack_Push(app, current_buffer, pos, view);
-
+    
     i32 list_index = -1;
     Sticky_Jump_Stored* storage = 0;
-
+    
     i32 count;
     Marker* markers = Long_SearchBuffer_GetMarkers(app, scratch, scope, current_buffer, &count);
     if (markers)
@@ -1071,7 +1091,7 @@ function Sticky_Jump Long_SearchBuffer_NearestJump(Application_Links* app, View_
             }
         }
     }
-
+    
     Sticky_Jump result = {};
     if (list_index >= 0)
     {
@@ -1088,17 +1108,20 @@ function void Long_SearchBuffer_MultiSelect(Application_Links* app, View_ID view
 {
     if (get_active_view(app, Access_ReadVisible) != view)
         view_set_active(app, view); 
-
+    
     Query_Bar_Group group(app);
     Query_Bar bar = {};
     if (!start_query_bar(app, &bar, 0))
         return;
-
+    
     Vec2_f32 old_margin = {};
     Vec2_f32 old_push_in = {};
     view_get_camera_bounds(app, view, &old_margin, &old_push_in);
     view_set_camera_bounds(app, view, Vec2_f32{ old_margin.x, clamp_bot(200.f, old_margin.y) }, old_push_in);
-
+    
+    // NOTE(long): Rather than disable the highlight, we set it to an empty range so that F4_RenderBuffer doesn't render any cursor
+    view_set_highlight_range(app, view, {});
+    
     auto_center_after_jumps = false;
     Managed_Scope scope = buffer_get_managed_scope(app, search_buffer);
     {
@@ -1110,22 +1133,22 @@ function void Long_SearchBuffer_MultiSelect(Application_Links* app, View_ID view
         else
             goto_first_jump(app);
     }
-
+    
     i32* selection_offset = scope_attachment(app, scope, long_start_selection_offset, i32);
     i64* size = scope_attachment(app, scope, long_search_string_size, i64);
     *size = search_string.size;
-
+    
     b32 abort = false, in_replace_mode = false, exit_to_jump_highlight = false;
     def_set_config_b32(vars_save_string_lit("use_jump_highlight"), 0);
-
+    
     u8 backing_buffer[LONG_QUERY_STRING_SIZE];
     block_copy(backing_buffer, search_string.str, search_string.size);
     String_u8 buffer_string = Su8(backing_buffer, search_string.size, LONG_QUERY_STRING_SIZE);
-
+    
     for (;;)
     {
         Scratch_Block scratch(app);
-
+        
         User_Input in = get_next_input(app, EventPropertyGroup_Any, EventProperty_Escape);
         if (in.abort)
         {
@@ -1133,41 +1156,37 @@ function void Long_SearchBuffer_MultiSelect(Application_Links* app, View_ID view
             abort = !exit_to_jump_highlight;
             break;
         }
-
+        
         Locked_Jump_State jump_state = get_locked_jump_state(app, &global_heap);
         if (!jump_state.view)
         {
             abort = exit_to_jump_highlight = true;
             break;
         }
-
+        
         i32 jump_count = jump_state.list->jump_count;
         i32 selection_count = clamp_top(Long_Abs(*selection_offset) + 1, jump_count);
         bar.prompt = push_stringf(scratch, "Selection Count: %d, %s: ", selection_count, in_replace_mode ? "Replace With" : "For");
         bar.string = in_replace_mode ? SCu8(buffer_string.str, buffer_string.size) : search_string;
-
+        
         ID_Pos_Jump_Location current_location;
-        if (get_jump_from_list(app, jump_state.list, jump_state.list_index, &current_location))
-        {
-            // NOTE(long): Calling this here will signal the fleury's render hook to disable drawing the cursor.
-            isearch__update_highlight(app, view, Ii64_size(current_location.pos, *size));
-        }
-
+        get_jump_from_list(app, jump_state.list, jump_state.list_index, &current_location);
+        
         String8 string = to_writable(&in);
         i32 advance = 0;
-
+        
         if (match_key_code(&in, KeyCode_Return) || match_key_code(&in, KeyCode_Tab))
         {
             Long_PointStack_Push(app, current_location.buffer_id, current_location.pos, view);
-
+            
             if (in_replace_mode)
             {
                 Range_i32 select_range = Long_Highlight_GetRange(jump_state, *selection_offset);
-
+                
                 Batch_Edit* batch_head = 0;
                 Batch_Edit* batch_tail = 0;
                 Buffer_ID buffer = 0;
-
+                
                 global_history_edit_group_begin(app);
                 for (i32 i = select_range.min; i <= select_range.max; ++i)
                 {
@@ -1177,7 +1196,7 @@ function void Long_SearchBuffer_MultiSelect(Application_Links* app, View_ID view
                         Batch_Edit* batch = push_array(scratch, Batch_Edit, 1);
                         batch->edit.text = bar.string;
                         batch->edit.range = Ii64_size(location.pos, *size);
-
+                        
                         if (location.buffer_id != buffer)
                         {
                             if (batch_head)
@@ -1185,9 +1204,9 @@ function void Long_SearchBuffer_MultiSelect(Application_Links* app, View_ID view
                             batch_head = batch_tail = 0;
                             buffer = location.buffer_id;
                         }
-
+                        
                         sll_queue_push(batch_head, batch_tail, batch);
-
+                        
                         if (i == select_range.max && batch_head)
                             buffer_batch_edit(app, buffer, batch_head);
                     }
@@ -1196,12 +1215,12 @@ function void Long_SearchBuffer_MultiSelect(Application_Links* app, View_ID view
             }
             break;
         }
-
+        
         else if (match_key_code(&in, KeyCode_PageUp) || match_key_code(&in, KeyCode_Up))
         {
             goto_prev_jump(app);
             advance = -1;
-
+            
             CHANGE_JUMP:
             i64 new_pos = view_get_cursor_pos(app, view);
             Buffer_ID new_buffer = view_get_buffer(app, view, 0);
@@ -1219,25 +1238,25 @@ function void Long_SearchBuffer_MultiSelect(Application_Links* app, View_ID view
             advance = +1;
             goto CHANGE_JUMP;
         }
-
+        
         else if (match_key_code(&in, KeyCode_Left )) *size -= 1;
         else if (match_key_code(&in, KeyCode_Right)) *size += 1;
-
+        
         else if (match_key_code(&in, KeyCode_A) && has_modifier(&in, KeyCode_Control))
             *selection_offset = (*selection_offset == jump_count) ? 0 : jump_count;
-
+        
         else if (match_key_code(&in, KeyCode_E) && has_modifier(&in, KeyCode_Control))
             center_view(app);
-
+        
         else if (match_key_code(&in, KeyCode_Q) && has_modifier(&in, KeyCode_Control))
             in_replace_mode = !in_replace_mode;
-
+        
         else if (in_replace_mode && match_key_code(&in, KeyCode_V) && has_modifier(&in, KeyCode_Control))
             string_append(&buffer_string, push_clipboard_index(scratch, 0, 0));
-
+        
         else if (in_replace_mode && string.str != 0 && string.size > 0)
             string_append(&buffer_string, string);
-
+        
         else if (in_replace_mode && match_key_code(&in, KeyCode_Backspace))
         {
             if (is_unmodified_key(&in.event))
@@ -1245,13 +1264,13 @@ function void Long_SearchBuffer_MultiSelect(Application_Links* app, View_ID view
             else if (has_modifier(&in, KeyCode_Control))
                 buffer_string.size = 0;
         }
-
+        
         else
         {
             // NOTE(allen): is the user trying to execute another command?
             View_Context ctx = view_current_context(app, view);
             Command_Binding binding = map_get_binding_recursive(ctx.mapping, mapping_get_map(ctx.mapping, ctx.map_id), &in.event);
-
+            
             if (binding.custom)
             {
                 Command_Metadata* metadata = get_command_metadata(binding.custom);
@@ -1265,15 +1284,15 @@ function void Long_SearchBuffer_MultiSelect(Application_Links* app, View_ID view
             else leave_current_input_unhandled(app);
         }
     }
-
+    
     if (exit_to_jump_highlight)
         def_set_config_b32(vars_save_string_lit("use_jump_highlight"), 1);
     else
         long_kill_search_buffer(app);
-
+    
     if (abort)
         Long_PointStack_JumpNext(app, view, 0, 1);
-
+    
     auto_center_after_jumps = true;
     view_disable_highlight_range(app, view);
     view_set_camera_bounds(app, view, old_margin, old_push_in);
@@ -1286,16 +1305,16 @@ function void Long_ListAllLocations(Application_Links *app, String_Const_u8 need
     String_Match_Flag must_have_flags = 0;
     if (HasFlag(flags, ListAllLocationsFlag_CaseSensitive))
         AddFlag(must_have_flags, StringMatch_CaseSensitive);
-
+    
     String_Match_Flag must_not_have_flags = 0;
     if (!HasFlag(flags, ListAllLocationsFlag_MatchSubstring))
         AddFlag(must_not_have_flags, StringMatch_LeftSideSloppy|StringMatch_RightSideSloppy);
-
+    
     View_ID view = get_active_view(app, Access_Always);
     Buffer_ID current_buffer = view_get_buffer(app, view, Access_Always);
     Buffer_ID search_buffer = Long_CreateOrSwitchBuffer(app, search_name, get_next_view_after_active(app, Access_Always));
     print_all_matches(app, { &needle, 1 }, must_have_flags, must_not_have_flags, search_buffer, all_buffer ? 0 : current_buffer);
-
+    
     Scratch_Block scratch(app);
     String8 no_match = S8Lit("no matches");
     String8 search_result = push_buffer_range(app, scratch, search_buffer, Ii64_size(0, no_match.size));
@@ -1399,12 +1418,41 @@ function b32 Long_Rf32_Invalid(Rect_f32 r)
             Long_F32_Invalid(r.y1));
 }
 
-function void Long_DrawBlock(Application_Links* app, Text_Layout_ID layout, Range_i64 range, f32 roundness, FColor color)
+function void Long_Render_DrawBlock(Application_Links* app, Text_Layout_ID layout, Range_i64 range, f32 roundness, FColor color)
 {
     for (i64 i = range.first; i < range.one_past_last; ++i)
         if (Long_Rf32_Invalid(text_layout_character_on_screen(app, layout, i)))
             return;
     draw_character_block(app, layout, range, roundness, color);
+}
+
+// COPYPASTA(long): F4_Cursor_RenderNotepadStyle
+function void Long_Render_DrawNotepadCursor(Application_Links *app, View_ID view_id, Buffer_ID buffer, Text_Layout_ID text_layout_id,
+                                            i64 cursor_pos, i64 mark_pos, f32 roundness, f32 outline_thickness)
+{
+    Rect_f32 view_rect = view_get_screen_rect(app, view_id);
+    
+    if (cursor_pos != mark_pos)
+    {
+        Range_i64 range = Ii64(cursor_pos, mark_pos);
+        Long_Render_DrawBlock(app, text_layout_id, range, roundness, fcolor_id(defcolor_highlight));
+        paint_text_color_fcolor(app, text_layout_id, range, fcolor_id(defcolor_at_highlight));
+    }
+    
+    // NOTE(rjf): Draw cursor
+    {
+        ARGB_Color cursor_color = F4_GetColor(app, ColorCtx_Cursor(0, GlobalKeybindingMode));
+        ARGB_Color ghost_color = fcolor_resolve(fcolor_change_alpha(fcolor_argb(cursor_color), 0.5f));
+        Rect_f32 rect = text_layout_character_on_screen(app, text_layout_id, cursor_pos);
+        rect.x1 = rect.x0 + outline_thickness;
+        if(rect.x0 < view_rect.x0)
+        {
+            rect.x0 = view_rect.x0;
+            rect.x1 = view_rect.x0 + outline_thickness;
+        }
+        
+        draw_rectangle(app, rect, roundness, cursor_color);
+    }
 }
 
 // COPYPASTA(long): draw_highlight_range
@@ -1424,8 +1472,8 @@ function b32 Long_Highlight_DrawRange(Application_Links *app, View_ID view_id,
             Marker marker_range[2];
             if (managed_object_load_data(app, *highlight, 0, 2, marker_range)){
                 Range_i64 range = Ii64(marker_range[0].pos, marker_range[1].pos);
-                Long_DrawBlock(app, text_layout_id, range, roundness,
-                               fcolor_id(defcolor_highlight));
+                Long_Render_DrawBlock(app, text_layout_id, range, roundness,
+                                      fcolor_id(defcolor_highlight));
                 paint_text_color_fcolor(app, text_layout_id, range,
                                         fcolor_id(defcolor_at_highlight));
             }
@@ -1435,46 +1483,45 @@ function b32 Long_Highlight_DrawRange(Application_Links *app, View_ID view_id,
 }
 
 // COPYPASTA(long): draw_jump_highlights
-function void Long_Highlight_DrawList(Application_Links *app, Buffer_ID buffer, Text_Layout_ID layout, f32 roundness)
+function void Long_Highlight_DrawList(Application_Links *app, Buffer_ID buffer, Text_Layout_ID layout, f32 roundness, f32 thickness)
 {
     if (def_get_config_b32(vars_save_string_lit("use_jump_highlight")))
         return;
-
+    
     Buffer_ID search_buffer = Long_Buffer_GetSearchBuffer(app);
     if (search_buffer && string_match(locked_buffer, search_name))
     {
+        Scratch_Block scratch(app);
+        View_ID view = get_active_view(app, Access_Always);
+        
         Managed_Scope scope = buffer_get_managed_scope(app, search_buffer);
         i64 size = *scope_attachment(app, scope, long_search_string_size, i64);
         i32 selection_offset = *scope_attachment(app, scope, long_start_selection_offset, i32);
-
-        Scratch_Block scratch(app);
+        
         i32 count;
         Marker* markers = Long_SearchBuffer_GetMarkers(app, scratch, scope, buffer, &count);
-
+        
         Range_i32 select_range;
         {
             Locked_Jump_State jump_state = get_locked_jump_state(app, &global_heap);
             select_range = Long_Highlight_GetRange(jump_state, selection_offset);
-
+            
             Sticky_Jump_Stored current_jump = {};
             get_stored_jump_from_list(app, jump_state.list, jump_state.list_index, &current_jump);
-
+            
             i32 offset = jump_state.list_index - current_jump.index_into_marker_array;
             select_range.min -= offset;
             select_range.max -= offset;
         }
-
+        
         for (i32 i = 0; i < count; i += 1)
         {
             Range_i64 range = Ii64_size(markers[i].pos, size);
             // NOTE(long): If the user only has one selection, the MultiSelect function already handles it
-            if (range_size(select_range) != 0 && range_contains_inclusive(select_range, i))
-            {
-                Long_DrawBlock(app, layout, range, roundness, fcolor_id(defcolor_highlight));
-                paint_text_color_fcolor(app, layout, range, fcolor_id(defcolor_at_highlight));
-            }
+            if (range_contains_inclusive(select_range, i))
+                Long_Render_DrawNotepadCursor(app, view, buffer, layout, markers[i].pos + size, markers[i].pos, roundness, thickness);
             else
-                Long_DrawBlock(app, layout, range, 0.f, fcolor_id(fleury_color_token_minor_highlight));
+                Long_Render_DrawBlock(app, layout, range, 0.f, fcolor_id(fleury_color_token_minor_highlight));
         }
     }
 }
@@ -1487,35 +1534,35 @@ function void Long_ISearch(Application_Links* app, Scan_Direction start_scan, i6
     if (!buffer_exists(app, buffer)){
         return;
     }
-
+    
     i64 buffer_size = buffer_get_size(app, buffer);
-
+    
     Query_Bar_Group group(app);
     Query_Bar bar = {};
     if (start_query_bar(app, &bar, 0) == 0){
         return;
     }
-
+    
     Vec2_f32 old_margin = {};
     Vec2_f32 old_push_in = {};
     view_get_camera_bounds(app, view, &old_margin, &old_push_in);
-
+    
     Vec2_f32 margin = old_margin;
     margin.y = clamp_bot(200.f, margin.y);
     view_set_camera_bounds(app, view, margin, old_push_in);
-
+    
     Scan_Direction scan = start_scan;
     i64 pos = first_pos;
-
+    
     u8 bar_string_space[LONG_QUERY_STRING_SIZE];
     bar.string = SCu8(bar_string_space, query_init.size);
     block_copy(bar.string.str, query_init.str, query_init.size);
-
+    
     String_Const_u8 isearch_str = insensitive ? S8Lit("I-Search: ") : S8Lit("I-Search-Sensitive: ");
     String_Const_u8 rsearch_str = insensitive ? S8Lit("Reverse-I-Search: ") : S8Lit("Reverse-I-Search-Sensitve: ");
-
+    
     u64 match_size = bar.string.size;
-
+    
     User_Input in = {};
     for (;;)
     {
@@ -1525,15 +1572,15 @@ function void Long_ISearch(Application_Links* app, Scan_Direction start_scan, i6
             case Scan_Backward: bar.prompt = rsearch_str; break;
         }
         isearch__update_highlight(app, view, Ii64_size(pos, match_size));
-
+        
         in = get_next_input(app, EventPropertyGroup_Any, EventProperty_Escape);
         if (in.abort)
             break;
-
+        
         String_Const_u8 string = to_writable(&in);
         b32 string_change = false;
         b32 trigger_command = true;
-
+        
         if (match_key_code(&in, KeyCode_Return) || match_key_code(&in, KeyCode_Tab))
         {
             Input_Modifier_Set* mods = &in.event.key.modifiers;
@@ -1551,12 +1598,12 @@ function void Long_ISearch(Application_Links* app, Scan_Direction start_scan, i6
                 break;
             }
         }
-
+        
         else if (match_key_code(&in, KeyCode_E) && has_modifier(&in, KeyCode_Control))
         {
             center_view(app);
         }
-
+        
         else if (match_key_code(&in, KeyCode_V) && has_modifier(&in, KeyCode_Control))
         {
             Scratch_Block scratch(app);
@@ -1569,7 +1616,7 @@ function void Long_ISearch(Application_Links* app, Scan_Direction start_scan, i6
                 string_change = true;
             }
         }
-
+        
         else if (match_key_code(&in, KeyCode_Backspace))
         {
             if (is_unmodified_key(&in.event))
@@ -1587,7 +1634,7 @@ function void Long_ISearch(Application_Links* app, Scan_Direction start_scan, i6
                 }
             }
         }
-
+        
         else
         {
             trigger_command = false;
@@ -1599,7 +1646,7 @@ function void Long_ISearch(Application_Links* app, Scan_Direction start_scan, i6
                 string_change = true;
             }
         }
-
+        
         b32 do_scan_action = false;
         b32 do_scroll_wheel = false;
         Scan_Direction change_scan = scan;
@@ -1618,21 +1665,21 @@ function void Long_ISearch(Application_Links* app, Scan_Direction start_scan, i6
             else if (!trigger_command)
                 leave_current_input_unhandled(app);
         }
-
+        
         if (string_change || do_scan_action)
         {
             if (do_scan_action)
                 scan = change_scan;
             b32 backward = scan == Scan_Backward;
-
+            
             i64 offset = 0;
             if (string_change)
                 offset = (backward ? +1 : -1);
-
+            
             Buffer_Seek_String_Flags flags = 0;
             if (backward)    flags |= BufferSeekString_Backward;
             if (insensitive) flags |= BufferSeekString_CaseInsensitive;
-
+            
             i64 new_pos = 0;
             seek_string(app, buffer, pos + offset, 0, 0, bar.string, &new_pos, flags);
             if (new_pos >= 0 && new_pos < buffer_size)
@@ -1644,9 +1691,9 @@ function void Long_ISearch(Application_Links* app, Scan_Direction start_scan, i6
         else if (do_scroll_wheel)
             mouse_wheel_scroll(app);
     }
-
+    
     view_disable_highlight_range(app, view);
-
+    
     if (in.abort)
     {
         u64 size = bar.string.size;
@@ -1655,7 +1702,7 @@ function void Long_ISearch(Application_Links* app, Scan_Direction start_scan, i6
         previous_isearch_query[size] = 0;
         view_set_cursor_and_preferred_x(app, view, seek_pos(first_pos));
     }
-
+    
     view_set_camera_bounds(app, view, old_margin, old_push_in);
 }
 
@@ -1737,49 +1784,49 @@ function void Long_Query_Replace(Application_Links *app, String_Const_u8 replace
     Query_Bar replace = {};
     replace.prompt = S8Lit("Replace: ");
     replace.string = replace_str;
-
+    
     if (add_replace_query_bar)
         start_query_bar(app, &replace, 0);
-
+    
     u8 with_space[LONG_QUERY_STRING_SIZE];
     Query_Bar with = {};
     with.prompt = S8Lit("With: ");
     with.string = SCu8(with_space, (u64)0);
     with.string_capacity = sizeof(with_space);
     if (!Long_Query_User_String(app, &with, string_u8_empty)) return;
-
+    
     String8 w = with.string;
     String_Const_u8 r = replace.string;
-
+    
     View_ID view = get_active_view(app, Access_ReadVisible);
     Buffer_ID buffer = view_get_buffer(app, view, Access_ReadVisible);
-
+    
     Query_Bar bar = {};
     bar.prompt = string_u8_litexpr("Replace? (enter), (Page)Up, (Page)Down, (esc)\n");
     start_query_bar(app, &bar, 0);
-
+    
     Vec2_f32 old_margin = {};
     Vec2_f32 old_push_in = {};
     view_get_camera_bounds(app, view, &old_margin, &old_push_in);
-
+    
     Vec2_f32 margin = old_margin;
     margin.y = clamp_bot(200.f, margin.y);
     view_set_camera_bounds(app, view, margin, old_push_in);
-
+    
     i64 pos = start_pos;
     seek_string_forward(app, buffer, pos - 1, 0, r, &pos);
     if (pos == buffer_get_size(app, buffer))
         pos = start_pos;
-
+    
     i64 size = r.size;
     Scan_Direction scan = Scan_Forward;
-
+    
     User_Input in = {};
     for (;;)
     {
         Range_i64 match = Ii64_size(pos, size);
         isearch__update_highlight(app, view, match);
-
+        
         in = get_next_input(app, EventProperty_AnyKey, EventProperty_Escape);
         if (in.abort)
         {
@@ -1787,7 +1834,7 @@ function void Long_Query_Replace(Application_Links *app, String_Const_u8 replace
                 pos = start_pos;
             break;
         }
-
+        
         b32 replaced = false;
         if (match_key_code(&in, KeyCode_Return) || match_key_code(&in, KeyCode_Tab))
         {
@@ -1796,13 +1843,13 @@ function void Long_Query_Replace(Application_Links *app, String_Const_u8 replace
                 buffer_replace_range(app, buffer, match, w);
                 pos = match.start + w.size;
                 replaced = true;
-
+                
                 if (scan == Scan_Forward) goto FORWARD;
                 else                      goto BACKWARD;
             }
             else break;
         }
-
+        
         else if (match_key_code(&in, KeyCode_PageDown) || match_key_code(&in, KeyCode_Down))
         {
             FORWARD:
@@ -1820,7 +1867,7 @@ function void Long_Query_Replace(Application_Links *app, String_Const_u8 replace
                 size = 0;
             }
         }
-
+        
         else if (match_key_code(&in, KeyCode_PageUp  ) || match_key_code(&in, KeyCode_Up  ))
         {
             BACKWARD:
@@ -1834,13 +1881,13 @@ function void Long_Query_Replace(Application_Links *app, String_Const_u8 replace
             }
             else if (replaced) goto FAILED;
         }
-
+        
         else if (match_key_code(&in, KeyCode_E) && has_modifier(&in, KeyCode_Control))
             center_view(app);
     }
-
+    
     view_disable_highlight_range(app, view);
-
+    
     view_set_cursor_and_preferred_x(app, view, seek_pos(pos));
     view_set_camera_bounds(app, view, old_margin, old_push_in);
 }
@@ -1939,7 +1986,7 @@ function void Long_GoToDefinition(Application_Links* app, b32 same_panel)
                             if (next_note == note)
                                 break;
                         } while (!LONG_INDEX_FILTER_NOTE(next_note));
-
+                        
                         if (next_note) note = next_note;
                     }
                 }
@@ -1951,13 +1998,13 @@ function void Long_GoToDefinition(Application_Links* app, b32 same_panel)
             }
         }
     }
-
+    
     // COPYPASTA(long): F4_GoToDefinition
     if (note && note->file)
     {
         if(!same_panel)
             view = get_next_view_looped_primary_panels(app, view, Access_Always);
-
+        
         // NOTE(long): The difference between F4_JumpToLocation and F4_GoToDefinition is:
         // 1. The first one scroll to the target while the second one snap to the target instantly (scroll.position = scroll.target)
         // 2. The first one call view_set_preferred_x (I don't really know what this function does)
@@ -1997,12 +2044,12 @@ function String8 _Long_PushNoteTag(Application_Links* app, Arena* arena, F4_Inde
                                   is_union ? " [union]" : "",
                                   is_generic ? " [generic]" : "");
         } break;
-
+        
         case F4_Index_NoteKind_Macro:       result = S8Lit("macro");       break;
         case F4_Index_NoteKind_Constant:    result = S8Lit("constant");    break;
         case F4_Index_NoteKind_CommentTag:  result = S8Lit("comment tag"); break;
         case F4_Index_NoteKind_CommentToDo: result = S8Lit("TODO");        break;
-
+        
         case F4_Index_NoteKind_Function:
         {
             String8 type = S8Lit("function");
@@ -2021,7 +2068,7 @@ function String8 _Long_PushNoteTag(Application_Links* app, Arena* arena, F4_Inde
                         if (string_match(note->string, note->parent->string))
                             type = S8Lit("constructor");
                     } break;
-
+                    
                     case F4_Index_NoteKind_Decl:
                     {
                         if (string_match(note->string, S8Lit("get")))
@@ -2031,10 +2078,10 @@ function String8 _Long_PushNoteTag(Application_Links* app, Arena* arena, F4_Inde
                     } break;
                 }
             }
-
+            
             result = push_stringf(arena, "%s%s", type.str, note->flags & F4_Index_NoteFlag_Prototype ? " [forward]" : "");
         } break;
-
+        
         case F4_Index_NoteKind_Decl:
         {
             String8 string = {};
@@ -2056,21 +2103,21 @@ function String8 _Long_PushNoteTag(Application_Links* app, Arena* arena, F4_Inde
                 }
             }
             else string = S8Lit("global");
-
+            
             result = push_stringf(arena, "declaration [%s]", string.str);
         } break;
-
+        
         default: break;
     }
-
+    
     if (note->parent)
         result = push_stringf(arena, "<%.*s> %.*s", string_expand(note->parent->string), string_expand(result));
-
+    
     // NOTE(long): Long_Lister_PushIndexNote will never iterate over a namespace note
     // This case only runs in long_write_to_file_all_identifiers
     if (Long_Index_IsNamespace(note))
         result = push_stringf(arena, "%.*s%s[namespace]", string_expand(result), result.size ? " " : "");
-
+    
     return result;
 }
 
@@ -2093,7 +2140,7 @@ function LONG_INDEX_FILTER(Long_Filter_Note)
 {
     b32 result = true;
     F4_Index_Note* parent = note->parent;
-
+    
     if (note->kind == F4_Index_NoteKind_Scope)
         result = false;
     else if (parent)
@@ -2110,7 +2157,7 @@ function LONG_INDEX_FILTER(Long_Filter_Note)
         else if (Long_Index_IsGenericArgument(note))
             result = false; // Generic Argument
     }
-
+    
     return result;
 }
 
@@ -2120,17 +2167,17 @@ function void Long_Lister_PushIndexNote(Application_Links* app, Arena* arena, Li
     {
         Buffer_ID buffer = note->file->buffer;
         Scratch_Block scratch(app, arena);
-
+        
         String8List list = {};
         if (note->base_range.max)
             string_list_push(scratch, &list, push_buffer_range(app, scratch, buffer, note->base_range));
         string_list_push(scratch, &list, push_buffer_range(app, scratch, buffer, Long_Index_ArgumentRange(note)));
         String8 string = string_list_flatten(arena, list, S8Lit(" "), 0, 0);
         string = string_condense_whitespace(scratch, string);
-
+        
         Long_Lister_AddItem(app, lister, string, _Long_PushNoteTag(app, arena, note), buffer, note->range.first);
     }
-
+    
     Long_Index_IterateValidNoteInFile(child, note)
         Long_Lister_PushIndexNote(app, arena, lister, child, filter);
 }
@@ -2138,11 +2185,11 @@ function void Long_Lister_PushIndexNote(Application_Links* app, Arena* arena, Li
 function void _Long_SearchDefinition(Application_Links* app, NoteFilter* filter, b32 project_wide)
 {
     View_ID view = get_active_view(app, Access_Always);
-
+    
     Scratch_Block scratch(app);
     Lister_Block lister(app, scratch);
     lister_set_default_handlers(lister);
-
+    
     F4_Index_Lock();
     // TODO(long): Split iterating through all notes in project vs file into two paths
     for (Buffer_ID buffer = project_wide ? get_buffer_next(app, 0, Access_Always) : view_get_buffer(app, view, Access_Always);
@@ -2157,7 +2204,7 @@ function void _Long_SearchDefinition(Application_Links* app, NoteFilter* filter,
             break;
     }
     F4_Index_Unlock();
-
+    
     lister_set_query(lister, push_u8_stringf(scratch, "Index (%s):", project_wide ? "Project" : "File"));
     Lister_Result l_result = run_lister(app, lister);
     LongListerData result = {};
@@ -2200,7 +2247,7 @@ function void _Long_PushNoteString(Application_Links* app, Arena* arena, String8
                                       string_expand(note->string), note->range.min, note->scope_range.min, note->scope_range.max);
         system_error_box((char*)string.str);
     }
-
+    
     if (!filter || filter(note))
     {
         *noteCount += 1;
@@ -2213,7 +2260,7 @@ function void _Long_PushNoteString(Application_Links* app, Arena* arena, String8
         String8 string = push_stringf(arena, "[%.*s] %.*s { %.*s }", string_expand(parentName), size, str, string_expand(tag));
         string_list_push(arena, list, string);
     }
-
+    
     Long_Index_IterateValidNoteInFile(child, note)
         _Long_PushNoteString(app, arena, list, noteCount, child, filter);
 }
@@ -2234,7 +2281,7 @@ function void Long_WriteNoteTreeToFile(Application_Links* app, String8 name, Not
     Buffer_ID buffer = view_get_buffer(app, get_active_view(app, Access_Always), Access_Always);
     Scratch_Block scratch(app);
     String8List list = {};
-
+    
     F4_Index_Lock();
     {
         int noteCount = 0;
@@ -2244,7 +2291,7 @@ function void Long_WriteNoteTreeToFile(Application_Links* app, String8 name, Not
         string_list_push(scratch, &list, push_stringf(scratch, "Note count: %d", noteCount));
     }
     F4_Index_Unlock();
-
+    
     String8 string = string_list_flatten(scratch, list, 0, S8Lit("\n"), 0, 0);
     Long_WriteToBuffer(app, scratch, name, string);
 }
@@ -2275,11 +2322,11 @@ CUSTOM_DOC("Save all identifiers in the hash table.")
     String8List list = {};
     Token_Array array = get_token_array_from_buffer(app, buffer);
     Token_Iterator_Array it = token_iterator(0, &array);
-
+    
     while (true)
     {
         Token* token = token_it_read(&it);
-
+        
         if (token->kind == TokenBaseKind_Identifier)
         {
             F4_Index_Note* note = Long_Index_LookupBestNote(app, buffer, &array, token);
@@ -2302,11 +2349,11 @@ CUSTOM_DOC("Save all identifiers in the hash table.")
                 string_list_push(scratch, &list, string);
             }
         }
-
+        
         if (!token_it_inc_non_whitespace(&it))
             break;
     }
-
+    
     string_list_push(scratch, &list, push_stringf(scratch, "Note count: %d", list.node_count));
     String8 string = string_list_flatten(scratch, list, 0, S8Lit("\n"), 0, 0);
     Long_WriteToBuffer(app, scratch, S8Lit("identifiers.txt"), string);
@@ -2323,32 +2370,32 @@ CUSTOM_DOC("replace the text between the mark and the cursor with the text from 
     {
         View_ID view = get_active_view(app, Access_ReadWriteVisible);
         if_view_has_highlighted_range_delete_range(app, view);
-
+        
         set_next_rewrite(app, view, Rewrite_Paste);
-
+        
         Managed_Scope scope = view_get_managed_scope(app, view);
         i32* paste_index = scope_attachment(app, scope, view_paste_index_loc, i32);
         if (paste_index != 0)
         {
             *paste_index = 0;
-
+            
             Scratch_Block scratch(app);
-
+            
             String_Const_u8 string = push_clipboard_index(scratch, 0, *paste_index);
             if (string.size > 0){
                 Buffer_ID buffer = view_get_buffer(app, view, Access_ReadWriteVisible);
-
+                
                 Range_i64 range = get_view_range(app, view);
                 buffer_replace_range(app, buffer, range, string);
                 range = Ii64_size(range.min, string.size);
                 view_set_cursor_and_preferred_x(app, view, seek_pos(range.max));
-
+                
                 ARGB_Color argb = fcolor_resolve(fcolor_id(defcolor_paste));
                 buffer_post_fade(app, buffer, 0.667f, range, argb);
             }
         }
     }
-
+    
     Long_Index_UpdateTick(app);
     Long_Indent_CursorRange(app, 1);
 }
@@ -2408,7 +2455,7 @@ function i64 Long_Boundary(Application_Links *app, Buffer_ID buffer, Side side, 
                     result = it.ptr->pos + it.ptr->size;
                 }
             } break;
-
+            
             case Scan_Backward:
             {
                 result = 0;
@@ -2444,7 +2491,7 @@ function i64 Long_Boundary_AlphaNumericCamel(Application_Links *app, Buffer_ID b
     i64 an_pos = boundary_alpha_numeric(app, buffer, side, direction, pos);
     String_Match m = buffer_seek_character_class(app, buffer, &character_predicate_uppercase, direction, pos);
     i64 cap_pos = m.range.min;
-
+    
     {
         i64 an_next_pos = boundary_alpha_numeric(app, buffer, flip_side(side), flip_direction(direction), an_pos);
         if (direction == Scan_Backward && an_next_pos < pos)
@@ -2452,7 +2499,7 @@ function i64 Long_Boundary_AlphaNumericCamel(Application_Links *app, Buffer_ID b
         else if (direction == Scan_Forward && an_next_pos > pos)
             an_pos = Min(an_pos, an_next_pos);
     }
-
+    
     i64 result = 0;
     if (direction == Scan_Backward)
         result = Max(an_pos, cap_pos);
@@ -2478,7 +2525,7 @@ CUSTOM_DOC("Seek left for boundary between alphanumeric characters or camel case
 function F4_Index_Note* Long_Scan_Note(Scan_Direction dir, F4_Index_Note* note, NoteFilter* filter, i64 pos)
 {
     F4_Index_Note* result = 0;
-
+    
     if (!filter || filter(note))
     {
         switch (dir)
@@ -2487,7 +2534,7 @@ function F4_Index_Note* Long_Scan_Note(Scan_Direction dir, F4_Index_Note* note, 
             case Scan_Backward: { if (note->range.min < pos) result = note; } break;
         }
     }
-
+    
     Long_Index_IterateValidNoteInFile_Dir(child, note, dir == Scan_Forward)
     {
         F4_Index_Note* scan_note = Long_Scan_Note(dir, child, filter, pos);
@@ -2498,7 +2545,7 @@ function F4_Index_Note* Long_Scan_Note(Scan_Direction dir, F4_Index_Note* note, 
             break;
         }
     }
-
+    
     return result;
 }
 
@@ -2541,7 +2588,7 @@ function i64 F4_Boundary_CursorToken(Application_Links *app, Buffer_ID buffer,
                                      Side side, Scan_Direction direction, i64 pos)
 {
     Scratch_Block scratch(app);
-
+    
     //-
     // NOTE(jack): Iterate the code index file for the buffer to find the search range for tokens
     // The search range_bounds should contain the function body, and its parameter list
@@ -2551,7 +2598,7 @@ function i64 F4_Boundary_CursorToken(Application_Links *app, Buffer_ID buffer,
     {
         Code_Index_Nest_Ptr_Array file_nests = file->nest_array;
         Code_Index_Nest *prev_important_nest = 0;
-
+        
         for (Code_Index_Nest *nest = file->nest_list.first; 
              nest != 0; 
              nest = nest->next)
@@ -2568,13 +2615,13 @@ function i64 F4_Boundary_CursorToken(Application_Links *app, Buffer_ID buffer,
                         while(funciton_body_nest && funciton_body_nest ->kind != CodeIndexNest_Scope) {
                             funciton_body_nest = funciton_body_nest->next;
                         }
-
+                        
                         search_bounds.start = nest->open.start;
                         search_bounds.end = (funciton_body_nest ?
                                              funciton_body_nest->close.end : 
                                              nest->close.end);
                     } break; 
-
+                    
                     case CodeIndexNest_Scope:
                     {
                         search_bounds.start = (prev_important_nest ? 
@@ -2584,7 +2631,7 @@ function i64 F4_Boundary_CursorToken(Application_Links *app, Buffer_ID buffer,
                     } break;
                 }
             }
-
+            
             // NOTE(jack): Keep track of the most recent Paren scope (parameter list) so that we can use it directly
             // if the cursor is within a function body.
             if (nest->kind == CodeIndexNest_Paren) 
@@ -2593,7 +2640,7 @@ function i64 F4_Boundary_CursorToken(Application_Links *app, Buffer_ID buffer,
             }
         }
     }
-
+    
     //-
     View_ID view = get_active_view(app, Access_Always);
     i64 active_cursor_pos = view_get_cursor_pos(app, view);
@@ -2602,7 +2649,7 @@ function i64 F4_Boundary_CursorToken(Application_Links *app, Buffer_ID buffer,
     Token *active_cursor_token = token_it_read(&active_cursor_it);
     String_Const_u8 cursor_string = push_buffer_range(app, scratch, buffer, Ii64(active_cursor_token));
     i64 cursor_offset = pos - active_cursor_token->pos;
-
+    
     //-
     // NOTE(jack): Loop to find the next cursor token occurance in the search_bounds. 
     // (only if we are on an identifier and have valid search bounds.
@@ -2621,13 +2668,13 @@ function i64 F4_Boundary_CursorToken(Application_Links *app, Buffer_ID buffer,
                 {
                     out_of_file = !token_it_inc_non_whitespace(&it);
                 } break;
-
+                
                 case Scan_Backward:
                 {
                     out_of_file = !token_it_dec_non_whitespace(&it);
                 } break;
             }
-
+            
             if (out_of_file || !range_contains(search_bounds, token_it_read(&it)->pos))
             {
                 break;
@@ -2671,16 +2718,16 @@ function b32 Long_FindNestSide(Application_Links *app, Buffer_ID buffer, i64 pos
                                Find_Nest_Flag flags, Scan_Direction scan, Nest_Delimiter_Kind delim, Range_i64 *out)
 {
     b32 result = false;
-
+    
     b32 balanced = HasFlag(flags, FindNest_Balanced);
     if (balanced &&
         (delim == NestDelim_Open  && scan == Scan_Forward) ||
         (delim == NestDelim_Close && scan == Scan_Backward))
         balanced = false;
-
+    
     b32 (*next_token)(Token_Iterator_Array* it) = token_it_inc;
     if (scan == Scan_Backward) next_token = token_it_dec;
-
+    
     Token_Array* tokens = scope_attachment(app, buffer_get_managed_scope(app, buffer), attachment_tokens, Token_Array);
     if (tokens != 0 && tokens->count > 0)
     {
@@ -2690,7 +2737,7 @@ function b32 Long_FindNestSide(Application_Links *app, Buffer_ID buffer, i64 pos
         {
             Token* token = token_it_read(&it);
             Nest_Delimiter_Kind token_delim = get_nest_delimiter_kind(token->kind, flags);
-
+            
             if (level == 0 && token_delim == delim)
             {
                 SUCCESS:
@@ -2698,19 +2745,19 @@ function b32 Long_FindNestSide(Application_Links *app, Buffer_ID buffer, i64 pos
                 result = true;
                 break;
             }
-
+            
             if (balanced && token_delim != NestDelim_None)
             {
                 level += (token_delim == delim)?-1:1;
                 if (level == 0 && token_delim == delim)
                     goto SUCCESS;
             }
-
+            
             if (!next_token(&it))
                 break;
         }
     }
-
+    
     return result;
 }
 
@@ -2729,7 +2776,7 @@ function Range_i64 Long_GetScopeFromPos(Application_Links* app, View_ID view, Bu
 {
     Range_i64 result = {}, range;
     Find_Nest_Flag flags = FindNest_Scope|FindNest_Balanced;
-
+    
     // NOTE(long): This will either get the prev/next scope in the same level or the parent scope
     if (dir == Scan_Backward)
     {
@@ -2754,7 +2801,7 @@ function Range_i64 Long_GetScopeFromPos(Application_Links* app, View_ID view, Bu
             }
         }
     }
-
+    
     return result;
 }
 
@@ -2796,12 +2843,12 @@ CUSTOM_DOC("Find the first child scope that starts inside the current selected s
     View_ID view = get_active_view(app, Access_ReadVisible);
     Buffer_ID buffer = view_get_buffer(app, view, Access_ReadVisible);
     i64 pos = view_get_cursor_pos(app, view);
-
+    
     Range_i64 surrounding_nest;
     if (range_is_scope_selection(app, buffer, surrounding_nest = Ii64(pos, view_get_mark_pos(app, view))));
     else if (find_surrounding_nest(app, buffer, pos, FindNest_Scope, &surrounding_nest));
     else surrounding_nest = {};
-
+    
     Range_i64 range = Long_GetNextScopeAfterPos(app, view, buffer, pos);
     if (!surrounding_nest.max || range.min < surrounding_nest.max)
         select_scope(app, view, range);
@@ -2833,7 +2880,7 @@ CUSTOM_DOC("Clears and reloads all the theme files in the default theme folder."
     String8 current_name = push_string_copy(scratch, current_theme_name);
     clear_all_themes(app);
     load_themes_default_folder(app);
-
+    
     current_theme_name = DEFAULT_THEME_NAME;
     for (Color_Table_Node* node = global_theme_list.first; node != 0; node = node->next)
     {
