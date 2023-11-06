@@ -45,6 +45,35 @@ int test_global_1, test_global_2;
 {
     TestA.stuff1 TestB;
     TestB.stuff2 TestA;
+    
+    int a;
+    Test t = new Test
+    {
+        a = a,
+        
+        stuff = new Test.Stuff
+        {
+            a = 0,
+            b = .5f,
+        },
+        
+        new Stuff
+        {
+            DoStuff = 10;
+        },
+    };
+    
+    Test.Stuff s = new Test.Stuff
+    {
+        a = 10,
+        b = 5.5f,
+    };
+    
+    Stuff stuff = new Stuff
+    {
+        a = 10,
+        DoStuff = 10,
+    }
 }
 
 struct MyGenericType<T>
@@ -156,7 +185,7 @@ Vector2 vector2 = new Vector2(test_global_1, test_global_2);
 
 [
  NewLine(a = { }, b = {0})
-]
+ ]
 [SomeOtherThing()]
 [Multiple] [System.Serializable]
 [System.OtherCrap]
@@ -166,6 +195,7 @@ public class Test
     A<B<C>> d;
     Some<Other<Thing<I<Hate>>>> a;
     int a, b, c, d, int f, float h, efldsfjsl, 123, const, int, float a, c;
+    public Stuff stuff;
     
     (int, float) tupple;
     (int, float[][][][]) Function(int someInt, float someFloat);
@@ -258,6 +288,9 @@ public class Test
     
     class Stuff
     {
+        int a;
+        float b;
+        
         void DoStuff()
         {
             void DoStuff()
@@ -285,7 +318,7 @@ class Stuff
 
 [
  System.Serializable
-]
+ ]
 public class Optional<T>
 {
     public bool enabled;
@@ -363,7 +396,7 @@ public struct Property<T> : ISerializationCallbackReceiver where T : System.Enum
     {
         if (properties != null)
             foreach (T property in properties)
-            SetProperty(property, true);
+                SetProperty(property, true);
     }
     
     public override string ToString()
@@ -559,11 +592,11 @@ public class GameManager : MonoBehaviour
     
     [
      NewLine
-    ]
+     ]
     [SomeOtherThing]
-    [Multiple] [System.Serializable]
-    [System.OtherCrap]
-    struct Bounds
+        [Multiple] [System.Serializable]
+        [System.OtherCrap]
+        struct Bounds
     {
         int a; int b;
         int c;
@@ -642,7 +675,7 @@ public class GameManager : MonoBehaviour
             List<string> setNames = new List<string>(names.Length);
             for (int i = 0; i < names.Length; i++)
                 if (MathUtils.HasFlag(property, i))
-                setNames.Add(names[i]);
+                    setNames.Add(names[i]);
             GameUtils.GetAllString(setNames, $"All set flags of {fieldName}: ", "\n", indentLevel + 1, builder: builder);
             
             GameUtils.GetAllString(names, $"Serialized names of {fieldName}: ", "\n", indentLevel + 1,
@@ -1068,33 +1101,33 @@ public class Entity : MonoBehaviour, IPooledObject
 {
 #region Ability
     /*
-     * RUNNING
-     * - Turn speed
-     * - Acceleration
-     * - Decceleration
-     * - Max speed
-     * JUMPING
-     * - Duration
-     * - Jump height
-     * - Down gravity
-     * - Air acceleration (what about air decceleration?)
-     * - Air control (movement in air/can the player change direction in air?/The equivalent of turn speed but in air)
-     * - Air brake (does the player still move forward when he stop pressing?)
-     * CAMERA
-     * - Damping (X/Y/Jump)
-     * - Lookahead
-     * - Zoom
-     * ASSISTS
-     * - Coyote time
-     * - Jump buffer
-     * - Terminal velocity
-     * - Rounded corners
-     * JUICE
-     * - Particles (run/jump/land)
-     * - Squash and stretch (jump/land)
-     * - Trail
-     * - Lean (angle and speed)
-     */
+    * RUNNING
+    * - Turn speed
+    * - Acceleration
+    * - Decceleration
+    * - Max speed
+    * JUMPING
+    * - Duration
+    * - Jump height
+    * - Down gravity
+    * - Air acceleration (what about air decceleration?)
+    * - Air control (movement in air/can the player change direction in air?/The equivalent of turn speed but in air)
+    * - Air brake (does the player still move forward when he stop pressing?)
+    * CAMERA
+    * - Damping (X/Y/Jump)
+    * - Lookahead
+    * - Zoom
+    * ASSISTS
+    * - Coyote time
+    * - Jump buffer
+    * - Terminal velocity
+    * - Rounded corners
+    * JUICE
+    * - Particles (run/jump/land)
+    * - Squash and stretch (jump/land)
+    * - Trail
+    * - Lean (angle and speed)
+    */
     
     // Move horizontally based on input
     // Jump
@@ -1164,7 +1197,7 @@ public class Entity : MonoBehaviour, IPooledObject
         {
             foreach (bool b in values)
                 if (b == condition)
-                return condition;
+                    return condition;
             return !condition;
         }
     }
@@ -1181,7 +1214,7 @@ public class Entity : MonoBehaviour, IPooledObject
         {
             if (ability.flags.HasProperty(AbilityFlag.Interuptible))
                 if (!CanUseAbility(ability))
-                goto END;
+                    goto END;
             yield return null;
             timer += Time.deltaTime;
         }
@@ -1218,7 +1251,7 @@ public class Entity : MonoBehaviour, IPooledObject
                     // TODO: Maybe teleport opposite to where the player is heading or teleport to nearby platform
                     if (!IsPosValid(distance))
                         if (!IsPosValid(-distance))
-                        goto END;
+                            goto END;
                     
                     bool IsPosValid(float offsetX)
                     {
@@ -1423,11 +1456,11 @@ public class Entity : MonoBehaviour, IPooledObject
         
         if (HasProperty(EntityProperty.SpawnCellWhenDie))
             deathVFX.done += () =>
-        {
-            int dropValue = valueRange.randomValue;
-            for (int i = 0; i < dropValue; i++)
-                ObjectPooler.Spawn(PoolType.Cell, transform.position);
-        };
+            {
+                int dropValue = valueRange.randomValue;
+                for (int i = 0; i < dropValue; i++)
+                    ObjectPooler.Spawn(PoolType.Cell, transform.position);
+            };
         
         MoveType move = moveType;
         RotateType rotate = rotateType;
@@ -1607,7 +1640,7 @@ public class Entity : MonoBehaviour, IPooledObject
         
         if (Time.time > moveTimeValue)
             if (HasProperty(EntityProperty.DieAfterMoveTime))
-            Die();
+                Die();
         
         RotateEntity(transform, rotateType, dRotate, velocity.x);
         Vector2 prevVelocity = velocity;
@@ -1708,7 +1741,7 @@ public class Entity : MonoBehaviour, IPooledObject
 #else
             if (vfx)
                 foreach (var effect in vfx.items[state])
-                StartCoroutine(PlayVFX(effect));
+                    StartCoroutine(PlayVFX(effect));
 #endif
             state = EntityState.None;
         }
@@ -1796,7 +1829,7 @@ public class Entity : MonoBehaviour, IPooledObject
             
             if (vfx.pools != null)
                 foreach (PoolType pool in vfx.pools)
-                ObjectPooler.Spawn(pool, transform.position);
+                    ObjectPooler.Spawn(pool, transform.position);
         }
         
         switch (vfx.type)
@@ -1884,10 +1917,10 @@ public class Entity : MonoBehaviour, IPooledObject
         after();
         /*Coroutine[] coroutines = new Coroutine[enumeratorCount];
         for (int i = 0; i < enumeratorCount; i++)
-            coroutines[i] = StartCoroutine(enumerators[i]);
+        coroutines[i] = StartCoroutine(enumerators[i]);
         foreach (Coroutine coroutine in coroutines)
         {
-            yield return coroutine;
+        yield return coroutine;
         }*/
         
         // TODO: Maybe change this to an offset-based
@@ -2170,7 +2203,7 @@ public class Entity : MonoBehaviour, IPooledObject
                     Die();
                 if (HasProperty(EntityProperty.SpawnDamagePopup))
                     ObjectPooler.Spawn<Entity>(PoolType.DamagePopup, transform.position)
-                    .InitDamagePopup(damage, HasProperty(EntityProperty.IsCritical));
+                        .InitDamagePopup(damage, HasProperty(EntityProperty.IsCritical));
             }
         }
     }
@@ -2228,7 +2261,7 @@ public class Entity : MonoBehaviour, IPooledObject
     
     [SomeOtherThing]
     [Multiple] [System.Serializable]
-    public class EntityVFX
+        public class EntityVFX
     {
         public Property<VFXProperty> properties;
         

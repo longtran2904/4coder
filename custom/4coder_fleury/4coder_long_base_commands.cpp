@@ -1119,9 +1119,6 @@ function void Long_SearchBuffer_MultiSelect(Application_Links* app, View_ID view
     view_get_camera_bounds(app, view, &old_margin, &old_push_in);
     view_set_camera_bounds(app, view, Vec2_f32{ old_margin.x, clamp_bot(200.f, old_margin.y) }, old_push_in);
     
-    // NOTE(long): Rather than disable the highlight, we set it to an empty range so that F4_RenderBuffer doesn't render any cursor
-    view_set_highlight_range(app, view, {});
-    
     auto_center_after_jumps = false;
     Managed_Scope scope = buffer_get_managed_scope(app, search_buffer);
     {
@@ -1171,6 +1168,9 @@ function void Long_SearchBuffer_MultiSelect(Application_Links* app, View_ID view
         
         ID_Pos_Jump_Location current_location;
         get_jump_from_list(app, jump_state.list, jump_state.list_index, &current_location);
+        
+        // NOTE(long): Rather than disable the highlight, we set it to an empty range so that F4_RenderBuffer doesn't render any cursor
+        view_set_highlight_range(app, view, {});
         
         String8 string = to_writable(&in);
         i32 advance = 0;
@@ -1294,7 +1294,7 @@ function void Long_SearchBuffer_MultiSelect(Application_Links* app, View_ID view
         Long_PointStack_JumpNext(app, view, 0, 1);
     
     auto_center_after_jumps = true;
-    view_disable_highlight_range(app, view);
+    view_disable_highlight_range(app, view); // NOTE(long): Disable the highlight will make F4_RenderBuffer draw the cursor again
     view_set_camera_bounds(app, view, old_margin, old_push_in);
 }
 

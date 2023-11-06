@@ -7,6 +7,7 @@
 //- NOTE(long): Forward declare here because this file is included in "4coder_default_include"
 function String8 Long_Lister_GetHeaderString(Application_Links* app, Arena* arena, Lister_Node* node);
 function void lister__backspace_text_field__default(Application_Links *app);
+function void F4_DrawFileBar(Application_Links *app, View_ID view_id, Buffer_ID buffer, Face_ID face_id, Rect_f32 bar);
 //-
 
 function Vec2_f32
@@ -183,21 +184,21 @@ lister_zero_scroll(Lister *lister){
 function void
 lister_render(Application_Links *app, Frame_Info frame_info, View_ID view){
     Scratch_Block scratch(app);
-
+    
     Lister *lister = view_get_lister(app, view);
     if (lister == 0){
         return;
     }
-
+    
     Rect_f32 region = draw_background_and_margin(app, view);
     Rect_f32 prev_clip = draw_set_clip(app, region);
-
+    
     Face_ID face_id = get_face_id(app, 0);
     Face_Metrics metrics = get_face_metrics(app, face_id);
     f32 line_height = metrics.line_height;
     f32 block_height = lister_get_block_height(line_height);
     f32 text_field_height = lister_get_text_field_height(line_height);
-
+    
     // NOTE(allen): file bar
     // TODO(allen): What's going on with 'showing_file_bar'? I found it like this.
     b64 showing_file_bar = false;
@@ -206,16 +207,17 @@ lister_render(Application_Links *app, Frame_Info frame_info, View_ID view){
         showing_file_bar && !hide_file_bar_in_ui){
         Rect_f32_Pair pair = layout_file_bar_on_top(region, line_height);
         Buffer_ID buffer = view_get_buffer(app, view, Access_Always);
-        draw_file_bar(app, view, buffer, face_id, pair.min);
+        //draw_file_bar(app, view, buffer, face_id, pair.min);
+        F4_DrawFileBar(app, view, buffer, face_id, pair.min);
         region = pair.max;
     }
-
+    
     Mouse_State mouse = get_mouse_state(app);
     Vec2_f32 m_p = V2f32(mouse.p);
-
+    
     lister->visible_count = (i32)((rect_height(region)/block_height)) - 3;
     lister->visible_count = clamp_bot(1, lister->visible_count);
-
+    
     Rect_f32 text_field_rect = {};
     Rect_f32 list_rect = {};
     {
@@ -223,7 +225,7 @@ lister_render(Application_Links *app, Frame_Info frame_info, View_ID view){
         text_field_rect = pair.min;
         list_rect = pair.max;
     }
-
+    
     {
         Vec2_f32 p = V2f32(text_field_rect.x0 + 3.f, text_field_rect.y0);
         Fancy_Line text_field = {};
@@ -231,7 +233,7 @@ lister_render(Application_Links *app, Frame_Info frame_info, View_ID view){
         push_fancy_stringf(scratch, &text_field, fcolor_id(defcolor_pop1), " (%d)", lister->filtered.count);
         push_fancy_stringf(scratch, &text_field, " ");
         p = draw_fancy_line(app, face_id, fcolor_zero(), &text_field, p);
-
+        
         // TODO(allen): This is a bit of a hack. Maybe an upgrade to fancy to focus
         // more on being good at this and less on overriding everything 10 ways to sunday
         // would be good.
@@ -250,14 +252,14 @@ lister_render(Application_Links *app, Frame_Info frame_info, View_ID view){
             draw_fancy_line(app, face_id, fcolor_zero(), &text_field, p);
         }
     }
-
-
+    
+    
     Range_f32 x = rect_range_x(list_rect);
     draw_set_clip(app, list_rect);
-
+    
     // NOTE(allen): auto scroll to the item if the flag is set.
     f32 scroll_y = lister->scroll.position.y;
-
+    
     if (lister->set_vertical_focus_to_item){
         lister->set_vertical_focus_to_item = false;
         Range_f32 item_y = If32_size(lister->item_index*block_height, block_height);
@@ -277,40 +279,40 @@ lister_render(Application_Links *app, Frame_Info frame_info, View_ID view){
             }
         }
     }
-
+    
     // NOTE(allen): clamp scroll target and position; smooth scroll rule
     i32 count = lister->filtered.count;
     Range_f32 scroll_range = If32(0.f, clamp_bot(0.f, count*block_height - block_height));
     lister->scroll.target.y = clamp_range(scroll_range, lister->scroll.target.y);
     lister->scroll.target.x = 0.f;
-
+    
     Vec2_f32_Delta_Result delta = delta_apply(app, view,
                                               frame_info.animation_dt, lister->scroll);
     lister->scroll.position = delta.p;
     if (delta.still_animating){
         animate_in_n_milliseconds(app, 0);
     }
-
+    
     lister->scroll.position.y = clamp_range(scroll_range, lister->scroll.position.y);
     lister->scroll.position.x = 0.f;
-
+    
     scroll_y = lister->scroll.position.y;
     f32 y_pos = list_rect.y0 - scroll_y;
-
+    
     i32 first_index = (i32)(scroll_y/block_height);
     y_pos += first_index*block_height;
-
+    
     for (i32 i = first_index; i < count; i += 1){
         Lister_Node *node = lister->filtered.node_ptrs[i];
-
+        
         Range_f32 y = If32(y_pos, y_pos + block_height);
         y_pos = y.max;
-
+        
         Rect_f32 item_rect = Rf32(x, y);
         // NOTE(long): Fix overdraw thing
         if (item_rect.y0 > region.y1) { break; }
         Rect_f32 item_inner = rect_inner(item_rect, 3.f);
-
+        
         b32 hovered = rect_contains_point(item_rect, m_p);
         UI_Highlight_Level highlight = UIHighlight_None;
         if (node == lister->highlighted_node){
@@ -327,22 +329,22 @@ lister_render(Application_Links *app, Frame_Info frame_info, View_ID view){
         else if (hovered){
             highlight = UIHighlight_Hover;
         }
-
+        
         u64 lister_roundness_100 = def_get_config_u64(app, vars_save_string_lit("lister_roundness"));
         f32 roundness = block_height*lister_roundness_100*0.01f;
         draw_rectangle_fcolor(app, item_rect, roundness, get_item_margin_color(highlight));
         draw_rectangle_fcolor(app, item_inner, roundness, get_item_margin_color(highlight, 1));
-
+        
         Fancy_Line line = {};
         push_fancy_string(scratch, &line, fcolor_id(defcolor_pop1), Long_Lister_GetHeaderString(app, scratch, node));
         push_fancy_string(scratch, &line, fcolor_id(defcolor_text_default), node->string);
         push_fancy_stringf(scratch, &line, " ");
         push_fancy_string(scratch, &line, fcolor_id(defcolor_pop2), node->status);
-
+        
         Vec2_f32 p = item_inner.p0 + V2f32(3.f, (block_height - line_height)*0.5f);
         draw_fancy_line(app, face_id, fcolor_zero(), &line, p);
     }
-
+    
     draw_set_clip(app, prev_clip);
 }
 
@@ -366,28 +368,28 @@ lister_get_user_data(Lister *lister, i32 index){
 function Lister_Filtered
 lister_get_filtered(Application_Links* app, Arena *arena, Lister *lister){
     i32 node_count = lister->options.count;
-
+    
     Lister_Filtered filtered = {};
     filtered.exact_matches.node_ptrs = push_array(arena, Lister_Node*, 1);
     filtered.before_extension_matches.node_ptrs = push_array(arena, Lister_Node*, node_count);
     filtered.substring_matches.node_ptrs = push_array(arena, Lister_Node*, node_count);
-
+    
     Temp_Memory_Block temp(arena);
-
+    
     String_Const_u8 key = lister->key_string.string;
     key = push_string_copy(arena, key);
     string_mod_replace_character(key, '_', '*');
     string_mod_replace_character(key, ' ', '*');
-
+    
     List_String_Const_u8 absolutes = {};
     string_list_push(arena, &absolutes, string_u8_litexpr(""));
     List_String_Const_u8 splits = string_split(arena, key, (u8*)"*", 1);
     b32 has_wildcard = (splits.node_count > 1);
     string_list_push(&absolutes, &splits);
     string_list_push(arena, &absolutes, string_u8_litexpr(""));
-
+    
     // NOTE(long): /inclusive_tag: or, ~exclusive_tag: not
-
+    
 #if LONG_LISTER_FILTER_TAG
     String8List include_tags = {};
     {
@@ -407,7 +409,7 @@ lister_get_filtered(Application_Links* app, Arena *arena, Lister *lister){
             node = next;
         }
     }
-
+    
     String8List exclude_tags = {};
     {
         String8Node** prev = &absolutes.first->next;
@@ -426,7 +428,7 @@ lister_get_filtered(Application_Links* app, Arena *arena, Lister *lister){
             node = next;
         }
     }
-
+    
     String8List header_filters = {};
     {
         String8Node** prev = &absolutes.first->next;
@@ -446,7 +448,7 @@ lister_get_filtered(Application_Links* app, Arena *arena, Lister *lister){
         }
     }
 #endif
-
+    
     for (Lister_Node *node = lister->options.first;
          node != 0;
          node = node->next){
@@ -459,7 +461,7 @@ lister_get_filtered(Application_Links* app, Arena *arena, Lister *lister){
             if (!has_tag)
                 continue;
         }
-
+        
         {
             b32 has_tag = false;
             for (String8Node* tag = exclude_tags.first; tag; tag = tag->next)
@@ -468,7 +470,7 @@ lister_get_filtered(Application_Links* app, Arena *arena, Lister *lister){
             if (has_tag)
                 continue;
         }
-
+        
         {
             Scratch_Block scratch(app, arena);
             String8 header = Long_Lister_GetHeaderString(app, scratch, node);
@@ -480,7 +482,7 @@ lister_get_filtered(Application_Links* app, Arena *arena, Lister *lister){
                 continue;
         }
 #endif
-
+        
         String_Const_u8 node_string = node->string;
         if (key.size == 0 || string_wildcard_match_insensitive(absolutes, node_string)){
             if (string_match_insensitive(node_string, key) && filtered.exact_matches.count == 0){
@@ -498,7 +500,7 @@ lister_get_filtered(Application_Links* app, Arena *arena, Lister *lister){
             }
         }
     }
-
+    
     return(filtered);
 }
 
@@ -520,23 +522,23 @@ function void
 lister_update_filtered_list(Application_Links *app, Lister *lister){
     Arena *arena = lister->arena;
     Scratch_Block scratch(app, arena);
-
+    
     Lister_Filtered filtered = lister_get_filtered(app, scratch, lister);
-
+    
     Lister_Node_Ptr_Array node_ptr_arrays[] = {
         filtered.exact_matches,
         filtered.before_extension_matches,
         filtered.substring_matches,
     };
-
+    
     end_temp(lister->filter_restore_point);
-
+    
     i32 total_count = 0;
     for (i32 array_index = 0; array_index < ArrayCount(node_ptr_arrays); array_index += 1){
         Lister_Node_Ptr_Array node_ptr_array = node_ptr_arrays[array_index];
         total_count += node_ptr_array.count;
     }
-
+    
     Lister_Node **node_ptrs = push_array(arena, Lister_Node*, total_count);
     lister->filtered.node_ptrs = node_ptrs;
     lister->filtered.count = total_count;
@@ -549,7 +551,7 @@ lister_update_filtered_list(Application_Links *app, Lister *lister){
             counter += 1;
         }
     }
-
+    
     lister_update_selection_values(lister);
 }
 
@@ -574,13 +576,13 @@ lister_user_data_at_p(Application_Links *app, View_ID view, Lister *lister, Vec2
     Rect_f32 region = view_get_screen_rect(app, view);
     // TODO(allen): eliminate this. bad bad bad bad :(
     region = rect_inner(region, 3.f);
-
+    
     Face_ID face_id = get_face_id(app, 0);
     Face_Metrics metrics = get_face_metrics(app, face_id);
     f32 line_height = metrics.line_height;
     f32 block_height = lister_get_block_height(line_height);
     f32 text_field_height = lister_get_text_field_height(line_height);
-
+    
     b64 showing_file_bar = false;
     b32 hide_file_bar_in_ui = def_get_config_b32(vars_save_string_lit("hide_file_bar_in_ui"));
     if (view_get_setting(app, view, ViewSetting_ShowFileBar, &showing_file_bar) &&
@@ -588,10 +590,10 @@ lister_user_data_at_p(Application_Links *app, View_ID view, Lister *lister, Vec2
         Rect_f32_Pair pair = layout_file_bar_on_top(region, line_height);
         region = pair.max;
     }
-
+    
     Rect_f32_Pair pair = lister_get_top_level_layout(region, text_field_height);
     Rect_f32 list_rect = pair.max;
-
+    
     void *result = 0;
     if (rect_contains_point(list_rect, m_p)){
         f32 y = m_p.y - list_rect.y0 + lister->scroll.position.y;
@@ -601,7 +603,7 @@ lister_user_data_at_p(Application_Links *app, View_ID view, Lister *lister, Vec2
             result = node->user_data;
         }
     }
-
+    
     return(result);
 }
 
@@ -609,13 +611,13 @@ function Lister_Result
 run_lister(Application_Links *app, Lister *lister){
     lister->filter_restore_point = begin_temp(lister->arena);
     lister_update_filtered_list(app, lister);
-
+    
     View_ID view = get_this_ctx_view(app, Access_Always);
     View_Context ctx = view_current_context(app, view);
     ctx.render_caller = lister_render;
     ctx.hides_buffer = true;
     View_Context_Block ctx_block(app, view, &ctx);
-
+    
     for (;;){
         User_Input in = get_next_input(app, EventPropertyGroup_Any, EventProperty_Escape);
         if (in.abort){
@@ -623,7 +625,7 @@ run_lister(Application_Links *app, Lister *lister){
             lister->out.canceled = true;
             break;
         }
-
+        
         Lister_Activation_Code result = ListerActivation_Continue;
         b32 handled = true;
         switch (in.event.kind){
@@ -633,7 +635,7 @@ run_lister(Application_Links *app, Lister *lister){
                     result = lister->handlers.write_character(app);
                 }
             }break;
-
+            
             case InputEventKind_KeyStroke:
             {
                 switch (in.event.key.code){
@@ -648,7 +650,7 @@ run_lister(Application_Links *app, Lister *lister){
                         lister_activate(app, lister, user_data, false);
                         result = ListerActivation_Finished;
                     }break;
-
+                    
                     case KeyCode_V:
                     {
                         if (has_modifier(&in, KeyCode_Control))
@@ -666,7 +668,7 @@ run_lister(Application_Links *app, Lister *lister){
                         }
                         else goto DEFAULT;
                     } break;
-
+                    
                     case KeyCode_Backspace:
                     {
                         if (lister->handlers.backspace != 0){
@@ -678,7 +680,7 @@ run_lister(Application_Links *app, Lister *lister){
                                     lister->key_string.size = 0;
                                 }
                             }
-
+                            
                             lister->handlers.backspace(app);
                         }
                         else if (lister->handlers.key_stroke != 0){
@@ -688,7 +690,7 @@ run_lister(Application_Links *app, Lister *lister){
                             handled = false;
                         }
                     }break;
-
+                    
                     case KeyCode_Up:
                     {
                         if (lister->handlers.navigate != 0){
@@ -701,7 +703,7 @@ run_lister(Application_Links *app, Lister *lister){
                             handled = false;
                         }
                     }break;
-
+                    
                     case KeyCode_Down:
                     {
                         if (lister->handlers.navigate != 0){
@@ -714,7 +716,7 @@ run_lister(Application_Links *app, Lister *lister){
                             handled = false;
                         }
                     }break;
-
+                    
                     case KeyCode_PageUp:
                     {
                         if (lister->handlers.navigate != 0){
@@ -728,7 +730,7 @@ run_lister(Application_Links *app, Lister *lister){
                             handled = false;
                         }
                     }break;
-
+                    
                     case KeyCode_PageDown:
                     {
                         if (lister->handlers.navigate != 0){
@@ -742,7 +744,7 @@ run_lister(Application_Links *app, Lister *lister){
                             handled = false;
                         }
                     }break;
-
+                    
                     DEFAULT:
                     default:
                     {
@@ -755,7 +757,7 @@ run_lister(Application_Links *app, Lister *lister){
                     }break;
                 }
             }break;
-
+            
             case InputEventKind_MouseButton:
             {
                 switch (in.event.mouse.code){
@@ -765,14 +767,14 @@ run_lister(Application_Links *app, Lister *lister){
                         void *clicked = lister_user_data_at_p(app, view, lister, p);
                         lister->hot_user_data = clicked;
                     }break;
-
+                    
                     default:
                     {
                         handled = false;
                     }break;
                 }
             }break;
-
+            
             case InputEventKind_MouseButtonRelease:
             {
                 switch (in.event.mouse.code){
@@ -788,26 +790,26 @@ run_lister(Application_Links *app, Lister *lister){
                         }
                         lister->hot_user_data = 0;
                     }break;
-
+                    
                     default:
                     {
                         handled = false;
                     }break;
                 }
             }break;
-
+            
             case InputEventKind_MouseWheel:
             {
                 Mouse_State mouse = get_mouse_state(app);
                 lister->scroll.target.y += mouse.wheel;
                 lister_update_filtered_list(app, lister);
             }break;
-
+            
             case InputEventKind_MouseMove:
             {
                 lister_update_filtered_list(app, lister);
             }break;
-
+            
             case InputEventKind_Core:
             {
                 switch (in.event.core.code){
@@ -815,28 +817,28 @@ run_lister(Application_Links *app, Lister *lister){
                     {
                         lister_update_filtered_list(app, lister);
                     }break;
-
+                    
                     default:
                     {
                         handled = false;
                     }break;
                 }
             }break;
-
+            
             default:
             {
                 handled = false;
             }break;
         }
-
+        
         if (result == ListerActivation_Finished){
             break;
         }
-
+        
         if (!handled){
             Mapping *mapping = lister->mapping;
             Command_Map *map = lister->map;
-
+            
             Fallback_Dispatch_Result disp_result =
                 fallback_command_dispatch(app, mapping, map, &in);
             if (disp_result.code == FallbackDispatch_DelayedUICall){
@@ -851,7 +853,7 @@ run_lister(Application_Links *app, Lister *lister){
             }
         }
     }
-
+    
     return(lister->out);
 }
 
@@ -1099,7 +1101,7 @@ get_choice_from_user(Application_Links *app, String_Const_u8 query,
     handlers.navigate        = lister__navigate__default;
     handlers.key_stroke      = lister__key_stroke__choice_list;
     lister_set_handlers(lister, &handlers);
-
+    
     Lister_Result l_result = run_lister(app, lister);
     Lister_Choice *result = 0;
     if (!l_result.canceled){

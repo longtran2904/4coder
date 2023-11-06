@@ -63,18 +63,18 @@ function b32 Long_Index_ParseStr(F4_Index_ParseCtx* ctx, String8 str)
     Long_Index_ProfileScope(ctx->app, "[Long] Parse String");
     F4_Index_ParseCtx ctx_restore = *ctx;
     b32 result = 0;
-
+    
     Token* token = token_it_read(&ctx->it);
     if (token)
         result = string_match(str, string_substring(ctx->string, Ii64(token)));
     else
         ctx->done = 1;
-
+    
     if (result)
         F4_Index_ParseCtx_Inc(ctx, F4_Index_TokenSkipFlag_SkipAll);
     else
         *ctx = ctx_restore;
-
+    
     return result;
 }
 
@@ -90,13 +90,13 @@ function b32 Long_Index_ParseKind(F4_Index_ParseCtx* ctx, Token_Base_Kind kind, 
 {
     F4_Index_ParseCtx ctx_restore = *ctx;
     b32 result = 0;
-
+    
     Token* token = token_it_read(&ctx->it);
     if (token)
         result = token->kind == kind;
     else
         ctx->done = 1;
-
+    
     if(result)
     {
         *out_range = Ii64(token);
@@ -104,7 +104,7 @@ function b32 Long_Index_ParseKind(F4_Index_ParseCtx* ctx, Token_Base_Kind kind, 
     }
     else
         *ctx = ctx_restore;
-
+    
     return result;
 }
 
@@ -112,20 +112,20 @@ function b32 Long_Index_ParseSubKind(F4_Index_ParseCtx* ctx, i64 sub_kind, Range
 {
     F4_Index_ParseCtx ctx_restore = *ctx;
     b32 result = 0;
-
+    
     Token* token = token_it_read(&ctx->it);
     if (token)
         result = token->sub_kind == sub_kind;
     else
         ctx->done = 1;
-
+    
     if(result)
     {
         if (out_range) *out_range = Ii64(token);
         F4_Index_ParseCtx_Inc(ctx, F4_Index_TokenSkipFlag_SkipAll);
     }
     else *ctx = ctx_restore;
-
+    
     return result;
 }
 
@@ -134,18 +134,18 @@ function b32 Long_Index_SkipExpression(F4_Index_ParseCtx* ctx, i16 seperator, i1
     int paren_nest = 0;
     int scope_nest = 0;
     b32 result = false;
-
+    
     while (!ctx->done)
     {
         Token* token = token_it_read(&ctx->it);
         b32 done = false;
-
+        
         if (paren_nest == 0 && scope_nest == 0)
         {
             done = token->sub_kind == terminator || token->sub_kind == seperator;
             result = token->sub_kind == seperator;
         }
-
+        
         switch (token->kind)
         {
             case TokenBaseKind_ParentheticalOpen:  { paren_nest++; } break;
@@ -153,15 +153,15 @@ function b32 Long_Index_SkipExpression(F4_Index_ParseCtx* ctx, i16 seperator, i1
             case TokenBaseKind_ScopeOpen:          { scope_nest++; } break;
             case TokenBaseKind_ScopeClose:         { scope_nest--; } break;
         }
-
+        
         if (paren_nest < 0 || scope_nest < 0)
             done = true;
-
+        
         if (done)
             break;
         F4_Index_ParseCtx_Inc(ctx, F4_Index_TokenSkipFlag_SkipWhitespace);
     }
-
+    
     return result;
 }
 
@@ -176,10 +176,10 @@ function b32 Long_Index_SkipBody(Application_Links* app, Token_Iterator_Array* i
     i32 scope_nest = 0;
     i32 gener_nest = 0;
     i32 final_nest = 0;
-
+    
     b32 (*next_token)(Token_Iterator_Array* it) = token_it_inc;
     if (dec) next_token = token_it_dec;
-
+    
     while (true)
     {
         Token* token = token_it_read(it);
@@ -190,18 +190,18 @@ function b32 Long_Index_SkipBody(Application_Links* app, Token_Iterator_Array* i
             case TokenBaseKind_ScopeClose:         { scope_nest--; nest_found = true; final_nest = -1; } break;
             case TokenBaseKind_ParentheticalOpen:  { paren_nest++; nest_found = true; final_nest = +1; } break;
             case TokenBaseKind_ParentheticalClose: { paren_nest--; nest_found = true; final_nest = -1; } break;
-
+            
             case TokenBaseKind_Operator:
             {
                 Scratch_Block scratch(app);
                 String8 string = push_buffer_range(app, scratch, buffer, Ii64(token));
-
+                
                 // TODO(long): Replace this with a for loop and compare each char manually
                 while (string.size)
                 {
                     String8 sub_string = string_prefix(string, 1);
                     string = string_skip(string, 1);
-
+                    
                     // NOTE(long): I use string comparison because > and >> are 2 seperate operators, and >>> or more is valid
                     if      (string_match(sub_string, S8Lit("<"))) { gener_nest++; nest_found = true; final_nest = +1; }
                     else if (string_match(sub_string, S8Lit(">"))) { gener_nest--; nest_found = true; final_nest = -1; }
@@ -209,13 +209,13 @@ function b32 Long_Index_SkipBody(Application_Links* app, Token_Iterator_Array* i
                 }
             } break;
         }
-
+        
         {
             done = paren_nest == 0 && scope_nest == 0 && gener_nest == 0;
             if (dec) done |= (paren_nest > 0 || scope_nest > 0 || gener_nest > 0);
             else     done |= (paren_nest < 0 || scope_nest < 0 || gener_nest < 0);
         }
-
+        
         if (done)
         {
             if (exit_early)
@@ -224,15 +224,15 @@ function b32 Long_Index_SkipBody(Application_Links* app, Token_Iterator_Array* i
                     next_token(it);
                 break;
             }
-
+            
             if (!nest_found)
                 break;
         }
-
+        
         if (!next_token(it))
             break;
     }
-
+    
     return paren_nest == 0 && scope_nest == 0 && gener_nest == 0 && (dec ? (final_nest >= 0) : (final_nest <= 0));
 }
 
@@ -241,10 +241,10 @@ function b32 _Long_Index_ParsePattern(F4_Index_ParseCtx* ctx, char* fmt, va_list
 {
     Long_Index_ProfileScope(ctx->app, "[Long] Parse Pattern");
     b32 parsed = 1;
-
+    
     F4_Index_ParseCtx ctx_restore = *ctx;
     F4_Index_TokenSkipFlags flags = F4_Index_TokenSkipFlag_SkipAll;
-
+    
     va_list args;
     va_copy(args, _args);
     for(int i = 0; fmt[i];)
@@ -259,7 +259,7 @@ function b32 _Long_Index_ParsePattern(F4_Index_ParseCtx* ctx, char* fmt, va_list
                     String8 string = SCu8((u8 *)cstring, cstring_length(cstring));
                     parsed = parsed && F4_Index_RequireToken(ctx, string, flags);
                 }break;
-
+                
                 case 'k':
                 {
                     Token_Base_Kind kind = (Token_Base_Kind)va_arg(args, int);
@@ -269,7 +269,7 @@ function b32 _Long_Index_ParsePattern(F4_Index_ParseCtx* ctx, char* fmt, va_list
                     if (parsed && output_range)
                         *output_range = Ii64(token);
                 }break;
-
+                
                 case 'b':
                 {
                     i16 kind = (i16)va_arg(args, int);
@@ -279,7 +279,7 @@ function b32 _Long_Index_ParsePattern(F4_Index_ParseCtx* ctx, char* fmt, va_list
                     if (parsed && output_range)
                         *output_range = Ii64(token);
                 }break;
-
+                
                 case 'n':
                 {
                     F4_Index_NoteKind kind = (F4_Index_NoteKind)va_arg(args, int);
@@ -312,17 +312,17 @@ function b32 _Long_Index_ParsePattern(F4_Index_ParseCtx* ctx, char* fmt, va_list
                         }
                     }
                 }break;
-
+                
                 case 's':
                 {
                     F4_Index_SkipSoftTokens(ctx, 0);
                 }break;
-
+                
                 case 'o':
                 {
                     F4_Index_SkipOpTokens(ctx);
                 }break;
-
+                
                 default: break;
             }
             i += 1;
@@ -332,9 +332,9 @@ function b32 _Long_Index_ParsePattern(F4_Index_ParseCtx* ctx, char* fmt, va_list
             i += 1;
         }
     }
-
+    
     va_end(args);
-
+    
     if (!parsed)
         *ctx = ctx_restore;
     return parsed;
@@ -378,11 +378,11 @@ function F4_Index_Note* Long_Index_LoadRef(Application_Links* app, F4_Index_Note
 {
     Long_Index_ProfileScope(app, "[Long] Lookup References");
     if (!note->file) return 0;
-
+    
     F4_Index_Note* result = 0;
     Buffer_ID buffer = note->file->buffer;
     Token_Array array = get_token_array_from_buffer(app, buffer);
-
+    
     // NOTE(long): Normally, ParseSelection will stop when it doesn't see any identifiers or selection operators,
     // so if you have a derived class that inherits from a based class and multiple interfaces, it will return the last interface.
     // But you usually want it to return the based class, and because C# is stupid, the based class always needs to be declared first.
@@ -392,7 +392,7 @@ function F4_Index_Note* Long_Index_LoadRef(Application_Links* app, F4_Index_Note
         result = Long_Index_LookupBestNote(app, buffer, &array, token_from_pos(&array, note->scope_range.min - 1), filter_note, 1);
     else if (range_size(note->base_range))
         result = Long_Index_LookupBestNote(app, buffer, &array, token_from_pos(&array, note-> base_range.max - 1), filter_note);
-
+    
     if (result == note || result == filter_note) result = 0;
     return result;
 }
@@ -421,14 +421,14 @@ function void Long_Index_EraseNote(Application_Links* app, F4_Index_Note* note)
 {
     Long_Index_IterateValidNoteInFile(child, note)
         Long_Index_EraseNote(app, child);
-
+    
     Assert(!(Long_Index_IsNamespace(note) && note->kind == F4_Index_NoteKind_Type));
-
+    
     F4_Index_Note* prev = note->prev_sibling;
     F4_Index_Note* next = note->next_sibling;
     if (prev) prev->next_sibling = next;
     if (next) next->prev_sibling = prev;
-
+    
     F4_Index_Note* parent = note->parent;
     if (parent && Long_Index_IsNamespace(parent))
     {
@@ -444,15 +444,15 @@ function void Long_Index_FreeNoteTree(F4_Index_Note *note)
 {
     Long_Index_IterateValidNoteInFile(child, note)
         Long_Index_FreeNoteTree(child);
-
+    
     F4_Index_Note *prev = note->prev;
     F4_Index_Note *next = note->next;
     F4_Index_Note *hash_prev = note->hash_prev;
     F4_Index_Note *hash_next = note->hash_next;
-
+    
     if (prev) prev->next = next;
     if (next) next->prev = prev;
-
+    
     if (!prev)
     {
         if (next)
@@ -467,7 +467,7 @@ function void Long_Index_FreeNoteTree(F4_Index_Note *note)
             if (hash_prev) hash_prev->hash_next = hash_next;
             if (hash_next) hash_next->hash_prev = hash_prev;
         }
-
+        
         if (!hash_prev)
             f4_index.note_table[note->hash % ArrayCount(f4_index.note_table)] = next ? next : hash_next;
     }
@@ -524,21 +524,21 @@ function F4_Index_Note* Long_Index_PopNamespaceScope(F4_Index_ParseCtx* ctx)
     F4_Index_Note* namespace_scope = current_namespace->parent;
     Assert(namespace_scope->kind == F4_Index_NoteKind_Scope);
     Assert(namespace_scope->parent);
-
+    
     // Reset the parent note
     current_namespace->parent = namespace_scope->parent;
     namespace_scope->parent = 0;
-
+    
     // Update the child note
     if (namespace_scope->first_child)
         namespace_scope->first_child = namespace_scope->first_child->next_sibling;
     else
         namespace_scope->first_child = current_namespace->first_child;
     namespace_scope->last_child = namespace_scope->first_child ? current_namespace->last_child : 0;
-
+    
     namespace_scope->scope_range = { current_namespace->scope_range.min, ctx->it.ptr->pos };
     current_namespace = {};
-
+    
     return namespace_scope;
 }
 
@@ -548,11 +548,11 @@ function F4_Index_Note* Long_Index_LookupNote(String8 string)
 {
     u64 hash = table_hash_u8(string.str, string.size);
     u64 slot = hash % ArrayCount(f4_index.note_table);
-
+    
     for (F4_Index_Note* note = f4_index.note_table[slot]; note; note = note->hash_next)
         if (note->hash == hash && string_match(string, note->string))
             return note;
-
+    
     return 0;
 }
 
@@ -604,21 +604,21 @@ function void Long_Index_ParseSelection(Application_Links* app, Arena* arena, To
     Token* current = token_it_read(it);
     if (current && (current->kind == TokenBaseKind_Whitespace || current->kind == TokenBaseKind_Comment))
         token_it_dec(it);
-
+    
     Long_Index_SkipBody(app, it, buffer, 1);
     current = token_it_read(it);
-
+    
     if (current && current->kind == TokenBaseKind_Identifier)
     {
         String8 string = push_buffer_range(app, arena, buffer, Ii64(current));
-
+        
 #define SLLQueuePushFront(f, l, n) ((f) == 0 ? ((f)=(l)=(n),(n)->next=0) : ((n)->next=(f),(f)=(n)))
         String8Node* node = push_array(arena, String8Node, 1);
         node->string = string;
         SLLQueuePushFront(list->first, list->last, node);
         list->node_count += 1;
         list->total_size += string.size;
-
+        
         if (token_it_dec(it))
         {
             // TODO(long): Abstract selection function and is_comma out
@@ -629,10 +629,10 @@ function void Long_Index_ParseSelection(Application_Links* app, Arena* arena, To
                 String8 lexeme = push_token_lexeme(app, scratch, buffer, it->ptr);
                 is_selection = Long_Index_IsMatch(lexeme, ExpandArray(selections));
             }
-
+            
             if (is_selection && token_it_dec(it))
                 Long_Index_ParseSelection(app, arena, it, buffer, list, continue_after_comma);
-
+            
             b32 is_comma = 0;
             if (continue_after_comma)
             {
@@ -640,7 +640,7 @@ function void Long_Index_ParseSelection(Application_Links* app, Arena* arena, To
                 String8 lexeme = push_token_lexeme(app, scratch, buffer, it->ptr);
                 is_comma = string_match(lexeme, S8Lit(","));
             }
-
+            
             if (is_comma && token_it_dec(it))
             {
                 *list = {};
@@ -658,7 +658,7 @@ function F4_Index_Note* Long_Index_LookupNoteTree(Application_Links* app, F4_Ind
         if (child  ) return child;
         if (!parent) break;
     }
-
+    
     for (String8ListNode* ref = file ? file->references : 0; ref; ref = ref->next)
     {
         F4_Index_Note* parent = 0;
@@ -669,7 +669,7 @@ function F4_Index_Note* Long_Index_LookupNoteTree(Application_Links* app, F4_Ind
             if (!parent)
                 break;
         }
-
+        
         if (parent)
         {
             F4_Index_Note* child = Long_Index_LookupChild(string, parent);
@@ -677,14 +677,14 @@ function F4_Index_Note* Long_Index_LookupNoteTree(Application_Links* app, F4_Ind
                 return child;
         }
     }
-
+    
     return 0;
 }
 
 function F4_Index_Note* Long_Index_LookupScope(F4_Index_Note* note, i64 pos)
 {
     F4_Index_Note* result = 0;
-
+    
     if (note->range.min == pos)
         result = note;
     else if (note->scope_range.max && range_contains(Range_i64{ note->range.min, note->scope_range.max }, pos))
@@ -692,7 +692,7 @@ function F4_Index_Note* Long_Index_LookupScope(F4_Index_Note* note, i64 pos)
         Long_Index_IterateValidNoteInFile(child, note)
             if (result = Long_Index_LookupScope(child, pos))
             break;
-
+        
         if (!result)
             result = note;
     }
@@ -708,20 +708,32 @@ function F4_Index_Note* Long_Index_GetSurroundingNote(F4_Index_File* file, i64 p
     return result;
 }
 
+enum Long_Index_LookupType
+{
+    Long_LookupType_None,
+    Long_LookupType_PreferFunc,
+    Long_LookupType_PreferType,
+    Long_LookupType_PreferMember,
+};
+
 function F4_Index_Note* Long_Index_LookupNoteFromList(Application_Links* app, String8List names, i64 pos,
                                                       F4_Index_File* file, F4_Index_Note* surrounding_note, F4_Index_Note* filter_note,
-                                                      b32 prefer_func, b32 prefer_type)
+                                                      Long_Index_LookupType lookup_type)
 {
     Long_Index_ProfileScope(app, "[Long] Lookup List");
     for (F4_Index_Note* note = names.first ? Long_Index_LookupNote(names.first->string) : 0; note; note = note->next)
         if (note->file == file && note->range.min == pos)
             return note;
-
+    
     F4_Index_Note* result = 0;
     if (names.first)
     {
-        F4_Index_Note* note = Long_Index_LookupNoteTree(app, file, surrounding_note, names.first->string);
-
+        F4_Index_Note* note = 0;
+        if (lookup_type == Long_LookupType_PreferMember)
+            note = Long_Index_LookupChild(names.first->string, surrounding_note);
+        else
+            note = Long_Index_LookupNoteTree(app, file, surrounding_note, names.first->string);
+        
         // NOTE(long): Lookup note from the inheritance tree
         if (!note)
         {
@@ -736,11 +748,11 @@ function F4_Index_Note* Long_Index_LookupNoteFromList(Application_Links* app, St
                 }
             }
         }
-
+        
         // NOTE(long): Choose parent types over the child functions when they have the same name (constructors, conversion operators, etc)
         if (note)
         {
-            if (prefer_func)
+            if (lookup_type == Long_LookupType_PreferFunc)
             {
                 if (note->kind == F4_Index_NoteKind_Type)
                 {
@@ -756,11 +768,11 @@ function F4_Index_Note* Long_Index_LookupNoteFromList(Application_Links* app, St
                         note = note->parent;
             }
         }
-
+        
         if (note)
         {
             F4_Index_Note* child = note;
-
+            
             i32 i = 0;
             for (String8Node* name = names.first->next; name; name = name->next, ++i)
             {
@@ -770,29 +782,46 @@ function F4_Index_Note* Long_Index_LookupNoteFromList(Application_Links* app, St
                 // TestA.stuff1 TestB;
                 // TestB.stuff2 TestA;
                 // Or so on for TestC, TestD, etc
-
+                
                 F4_Index_Note* parent = child;
                 child = Long_Index_LookupChild(name->string, parent);
-
+                
                 while (!child && parent && parent != filter_note)
                 {
                     if (!filter_note) filter_note = parent;
                     parent = Long_Index_LookupRef(app, parent, filter_note);
                     child = Long_Index_LookupChild(name->string, parent);
                 }
-
+                
                 if (!child)
                     break;
             }
             result = child;
         }
     }
-    else if (prefer_type) result = surrounding_note;
-
+    else if (lookup_type == Long_LookupType_PreferType) result = surrounding_note;
+    
     return result;
 }
 
-
+function void Long_Index_SkipSelection(Application_Links* app, Token_Iterator_Array* it, Buffer_ID buffer, b32 dec = 0)
+{
+    Scratch_Block scratch(app);
+    if (dec)
+    {
+        REPEAT_DEC:
+        if (token_it_dec(it) && string_match(S8Lit("."), push_token_lexeme(app, scratch, buffer, it->ptr)))
+            if (token_it_dec(it) && it->ptr->kind == TokenBaseKind_Identifier)
+                goto REPEAT_DEC;
+    }
+    else
+    {
+        REPEAT_INC:
+        if (token_it_inc(it) && string_match(push_token_lexeme(app, scratch, buffer, it->ptr), S8Lit(".")))
+            if (token_it_inc(it) && it->ptr->kind == TokenBaseKind_Identifier)
+                goto REPEAT_INC;
+    }
+}
 
 // TODO(long):
 // Handle initializer lists
@@ -803,76 +832,107 @@ function F4_Index_Note* Long_Index_LookupBestNote(Application_Links* app, Buffer
 {
     Long_Index_ProfileScope(app, "[Long] Lookup Best Note");
     Scratch_Block scratch(app);
-
+    
     String8List names = {};
     Range_i64 range = Ii64(token);
     Token_Iterator_Array it = token_iterator_pos(0, array, range.min);
     Long_Index_ParseSelection(app, scratch, &it, buffer, &names, use_first);
-
+    
     Buffer_Cursor debug_cursor = buffer_compute_cursor(app, buffer, seek_pos(range.min));
     String8 debug_filename = push_buffer_base_name(app, scratch, buffer);
-
+    
     F4_Index_File* file = F4_Index_LookupFile(app, buffer);
     F4_Index_Note* scope_note = Long_Index_GetSurroundingNote(file, range.min);
-
+    
     // TODO(long): C# and C++ specific crap - Abstract this out for other languages
-    b32 prefer_type, prefer_func;
+    Long_Index_LookupType lookup_type = Long_LookupType_None;
     {
         String8 start_string = push_token_lexeme(app, scratch, buffer, it.ptr);
-        prefer_type = string_match(start_string, S8Lit("this"));
-        prefer_func = string_match(start_string, S8Lit("new"));
-
+        if (string_match(start_string, S8Lit("this")))
+            lookup_type = Long_LookupType_PreferType;
+        else if (string_match(start_string, S8Lit("new")))
+            lookup_type = Long_LookupType_PreferFunc;
+        
+        if (lookup_type == Long_LookupType_None)
+        {
+            // NOTE(long): This is for Object Initializers in C#. This can be slightly modified to handle Designated Initializers in C/C++
+            if (scope_note)
+            {
+                b32 is_obj_field = it.ptr->kind == TokenBaseKind_ScopeOpen;
+                if (!is_obj_field && string_match(start_string, S8Lit(",")))
+                {
+                    Token_Iterator_Array iterator = it;
+                    if (token_it_inc(&iterator) && token_it_inc(&iterator))
+                        is_obj_field = iterator.ptr->kind == TokenBaseKind_ScopeClose ||
+                            string_match(push_token_lexeme(app, scratch, buffer, iterator.ptr), S8Lit("="));
+                }
+                
+                if (is_obj_field)
+                {
+                    Token_Iterator_Array it = token_iterator_pos(0, array, scope_note->range.min);
+#if 0
+                    if (token_it_dec(&it) && it.ptr->kind == TokenBaseKind_Identifier)
+                    {
+                        Token* type_token = it.ptr;
+                        if (token_it_dec(&it) && it.ptr->kind == TokenBaseKind_Keyword)
+                        {
+                            if (string_match(push_token_lexeme(app, scratch, buffer, it.ptr), S8Lit("new")))
+                            {
+                                F4_Index_Note* type_scope = Long_Index_LookupBestNote(app, buffer, array, type_token, filter_note);
+                                if (type_scope)
+                                {
+                                    scope_note = type_scope;
+                                    lookup_type = Long_LookupType_PreferMember;
+                                }
+                            }
+                        }
+                    }
+#else
+                    if (token_it_dec(&it) && it.ptr->kind == TokenBaseKind_Identifier)
+                    {
+                        Token* type_token = it.ptr;
+                        Long_Index_SkipSelection(app, &it, buffer, 1);
+                        if (string_match(push_token_lexeme(app, scratch, buffer, it.ptr), S8Lit("new")))
+                        {
+                            F4_Index_Note* type_scope = Long_Index_LookupBestNote(app, buffer, array, type_token, filter_note);
+                            if (type_scope)
+                            {
+                                scope_note = type_scope;
+                                lookup_type = Long_LookupType_PreferMember;
+                            }
+                        }
+                    }
+#endif
+                }
+            }
+        }
+        
         // NOTE(long): This is for `this.myField`
-        if (prefer_type)
+        else if (lookup_type == Long_LookupType_PreferType)
         {
             while (scope_note && scope_note->kind != F4_Index_NoteKind_Type)
                 scope_note = scope_note->parent;
         }
-        // NOTE(long): This is for Object Initializers in C#. This can be slightly modified to handle Designated Initializers in C/C++
-        else if (scope_note)
-        {
-            b32 is_obj_field = it.ptr->kind == TokenBaseKind_ScopeOpen;
-            if (!is_obj_field && string_match(start_string, S8Lit(",")))
-            {
-                Token_Iterator_Array iterator = it;
-                if (token_it_inc(&iterator) && token_it_inc(&iterator))
-                    is_obj_field = iterator.ptr->kind == TokenBaseKind_ScopeClose ||
-                        string_match(push_token_lexeme(app, scratch, buffer, iterator.ptr), S8Lit("="));
-            }
-
-            if (is_obj_field)
-            {
-                Token_Iterator_Array it = token_iterator_pos(0, array, scope_note->range.min);
-                if (token_it_dec(&it) && it.ptr->kind == TokenBaseKind_Identifier)
-                {
-                    Token* type_token = it.ptr;
-                    if (token_it_dec(&it) && it.ptr->kind == TokenBaseKind_Keyword)
-                    {
-                        if (string_match(push_token_lexeme(app, scratch, buffer, it.ptr), S8Lit("new")))
-                        {
-                            F4_Index_Note* new_scope = Long_Index_LookupBestNote(app, buffer, array, type_token, filter_note);
-                            if (new_scope)
-                                scope_note = new_scope;
-                        }
-                    }
-                }
-            }
-        }
-
+        
         // NOTE(long): This is for constructor: `a = new MyType(...)`
-        if (prefer_func)
+        // but ignore if it's an object-initialized constructor: `a = new MyType { ... }`
+        else if (lookup_type == Long_LookupType_PreferFunc)
         {
             Token_Iterator_Array it = token_iterator_pos(0, array, range.min);
-            if (token_it_inc(&it))
-                prefer_func = it.ptr->kind != TokenBaseKind_ScopeOpen;
+            
+            // a = new A.B.C.D.E { ... }
+            Long_Index_SkipSelection(app, &it, buffer);
+            
+            if (it.ptr->kind == TokenBaseKind_ScopeOpen)
+                lookup_type = Long_LookupType_None;
         }
     }
-
-    F4_Index_Note* result = Long_Index_LookupNoteFromList(app, names, range.min, file, scope_note, filter_note, prefer_func, prefer_type);
+    
+    F4_Index_Note* result = Long_Index_LookupNoteFromList(app, names, range.min, file, scope_note, filter_note, lookup_type);
     if (!result && names.last)
     {
         names.last->string = push_stringf(scratch, "%.*s%s", string_expand(names.last->string), "Attribute");
-        result = Long_Index_LookupNoteFromList(app, names, range.min, file, scope_note, filter_note, prefer_func, prefer_type);
+        result = Long_Index_LookupNoteFromList(app, names, range.min, file, scope_note, filter_note, lookup_type);
     }
     return result;
 }
@@ -897,7 +957,7 @@ function Rect_f32 Long_Index_DrawNote(Application_Links* app, Range_i64_Array ra
         Token_Array _array = get_token_array_from_buffer(app, buffer);
         array = &_array;
     }
-
+    
     i64 max_range_pos = ranges.ranges[ranges.count - 1].max;
     if (!max_range_pos)
         system_error_box("The last range of the note is incorrect");
@@ -908,7 +968,7 @@ function Rect_f32 Long_Index_DrawNote(Application_Links* app, Range_i64_Array ra
             max_range_pos = token->pos;
     }
     Range_i64 total_range = { ranges.ranges[0].min, max_range_pos };
-
+    
     Scratch_Block scratch(app);
     String8 string = push_buffer_range(app, scratch, buffer, total_range);
     {
@@ -918,7 +978,7 @@ function Rect_f32 Long_Index_DrawNote(Application_Links* app, Range_i64_Array ra
     }
     f32 space_size = get_string_advance(app, face, S8Lit(" "));
     Vec2_f32 needed_size = { 0, line_height };
-
+    
 #define Long_IterateRanges(tokens, ranges, foreach, callback) \
     do { \
         Range_i64* _ranges_ = (ranges).ranges; \
@@ -934,7 +994,7 @@ function Rect_f32 Long_Index_DrawNote(Application_Links* app, Range_i64_Array ra
             } while (token_it_inc_all(&it)); \
         } \
     } while (0)
-
+    
     {
         Vec2_f32 maxP = needed_size;
         b32 was_whitespace = 0;
@@ -955,7 +1015,7 @@ function Rect_f32 Long_Index_DrawNote(Application_Links* app, Range_i64_Array ra
         if (maxP.x)
             needed_size = maxP;
     }
-
+    
     Rect_f32 draw_rect =
     {
         tooltip_position.x,
@@ -963,15 +1023,15 @@ function Rect_f32 Long_Index_DrawNote(Application_Links* app, Range_i64_Array ra
         tooltip_position.x + needed_size.x + 2*padding,
         tooltip_position.y + needed_size.y + 2*padding,
     };
-
+    
     if (draw_rect.x1 > max_range_x.max)
     {
         draw_rect.x0 -= draw_rect.x1 - max_range_x.max;
         draw_rect.x1 = max_range_x.max;
     }
-
+    
     F4_DrawTooltipRect(app, draw_rect);
-
+    
     Vec2_f32 text_position = draw_rect.p0 + Vec2_f32{ padding, padding };
     f32 start_x = text_position.x;
     Long_IterateRanges(array, ranges, text_position.x += (text_position.x != start_x) ? space_size : 0,
@@ -994,7 +1054,7 @@ function Rect_f32 Long_Index_DrawNote(Application_Links* app, Range_i64_Array ra
                            }
                        });
 #undef Long_IterateRanges
-
+    
     return draw_rect;
 }
 
@@ -1003,13 +1063,13 @@ function Range_i64_Array Long_Index_GetNoteRanges(Application_Links* app, Arena*
     // NOTE(long): I need an array of ranges for handling trailing decl: int a = ..., b = ..., c = ...;
     // if I want to display b, I needs to draw `int b = ...`
     Range_i64_Array result = { push_array_zero(arena, Range_i64, 3), 0 };
-
+    
     if (note->base_range.max)
         result.ranges[result.count++] = note->base_range;
     result.ranges[result.count++] = Long_Index_ArgumentRange(note);
     if (range.max)
         result.ranges[result.count++] = range;
-
+    
     return result;
 }
 
@@ -1056,33 +1116,33 @@ function void Long_Index_DrawTooltip(Application_Links* app, Rect_f32 screen_rec
     Vec2_f32 offset = tooltip_offset ? *tooltip_offset : Vec2_f32{};
     tooltip_pos += offset;
     offset = tooltip_pos;
-
+    
     Face_ID face = global_small_code_face;
     f32 padding = 4.f;
     f32 line_height = get_face_metrics(app, face).line_height;
     ARGB_Color color = finalize_color(defcolor_text_default, 0);
     ARGB_Color highlight_color = finalize_color(fleury_color_token_highlight, 0);
     Range_f32 screen_x = { screen_rect.x0 + padding * 4, screen_rect.x1 - padding * 4 };
-
+    
     Scratch_Block scratch(app);
-
+    
     if (note->kind == F4_Index_NoteKind_Decl && index)
     {
         note = Long_Index_LookupRef(app, note, 0);
         if (!note)
             return;
     }
-
+    
     if (note->kind == F4_Index_NoteKind_Type && index)
     {
         i32 opt = long_active_pos_context_option;
         NoteFilter* filter = long_global_context_opts[opt];
-
+        
         f32 start_x = tooltip_pos.x;
         Rect_f32 rects[3] = {};
         i32 counts[3] = {};
         i32 option_count = ArrayCount(long_global_context_opts);
-
+        
         for (opt = 0; opt < option_count; ++opt)
         {
             i32 member_count = 0;
@@ -1091,7 +1151,7 @@ function void Long_Index_DrawTooltip(Application_Links* app, Rect_f32 screen_rec
                     member_count++;
             counts[opt] = member_count;
         }
-
+        
         {
             i32 highlight = long_active_pos_context_option;
             b32 empty = false;
@@ -1105,48 +1165,48 @@ function void Long_Index_DrawTooltip(Application_Links* app, Rect_f32 screen_rec
                 }
             }
             filter = long_global_context_opts[highlight];
-
+            
             if (!empty)
             {
                 long_active_pos_context_option = highlight;
-
+                
                 FColor option_colors[] =
                 {
                     fcolor_id(fleury_color_index_decl),
                     fcolor_id(fleury_color_index_function),
                     fcolor_id(fleury_color_index_product_type),
                 };
-
+                
                 char* option_names[] =
                 {
                     "DECL",
                     "FUNC",
                     "TYPE",
                 };
-
+                
                 i32 prev_idx = clamp_loop(highlight - 1, option_count);
                 i32 next_idx = clamp_loop(highlight + 1, option_count);
                 Fancy_Line list = {};
-
+                
                 push_fancy_stringf(scratch, &list, option_colors[prev_idx], "<(%.2d)", counts[prev_idx]);
                 list.last->post_margin = .5f;
-
+                
                 f32 beg_offset = get_fancy_line_width(app, face, &list);
                 push_fancy_stringf(scratch, &list, option_colors[highlight], "[%s(%.2d)]", option_names[highlight], counts[highlight]);
                 f32 end_offset = get_fancy_line_width(app, face, &list);
-
+                
                 push_fancy_stringf(scratch, &list, option_colors[next_idx], "(%.2d)>", counts[next_idx]);
                 list.last->pre_margin = .5f;
-
+                
                 f32 title_padding = padding * 1.5f;
                 Vec2_f32 padding_vec = Vec2_f32{ title_padding, title_padding };
                 Rect_f32 rect = Rf32_xy_wh(tooltip_pos, get_fancy_line_dim(app, face, &list) + padding_vec * 2);
                 Vec2_f32 text_pos = tooltip_pos + padding_vec;
-
+                
                 F4_DrawTooltipRect(app, rect);
                 draw_fancy_line(app, face, fcolor_zero(), &list, text_pos);
                 tooltip_pos.y += rect_height(rect);
-
+                
                 // NOTE(long): Because the title uses a much bigger padding, I like to increase the highlight's y slightly
                 f32 highlight_y = rect.y1 - title_padding;
                 Rect_f32 highlight_rect = Rf32_xy_wh(text_pos.x + beg_offset, highlight_y, end_offset - beg_offset, 2);
@@ -1155,9 +1215,9 @@ function void Long_Index_DrawTooltip(Application_Links* app, Rect_f32 screen_rec
                 draw_rectangle(app, highlight_rect, 1, highlight_color);
             }
         }
-
+        
         tooltip_pos.x = start_x;
-
+        
         i32 i = 0;
         for (F4_Index_Note* child = note->first_child; child; child = child->next_sibling)
         {
@@ -1166,13 +1226,13 @@ function void Long_Index_DrawTooltip(Application_Links* app, Rect_f32 screen_rec
                 tooltip_pos.y += rect_height(Long_Index_DrawString(app, S8Lit("..."), tooltip_pos, face, line_height, padding * .5f, color));
                 break;
             }
-
+            
             if (child->kind == F4_Index_NoteKind_Scope || Long_Index_IsComment(child))
                 continue;
-
+            
             if (!filter(child))
                 continue;
-
+            
             Range_i64_Array ranges = Long_Index_GetNoteRanges(app, scratch, child, range);
             Rect_f32 rect;
             if (Long_Index_IsNamespace(child))
@@ -1207,7 +1267,7 @@ function void Long_Index_DrawTooltip(Application_Links* app, Rect_f32 screen_rec
                                        tooltip_pos, screen_x, highlight_color, highlight_range);
         tooltip_pos.y += rect_height(rect);
     }
-
+    
     if (tooltip_offset)
         *tooltip_offset += tooltip_pos - offset;
 }
@@ -1215,11 +1275,11 @@ function void Long_Index_DrawTooltip(Application_Links* app, Rect_f32 screen_rec
 function void Long_Index_DrawPosContext(Application_Links* app, View_ID view, F4_Language_PosContextData* first_ctx)
 {
     if (!long_global_pos_context_open) return;
-
+    
     // NOTE(long): In emacs style, has_highlight_range is only true when searching/multi-selecting
     b32 has_highlight_range = *scope_attachment(app, view_get_managed_scope(app, view), view_highlight_buffer, Buffer_ID) != 0;
     if (has_highlight_range) return;
-
+    
     Vec2_f32 offset = {};
     Rect_f32 screen = view_get_screen_rect(app, view);
     for (F4_Language_PosContextData* ctx = first_ctx; ctx; ctx = ctx->next)
@@ -1239,11 +1299,11 @@ function F4_Index_Note* Long_Index_GetDefNote(F4_Index_Note* note)
     F4_Index_Note* parent = note->parent;
     F4_Index_Note* old_note = note;
     while (note->prev) note = note->prev;
-
+    
     for (; note; note = note->next)
         if (note->parent == parent && !(note->flags & F4_Index_NoteFlag_Prototype) && note->kind == old_note->kind)
             break;
-
+    
     if (!note) note = old_note;
     return note;
 }
@@ -1252,7 +1312,7 @@ function void Long_Index_DrawCodePeek(Application_Links* app, View_ID view)
 {
     if (!global_code_peek_open)
         return;
-
+    
     F4_Index_Note* note = 0;
     {
         View_ID active_view = get_active_view(app, Access_Always);
@@ -1267,10 +1327,10 @@ function void Long_Index_DrawCodePeek(Application_Links* app, View_ID view)
                 note = Long_Index_GetDefNote(note);
         }
     }
-
+    
     if (!note)
         return;
-
+    
     Buffer_ID buffer = note->file->buffer;
     Range_i64 range = note->range;
 #if LONG_INDEX_DRAW_PARTIAL
@@ -1280,7 +1340,7 @@ function void Long_Index_DrawCodePeek(Application_Links* app, View_ID view)
     };
     range.max += 1;
 #endif
-
+    
     Rect_f32 view_rect = view_get_screen_rect(app, view);
     i32 peek_count = 1;
     f32 peek_height = (f32)((view_rect.y1 - view_rect.y0) * (0.5f + 0.4f*(clamp_top(peek_count / 4, 1)))) / peek_count;
@@ -1292,13 +1352,13 @@ function void Long_Index_DrawCodePeek(Application_Links* app, View_ID view)
         rect.y1 = rect.y0 + peek_height;
     }
     Rect_f32 inner_rect = rect_inner(rect, 30);
-
+    
     F4_DrawTooltipRect(app, rect);
-
+    
     Buffer_Point buffer_point = { get_line_number_from_pos(app, buffer, range.min) };
     range.max = clamp_bot(range.max, get_line_end(app, buffer, buffer_point.line_number).pos);
     Text_Layout_ID text_layout_id = text_layout_create(app, buffer, inner_rect, buffer_point);
-
+    
     Rect_f32 prev_prev_clip = draw_set_clip(app, inner_rect);
     {
         Token_Array array = get_token_array_from_buffer(app, buffer);
@@ -1313,7 +1373,7 @@ function void Long_Index_DrawCodePeek(Application_Links* app, View_ID view)
         }
         else
             paint_text_color_fcolor(app, text_layout_id, range, fcolor_id(defcolor_text_default));
-
+        
         draw_text_layout_default(app, text_layout_id);
     }
     draw_set_clip(app, prev_prev_clip);
@@ -1323,13 +1383,13 @@ function void Long_Index_DrawCodePeek(Application_Links* app, View_ID view)
 function void Long_Index_IndentBuffer(Application_Links* app, Buffer_ID buffer, Indent_Flag flags, i32 tab_width, i32 indent_width)
 {
     Scratch_Block scratch(app);
-
+    
     Range_i64 lines = get_line_range_from_pos_range(app, buffer, buffer_range(app, buffer));
     i64* indentations = push_array_zero(scratch, i64, lines.max - lines.min + 1);
     i64* shifted_indentations = indentations - lines.first; // NOTE(long): Because lines.first is 1-based
-
+    
     code_index_lock();
-
+    
     Code_Index_File* file = code_index_get_file(buffer);
     if (file)
     {
@@ -1345,11 +1405,11 @@ function void Long_Index_IndentBuffer(Application_Links* app, Buffer_ID buffer, 
                     // because they have `nest->open = Ii64(token->pos)` rather than `nest->open = Ii64(token)`
                     if (nest->open.min == pos)
                         continue;
-
+                    
                     if (nest->close.min == pos && nest->kind != CodeIndexNest_Paren)
                         continue;
                 }
-
+                
                 if (nest->kind == CodeIndexNest_Paren)
                 {
                     i64 paren_line = get_line_number_from_pos(app, buffer, nest->open.min);
@@ -1359,12 +1419,12 @@ function void Long_Index_IndentBuffer(Application_Links* app, Buffer_ID buffer, 
                     indent += shifted_indentations[paren_line] + start_text_size + 1;
                     break;
                 }
-
+                
                 indent += indent_width;
             }
             shifted_indentations[line] = indent;
         }
-
+        
         // COPYPASTA(long): make_batch_from_indentations
         Batch_Edit* batch_head = 0;
         Batch_Edit* batch_tail = 0;
@@ -1372,11 +1432,11 @@ function void Long_Index_IndentBuffer(Application_Links* app, Buffer_ID buffer, 
         {
             i64 line_start_pos = get_line_start_pos(app, buffer, line);
             Indent_Info info = get_indent_info_line_number_and_start(app, buffer, line, line_start_pos, tab_width);
-
+            
             i64 correct_indentation = shifted_indentations[line];
             if (info.is_blank && HasFlag(flags, Indent_ClearLine))
                 correct_indentation = 0;
-
+            
             if (correct_indentation != info.indent_pos)
             {
                 u64 str_size = 0;
@@ -1397,20 +1457,20 @@ function void Long_Index_IndentBuffer(Application_Links* app, Buffer_ID buffer, 
                     str = push_array(scratch, u8, str_size);
                     block_fill_u8(str, str_size, ' ');
                 }
-
+                
                 Batch_Edit *batch = push_array(scratch, Batch_Edit, 1);
                 sll_queue_push(batch_head, batch_tail, batch);
                 batch->edit.text = SCu8(str, str_size);
                 batch->edit.range = Ii64(line_start_pos, info.first_char_pos);
             }
         }
-
+        
         buffer_batch_edit(app, buffer, batch_head);
     }
     // NOTE(long): I don't need to actually do anything when the code can't find any Code_Index_File
     // But for completeness, I just call the default auto_indent one, which uses tokens rather than index notes
     else auto_indent_whole_file(app);
-
+    
     code_index_unlock();
 }
 
@@ -1419,12 +1479,12 @@ function void Long_Index_IndentBuffer(Application_Links* app, Buffer_ID buffer, 
 {
     i32 tab_width = clamp_bot((i32)def_get_config_u64(app, vars_save_string_lit("default_tab_width")), 1);
     i32 indent_width = (i32)def_get_config_u64(app, vars_save_string_lit("indent_width"));
-
+    
     Indent_Flag flags = 0;
     //AddFlag(flags, Indent_ClearLine);
     if (def_get_config_b32(vars_save_string_lit("indent_with_tabs")))
         AddFlag(flags, Indent_UseTab);
-
+    
     History_Record_Index first = buffer_history_get_current_state_index(app, buffer);
     Long_Index_IndentBuffer(app, buffer, flags, tab_width, indent_width);
     if (merge_history)

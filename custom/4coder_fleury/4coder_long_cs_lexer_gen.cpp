@@ -252,52 +252,52 @@ build_language_model(void){
 	sm_key("Where");
 	
 	/* C# contextual keywords that I hardly use
-add
-and
-alias
-ascending
-args
-async
-await
-by
-descending
-dynamic
-equals
-file
-from
-
-get
-global
-group
-init
-into
-join
-let
-managed (function pointer calling convention)
-nameof
-nint
-not
-
-notnull
-nuint
-on
-or
-orderby
-partial (type)
-partial (method)
-record
-remove
-required
-scoped
-
-select
-set
-unmanaged (function pointer calling convention)
-unmanaged (generic type constraint)
-value
-when (filter condition)
-where (query clause)
-with
+    add
+    and
+    alias
+    ascending
+    args
+    async
+    await
+    by
+    descending
+    dynamic
+    equals
+    file
+    from
+    
+    get
+    global
+    group
+    init
+    into
+    join
+    let
+    managed (function pointer calling convention)
+    nameof
+    nint
+    not
+    
+    notnull
+    nuint
+    on
+    or
+    orderby
+    partial (type)
+    partial (method)
+    record
+    remove
+    required
+    scoped
+    
+    select
+    set
+    unmanaged (function pointer calling convention)
+    unmanaged (generic type constraint)
+    value
+    when (filter condition)
+    where (query clause)
+    with
 	*/
 	
     sm_select_base_kind(TokenBaseKind_LiteralInteger);
@@ -455,6 +455,9 @@ with
     sm_case("R", pre_R);
 	sm_case("$", pre_inter);
     
+    // NOTE(long): The order of these sm_case_flagged are important
+    // Must  be trueA - trueB - falseA - falseB
+    // Can't be trueA - falseA - trueB - falseB
     sm_case_flagged(is_error_body, true, " \r\t\f\v", error_body);
     sm_case_flagged(is_warning_body, true, " \r\t\f\v", warning_body);
     sm_case_flagged(is_region_body, true, " \r\t\f\v", region_body);
