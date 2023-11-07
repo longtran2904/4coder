@@ -1299,6 +1299,9 @@ function F4_Index_Note* Long_Index_GetDefNote(F4_Index_Note* note)
     F4_Index_Note* parent = note->parent;
     F4_Index_Note* old_note = note;
     while (note->prev) note = note->prev;
+    // NOTE(long): This is a clever way to do the above thing but it still works when the note pass-in is null
+    // But every place that uses this function already has to check whether or not the note is null anyway
+    //for (F4_Index_Note* head = note; head; note = head, head = head->prev);
     
     for (; note; note = note->next)
         if (note->parent == parent && !(note->flags & F4_Index_NoteFlag_Prototype) && note->kind == old_note->kind)
@@ -1323,7 +1326,7 @@ function void Long_Index_DrawCodePeek(Application_Links* app, View_ID view)
         {
             Token_Array array = get_token_array_from_buffer(app, buffer);
             note = Long_Index_LookupBestNote(app, buffer, &array, token);
-            if (note->flags & F4_Index_NoteFlag_Prototype)
+            if (note && (note->flags & F4_Index_NoteFlag_Prototype))
                 note = Long_Index_GetDefNote(note);
         }
     }

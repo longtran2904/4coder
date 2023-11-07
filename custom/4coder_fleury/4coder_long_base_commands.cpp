@@ -1,5 +1,5 @@
 
-//~NOTE(long): Helper Functions
+//~ NOTE(long): Helper Functions
 
 //- NOTE(long): Buffer
 function Buffer_ID Long_Buffer_GetSearchBuffer(Application_Links* app)
@@ -647,13 +647,17 @@ function b32 Long_Buffer_CompareCurrentHistory(Application_Links* app, Buffer_ID
 
 function b32 Long_Buffer_CheckHistoryAndSetDirty(Application_Links* app, Buffer_ID buffer = 0, i32 offset = 0)
 {
+    b32 result = 0;
     if (!buffer)
         buffer = view_get_buffer(app, get_active_view(app, Access_ReadWriteVisible), Access_ReadWriteVisible);
     
-    Dirty_State dirty = buffer_get_dirty_state(app, buffer);
-    b32 result = Long_Buffer_CompareCurrentHistory(app, buffer, offset);
-    if (result)
-        buffer_set_dirty_state(app, buffer, RemFlag(dirty, DirtyState_UnsavedChanges));
+    if (buffer)
+    {
+        Dirty_State dirty = buffer_get_dirty_state(app, buffer);
+        result = Long_Buffer_CompareCurrentHistory(app, buffer, offset);
+        if (result)
+            buffer_set_dirty_state(app, buffer, RemFlag(dirty, DirtyState_UnsavedChanges));
+    }
     
     return result;
 }
@@ -748,6 +752,38 @@ CUSTOM_DOC("Advances forward through the undo history in the buffer containing t
     redo_all_buffers(app);
     for (Buffer_ID buffer = get_buffer_next(app, 0, Access_Always); buffer; buffer = get_buffer_next(app, buffer, Access_Always))
         Long_Buffer_CheckHistoryAndSetDirty(app, buffer);
+}
+
+function void Long_Buffer_AdvanceHistorySamePos(Application_Links* app, b32 undo)
+{
+    View_ID view = get_active_view(app, Access_Always);
+    Buffer_Scroll scroll = view_get_buffer_scroll(app, view);
+    
+    Managed_Object object = alloc_buffer_markers_on_buffer(app, view_get_buffer(app, view, Access_Always), 1, 0);
+    Marker* marker = (Marker*)managed_object_get_pointer(app, object);
+    marker->pos = view_get_cursor_pos(app, view);
+    marker->lean_right = 0;
+    
+    if (undo)
+        long_undo(app);
+    else
+        long_redo(app);
+    
+    view_set_cursor_and_preferred_x(app, view, seek_pos(marker->pos));
+    managed_object_free(app, object);
+    view_set_buffer_scroll(app, view, scroll, SetBufferScroll_SnapCursorIntoView);
+}
+
+CUSTOM_COMMAND_SIG(long_undo_same_pos)
+CUSTOM_DOC("Advances backward through the undo history of the current buffer but doesn't move the cursor.")
+{
+    Long_Buffer_AdvanceHistorySamePos(app, 1);
+}
+
+CUSTOM_COMMAND_SIG(long_redo_same_pos)
+CUSTOM_DOC("Advances forwards through the undo history of the current buffer but doesn't move the cursor.")
+{
+    Long_Buffer_AdvanceHistorySamePos(app, 0);
 }
 
 //-
@@ -887,6 +923,7 @@ CUSTOM_DOC("Inserts text and auto-indents the line on which the cursor sits if a
 #define LONG_QUERY_STRING_SIZE KB(1)
 CUSTOM_ID(attachment, long_search_string_size);
 CUSTOM_ID(attachment, long_start_selection_offset);
+CUSTOM_ID(attachment, long_selection_pos_offset);
 
 function Buffer_ID Long_CreateOrSwitchBuffer(Application_Links *app, String_Const_u8 name_string, View_ID default_target_view)
 {
@@ -1111,6 +1148,7 @@ function void Long_SearchBuffer_MultiSelect(Application_Links* app, View_ID view
     
     Query_Bar_Group group(app);
     Query_Bar bar = {};
+    bar.string = search_string;
     if (!start_query_bar(app, &bar, 0))
         return;
     
@@ -1134,13 +1172,14 @@ function void Long_SearchBuffer_MultiSelect(Application_Links* app, View_ID view
     i32* selection_offset = scope_attachment(app, scope, long_start_selection_offset, i32);
     i64* size = scope_attachment(app, scope, long_search_string_size, i64);
     *size = search_string.size;
+    i64* offset = scope_attachment(app, scope, long_selection_pos_offset, i64);
+    *offset = 0;
     
-    b32 abort = false, in_replace_mode = false, exit_to_jump_highlight = false;
+    b32 abort = false, exit_to_jump_highlight = false;
     def_set_config_b32(vars_save_string_lit("use_jump_highlight"), 0);
     
-    u8 backing_buffer[LONG_QUERY_STRING_SIZE];
-    block_copy(backing_buffer, search_string.str, search_string.size);
-    String_u8 buffer_string = Su8(backing_buffer, search_string.size, LONG_QUERY_STRING_SIZE);
+    Long_Buffer_History start_history = {};
+    global_history_edit_group_begin(app);
     
     for (;;)
     {
@@ -1163,8 +1202,7 @@ function void Long_SearchBuffer_MultiSelect(Application_Links* app, View_ID view
         
         i32 jump_count = jump_state.list->jump_count;
         i32 selection_count = clamp_top(Long_Abs(*selection_offset) + 1, jump_count);
-        bar.prompt = push_stringf(scratch, "Selection Count: %d, %s: ", selection_count, in_replace_mode ? "Replace With" : "For");
-        bar.string = in_replace_mode ? SCu8(buffer_string.str, buffer_string.size) : search_string;
+        bar.prompt = push_stringf(scratch, "Selection Count: %d, For: ", selection_count);
         
         ID_Pos_Jump_Location current_location;
         get_jump_from_list(app, jump_state.list, jump_state.list_index, &current_location);
@@ -1174,49 +1212,16 @@ function void Long_SearchBuffer_MultiSelect(Application_Links* app, View_ID view
         
         String8 string = to_writable(&in);
         i32 advance = 0;
+        b32 change_string = false;
+        b32 has_modified_string = start_history.index;
         
         if (match_key_code(&in, KeyCode_Return) || match_key_code(&in, KeyCode_Tab))
         {
             Long_PointStack_Push(app, current_location.buffer_id, current_location.pos, view);
-            
-            if (in_replace_mode)
-            {
-                Range_i32 select_range = Long_Highlight_GetRange(jump_state, *selection_offset);
-                
-                Batch_Edit* batch_head = 0;
-                Batch_Edit* batch_tail = 0;
-                Buffer_ID buffer = 0;
-                
-                global_history_edit_group_begin(app);
-                for (i32 i = select_range.min; i <= select_range.max; ++i)
-                {
-                    ID_Pos_Jump_Location location;
-                    if (get_jump_from_list(app, jump_state.list, i, &location))
-                    {
-                        Batch_Edit* batch = push_array(scratch, Batch_Edit, 1);
-                        batch->edit.text = bar.string;
-                        batch->edit.range = Ii64_size(location.pos, *size);
-                        
-                        if (location.buffer_id != buffer)
-                        {
-                            if (batch_head)
-                                buffer_batch_edit(app, buffer, batch_head);
-                            batch_head = batch_tail = 0;
-                            buffer = location.buffer_id;
-                        }
-                        
-                        sll_queue_push(batch_head, batch_tail, batch);
-                        
-                        if (i == select_range.max && batch_head)
-                            buffer_batch_edit(app, buffer, batch_head);
-                    }
-                }
-                global_history_edit_group_end(app);
-            }
             break;
         }
         
-        else if (match_key_code(&in, KeyCode_PageUp) || match_key_code(&in, KeyCode_Up))
+        else if (!has_modified_string && (match_key_code(&in, KeyCode_PageUp) || match_key_code(&in, KeyCode_Up)))
         {
             goto_prev_jump(app);
             advance = -1;
@@ -1232,15 +1237,28 @@ function void Long_SearchBuffer_MultiSelect(Application_Links* app, View_ID view
                     *selection_offset  = 0;
             }
         }
-        else if (match_key_code(&in, KeyCode_PageDown) || match_key_code(&in, KeyCode_Down))
+        else if (!has_modified_string && (match_key_code(&in, KeyCode_PageDown) || match_key_code(&in, KeyCode_Down)))
         {
             goto_next_jump(app);
             advance = +1;
             goto CHANGE_JUMP;
         }
         
-        else if (match_key_code(&in, KeyCode_Left )) *size -= 1;
-        else if (match_key_code(&in, KeyCode_Right)) *size += 1;
+        else if (match_key_code(&in, KeyCode_Left ))
+        {
+            advance = -1;
+            
+            CHANGE_SIZE:
+            if (has_modified_string)
+                *offset += advance;
+            else
+                *size += advance;
+        }
+        else if (match_key_code(&in, KeyCode_Right))
+        {
+            advance = +1;
+            goto CHANGE_SIZE;
+        }
         
         else if (match_key_code(&in, KeyCode_A) && has_modifier(&in, KeyCode_Control))
             *selection_offset = (*selection_offset == jump_count) ? 0 : jump_count;
@@ -1248,22 +1266,30 @@ function void Long_SearchBuffer_MultiSelect(Application_Links* app, View_ID view
         else if (match_key_code(&in, KeyCode_E) && has_modifier(&in, KeyCode_Control))
             center_view(app);
         
-        else if (match_key_code(&in, KeyCode_Q) && has_modifier(&in, KeyCode_Control))
-            in_replace_mode = !in_replace_mode;
-        
-        else if (in_replace_mode && match_key_code(&in, KeyCode_V) && has_modifier(&in, KeyCode_Control))
-            string_append(&buffer_string, push_clipboard_index(scratch, 0, 0));
-        
-        else if (in_replace_mode && string.str != 0 && string.size > 0)
-            string_append(&buffer_string, string);
-        
-        else if (in_replace_mode && match_key_code(&in, KeyCode_Backspace))
+        else if (match_key_code(&in, KeyCode_V) && has_modifier(&in, KeyCode_Control))
         {
-            if (is_unmodified_key(&in.event))
-                buffer_string.size = Long_UTF8_Backspace(buffer_string.str, buffer_string.size);
-            else if (has_modifier(&in, KeyCode_Control))
-                buffer_string.size = 0;
+            string = push_clipboard_index(scratch, 0, 0);
+            change_string = true;
         }
+        
+        else if (match_key_code(&in, KeyCode_Backspace))
+        {
+            advance = -1;
+            
+            DELETION:
+            change_string = true;
+            if (has_modified_string)
+                *size = advance;
+        }
+        
+        else if (match_key_code(&in, KeyCode_Delete))
+        {
+            advance = +1;
+            goto DELETION;
+        }
+        
+        else if (string.str != 0 && string.size > 0)
+            change_string = true;
         
         else
         {
@@ -1282,6 +1308,85 @@ function void Long_SearchBuffer_MultiSelect(Application_Links* app, View_ID view
                 binding.custom(app);
             }
             else leave_current_input_unhandled(app);
+        }
+        
+        if (change_string)
+        {
+            Range_i32 select_range = Long_Highlight_GetRange(jump_state, *selection_offset);
+            
+            Batch_Edit* batch_head = 0;
+            Batch_Edit* batch_tail = 0;
+            Buffer_ID buffer = 0;
+            
+            for (i32 i = select_range.min; i <= select_range.max; ++i)
+            {
+                ID_Pos_Jump_Location location;
+                if (get_jump_from_list(app, jump_state.list, i, &location))
+                {
+                    Batch_Edit* batch = push_array(scratch, Batch_Edit, 1);
+                    batch->edit.text = string;
+                    batch->edit.range = Ii64_size(location.pos + *offset, *size);
+                    
+                    if (location.buffer_id != buffer)
+                    {
+                        if (batch_head)
+                        {
+                            buffer_batch_edit(app, buffer, batch_head);
+                            if (!has_modified_string)
+                                start_history = Long_Buffer_GetCurrentHistory(app, buffer);
+                        }
+                        batch_head = batch_tail = 0;
+                        buffer = location.buffer_id;
+                    }
+                    
+                    sll_queue_push(batch_head, batch_tail, batch);
+                    
+                    if (i == select_range.max && batch_head)
+                    {
+                        buffer_batch_edit(app, buffer, batch_head);
+                        if (!has_modified_string)
+                            start_history = Long_Buffer_GetCurrentHistory(app, buffer);
+                    }
+                }
+            }
+            
+            if (has_modified_string)
+            {
+                if (*offset >= 0)
+                    *offset += string.size;
+                if (*offset > 0 && *size < 0)
+                    *offset += *size;
+                if (*offset < 0 && *size > 0)
+                    *offset += *size;
+            }
+            *size = 0;
+        }
+    }
+    
+    global_history_edit_group_end(app);
+    if (start_history.index)
+    {
+        for (Buffer_ID buffer = get_buffer_next(app, 0, Access_Always); buffer; buffer = get_buffer_next(app, buffer, Access_Always))
+        {
+            History_Record_Index last_index = buffer_history_get_current_state_index(app, buffer);
+            for (History_Record_Index first_index = 1; first_index <= last_index; ++first_index)
+            {
+                Record_Info record = buffer_history_get_record_info(app, buffer, first_index);
+                
+                if (record.edit_number == start_history.record.edit_number)
+                {
+                    if (abort)
+                    {
+                        buffer_history_set_current_state_index(app, buffer, first_index - 1);
+                        buffer_history_clear_after_current_state(app, buffer);
+                        Long_Buffer_CheckHistoryAndSetDirty(app, buffer);
+                    }
+                    else if (first_index < last_index)
+                        buffer_history_merge_record_range(app, buffer, first_index, last_index, 0);
+                    
+                    break;
+                }
+            }
         }
     }
     
@@ -1497,6 +1602,7 @@ function void Long_Highlight_DrawList(Application_Links *app, Buffer_ID buffer, 
         Managed_Scope scope = buffer_get_managed_scope(app, search_buffer);
         i64 size = *scope_attachment(app, scope, long_search_string_size, i64);
         i32 selection_offset = *scope_attachment(app, scope, long_start_selection_offset, i32);
+        i64 pos_offset = *scope_attachment(app, scope, long_selection_pos_offset, i64);
         
         i32 count;
         Marker* markers = Long_SearchBuffer_GetMarkers(app, scratch, scope, buffer, &count);
@@ -1516,10 +1622,11 @@ function void Long_Highlight_DrawList(Application_Links *app, Buffer_ID buffer, 
         
         for (i32 i = 0; i < count; i += 1)
         {
-            Range_i64 range = Ii64_size(markers[i].pos, size);
+            i64 marker_pos = markers[i].pos + pos_offset;
+            Range_i64 range = Ii64_size(marker_pos, size);
             // NOTE(long): If the user only has one selection, the MultiSelect function already handles it
             if (range_contains_inclusive(select_range, i))
-                Long_Render_DrawNotepadCursor(app, view, buffer, layout, markers[i].pos + size, markers[i].pos, roundness, thickness);
+                Long_Render_DrawNotepadCursor(app, view, buffer, layout, marker_pos + size, marker_pos, roundness, thickness);
             else
                 Long_Render_DrawBlock(app, layout, range, 0.f, fcolor_id(fleury_color_token_minor_highlight));
         }
