@@ -158,7 +158,7 @@ keys_file =
     { "copy",                                          "C", "Control" },
     { "long_paste_and_indent",                         "V", "Control" },
     { "long_paste_and_replace_range",                  "V", "Control", "Shift" },
-    { "long_select_current_line",                      "A", "Control", "Shift" },
+    { "long_select_current_line_and_above",                      "A", "Control", "Shift" },
     { "cut",                                           "X", "Control" },
     
     { "long_copy_line",                                "C", "Control", "Shift" },
@@ -198,8 +198,9 @@ keys_file =
     { "f4_code_peek",                   "Tick", "Control" },
     
     // NOTE(long): Pos Context
-    { "long_toggle_pos_context",        "Tick" , "Alt" },
-    { "long_switch_pos_context_option", "Equal", "Alt" },
+    { "long_toggle_pos_context",               "Tick" , "Alt" },
+    { "long_switch_pos_context_option",        "Equal", "Alt" },
+    { "long_switch_pos_context_draw_position", "Equal", "Alt", "Shift" },
     
     // NOTE(rjf): Go To Def
     { "long_go_to_definition",            "Return", "Control" },

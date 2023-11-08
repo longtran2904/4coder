@@ -513,7 +513,7 @@ Long_CS_ParsePosContext(Application_Links* app, Arena* arena, Buffer_ID buffer, 
                             arg_idx = 0;
                         }
                         
-                        if (note->file->buffer != buffer || !range_contains(Long_Index_ArgumentRange(note), token->pos))
+                        if (!note->file || note->file->buffer != buffer || !range_contains(Long_Index_ArgumentRange(note), token->pos))
                         {
                             F4_Language_PosContext_PushData(arena, &first, &last, note, 0, index);
                             tooltip_count++;

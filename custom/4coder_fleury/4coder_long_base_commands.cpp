@@ -2066,6 +2066,13 @@ CUSTOM_DOC("Switches the position context mode.")
     long_active_pos_context_option = (long_active_pos_context_option + 1) % ArrayCount(long_global_context_opts);
 }
 
+CUSTOM_COMMAND_SIG(long_switch_pos_context_draw_position)
+CUSTOM_DOC("Switches between drawing the position context at cursor position or at bottom of buffer.")
+{
+    String_ID id = vars_save_string_lit("f4_poscontext_draw_at_bottom_of_buffer");
+    def_set_config_b32(id, !def_get_config_b32(id));
+}
+
 //- NOTE(long): Jumping
 function void Long_GoToDefinition(Application_Links* app, b32 same_panel)
 {
@@ -2527,17 +2534,47 @@ CUSTOM_DOC("Set the mark and cursor to the start and end of the current line")
     no_mark_snap_to_cursor(app, view);
 }
 
+function void Long_SelectCurrentLine(Application_Links* app, b32 toggle)
+{
+    View_ID view = get_active_view(app, Access_Read);
+    i64 cursor_pos = view_get_cursor_pos(app, view);
+    i64 line = get_line_number_from_pos(app, view_get_buffer(app, view, Access_Always), cursor_pos);
+    
+    if (line > 1)
+    {
+        view_set_cursor(app, view, seek_line_col(line - 1, 1));
+        seek_end_of_line(app);
+        i64 old_mark = view_get_mark_pos(app, view);
+        i64 new_mark = view_get_cursor_pos(app, view);
+        view_set_mark(app, view, seek_pos(new_mark));
+        
+        view_set_cursor(app, view, seek_pos(cursor_pos));
+        seek_end_of_line(app);
+        no_mark_snap_to_cursor(app, view);
+        if (!toggle || old_mark != new_mark || cursor_pos != view_get_cursor_pos(app, view))
+            return;
+    }
+    
+    long_select_current_line(app);
+}
+
+CUSTOM_COMMAND_SIG(long_select_current_line_and_above)
+CUSTOM_DOC("Set the mark to the end of the previous line and cursor to the end of the current line")
+{
+    Long_SelectCurrentLine(app, 1);
+}
+
 CUSTOM_COMMAND_SIG(long_copy_line)
 CUSTOM_DOC("Copy the text in the current line onto the clipboard.")
 {
-    long_select_current_line(app);
+    Long_SelectCurrentLine(app, 0);
     copy(app);
 }
 
 CUSTOM_COMMAND_SIG(long_cut_line)
 CUSTOM_DOC("Cut the text in the current line onto the clipboard.")
 {
-    long_select_current_line(app);
+    Long_SelectCurrentLine(app, 0);
     cut(app);
 }
 

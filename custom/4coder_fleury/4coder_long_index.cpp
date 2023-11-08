@@ -1079,7 +1079,7 @@ global i32 long_active_pos_context_option  = 0;
 
 function LONG_INDEX_FILTER(Long_Filter_Decl) { return note->kind == F4_Index_NoteKind_Decl || note->kind == F4_Index_NoteKind_Constant; }
 function LONG_INDEX_FILTER(Long_Filter_Func) { return note->kind == F4_Index_NoteKind_Function && !Long_Index_IsLambda(note); }
-function LONG_INDEX_FILTER(Long_Filter_Type) { return note->kind == F4_Index_NoteKind_Type/**/ && !Long_Index_IsGenericArgument(note); }
+function LONG_INDEX_FILTER(Long_Filter_Type) { return note->kind == F4_Index_NoteKind_Type     && !Long_Index_IsGenericArgument(note); }
 
 global NoteFilter* long_global_context_opts[] =
 {
@@ -1105,32 +1105,17 @@ function Rect_f32 Long_Index_DrawString(Application_Links* app, String8 string, 
     return draw_rect;
 }
 
-function void Long_Index_DrawTooltip(Application_Links* app, Rect_f32 screen_rect, Vec2_f32* tooltip_offset,
-                                     F4_Index_Note* note, i32 index, Range_i64 range, Range_i64 highlight_range)
+function Vec2_f32 Long_Index_DrawTooltip(Application_Links* app, Rect_f32 screen_rect, Vec2_f32 tooltip_pos,
+                                         Face_ID face, f32 padding, f32 line_height, ARGB_Color color, ARGB_Color highlight_color,
+                                         F4_Index_Note* note, i32 index, Range_i64 range, Range_i64 highlight_range)
 {
-    Vec2_f32 tooltip_pos =
-    {
-        global_cursor_rect.x0,
-        global_cursor_rect.y1,
-    };
-    Vec2_f32 offset = tooltip_offset ? *tooltip_offset : Vec2_f32{};
-    tooltip_pos += offset;
-    offset = tooltip_pos;
-    
-    Face_ID face = global_small_code_face;
-    f32 padding = 4.f;
-    f32 line_height = get_face_metrics(app, face).line_height;
-    ARGB_Color color = finalize_color(defcolor_text_default, 0);
-    ARGB_Color highlight_color = finalize_color(fleury_color_token_highlight, 0);
-    Range_f32 screen_x = { screen_rect.x0 + padding * 4, screen_rect.x1 - padding * 4 };
-    
     Scratch_Block scratch(app);
     
     if (note->kind == F4_Index_NoteKind_Decl && index)
     {
         note = Long_Index_LookupRef(app, note, 0);
         if (!note)
-            return;
+            return tooltip_pos;
     }
     
     if (note->kind == F4_Index_NoteKind_Type && index)
@@ -1241,7 +1226,7 @@ function void Long_Index_DrawTooltip(Application_Links* app, Rect_f32 screen_rec
             else
                 rect = Long_Index_DrawNote(app, ranges, child->file->buffer,
                                            face, line_height, padding, color,
-                                           tooltip_pos, screen_x, highlight_color, highlight_range);
+                                           tooltip_pos, Range_f32{ screen_rect.x0, screen_rect.x1 }, highlight_color, highlight_range);
             tooltip_pos.y += rect_height(rect);
             ++i;
         }
@@ -1264,12 +1249,11 @@ function void Long_Index_DrawTooltip(Application_Links* app, Rect_f32 screen_rec
         else
             rect = Long_Index_DrawNote(app, ranges, note->file->buffer,
                                        face, line_height, padding, color,
-                                       tooltip_pos, screen_x, highlight_color, highlight_range);
+                                       tooltip_pos, Range_f32{ screen_rect.x0, screen_rect.x1 }, highlight_color, highlight_range);
         tooltip_pos.y += rect_height(rect);
     }
     
-    if (tooltip_offset)
-        *tooltip_offset += tooltip_pos - offset;
+    return tooltip_pos;
 }
 
 function void Long_Index_DrawPosContext(Application_Links* app, View_ID view, F4_Language_PosContextData* first_ctx)
@@ -1280,14 +1264,40 @@ function void Long_Index_DrawPosContext(Application_Links* app, View_ID view, F4
     b32 has_highlight_range = *scope_attachment(app, view_get_managed_scope(app, view), view_highlight_buffer, Buffer_ID) != 0;
     if (has_highlight_range) return;
     
-    Vec2_f32 offset = {};
+    Face_ID face = global_small_code_face;
+    f32 padding = 4.f;
+    f32 line_height = get_face_metrics(app, face).line_height;
+    ARGB_Color color = finalize_color(defcolor_text_default, 0);
+    ARGB_Color highlight_color = finalize_color(fleury_color_token_highlight, 0);
+    
     Rect_f32 screen = view_get_screen_rect(app, view);
+    screen.x0 += padding * 4;
+    screen.x1 -= padding * 2;
+    
+    Vec2_f32 tooltip_pos =
+    {
+        global_cursor_rect.x0,
+        global_cursor_rect.y1,
+    };
+    
+    b32 render_at_cursor = !def_get_config_b32(vars_save_string_lit("f4_poscontext_draw_at_bottom_of_buffer"));
+    if (!render_at_cursor)
+    {
+        f32 height = padding * 2;
+        for (F4_Language_PosContextData *ctx = first_ctx; ctx; ctx = ctx->next)
+            height += line_height + 2*padding;
+        tooltip_pos = V2f32(screen.x0, screen.y1 - height);
+    }
+    
     for (F4_Language_PosContextData* ctx = first_ctx; ctx; ctx = ctx->next)
     {
         if (ctx->relevant_note)
         {
-            Long_Index_DrawTooltip(app, screen, &offset, ctx->relevant_note, ctx->argument_index, ctx->range, ctx->highlight_range);
-            offset.x -= 16;
+            tooltip_pos = Long_Index_DrawTooltip(app, screen, tooltip_pos,
+                                                 face, padding, line_height, color, highlight_color,
+                                                 ctx->relevant_note, ctx->argument_index, ctx->range, ctx->highlight_range);
+            if (render_at_cursor)
+                tooltip_pos.x -= padding * 4;
         }
     }
 }
