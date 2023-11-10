@@ -559,7 +559,7 @@ CUSTOM_DOC("Kills the current search jump buffer.")
     Long_KillBuffer(app, Long_Buffer_GetSearchBuffer(app), get_active_view(app, Access_ReadVisible));
 }
 
-//- NOTE(long): History Commands
+//- NOTE(long): History
 
 struct Long_Buffer_History
 {
@@ -989,6 +989,37 @@ function void print_all_matches(Application_Links *app, String_Const_u8_Array ma
     print_string_match_list_to_buffer(app, out_buffer_id, matches);
 }
 
+typedef i64 Line_Col_Predicate(Application_Links *app, Buffer_ID buffer, i64 line);
+
+function void print_lines_to_buffer(Application_Links *app, Buffer_ID out_buffer, Buffer_ID buffer,
+                                    Range_i64 lines, Line_Col_Predicate* predicate = 0)
+{
+    Scratch_Block scratch(app);
+    clear_buffer(app, out_buffer);
+    buffer_set_setting(app, out_buffer, BufferSetting_ReadOnly, true);
+    buffer_set_setting(app, out_buffer, BufferSetting_RecordsHistory, false);
+    
+    Buffer_Insertion out = begin_buffer_insertion_at_buffered(app, out_buffer, 0, scratch, KB(64));
+    {
+        String8 filename = push_buffer_file_name(app, scratch, buffer);
+        if (!filename.size)
+            filename = push_buffer_unique_name(app, scratch, buffer);
+        
+        for (i64 line = lines.min; line <= lines.max; ++line)
+        {
+            i64 col = predicate ? predicate(app, buffer, line) : 1;
+            if (col < 1)
+                continue;
+            
+            Temp_Memory line_temp = begin_temp(scratch);
+            String_Const_u8 line_str = string_skip_chop_whitespace(push_buffer_line(app, scratch, buffer, line));
+            insertf(&out, "%.*s:%d:%d: %.*s\n", string_expand(filename), line, col, string_expand(line_str));
+            end_temp(line_temp);
+        }
+    }
+    end_buffer_insertion(&out);
+}
+
 // COPYPASTA(long): query_user_general
 function b32 Long_Query_User_String(Application_Links *app, Query_Bar *bar, String_Const_u8 init_string){
     if (start_query_bar(app, bar, 0) == 0){
@@ -1103,25 +1134,23 @@ function void Long_SearchBuffer_Jump(Application_Links* app, Locked_Jump_State s
     view_set_cursor_and_preferred_x(app, state.view, seek_line_col(jump.list_line, 1));
 }
 
-function Sticky_Jump Long_SearchBuffer_NearestJump(Application_Links* app, View_ID view, Locked_Jump_State state, Managed_Scope scope)
+function Sticky_Jump Long_SearchBuffer_NearestJump(Application_Links* app, View_ID view, Buffer_ID buffer, i64 pos,
+                                                   Locked_Jump_State state, Managed_Scope scope)
 {
     Scratch_Block scratch(app);
-    Buffer_ID current_buffer = view_get_buffer(app, view, 0);
-    i64 pos = view_get_cursor_pos(app, view);
-    Long_PointStack_Push(app, current_buffer, pos, view);
     
     i32 list_index = -1;
     Sticky_Jump_Stored* storage = 0;
     
     i32 count;
-    Marker* markers = Long_SearchBuffer_GetMarkers(app, scratch, scope, current_buffer, &count);
+    Marker* markers = Long_SearchBuffer_GetMarkers(app, scratch, scope, buffer, &count);
     if (markers)
     {
         i32 marker_index = binary_search(&markers->pos, sizeof(*markers), count, pos);
         storage = get_all_stored_jumps_from_list(app, scratch, state.list);
         for (i32 i = 0; i < state.list->jump_count; ++i)
         {
-            if (storage[i].jump_buffer_id == current_buffer && storage[i].index_into_marker_array == marker_index)
+            if (storage[i].jump_buffer_id == buffer && storage[i].index_into_marker_array == marker_index)
             {
                 list_index = i;
                 break;
@@ -1141,14 +1170,15 @@ function Sticky_Jump Long_SearchBuffer_NearestJump(Application_Links* app, View_
     return result;
 }
 
-function void Long_SearchBuffer_MultiSelect(Application_Links* app, View_ID view, Buffer_ID search_buffer, String8 search_string)
+function void Long_SearchBuffer_MultiSelect(Application_Links* app, View_ID view, Buffer_ID search_buffer,
+                                            String8 title, i64 init_size, b32 push_jump = 0)
 {
     if (get_active_view(app, Access_ReadVisible) != view)
         view_set_active(app, view); 
     
     Query_Bar_Group group(app);
     Query_Bar bar = {};
-    bar.string = search_string;
+    bar.string = title;
     if (!start_query_bar(app, &bar, 0))
         return;
     
@@ -1159,10 +1189,21 @@ function void Long_SearchBuffer_MultiSelect(Application_Links* app, View_ID view
     
     auto_center_after_jumps = false;
     Managed_Scope scope = buffer_get_managed_scope(app, search_buffer);
+    
+    i64 cursor_pos = view_get_cursor_pos(app, view), mark_pos = 0;
+    i32 jump_count;
     {
         lock_jump_buffer(app, search_buffer);
         Locked_Jump_State jump_state = get_locked_jump_state(app, &global_heap);
-        Sticky_Jump jump = Long_SearchBuffer_NearestJump(app, view, jump_state, scope);
+        
+        jump_count = jump_state.list->jump_count;
+        mark_pos = view_get_mark_pos(app, view);
+        
+        Buffer_ID buffer = view_get_buffer(app, view, Access_Always);
+        if (push_jump)
+            Long_PointStack_Push(app, buffer, cursor_pos, view);
+        
+        Sticky_Jump jump = Long_SearchBuffer_NearestJump(app, view, buffer, cursor_pos, jump_state, scope);
         if (jump.jump_buffer_id)
             Long_SearchBuffer_Jump(app, jump_state, jump);
         else
@@ -1170,12 +1211,15 @@ function void Long_SearchBuffer_MultiSelect(Application_Links* app, View_ID view
     }
     
     i32* selection_offset = scope_attachment(app, scope, long_start_selection_offset, i32);
+    *selection_offset = init_size == 0 ? jump_count : 0;
+    
     i64* size = scope_attachment(app, scope, long_search_string_size, i64);
-    *size = search_string.size;
+    *size = init_size;
+    
     i64* offset = scope_attachment(app, scope, long_selection_pos_offset, i64);
     *offset = 0;
     
-    b32 abort = false, exit_to_jump_highlight = false;
+    b32 abort = false, exit_to_jump_highlight = false, has_modified_string = false;
     def_set_config_b32(vars_save_string_lit("use_jump_highlight"), 0);
     
     Long_Buffer_History start_history = {};
@@ -1200,7 +1244,6 @@ function void Long_SearchBuffer_MultiSelect(Application_Links* app, View_ID view
             break;
         }
         
-        i32 jump_count = jump_state.list->jump_count;
         i32 selection_count = clamp_top(Long_Abs(*selection_offset) + 1, jump_count);
         bar.prompt = push_stringf(scratch, "Selection Count: %d, For: ", selection_count);
         
@@ -1213,7 +1256,6 @@ function void Long_SearchBuffer_MultiSelect(Application_Links* app, View_ID view
         String8 string = to_writable(&in);
         i32 advance = 0;
         b32 change_string = false;
-        b32 has_modified_string = start_history.index;
         
         if (match_key_code(&in, KeyCode_Return) || match_key_code(&in, KeyCode_Tab))
         {
@@ -1251,8 +1293,15 @@ function void Long_SearchBuffer_MultiSelect(Application_Links* app, View_ID view
             CHANGE_SIZE:
             if (has_modified_string)
                 *offset += advance;
-            else
+            else if (!has_modifier(&in, KeyCode_Control))
                 *size += advance;
+            else
+            {
+                has_modified_string = true;
+                if (advance > 0)
+                    *offset = *size;
+                *size = 0;
+            }
         }
         else if (match_key_code(&in, KeyCode_Right))
         {
@@ -1344,7 +1393,7 @@ function void Long_SearchBuffer_MultiSelect(Application_Links* app, View_ID view
                     if (i == select_range.max && batch_head)
                     {
                         buffer_batch_edit(app, buffer, batch_head);
-                        if (!has_modified_string)
+                        if (!/*has_modified_string*/start_history.index)
                             start_history = Long_Buffer_GetCurrentHistory(app, buffer);
                     }
                 }
@@ -1359,7 +1408,9 @@ function void Long_SearchBuffer_MultiSelect(Application_Links* app, View_ID view
                 if (*offset < 0 && *size > 0)
                     *offset += *size;
             }
+            
             *size = 0;
+            has_modified_string = true;
         }
     }
     
@@ -1396,7 +1447,13 @@ function void Long_SearchBuffer_MultiSelect(Application_Links* app, View_ID view
         long_kill_search_buffer(app);
     
     if (abort)
-        Long_PointStack_JumpNext(app, view, 0, 1);
+    {
+        if (push_jump)
+            Long_PointStack_JumpNext(app, view, 0, 1);
+        else
+            view_set_cursor_and_preferred_x(app, view, seek_pos(cursor_pos));
+        view_set_mark(app, view, seek_pos(mark_pos));
+    }
     
     auto_center_after_jumps = true;
     view_disable_highlight_range(app, view); // NOTE(long): Disable the highlight will make F4_RenderBuffer draw the cursor again
@@ -1424,7 +1481,7 @@ function void Long_ListAllLocations(Application_Links *app, String_Const_u8 need
     String8 no_match = S8Lit("no matches");
     String8 search_result = push_buffer_range(app, scratch, search_buffer, Ii64_size(0, no_match.size));
     if (!string_match(search_result, no_match))
-        Long_SearchBuffer_MultiSelect(app, view, search_buffer, needle);
+        Long_SearchBuffer_MultiSelect(app, view, search_buffer, needle, needle.size, 1);
 }
 
 // COPYPASTA(long): get_query_string
@@ -1460,6 +1517,26 @@ function void Long_ListAllLocations_Identifier(Application_Links *app, List_All_
         needle = Long_Get_Query_String(app, "List Locations For Identifier: ", space, LONG_QUERY_STRING_SIZE, needle.size);
     }
     Long_ListAllLocations(app, needle, flags, all_buffer);
+}
+
+function void Long_ListAllLines_InRange(Application_Links *app, Range_i64 range, Line_Col_Predicate* predicate = 0, i64 size = 0)
+{
+    View_ID view = get_active_view(app, Access_Always);
+    Buffer_ID current_buffer = view_get_buffer(app, view, Access_Always);
+    
+    Range_i64 lines = get_line_range_from_pos_range(app, current_buffer, range);
+    if (lines.first == lines.max)
+        return;
+    
+    Buffer_ID search_buffer = Long_CreateOrSwitchBuffer(app, search_name, get_next_view_after_active(app, Access_Always));
+    print_lines_to_buffer(app, search_buffer, current_buffer, lines, predicate);
+    
+    if (buffer_get_size(app, search_buffer))
+    {
+        Scratch_Block scratch(app);
+        String8 title = push_stringf(scratch, "Lines: %d -> %d", lines.min, lines.max);
+        Long_SearchBuffer_MultiSelect(app, view, search_buffer, title, size);
+    }
 }
 
 CUSTOM_COMMAND_SIG(long_list_all_locations)
@@ -1508,6 +1585,57 @@ CUSTOM_COMMAND_SIG(long_list_all_substring_locations_of_identifier_case_insensit
 CUSTOM_DOC("Reads a token or word under the cursor and lists all exact case-insensitive mathces in the current buffer.")
 {
     Long_ListAllLocations_Identifier(app, ListAllLocationsFlag_CaseSensitive|ListAllLocationsFlag_MatchSubstring, 0);
+}
+
+function i64 Long_Line_NonWhitespace(Application_Links* app, Buffer_ID buffer, i64 line)
+{
+    Range_i64 range = get_line_pos_range(app, buffer, line);
+    Indent_Info info = get_indent_info_range(app, buffer, range, 0);
+    if (info.first_char_pos == range.end)
+        return -1;
+    return info.first_char_pos - range.start + 1;
+}
+
+function i64 Long_Line_SeekEnd(Application_Links* app, Buffer_ID buffer, i64 line)
+{
+    Range_i64 range = get_line_pos_range(app, buffer, line);
+    return range.end - range.start + 1;
+}
+
+// NOTE(long): This is equals to (cursor_pos - info.first_char_pos)
+global i64 long_cursor_offset = 0;
+
+function i64 Long_Line_HasEnoughSize(Application_Links* app, Buffer_ID buffer, i64 line)
+{
+    Range_i64 range = get_line_pos_range(app, buffer, line);
+    Indent_Info info = get_indent_info_range(app, buffer, range, 0);
+    if (info.first_char_pos + long_cursor_offset > range.end)
+        return -1;
+    return info.first_char_pos - range.start + 1;
+}
+
+CUSTOM_COMMAND_SIG(long_list_all_lines_in_range)
+CUSTOM_DOC("Lists all lines in between the mark and the cursor that are not blank.")
+{
+    Long_ListAllLines_InRange(app, get_view_range(app, get_active_view(app, Access_Always)), Long_Line_NonWhitespace);
+}
+
+CUSTOM_COMMAND_SIG(long_list_all_lines_in_range_seek_end)
+CUSTOM_DOC("Lists all the end position of all lines in between the mark and the cursor.")
+{
+    Long_ListAllLines_InRange(app, get_view_range(app, get_active_view(app, Access_Always)), Long_Line_SeekEnd);
+}
+
+CUSTOM_COMMAND_SIG(long_list_all_lines_from_start_to_cursor)
+CUSTOM_DOC("Lists all the start-to-cursor range of all lines in the current buffer.")
+{
+    View_ID view = get_active_view(app, Access_Always);
+    Buffer_ID buffer = view_get_buffer(app, view, Access_Always);
+    i64 pos = view_get_cursor_pos(app, view);
+    
+    Indent_Info info = get_indent_info_range(app, buffer, get_line_pos_range(app, buffer, get_line_number_from_pos(app, buffer, pos)), 0);
+    long_cursor_offset = pos - info.first_char_pos;
+    Long_ListAllLines_InRange(app, buffer_range(app, buffer), Long_Line_HasEnoughSize, long_cursor_offset);
 }
 
 function b32 Long_F32_Invalid(f32 f)
@@ -2996,6 +3124,30 @@ CUSTOM_DOC("Find the first child scope that starts inside the current selected s
     Range_i64 range = Long_GetNextScopeAfterPos(app, view, buffer, pos);
     if (!surrounding_nest.max || range.min < surrounding_nest.max)
         select_scope(app, view, range);
+}
+
+CUSTOM_COMMAND_SIG(long_select_surrounding_scope)
+CUSTOM_DOC("Select the surrounding scope. If a scope is already selected, put the cursor and mark inside the scope, and vice versa.")
+{
+    View_ID view = get_active_view(app, Access_ReadVisible);
+    Buffer_ID buffer = view_get_buffer(app, view, Access_ReadVisible);
+    
+    i64 cursor = view_get_cursor_pos(app, view), mark = view_get_mark_pos(app, view);
+    i64 advance = cursor < mark ? 1 : -1;
+    Range_i64 range = Ii64(cursor, mark);
+    
+    if (range_is_scope_selection(app, buffer, range))
+    {
+        view_set_cursor(app, view, seek_pos(cursor + advance));
+        view_set_mark  (app, view, seek_pos(mark   - advance));
+    }
+    else if (range_is_scope_selection(app, buffer, { range.min - 1, range.max + 1 }))
+    {
+        view_set_cursor(app, view, seek_pos(cursor - advance));
+        view_set_mark  (app, view, seek_pos(mark   + advance));
+    }
+    else
+        select_surrounding_scope(app);
 }
 
 //~ NOTE(long): Misc Commands

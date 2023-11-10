@@ -25,9 +25,9 @@
 // [X] Search commands based on key bindings
 // [X] Kill/switch/view the jump buffer directly
 // [X] Paste from clipboard to search bar
-// [X] List and query multiple selections
 // [X] Query replace forward and backward using (Page)Up/Down
-// [ ] Select the start/end/cursor pos of all lines in range 
+// [X] List and query multiple selections
+// [X] Select the start/end/cursor pos of all lines in range 
 // [ ] Replace wildcard with grep
 // [ ] Search for definitions like Hoogle
 // [ ] Find all references (using the index system)

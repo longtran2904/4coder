@@ -148,17 +148,21 @@ keys_file =
     { "long_list_all_locations_of_identifier_current_buffer",                            "T", "Alt", "Shift", "Control" },
     { "long_list_all_substring_locations_of_identifier_case_insensitive_current_buffer", "T", "Alt", "Control"          },
     
+    { "long_list_all_lines_in_range",                  "R", "Alt"          },
+    { "long_list_all_lines_in_range_seek_end",         "R", "Alt", "Shift" },
+    { "long_list_all_lines_from_start_to_cursor",      "C", "Alt" },
+    
     // NOTE(rjf): Replace
     { "replace_in_range",                              "A", "Control" },
-    { "long_query_replace",                                 "Q", "Control" },
-    { "long_query_replace_identifier",                      "Q", "Control", "Shift" },
-    { "long_query_replace_selection",                       "Q", "Alt" },
+    { "long_query_replace",                            "Q", "Control" },
+    { "long_query_replace_identifier",                 "Q", "Control", "Shift" },
+    { "long_query_replace_selection",                  "Q", "Alt" },
     
     // NOTE(rjf): Clipboard
     { "copy",                                          "C", "Control" },
     { "long_paste_and_indent",                         "V", "Control" },
     { "long_paste_and_replace_range",                  "V", "Control", "Shift" },
-    { "long_select_current_line_and_above",                      "A", "Control", "Shift" },
+    { "long_select_current_line_and_above",            "A", "Control", "Shift" },
     { "cut",                                           "X", "Control" },
     
     { "long_copy_line",                                "C", "Control", "Shift" },
@@ -221,18 +225,20 @@ keys_code =
     
     { "word_complete_drop_down",                             "Tab",          "Control", "Shift" },
     
-    { "open_long_braces",                                    "LeftBracket",  "Alt" },
-    { "open_long_braces_semicolon",                          "LeftBracket",  "Alt", "Shift" },
-    { "open_long_braces_break",                              "RightBracket", "Alt", "Shift" },
-    
     { "select_prev_scope_absolute",                          "LeftBracket",  "Control" },
     { "select_next_scope_absolute",                          "RightBracket", "Control" },
     { "long_select_upper_scope",                             "LeftBracket",  "Control", "Shift" },
     { "long_select_lower_scope",                             "RightBracket", "Control", "Shift" },
     { "long_select_prev_scope_current_level",                "LeftBracket",  "Control", "Alt"   },
     { "long_select_next_scope_current_level",                "RightBracket", "Control", "Alt"   },
+    { "long_select_surrounding_scope",                       "A",            "Control", "Alt"   },
     
-    /* NOTE(long): Will I ever actually use this?
+    /* NOTE(long): Will I ever actually use these?
+    
+    { "open_long_braces",                                    "LeftBracket",  "Alt" },
+    { "open_long_braces_semicolon",                          "LeftBracket",  "Alt", "Shift" },
+    { "open_long_braces_break",                              "RightBracket", "Alt", "Shift" },
+    
     { "write_block",                                         "1",            "Control" },
     { "write_todo",                                          "2",            "Control" },
     { "write_note",                                          "3",            "Control" },
@@ -240,7 +246,9 @@ keys_code =
     { "place_in_scope",                                      "ForwardSlash", "Alt" },
     { "delete_current_scope",                                "Minus",        "Alt" },
     { "open_file_in_quotes",                                 "1",            "Alt" },
-    { "open_matching_file_cpp",                              "2",            "Alt" },*/
+    { "open_matching_file_cpp",                              "2",            "Alt" },
+    
+    */
     
     { "open_matching_file_cpp",                              "W",            "Alt" },
     { "long_open_matching_file_same_panel",                  "W",            "Alt", "Shift" },
