@@ -276,7 +276,6 @@ F4_SyntaxHighlight(Application_Links *app, Text_Layout_ID text_layout_id, Token_
     i64 first_index = token_index_from_pos(array, visible_range.first);
     Token_Iterator_Array it = token_iterator_index(0, array, first_index);
     ARGB_Color comment_tag_color = F4_ARGBFromID(table, fleury_color_index_comment_tag, 0);
-    i32 scope_nest = 0;
     
     for(;;)
     {
@@ -285,11 +284,6 @@ F4_SyntaxHighlight(Application_Links *app, Text_Layout_ID text_layout_id, Token_
         {
             break;
         }
-        
-        if (token->kind == TokenBaseKind_ScopeOpen)
-        scope_nest++;
-        else if (token->kind == TokenBaseKind_ScopeClose)
-        scope_nest--;
         
         ARGB_Color argb = F4_GetColor(app, ColorCtx_Token(*token, buffer, array));
         paint_text_color(app, text_layout_id, Ii64_size(token->pos, token->size), argb);

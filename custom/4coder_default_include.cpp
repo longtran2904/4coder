@@ -68,6 +68,11 @@
 #include "4coder_tutorial.h"
 #include "4coder_search_list.h"
 
+//- NOTE(long): These are for 4coder_list_base.cpp
+function String8 Long_Lister_GetHeaderString(Application_Links* app, Arena* arena, Lister_Node* node);
+function void lister__backspace_text_field__default(Application_Links *app);
+function void F4_DrawFileBar(Application_Links *app, View_ID view_id, Buffer_ID buffer, Face_ID face_id, Rect_f32 bar);
+
 ////////////////////////////////
 
 #include "4coder_base_types.cpp"

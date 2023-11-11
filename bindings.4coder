@@ -148,9 +148,10 @@ keys_file =
     { "long_list_all_locations_of_identifier_current_buffer",                            "T", "Alt", "Shift", "Control" },
     { "long_list_all_substring_locations_of_identifier_case_insensitive_current_buffer", "T", "Alt", "Control"          },
     
-    { "long_list_all_lines_in_range",                  "R", "Alt"          },
-    { "long_list_all_lines_in_range_seek_end",         "R", "Alt", "Shift" },
-    { "long_list_all_lines_from_start_to_cursor",      "C", "Alt" },
+    { "long_list_all_lines_in_range",                      "R", "Alt"          },
+    { "long_list_all_lines_in_range_seek_end",             "R", "Alt", "Shift" },
+    { "long_list_all_lines_from_non_whitespace_to_cursor", "C", "Alt" },
+    { "long_list_all_lines_from_start_to_cursor",          "C", "Alt", "Shift" },
     
     // NOTE(rjf): Replace
     { "replace_in_range",                              "A", "Control" },
@@ -231,7 +232,7 @@ keys_code =
     { "long_select_lower_scope",                             "RightBracket", "Control", "Shift" },
     { "long_select_prev_scope_current_level",                "LeftBracket",  "Control", "Alt"   },
     { "long_select_next_scope_current_level",                "RightBracket", "Control", "Alt"   },
-    { "long_select_surrounding_scope",                       "A",            "Control", "Alt"   },
+    { "long_select_surrounding_scope",                       "A",            "Alt"   },
     
     /* NOTE(long): Will I ever actually use these?
     

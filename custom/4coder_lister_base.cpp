@@ -4,12 +4,6 @@
 
 // TOP
 
-//- NOTE(long): Forward declare here because this file is included in "4coder_default_include"
-function String8 Long_Lister_GetHeaderString(Application_Links* app, Arena* arena, Lister_Node* node);
-function void lister__backspace_text_field__default(Application_Links *app);
-function void F4_DrawFileBar(Application_Links *app, View_ID view_id, Buffer_ID buffer, Face_ID face_id, Rect_f32 bar);
-//-
-
 function Vec2_f32
 panel_space_from_screen_space(Vec2_f32 p, Vec2_f32 file_region_p0){
     return(p - file_region_p0);

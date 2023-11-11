@@ -664,9 +664,10 @@ function b32 Long_Buffer_CheckHistoryAndSetDirty(Application_Links* app, Buffer_
 
 //- COPYPASTA(long): undo__fade_finish, undo, redo, undo_all_buffers, redo_all_buffers
 
-// NOTE(long): Because an undo can be deferred later, I can't call CheckHistory after calling undo(app).
+// NOTE(long): Because an undo can be deferred later, I can't call CheckHistory after doing an undo.
 // I must call it inside the fade_finish callback, or in the do_immedite_undo check.
 // But a redo, on the other hand, always executes immediately, so I can safely call it right afterward.
+// I also fixed the "getting the wrong Record_Info" bug in the redo command
 
 function void Long_Undo_FinishFade(Application_Links *app, Fade_Range* range)
 {
@@ -734,7 +735,28 @@ CUSTOM_DOC("Advances backwards through the undo history of the current buffer.")
 CUSTOM_COMMAND_SIG(long_redo)
 CUSTOM_DOC("Advances forwards through the undo history of the current buffer.")
 {
-    redo(app);
+    View_ID view = get_active_view(app, Access_ReadWriteVisible);
+    Buffer_ID buffer = view_get_buffer(app, view, Access_ReadWriteVisible);
+    undo__flush_fades(app, buffer);
+    
+    History_Record_Index current = buffer_history_get_current_state_index(app, buffer);
+    History_Record_Index max_index = buffer_history_get_max_record_index(app, buffer);
+    if (current < max_index){
+        Record_Info record = buffer_history_get_record_info(app, buffer, current + 1);
+        i64 new_position = record_get_new_cursor_position_redo(app, buffer, current + 1, record);
+        
+        buffer_history_set_current_state_index(app, buffer, current + 1);
+        
+        if (record.single_string_forward.size > 0){
+            Range_i64 range = Ii64_size(record.single_first, record.single_string_forward.size);
+            ARGB_Color color = fcolor_resolve(fcolor_id(defcolor_undo));
+            f32 undo_fade_time = 0.33f;
+            buffer_post_fade(app, buffer, undo_fade_time, range, color);
+        }
+        
+        view_set_cursor_and_preferred_x(app, view, seek_pos(new_position));
+    }
+    
     Long_Buffer_CheckHistoryAndSetDirty(app);
 }
 
@@ -854,8 +876,12 @@ CUSTOM_DOC("Audo-indents the entire current buffer.")
     Long_Index_IndentBuffer(app, buffer, {});
 }
 
-function void Long_Indent_CursorRange(Application_Links* app, b32 merge_history)
+function void Long_Indent_CursorRange(Application_Links* app, b32 merge_history, b32 force_update = 0)
 {
+    // NOTE(long): Call the update tick function here to force the index system to reparse our buffer
+    // so that it's up-to-date when we indent it later
+    if (force_update)
+        Long_Index_UpdateTick(app);
     View_ID view = get_active_view(app, Access_ReadWriteVisible);
     Buffer_ID buffer = view_get_buffer(app, view, Access_ReadWriteVisible);
     Range_i64 range = get_view_range(app, view);
@@ -1602,16 +1628,28 @@ function i64 Long_Line_SeekEnd(Application_Links* app, Buffer_ID buffer, i64 lin
     return range.end - range.start + 1;
 }
 
-// NOTE(long): This is equals to (cursor_pos - info.first_char_pos)
-global i64 long_cursor_offset = 0;
+global Range_i64 long_cursor_select_range;
 
-function i64 Long_Line_HasEnoughSize(Application_Links* app, Buffer_ID buffer, i64 line)
+function i64 Long_Line_CompareRange(Application_Links* app, Buffer_ID buffer, i64 line, b32 compare_first_char = 0)
 {
     Range_i64 range = get_line_pos_range(app, buffer, line);
     Indent_Info info = get_indent_info_range(app, buffer, range, 0);
-    if (info.first_char_pos + long_cursor_offset > range.end)
+    i64 start_pos = info.first_char_pos;
+    if (range_size(long_cursor_select_range) > range.end - start_pos)
+        return -1;
+    if (compare_first_char && start_pos - range.start != long_cursor_select_range.min)
         return -1;
     return info.first_char_pos - range.start + 1;
+}
+
+function i64 Long_Line_HasEnoughSize(Application_Links* app, Buffer_ID buffer, i64 line)
+{
+    return Long_Line_CompareRange(app, buffer, line, 0);
+}
+
+function i64 Long_Line_HasEnoughSizeAndOffset(Application_Links* app, Buffer_ID buffer, i64 line)
+{
+    return Long_Line_CompareRange(app, buffer, line, 1);
 }
 
 CUSTOM_COMMAND_SIG(long_list_all_lines_in_range)
@@ -1626,16 +1664,29 @@ CUSTOM_DOC("Lists all the end position of all lines in between the mark and the 
     Long_ListAllLines_InRange(app, get_view_range(app, get_active_view(app, Access_Always)), Long_Line_SeekEnd);
 }
 
-CUSTOM_COMMAND_SIG(long_list_all_lines_from_start_to_cursor)
-CUSTOM_DOC("Lists all the start-to-cursor range of all lines in the current buffer.")
+function void Long_ListAllLines_SizeAndOffset(Application_Links* app, b32 check_offset)
 {
     View_ID view = get_active_view(app, Access_Always);
     Buffer_ID buffer = view_get_buffer(app, view, Access_Always);
     i64 pos = view_get_cursor_pos(app, view);
     
-    Indent_Info info = get_indent_info_range(app, buffer, get_line_pos_range(app, buffer, get_line_number_from_pos(app, buffer, pos)), 0);
-    long_cursor_offset = pos - info.first_char_pos;
-    Long_ListAllLines_InRange(app, buffer_range(app, buffer), Long_Line_HasEnoughSize, long_cursor_offset);
+    Range_i64 line_range = get_line_pos_range(app, buffer, get_line_number_from_pos(app, buffer, pos));
+    Indent_Info info = get_indent_info_range(app, buffer, line_range, 0);
+    long_cursor_select_range = Ii64(info.first_char_pos - line_range.start, pos - line_range.start);
+    Long_ListAllLines_InRange(app, buffer_range(app, buffer), check_offset ? Long_Line_HasEnoughSizeAndOffset : Long_Line_HasEnoughSize,
+                              range_size(long_cursor_select_range));
+}
+
+CUSTOM_COMMAND_SIG(long_list_all_lines_from_start_to_cursor)
+CUSTOM_DOC("Lists all the start-to-cursor range of all lines in the current buffer.")
+{
+    Long_ListAllLines_SizeAndOffset(app, 0);
+}
+
+CUSTOM_COMMAND_SIG(long_list_all_lines_from_non_whitespace_to_cursor)
+CUSTOM_DOC("Lists all the non-whitespace-to-cursor range of all lines in the current buffer.")
+{
+    Long_ListAllLines_SizeAndOffset(app, 1);
 }
 
 function b32 Long_F32_Invalid(f32 f)
@@ -2638,16 +2689,14 @@ CUSTOM_DOC("replace the text between the mark and the cursor with the text from 
         }
     }
     
-    Long_Index_UpdateTick(app);
-    Long_Indent_CursorRange(app, 1);
+    Long_Indent_CursorRange(app, 1, 1);
 }
 
 CUSTOM_COMMAND_SIG(long_paste_and_indent)
 CUSTOM_DOC("Paste from the top of clipboard and run auto-indent on the newly pasted text.")
 {
     paste(app);
-    Long_Index_UpdateTick(app);
-    Long_Indent_CursorRange(app, 1);
+    Long_Indent_CursorRange(app, 1, 1);
 }
 
 CUSTOM_COMMAND_SIG(long_select_current_line)

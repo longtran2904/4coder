@@ -870,24 +870,6 @@ function F4_Index_Note* Long_Index_LookupBestNote(Application_Links* app, Buffer
                 if (is_obj_field)
                 {
                     Token_Iterator_Array it = token_iterator_pos(0, array, scope_note->range.min);
-#if 0
-                    if (token_it_dec(&it) && it.ptr->kind == TokenBaseKind_Identifier)
-                    {
-                        Token* type_token = it.ptr;
-                        if (token_it_dec(&it) && it.ptr->kind == TokenBaseKind_Keyword)
-                        {
-                            if (string_match(push_token_lexeme(app, scratch, buffer, it.ptr), S8Lit("new")))
-                            {
-                                F4_Index_Note* type_scope = Long_Index_LookupBestNote(app, buffer, array, type_token, filter_note);
-                                if (type_scope)
-                                {
-                                    scope_note = type_scope;
-                                    lookup_type = Long_LookupType_PreferMember;
-                                }
-                            }
-                        }
-                    }
-#else
                     if (token_it_dec(&it) && it.ptr->kind == TokenBaseKind_Identifier)
                     {
                         Token* type_token = it.ptr;
@@ -902,7 +884,6 @@ function F4_Index_Note* Long_Index_LookupBestNote(Application_Links* app, Buffer
                             }
                         }
                     }
-#endif
                 }
             }
         }
