@@ -204,7 +204,7 @@ function Long_Point_Stack* Long_GetPointStack(Application_Links* app, View_ID vi
     return scope_attachment(app, view_get_managed_scope(app, view), long_point_stacks, Long_Point_Stack);
 }
 
-function void Long_ReadPointStack(Application_Links* app, Long_Point_Stack* stack, i32 index, Buffer_ID* out_buffer, i64* out_pos)
+function void Long_PointStack_Read(Application_Links* app, Long_Point_Stack* stack, i32 index, Buffer_ID* out_buffer, i64* out_pos)
 {
     Marker* marker = (Marker*)managed_object_get_pointer(app, stack->markers[index]);
     if (marker)
@@ -224,7 +224,7 @@ function void Long_PointStack_Push(Application_Links* app, Buffer_ID buffer, i64
     if (stack->bot != stack->top)
     {
         Buffer_ID top_buffer = 0; i64 top_pos = 0;
-        Long_ReadPointStack(app, stack, clamp_loop(stack->top - 1, size), &top_buffer, &top_pos);
+        Long_PointStack_Read(app, stack, clamp_loop(stack->top - 1, size), &top_buffer, &top_pos);
         if (buffer == top_buffer && pos == top_pos)
             return;
     }
@@ -274,7 +274,7 @@ function void Long_PointStack_SetCurrent(Long_Point_Stack* stack, i32 index)
     { \
         Buffer_ID buffer = 0; \
         i64 pos = 0; \
-        Long_ReadPointStack(app, stack, i, &buffer, &pos); \
+        Long_PointStack_Read(app, stack, i, &buffer, &pos); \
         if (!buffer && !pos) continue; \
         func; \
     }
@@ -524,11 +524,11 @@ CUSTOM_DOC("Switch to the search buffer.")
 
 function void Long_KillBuffer(Application_Links* app, Buffer_ID buffer, View_ID view)
 {
-    // NOTE(long): `buffer_view` is the view that has the buffer while `view` is the view that shows the kill options
+    // `buffer_view` is the view that has the buffer while `view` is the view that shows the kill options
     View_ID buffer_view = get_first_view_with_buffer(app, buffer);
-    // NOTE(long): Must do this check before killing the buffer
+    // must do this check before killing the buffer
     b32 is_search_buffer = Long_IsSearchBuffer(app, buffer);
-    // NOTE(long): killed always equals to false because the search buffer is never dirty and always killable
+    // killed always equals to false because the search buffer is never dirty and always killable
     b32 killed = try_buffer_kill(app, buffer, view, 0) == BufferKillResult_Killed;
     
     if (is_search_buffer && killed && buffer_view)
@@ -942,6 +942,16 @@ CUSTOM_DOC("Inserts text and auto-indents the line on which the cursor sits if a
             write_text_input(app);
         }
     }
+}
+
+CUSTOM_COMMAND_SIG(long_open_matching_file_same_panel)
+CUSTOM_DOC("If the current file is a *.cpp or *.h, attempts to open the corresponding *.h or *.cpp file in the same view.")
+{
+    View_ID view = get_active_view(app, Access_Always);
+    Buffer_ID buffer = view_get_buffer(app, view, Access_Always);
+    Buffer_ID new_buffer = 0;
+    if (get_cpp_matching_file(app, buffer, &new_buffer))
+        Long_JumpToBuffer(app, view, new_buffer);
 }
 
 //~ NOTE(long): Search/Jump Commands
@@ -2699,18 +2709,6 @@ CUSTOM_DOC("Paste from the top of clipboard and run auto-indent on the newly pas
     Long_Indent_CursorRange(app, 1, 1);
 }
 
-CUSTOM_COMMAND_SIG(long_select_current_line)
-CUSTOM_DOC("Set the mark and cursor to the start and end of the current line")
-{
-    View_ID view = get_active_view(app, Access_Read);
-    f4_home_first_non_whitespace(app);
-    if (view_get_mark_pos(app, view) == view_get_cursor_pos(app, view))
-        f4_home_first_non_whitespace(app);
-    view_set_mark(app, view, seek_pos(view_get_cursor_pos(app, view)));
-    seek_end_of_line(app);
-    no_mark_snap_to_cursor(app, view);
-}
-
 function void Long_SelectCurrentLine(Application_Links* app, b32 toggle)
 {
     View_ID view = get_active_view(app, Access_Read);
@@ -2732,10 +2730,15 @@ function void Long_SelectCurrentLine(Application_Links* app, b32 toggle)
             return;
     }
     
-    long_select_current_line(app);
+    f4_home_first_non_whitespace(app);
+    if (view_get_mark_pos(app, view) == view_get_cursor_pos(app, view))
+        f4_home_first_non_whitespace(app);
+    view_set_mark(app, view, seek_pos(view_get_cursor_pos(app, view)));
+    seek_end_of_line(app);
+    no_mark_snap_to_cursor(app, view);
 }
 
-CUSTOM_COMMAND_SIG(long_select_current_line_and_above)
+CUSTOM_COMMAND_SIG(long_select_current_line)
 CUSTOM_DOC("Set the mark to the end of the previous line and cursor to the end of the current line")
 {
     Long_SelectCurrentLine(app, 1);
@@ -3176,7 +3179,7 @@ CUSTOM_DOC("Find the first child scope that starts inside the current selected s
 }
 
 CUSTOM_COMMAND_SIG(long_select_surrounding_scope)
-CUSTOM_DOC("Select the surrounding scope. If a scope is already selected, put the cursor and mark inside the scope, and vice versa.")
+CUSTOM_DOC("Select the surrounding scope.")
 {
     View_ID view = get_active_view(app, Access_ReadVisible);
     Buffer_ID buffer = view_get_buffer(app, view, Access_ReadVisible);
@@ -3256,14 +3259,4 @@ CUSTOM_DOC("Toggle macro recording")
         keyboard_macro_finish_recording(app);
     else
         keyboard_macro_start_recording(app);
-}
-
-CUSTOM_COMMAND_SIG(long_open_matching_file_same_panel)
-CUSTOM_DOC("If the current file is a *.cpp or *.h, attempts to open the corresponding *.h or *.cpp file in the same view.")
-{
-    View_ID view = get_active_view(app, Access_Always);
-    Buffer_ID buffer = view_get_buffer(app, view, Access_Always);
-    Buffer_ID new_buffer = 0;
-    if (get_cpp_matching_file(app, buffer, &new_buffer))
-        Long_JumpToBuffer(app, view, new_buffer);
 }

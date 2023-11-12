@@ -163,7 +163,7 @@ keys_file =
     { "copy",                                          "C", "Control" },
     { "long_paste_and_indent",                         "V", "Control" },
     { "long_paste_and_replace_range",                  "V", "Control", "Shift" },
-    { "long_select_current_line_and_above",            "A", "Control", "Shift" },
+    { "long_select_current_line",                      "A", "Control", "Shift" },
     { "cut",                                           "X", "Control" },
     
     { "long_copy_line",                                "C", "Control", "Shift" },
