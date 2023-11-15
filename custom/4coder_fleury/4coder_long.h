@@ -11,7 +11,7 @@
 // bugs in the original layers that I fixed. That's why a lot of code still depends on those modified files.
 // Here's a list of them:
 
-//- @long_index_init
+//- @long_init_files
 // I never actually wrote my own custom_layer_init function to setup all the necessary hooks.
 // I just modified the one from 4coder_fleury.cpp and included all my files there.
 // I also put some additional includes and forward declarations in 4coder_default_include.cpp
@@ -21,11 +21,19 @@
 // @important
 // 4coder_fleury_index.h: Add additional fields for types and enums
 // 4coder_fleury_index.cpp:
-// - F4_Index_InsertNote:
+// - F4_Index_InsertNote: I was using the built-in profiler in 4coder and noticed something weird in this
+//   function. It does some alloc, hash lookups, and string comparisons, but most of the time was spent on
+//   this seemingly innocent line:
+//
+//     for (F4_Index_Note *note = list_tail; note; list_tail = note, note = note->next);
+//
+//   This line tries to find the linked list's tail note, and then later append a new note to it.
+//   But there was no reason to do so, you can insert the note at the start of the list because the order here
+//   doesn't matter. So just remove this, and you improve the speed quite a lot.
+//
 // - F4_Index_ParseCtx_Inc: Handle the SkipComment flag
 // - F4_Index_ClearFile: Reset the file->references to zero
-// - F4_Index_Tick: I tried experimenting with preprocessing the ref note in F4_Index_Note
-//                  The experiment has failed, I should remove all LONG_INDEX_PRELOAD_REF cases
+
 // 4coder_code_index.cpp: generic_parse_statement, generic_parse_paren, layout_index_x_shift
 
 // 4coder_fleury_colors.cpp:
@@ -54,7 +62,7 @@
 
 //- @long_project_files
 // 4coder_fleury_base_commands.cpp: f4_setup_new_project
-// 4coder_project_commands.cpp: prj_open_files_pattern_filter__rec and load_project
+// 4coder_project_commands.cpp: prj_open_files_pattern_filter__rec and load_project (@long_commands for more info)
 // 4coder_project_commands.h: Add the PrjOpenFileFlag_ReadOnly flag
 // 4coder_config.cpp: Call Long_UpdateCurrentTheme in load_config_and_apply (@long_commands for more info)
 
@@ -122,7 +130,13 @@
 //   declarations, type's fields, and function's arguments; generic type arguments and inheritance.
 //   You can take a look at it in 4coder_long_lang_cs.cpp and 4coder_cs_lexer_test.cs for more details.
 
+// - The Indent Function
+//   Long_Index_IndentBuffer uses Code_Index_Nest just like the virtual whitespace system, so now anytime you
+//   change the way the parser works, both of these will be updated correctly.
+//   All the new indenting commands are just the same as their counterpart but use this new indenting system.
+
 // - The Render System
+
 // 1. Long_Index_DrawPosContext
 //   Unlike F4_PosContext_Render, it will draw a function's return type, the variable's declaration type, and a type's
 //   keyword (class, struct, enum, etc). When displaying a type, it will split all the type's members into 3
@@ -134,17 +148,12 @@
 //   This is the same as F4_CodePeek_Render, but uses F4_Index_Note rather than Code_Index_Note and
 //   calls Long_Index_LookupBestNote. It will prioritize def notes over prototype ones.
 
-// - The Indent Function
-//   Long_Index_IndentBuffer uses Code_Index_Nest just like the virtual whitespace system, so now anytime you
-//   change the way the parser works, both of these will be updated correctly.
-//   All the new indenting commands are just the same as their counterpart but use this new indenting system.
-
-//
-// When I first wrote this system, I had some experience in parsing and modifying AST nodes. After reading
-// how Ryan did his parser and indexing system, I've learned a lot of useful tools and techniques. Since then, 
-// I've been experimenting with some of my other projects and also in this C# parser. If I have the time and
-// energy in the future, I'll write a more detailed comment describing all of my thoughts.
-//
+// - FINAL NOTE -
+// When I first wrote this system, I had some experience parsing and modifying AST nodes. After reading
+// how Ryan did his parser and indexer, I've learned a lot of new and useful techniques. Since then,
+// I've been experimenting with my other projects (including this C# parser). If I have the time and
+// energy in the future, I'll write a more detailed comment about the way the C# parser works and how
+// I think about parsing now.
 
 //- @long_search_intro
 
@@ -167,8 +176,10 @@
 // - Long_ListAllLocations: list_all_locations__generic but can localize the search to the current buffer
 //   It also remembers the current buffer and position before the search, so it can jump back when aborting
 //   It also uses the new Multi-Select system, read @long_multi_select_intro for more info
-// - Long_ListAllLines_InRange: This probably should be in the @long_multi_select_intro rather than here
-//   I will update this with an explanation later, just use the commands and guess it yourself for now
+// - Long_ListAllLines_InRange: Lists all the lines in the current buffer that satisfy a predicate function
+//   It also uses the Multi-Select system like Long_ListAllLocations
+//   I implemented this as a replacement for Alt+Shift in Visual Studio, but it's not as good as I wanted
+//   because the Multi-Select system is still very basic
 
 //- @long_lister_intro
 
@@ -207,9 +218,8 @@
 
 // These commands use fleury's index or 4coder's code index layer to move to the next target
 // - long_move_to_next/prev_function_and_type: moves to the next/prev function or type in the current buffer
-//   It uses the Long_Filter_FunctionAndType function to filter out lambda functions and generic argument
-// - long_move_up/down_token_occurrence: uses F4_Boundary_CursorToken from jack
-//   https://github.com/Jack-Punter/4coder_punter/blob/0b43bad07998132e76d7094ed7ee385151a52ab7/4coder_fleury_base_commands.cpp#L651
+//   It uses Long_Filter_FunctionAndType to filter out lambda functions and generic argument
+// - long_move_up/down_token_occurrence: uses F4_Boundary_CursorToken from jack (link at the function)
 
 // These commands move around by scanning for the surrounding scope like 4coder_scope_commands
 // - long_select_prev/next_scope_current_level: if a scope is already selected, find its prev/next sibling.
@@ -221,58 +231,83 @@
 // - long_select_surrounding_scope: selects the surrounding scope. If a scope is already selected,
 //   switch between having the cursor and mark outside or inside that scope.
 
-//- @long_multi_select_intro TODO
+//- @long_multi_select_intro
 
-// - Long_Highlight_DrawList will render multiple cursors and highlighted selections when using the MultiSelect system
+// Long_SearchBuffer_MultiSelect is a makeshift function for implementing a multi-cursor-like system.
+// It works by rendering the jump buffer with a custom render function (Long_Highlight_DrawList) that
+// will draw a notepad-like cursor at each sticky jump location and have a custom navigation code to
+// move the highlighted range around.
+
+// Up/Down will move to the prev/next location and hold down shift while doing so to select multiple locations
+// Left/Right to change the current selection size, and move all the cursors around
+// Esc will undo all the changes and jump back to the old position, while Enter will commit all the edits
+// Shift+Esc still keeps the current position and exits back to the normal jump highlighting code
+
+// This is a quick and dirty way for stuff to work, so one of the main weaknesses is that you can't run any
+// custom commands, which means you can't use basic navigation like move_up/down, copy/cut/paste, mark
+// highlighting, etc. Each cursor can't be moved in arbitrary ways or has its own mark, and any new commands
+// you want must be implemented in the Long_SearchBuffer_MultiSelect function.
+
+// A better way to implement this is to parse the *keyboard* buffer like the macro system and store each cursor
+// and mark position in a marker array. If you don't need cursors to be in multiple buffers, and ok with a
+// notepad-like design for each cursor (meaning you can't have arbitrary mark position), then this's probably
+// the best way to do it.
 
 //- @long_commands
 
 // - Long_KillBuffer: When you kill a buffer in the original command, 4coder will switch to the most
 //   recent buffer. This isn't that bad because killing a buffer isn't that common. But what's common is
 //   killing the *search* buffer, and it's very annoying when after a quick search the buffer
-//   that you get isn't the one before you started the search. This function will first check if the
+//   that you get back isn't the one before you started the search. This function will first check if the
 //   buffer you want to kill is the *search* buffer, then jump back to the correct position afterward.
 //   This is used by long_interactive_kill_buffer, long_kill_buffer, and long_kill_search_buffer.
 
 // - long_select_current_line: This will move the cursor to the end of the current line and the mark to the
-//   the first non-whitespace character on the current line or the end of the previous line if it's already there.
+//   first non-whitespace character on the current line or the end of the previous line if it's already there.
 
 // - long_reload_all_themes_default_folder: I added this command while customizing my theme file.
 //   It will clear all the loaded themes and reload all the files in the default theme folder.
-//   Then it will try to find the theme that was being used.
+//   Then it will try to find the theme that was being used and select it. It'll do it by calling
+//   Long_UpdateCurrentTheme in the theme lister and on startup.
 
 // - load_project: I modified this command to work with the new reference library concept.
 //   Each project file can now contain an array of reference paths (set inside the reference_paths variable)
 //   When this command runs, it will recursively load all files in those paths as read-only and unimportant
 
 //~ TODO SEARCH
-// [ ] Replace all the wildcard searching in query bar and lister with grep
+// [ ] Replace all the wildcard searching in the query bar and lister with grep
 // [ ] Search for definitions like Hoogle
 // [ ] Has a lister for important but rarely used commands
-// [ ] Search and open most recent modified file on startup
-// [ ] Handle function/type overloading
+// [ ] Search and open the most recent modified file on startup
+// [ ] Handle function overloading
 
 //~ TODO RENDER
 
 //- LISTER
 // [ ] Put ... after a large item and scroll its content horizontally over time
-// [ ] Has syntax highlighting inside each item's contents
+// [ ] Has syntax highlight inside each item's contents
 
 //- INDEX
 // [ ] Autocompletion using PosContext or casey/jack's system
-// [ ] Unite all code peeking systems and bindings (fleury_code_peek, f4_autocomplete, word_complete_drop_down, and fleury_pos_context)
-// [ ] String/Comment indent as code
+// [ ] String/Comment indenting as code
 
 //- BUGS
-// [ ] Fix error annotation locations
+// [ ] Fix unmatched error annotation locations
 
-//~ TODO META
-// [ ] Merge all the default query bar code into a single function
-// [ ] Merge Long_Isearch and Long_Query_User_String into one function
+//~ TODO CODE/ARCHITECTURE
+
+//- LONG
+// [ ] Write my own init layer and hooks
 // [ ] Write a new lister layer from scratch as a drop-in file
+
 // [ ] Write a new cpp parser
 // [ ] Rewrite the Index system into a simple drop-in file
 // [ ] Add Index API for customizing the indentation and poscontext
+
+// [ ] Merge all the default query bar code into a single function
+// [ ] Merge Long_Isearch and Long_Query_User_String into one function
+
+//- FLEURY
 // [ ] Strip out *calc* buffer
 // [ ] Strip out power mode
 // [ ] Strip out *lego* buffer 

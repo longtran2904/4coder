@@ -827,9 +827,6 @@ function i32 Long_EndBuffer(Application_Links* app, Buffer_ID buffer_id)
             Long_Index_EraseNote(app, note);
         
         F4_Index_EraseFile(app, buffer_id);
-#if LONG_INDEX_PRELOAD_REF
-        Long_Index_PreloadRef(app);
-#endif
     }
     F4_Index_Unlock();
     return end_buffer_close_jump_list(app, buffer_id);
@@ -844,7 +841,7 @@ function i32 Long_SaveFile(Application_Links *app, Buffer_ID buffer_id)
     b32 is_virtual = def_get_config_b32(vars_save_string_lit("enable_virtual_whitespace"));
     History_Record_Index index = buffer_history_get_current_state_index(app, buffer_id);
     if (auto_indent && is_virtual && index)
-        Long_Index_IndentBuffer(app, buffer_id, {}, true);
+        Long_Index_IndentBuffer(app, buffer_id, buffer_range(app, buffer_id), true);
     
     Long_Buffer_History  current = Long_Buffer_GetCurrentHistory (app, buffer_id);
     Long_Buffer_History* history = Long_Buffer_GetAttachedHistory(app, buffer_id);
@@ -873,7 +870,7 @@ CUSTOM_COMMAND_SIG(long_indent_whole_file)
 CUSTOM_DOC("Audo-indents the entire current buffer.")
 {
     Buffer_ID buffer = view_get_buffer(app, get_active_view(app, Access_ReadWriteVisible), Access_ReadWriteVisible);
-    Long_Index_IndentBuffer(app, buffer, {});
+    Long_Index_IndentBuffer(app, buffer, buffer_range(app, buffer));
 }
 
 function void Long_Indent_CursorRange(Application_Links* app, b32 merge_history, b32 force_update = 0)
@@ -1295,7 +1292,8 @@ function void Long_SearchBuffer_MultiSelect(Application_Links* app, View_ID view
         
         if (match_key_code(&in, KeyCode_Return) || match_key_code(&in, KeyCode_Tab))
         {
-            Long_PointStack_Push(app, current_location.buffer_id, current_location.pos, view);
+            if (push_jump)
+                Long_PointStack_Push(app, current_location.buffer_id, current_location.pos, view);
             break;
         }
         
@@ -1334,7 +1332,7 @@ function void Long_SearchBuffer_MultiSelect(Application_Links* app, View_ID view
             else
             {
                 has_modified_string = true;
-                if (advance > 0)
+                if ((advance > 0 && *size > 0) || (advance < 0 && *size < 0))
                     *offset = *size;
                 *size = 0;
             }
@@ -1429,19 +1427,19 @@ function void Long_SearchBuffer_MultiSelect(Application_Links* app, View_ID view
                     if (i == select_range.max && batch_head)
                     {
                         buffer_batch_edit(app, buffer, batch_head);
-                        if (!/*has_modified_string*/start_history.index)
+                        if (!start_history.index)
                             start_history = Long_Buffer_GetCurrentHistory(app, buffer);
                     }
                 }
             }
             
+            if (*offset >= 0)
+                *offset += string.size;
+            
             if (has_modified_string)
             {
-                if (*offset >= 0)
-                    *offset += string.size;
-                if (*offset > 0 && *size < 0)
-                    *offset += *size;
-                if (*offset < 0 && *size > 0)
+                if ((*offset > 0 && *size < 0) || // Backspace
+                    (*offset < 0 && *size > 0))   // Delete
                     *offset += *size;
             }
             
@@ -1627,8 +1625,7 @@ function i64 Long_Line_NonWhitespace(Application_Links* app, Buffer_ID buffer, i
 {
     Range_i64 range = get_line_pos_range(app, buffer, line);
     Indent_Info info = get_indent_info_range(app, buffer, range, 0);
-    if (info.first_char_pos == range.end)
-        return -1;
+    if (info.first_char_pos == range.end) return -1; // NOTE(long): Maybe just return normally here?
     return info.first_char_pos - range.start + 1;
 }
 
@@ -1663,6 +1660,12 @@ function i64 Long_Line_HasEnoughSizeAndOffset(Application_Links* app, Buffer_ID 
 }
 
 CUSTOM_COMMAND_SIG(long_list_all_lines_in_range)
+CUSTOM_DOC("Lists all lines in between the mark and the cursor that are not blank.")
+{
+    Long_ListAllLines_InRange(app, get_view_range(app, get_active_view(app, Access_Always)));
+}
+
+CUSTOM_COMMAND_SIG(long_list_all_lines_in_range_non_whitespace)
 CUSTOM_DOC("Lists all lines in between the mark and the cursor that are not blank.")
 {
     Long_ListAllLines_InRange(app, get_view_range(app, get_active_view(app, Access_Always)), Long_Line_NonWhitespace);

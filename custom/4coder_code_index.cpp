@@ -478,6 +478,22 @@ generic_parse_statement(Code_Index_File *index, Generic_Parse_State *state){
     state->in_statement = true;
 #if LONG_INDEX_INDENT_STATEMENT
     b32 is_keyword = token->kind == TokenBaseKind_Keyword;
+    if (is_keyword)
+    {
+        String8 keywords[] =
+        {
+            string_u8_litexpr("if"), string_u8_litexpr("else"), string_u8_litexpr("do"),
+            string_u8_litexpr("for"), string_u8_litexpr("foreach"), string_u8_litexpr("while"),
+            string_u8_litexpr("try"), string_u8_litexpr("catch"), string_u8_litexpr("except"),
+        };
+        
+        Scratch_Block scratch(state->app);
+        String8 lexeme = push_token_lexeme(state->app, scratch, index->buffer, token);
+        for (u64 i = 0; i < ArrayCount(keywords); ++i)
+            if (is_keyword = string_match(lexeme, keywords[i]))
+                break;
+    }
+    
     i64 start_paren_pos = 0;
     if (token_it_inc(&state->it))
     {

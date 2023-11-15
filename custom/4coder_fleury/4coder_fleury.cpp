@@ -397,7 +397,6 @@ typedef int socklen_t;
 #define LONG_INDEX_INDENT_PAREN 0
 #define LONG_INDEX_CODE_PEEK 1
 #define LONG_INDEX_POS_CONTEXT 1
-#define LONG_INDEX_PRELOAD_REF 0
 
 #define LONG_CS_LEXER 1
 

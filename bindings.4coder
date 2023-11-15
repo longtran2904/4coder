@@ -148,8 +148,9 @@ keys_file =
     { "long_list_all_locations_of_identifier_current_buffer",                            "T", "Alt", "Shift", "Control" },
     { "long_list_all_substring_locations_of_identifier_case_insensitive_current_buffer", "T", "Alt", "Control"          },
     
-    { "long_list_all_lines_in_range",                      "R", "Alt"          },
-    { "long_list_all_lines_in_range_seek_end",             "R", "Alt", "Shift" },
+    { "long_list_all_lines_in_range_non_whitespace",       "R", "Alt"          },
+    { "long_list_all_lines_in_range",                      "R", "Alt", "Shift" },
+    { "long_list_all_lines_in_range_seek_end",             "E", "Alt" },
     { "long_list_all_lines_from_non_whitespace_to_cursor", "C", "Alt" },
     { "long_list_all_lines_from_start_to_cursor",          "C", "Alt", "Shift" },
     
@@ -222,7 +223,7 @@ keys_code =
     { "f4_uncomment_selection",                              "Semicolon",    "Control", "Shift" },
     { "f4_autocomplete_or_indent",                           "Tab" },   
     { "f4_unindent",                                         "Tab",          "Shift"   },
-    { "auto_indent_range",                                   "Tab",          "Control" },
+    { "long_indent_range",                                   "Tab",          "Control" },
     
     { "word_complete_drop_down",                             "Tab",          "Control", "Shift" },
     

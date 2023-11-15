@@ -397,26 +397,6 @@ function F4_Index_Note* Long_Index_LoadRef(Application_Links* app, F4_Index_Note
     return result;
 }
 
-function void Long_Index_PreloadRef(Application_Links* app, F4_Index_Note* note)
-{
-    for (F4_Index_Note* child = note->first_child; child; child = child->next_sibling)
-        Long_Index_PreloadRef(app, child);
-    note->ref = Long_Index_LoadRef(app, note, note);
-}
-
-function void Long_Index_ClearRef(Application_Links* app, F4_Index_Note* note)
-{
-    for (F4_Index_Note* child = note->first_child; child; child = child->next_sibling)
-        Long_Index_ClearRef(app, child);
-    note->ref = 0;
-}
-
-function void Long_Index_PreloadRef(Application_Links* app)
-{
-    Long_Index_ClearRef  (app, &namespace_root);
-    Long_Index_PreloadRef(app, &namespace_root);
-}
-
 function void Long_Index_EraseNote(Application_Links* app, F4_Index_Note* note)
 {
     Long_Index_IterateValidNoteInFile(child, note)
@@ -591,11 +571,7 @@ function F4_Index_Note* Long_Index_LookupChild(F4_Index_Note* parent, i32 index)
 
 function F4_Index_Note* Long_Index_LookupRef(Application_Links* app, F4_Index_Note* note, F4_Index_Note* filter_note)
 {
-#if LONG_INDEX_PRELOAD_REF
-    return note->ref != filter_note ? note->ref : 0;
-#else
     return Long_Index_LoadRef(app, note, filter_note);
-#endif
 }
 
 function void Long_Index_ParseSelection(Application_Links* app, Arena* arena, Token_Iterator_Array* it, Buffer_ID buffer,
@@ -1374,11 +1350,30 @@ function void Long_Index_DrawCodePeek(Application_Links* app, View_ID view)
     text_layout_free(app, text_layout_id);
 }
 
-function void Long_Index_IndentBuffer(Application_Links* app, Buffer_ID buffer, Indent_Flag flags, i32 tab_width, i32 indent_width)
+function void Long_Index_IndentBuffer(Application_Links* app, Buffer_ID buffer, Range_i64 pos,
+                                      Indent_Flag flags, i32 tab_width, i32 indent_width)
 {
     Scratch_Block scratch(app);
     
-    Range_i64 lines = get_line_range_from_pos_range(app, buffer, buffer_range(app, buffer));
+    // COPYPASTA(long): auto_indent_buffer
+    if (HasFlag(flags, Indent_FullTokens)){
+        i32 safety_counter = 0;
+        for (;;){
+            Range_i64 expanded = enclose_tokens(app, buffer, pos);
+            expanded = enclose_whole_lines(app, buffer, expanded);
+            if (expanded == pos){
+                break;
+            }
+            pos = expanded;
+            safety_counter += 1;
+            if (safety_counter == 20){
+                pos = buffer_range(app, buffer);
+                break;
+            }
+        }
+    }
+    
+    Range_i64 lines = get_line_range_from_pos_range(app, buffer, pos);
     i64* indentations = push_array_zero(scratch, i64, lines.max - lines.min + 1);
     i64* shifted_indentations = indentations - lines.first; // NOTE(long): Because lines.first is 1-based
     
@@ -1410,7 +1405,7 @@ function void Long_Index_IndentBuffer(Application_Links* app, Buffer_ID buffer, 
                     Assert(paren_line < line);
                     Indent_Info paren_indent = get_indent_info_range(app, buffer, get_line_pos_range(app, buffer, paren_line), tab_width);
                     i64 start_text_size = nest->open.min - paren_indent.first_char_pos;
-                    indent += shifted_indentations[paren_line] + start_text_size + 1;
+                    indent += (paren_line >= lines.min ? shifted_indentations[paren_line] : paren_indent.indent_pos) + start_text_size + 1;
                     break;
                 }
                 
@@ -1476,11 +1471,12 @@ function void Long_Index_IndentBuffer(Application_Links* app, Buffer_ID buffer, 
     
     Indent_Flag flags = 0;
     //AddFlag(flags, Indent_ClearLine);
+    AddFlag(flags, Indent_FullTokens);
     if (def_get_config_b32(vars_save_string_lit("indent_with_tabs")))
         AddFlag(flags, Indent_UseTab);
     
     History_Record_Index first = buffer_history_get_current_state_index(app, buffer);
-    Long_Index_IndentBuffer(app, buffer, flags, tab_width, indent_width);
+    Long_Index_IndentBuffer(app, buffer, range, flags, tab_width, indent_width);
     if (merge_history)
     {
         History_Record_Index last = buffer_history_get_current_state_index(app, buffer);

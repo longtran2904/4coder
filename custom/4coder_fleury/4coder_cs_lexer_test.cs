@@ -198,7 +198,11 @@ public class Test
     public Stuff stuff;
     
     (int, float) tupple;
-    (int, float[][][][]) Function(int someInt, float someFloat);
+    public (int, float[][][][]) Function(int someInt, float someFloat)
+        {
+            
+        }
+    
     (Generic<Test>, SomeOtherType<Array[]>) Function2(int, float);
     
     public Test()
