@@ -190,6 +190,7 @@ struct Long_Point_Stack
     Managed_Object markers[POINT_STACK_DEPTH];
     Buffer_ID buffers[POINT_STACK_DEPTH];
     i32 bot;
+    
     // NOTE(long): The current and top is one past the actual point index
     i32 current;
     i32 top;
@@ -1093,7 +1094,10 @@ function b32 Long_Query_User_String(Application_Links *app, Query_Bar *bar, Stri
         }
         else if (in.event.kind == InputEventKind_KeyStroke &&
                  in.event.key.code == KeyCode_Backspace){
-            bar->string = backspace_utf8(bar->string);
+            if (has_modifier(&in, KeyCode_Control))
+                bar->string.size = 0;
+            else
+                bar->string = backspace_utf8(bar->string);
         }
         else if (match_key_code(&in, KeyCode_V) && has_modifier(&in, KeyCode_Control))
         {
@@ -1536,7 +1540,11 @@ function void Long_ListAllLocations_Query(Application_Links *app, char* query, L
 {
     Scratch_Block scratch(app);
     u8* space = push_array(scratch, u8, LONG_QUERY_STRING_SIZE);
-    String_Const_u8 needle = Long_Get_Query_String(app, query, space, LONG_QUERY_STRING_SIZE);
+    String_Const_u8 needle = push_view_range_string(app, scratch);
+    i64 size = Min(needle.size, LONG_QUERY_STRING_SIZE);
+    block_copy(space, needle.str, size);
+    needle = Long_Get_Query_String(app, "List Locations For Identifier: ", space, LONG_QUERY_STRING_SIZE, size);
+    
     Long_ListAllLocations(app, needle, flags, all_buffer);
 }
 
@@ -1544,12 +1552,6 @@ function void Long_ListAllLocations_Identifier(Application_Links *app, List_All_
 {
     Scratch_Block scratch(app);
     String_Const_u8 needle = push_token_or_word_under_active_cursor(app, scratch);
-    if (needle.size <= LONG_QUERY_STRING_SIZE)
-    {
-        u8* space = push_array(scratch, u8, LONG_QUERY_STRING_SIZE);
-        block_copy(space, needle.str, needle.size);
-        needle = Long_Get_Query_String(app, "List Locations For Identifier: ", space, LONG_QUERY_STRING_SIZE, needle.size);
-    }
     Long_ListAllLocations(app, needle, flags, all_buffer);
 }
 
@@ -2741,12 +2743,6 @@ function void Long_SelectCurrentLine(Application_Links* app, b32 toggle)
     no_mark_snap_to_cursor(app, view);
 }
 
-CUSTOM_COMMAND_SIG(long_select_current_line)
-CUSTOM_DOC("Set the mark to the end of the previous line and cursor to the end of the current line")
-{
-    Long_SelectCurrentLine(app, 1);
-}
-
 CUSTOM_COMMAND_SIG(long_copy_line)
 CUSTOM_DOC("Copy the text in the current line onto the clipboard.")
 {
@@ -2761,7 +2757,77 @@ CUSTOM_DOC("Cut the text in the current line onto the clipboard.")
     cut(app);
 }
 
+CUSTOM_COMMAND_SIG(long_copy_token)
+CUSTOM_DOC("Copy the token that the cursor is currently on onto the clipboard.")
+{
+    long_select_current_token(app);
+    copy(app);
+}
+
+CUSTOM_COMMAND_SIG(long_cut_token)
+CUSTOM_DOC("Cut the token that the cursor is currently on onto the clipboard.")
+{
+    long_select_current_token(app);
+    cut(app);
+}
+
 //~ NOTE(long): Move Commands
+
+//- NOTE(long): Select
+CUSTOM_COMMAND_SIG(long_select_current_line)
+CUSTOM_DOC("Set the mark to the end of the previous line and cursor to the end of the current line")
+{
+    Long_SelectCurrentLine(app, 1);
+}
+
+function void Long_Scan_Move(Application_Links *app, Scan_Direction direction, Boundary_Function_List funcs, b32 snap_mark = 0)
+{
+    View_ID view = get_active_view(app, Access_ReadVisible);
+    Buffer_ID buffer = view_get_buffer(app, view, Access_ReadVisible);
+    i64 cursor_pos = view_get_cursor_pos(app, view);
+    i64 pos = scan(app, funcs, buffer, direction, cursor_pos);
+    view_set_cursor_and_preferred_x(app, view, seek_pos(pos));
+    if (!snap_mark)
+        no_mark_snap_to_cursor_if_shift(app, view);
+}
+
+CUSTOM_COMMAND_SIG(long_select_current_token)
+CUSTOM_DOC("Set the mark and cursor to the current token's boundary.")
+{
+    Scratch_Block scratch(app);
+    View_ID view = get_active_view(app, Access_ReadVisible);
+    i64 pos = view_get_cursor_pos(app, view);
+    
+    Buffer_ID buffer = view_get_buffer(app, view, Access_Always);
+    Token_Array array = get_token_array_from_buffer(app, buffer);
+    Token* token = get_token_from_pos(app, &array, pos);
+    if (token)
+    {
+        REPEAT:
+        if (token->kind == TokenBaseKind_Whitespace ||
+            token->kind == TokenBaseKind_ParentheticalOpen ||
+            token->kind == TokenBaseKind_ParentheticalClose)
+        {
+            i64 line = get_line_number_from_pos(app, buffer, token->pos);
+            i64 prev_line = get_line_number_from_pos(app, buffer, token->pos - 1);
+            if (token != array.tokens && (token == &array.tokens[array.count - 2] || line == prev_line))
+                token = get_token_from_pos(app, buffer, token->pos - 1);
+            else
+                token = get_token_from_pos(app, buffer, token->pos + token->size);
+        }
+        else if (token->kind == TokenBaseKind_EOF)
+        {
+            if (token != array.tokens)
+                token--;
+            Assert(token->kind != TokenBaseKind_EOF);
+            goto REPEAT;
+        }
+        
+        view_set_cursor_and_preferred_x(app, view, seek_pos(token->pos));
+        view_set_mark(app, view, seek_pos(token->pos + token->size));
+        no_mark_snap_to_cursor(app, view);
+    }
+}
 
 //- NOTE(long): Index
 function i64 Long_Boundary(Application_Links *app, Buffer_ID buffer, Side side, Scan_Direction direction, i64 pos)
@@ -2803,14 +2869,14 @@ CUSTOM_COMMAND_SIG(long_move_right_boundary)
 CUSTOM_DOC("Seek right for the next end of a token.")
 {
     Scratch_Block scratch(app);
-    current_view_scan_move(app, Scan_Forward, push_boundary_list(scratch, Long_Boundary));
+    Long_Scan_Move(app, Scan_Forward, push_boundary_list(scratch, Long_Boundary));
 }
 
 CUSTOM_COMMAND_SIG(long_move_left_boundary)
 CUSTOM_DOC("Seek left for the next beginning of a token.")
 {
     Scratch_Block scratch(app);
-    current_view_scan_move(app, Scan_Backward, push_boundary_list(scratch, Long_Boundary));
+    Long_Scan_Move(app, Scan_Backward, push_boundary_list(scratch, Long_Boundary));
 }
 
 function i64 Long_Boundary_AlphaNumericCamel(Application_Links *app, Buffer_ID buffer, Side side, Scan_Direction direction, i64 pos)
@@ -2839,14 +2905,14 @@ CUSTOM_COMMAND_SIG(long_move_right_alpha_numeric_or_camel_boundary)
 CUSTOM_DOC("Seek right for boundary between alphanumeric characters or camel case word and non-alphanumeric characters.")
 {
     Scratch_Block scratch(app);
-    current_view_scan_move(app, Scan_Forward, push_boundary_list(scratch, Long_Boundary_AlphaNumericCamel));
+    Long_Scan_Move(app, Scan_Forward, push_boundary_list(scratch, Long_Boundary_AlphaNumericCamel));
 }
 
 CUSTOM_COMMAND_SIG(long_move_left_alpha_numeric_or_camel_boundary)
 CUSTOM_DOC("Seek left for boundary between alphanumeric characters or camel case word and non-alphanumeric characters.")
 {
     Scratch_Block scratch(app);
-    current_view_scan_move(app, Scan_Backward, push_boundary_list(scratch, Long_Boundary_AlphaNumericCamel));
+    Long_Scan_Move(app, Scan_Backward, push_boundary_list(scratch, Long_Boundary_AlphaNumericCamel));
 }
 
 function F4_Index_Note* Long_Scan_Note(Scan_Direction dir, F4_Index_Note* note, NoteFilter* filter, i64 pos)
@@ -2899,14 +2965,14 @@ CUSTOM_COMMAND_SIG(long_move_to_next_function_and_type)
 CUSTOM_DOC("Seek right for the next function or type in the buffer.")
 {
     Scratch_Block scratch(app);
-    current_view_scan_move(app, Scan_Forward, push_boundary_list(scratch, Long_Boundary_FunctionAndType));
+    Long_Scan_Move(app, Scan_Forward, push_boundary_list(scratch, Long_Boundary_FunctionAndType), 1);
 }
 
 CUSTOM_COMMAND_SIG(long_move_to_prev_function_and_type)
 CUSTOM_DOC("Seek left for the previous function or type in the buffer.")
 {
     Scratch_Block scratch(app);
-    current_view_scan_move(app, Scan_Backward, push_boundary_list(scratch, Long_Boundary_FunctionAndType));
+    Long_Scan_Move(app, Scan_Backward, push_boundary_list(scratch, Long_Boundary_FunctionAndType), 1);
 }
 
 // COPYPASTA(long):
@@ -3029,14 +3095,14 @@ CUSTOM_COMMAND_SIG(long_move_up_token_occurrence)
 CUSTOM_DOC("Moves the cursor to the previous occurrence of the token that the cursor is over.")
 {
     Scratch_Block scratch(app);
-    current_view_scan_move(app, Scan_Backward, push_boundary_list(scratch, F4_Boundary_CursorToken));
+    Long_Scan_Move(app, Scan_Backward, push_boundary_list(scratch, F4_Boundary_CursorToken));
 }
 
 CUSTOM_COMMAND_SIG(long_move_down_token_occurrence)
 CUSTOM_DOC("Moves the cursor to the next occurrence of the token that the cursor is over.")
 {
     Scratch_Block scratch(app);
-    current_view_scan_move(app, Scan_Forward, push_boundary_list(scratch, F4_Boundary_CursorToken));
+    Long_Scan_Move(app, Scan_Forward, push_boundary_list(scratch, F4_Boundary_CursorToken));
 }
 
 //- NOTE(long): Scope

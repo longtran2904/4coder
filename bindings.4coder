@@ -162,13 +162,18 @@ keys_file =
     
     // NOTE(rjf): Clipboard
     { "copy",                                          "C", "Control" },
+    { "long_copy_line",                                "C", "Control", "Shift" },
+    { "long_copy_token",                               "C", "Control", "Alt"   },
+    
+    { "cut",                                           "X", "Control" },
+    { "long_cut_line",                                 "X", "Control", "Shift" },
+    { "long_cut_token",                                "X", "Control", "Alt"   },
+    
     { "long_paste_and_indent",                         "V", "Control" },
     { "long_paste_and_replace_range",                  "V", "Control", "Shift" },
-    { "long_select_current_line",                      "A", "Control", "Shift" },
-    { "cut",                                           "X", "Control" },
     
-    { "long_copy_line",                                "C", "Control", "Shift" },
-    { "long_cut_line",                                 "X", "Control", "Shift" },
+    { "long_select_current_line",                      "A", "Control", "Shift" },
+    { "long_select_current_token",                     "A", "Alt"   },
     
     // NOTE(rjf): Deletion
     { "delete_range",                                  "D", "Control" },
@@ -233,7 +238,7 @@ keys_code =
     { "long_select_lower_scope",                             "RightBracket", "Control", "Shift" },
     { "long_select_prev_scope_current_level",                "LeftBracket",  "Control", "Alt"   },
     { "long_select_next_scope_current_level",                "RightBracket", "Control", "Alt"   },
-    { "long_select_surrounding_scope",                       "A",            "Alt"   },
+    { "long_select_surrounding_scope",                       "P",            "Alt"   },
     
     /* NOTE(long): Will I ever actually use these?
     
