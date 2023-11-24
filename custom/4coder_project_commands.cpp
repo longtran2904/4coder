@@ -537,8 +537,8 @@ prj_setup_scripts(Application_Links *app, Prj_Setup_Script_Flags flags){
         status = prj_file_is_setup(app, script_path, string_u8_litexpr("build"));
         needs_to_do_work =
             !status.project_exists ||
-        (do_bat_script && !status.bat_exists) ||
-        (do_sh_script && !status.sh_exists);
+            (do_bat_script && !status.bat_exists) ||
+            (do_sh_script && !status.sh_exists);
     }
     else{
         needs_to_do_work = true;
@@ -975,17 +975,17 @@ CUSTOM_DOC("Looks for a project.4coder file in the current directory and tries t
     // NOTE(long): This must use the v2 project file format
     {
         Variable_Handle reference_path_var = vars_read_key(prj_var, vars_save_string_lit("reference_paths"));
-        u32 flags = PrjOpenFileFlag_Recursive|PrjOpenFileFlag_ReadOnly;
         for (Vars_Children(path_var, reference_path_var))
         {
             String8 path = vars_string_from_var(scratch, path_var);
             if (file_exists_and_is_folder(app, path))
-            prj_open_files_pattern_filter(app, path, whitelist, blacklist, flags);
+                prj_open_files_pattern_filter(app, path, whitelist, blacklist, PrjOpenFileFlag_Recursive|PrjOpenFileFlag_ReadOnly);
             else if (file_exists_and_is_file(app, path))
             {
                 Buffer_ID buffer = create_buffer(app, path, 0);
                 push_whole_buffer(app, scratch, buffer);
-                buffer_set_setting(app, buffer, BufferSetting_ReadOnly|BufferSetting_Unimportant, true);
+                buffer_set_setting(app, buffer, BufferSetting_ReadOnly, true);
+                buffer_set_setting(app, buffer, BufferSetting_Unimportant, true);
             }
             else
             {

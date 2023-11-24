@@ -1540,10 +1540,10 @@ function void Long_ListAllLocations_Query(Application_Links *app, char* query, L
 {
     Scratch_Block scratch(app);
     u8* space = push_array(scratch, u8, LONG_QUERY_STRING_SIZE);
-    String_Const_u8 needle = push_view_range_string(app, scratch);
+    String8 needle = fcoder_mode == FCoderMode_NotepadLike ? push_view_range_string(app, scratch) : String8{};
     i64 size = Min(needle.size, LONG_QUERY_STRING_SIZE);
     block_copy(space, needle.str, size);
-    needle = Long_Get_Query_String(app, "List Locations For Identifier: ", space, LONG_QUERY_STRING_SIZE, size);
+    needle = Long_Get_Query_String(app, "List Locations For: ", space, LONG_QUERY_STRING_SIZE, size);
     
     Long_ListAllLocations(app, needle, flags, all_buffer);
 }

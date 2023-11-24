@@ -730,11 +730,24 @@ function F4_Index_Note* Long_Index_LookupNoteFromList(Application_Links* app, St
         {
             if (lookup_type == Long_LookupType_PreferFunc)
             {
-                if (note->kind == F4_Index_NoteKind_Type)
+                if (note->kind == F4_Index_NoteKind_Type || note->kind == F4_Index_NoteKind_Decl)
                 {
+                    // Decl usually only has one scope child (lambda function) so we won't find any valid constructor here
                     for (F4_Index_Note* constructor = note->first_child; constructor; constructor = constructor->next_sibling)
                         if (string_match(constructor->string, note->string) && !constructor->base_range.max)
                             note = constructor;
+                    
+                    if (note->kind != F4_Index_NoteKind_Function)
+                    {
+                        for (F4_Index_Note* func = Long_Index_LookupChild(note->string, note->parent); func; func = func->next)
+                        {
+                            if (func->kind == F4_Index_NoteKind_Function)
+                            {
+                                note = func;
+                                break;
+                            }
+                        }
+                    }
                 }
             }
             else if (note->parent)
@@ -812,6 +825,15 @@ function F4_Index_Note* Long_Index_LookupBestNote(Application_Links* app, Buffer
     String8List names = {};
     Range_i64 range = Ii64(token);
     Token_Iterator_Array it = token_iterator_pos(0, array, range.min);
+    
+    b32 has_paren = 0;
+    if (token_it_inc(&it))
+    {
+        String8 lexeme = push_token_lexeme(app, scratch, buffer, it.ptr);
+        has_paren = string_match(lexeme, S8Lit("(")); 
+        token_it_dec(&it);
+    }
+    
     Long_Index_ParseSelection(app, scratch, &it, buffer, &names, use_first);
     
     Buffer_Cursor debug_cursor = buffer_compute_cursor(app, buffer, seek_pos(range.min));
@@ -826,7 +848,7 @@ function F4_Index_Note* Long_Index_LookupBestNote(Application_Links* app, Buffer
         String8 start_string = push_token_lexeme(app, scratch, buffer, it.ptr);
         if (string_match(start_string, S8Lit("this")))
             lookup_type = Long_LookupType_PreferType;
-        else if (string_match(start_string, S8Lit("new")))
+        else if (has_paren || string_match(start_string, S8Lit("new")))
             lookup_type = Long_LookupType_PreferFunc;
         
         if (lookup_type == Long_LookupType_None)

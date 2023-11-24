@@ -278,7 +278,7 @@
 // [ ] Replace all the wildcard searching in the query bar and lister with grep
 // [ ] Search for definitions like Hoogle
 // [ ] Has a lister for important but rarely used commands
-// [ ] Search and open the most recent modified file on startup
+// [X] Search and open the most recent modified file on startup
 // [ ] Handle function overloading
 
 //~ TODO RENDER

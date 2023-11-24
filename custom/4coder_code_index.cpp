@@ -505,7 +505,7 @@ generic_parse_statement(Code_Index_File *index, Generic_Parse_State *state){
     }
 #endif
     
-    for (;;){
+    for (b32 first_time = 1; ; first_time = 0){
         generic_parse_skip_soft_tokens(index, state);
         token = token_it_read(&state->it);
         if (token == 0 || state->finished){
@@ -556,7 +556,7 @@ generic_parse_statement(Code_Index_File *index, Generic_Parse_State *state){
             break;
         }
         
-        if (token->kind == TokenBaseKind_ParentheticalOpen)
+        if (!first_time && token->kind == TokenBaseKind_ParentheticalOpen)
         {
             Code_Index_Nest* nest = generic_parse_paren(index, state);
             nest->parent = result;
@@ -576,7 +576,7 @@ generic_parse_statement(Code_Index_File *index, Generic_Parse_State *state){
         
         if (token->kind == TokenBaseKind_ScopeOpen  ||
             token->kind == TokenBaseKind_ScopeClose ||
-            token->kind == TokenBaseKind_ParentheticalOpen // NOTE(long): This case is already handled above so it will never get here
+            token->kind == TokenBaseKind_ParentheticalOpen // NOTE(long): This case can only be true on the first iteration
             )
         {
             result->is_closed = true;
