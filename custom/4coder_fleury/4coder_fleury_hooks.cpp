@@ -506,8 +506,11 @@ F4_Render(Application_Links *app, Frame_Info frame_info, View_ID view_id)
     b64 showing_file_bar = false;
     if(view_get_setting(app, view_id, ViewSetting_ShowFileBar, &showing_file_bar) && showing_file_bar)
     {
-        Rect_f32_Pair pair = layout_file_bar_on_top(region, line_height);
-        F4_DrawFileBar(app, view_id, buffer, face_id, pair.min);
+        // NOTE(long): If the buffer is the *compilation* buffer, don't use its font but the global font
+        Face_ID global_face = get_face_id(app, 0);
+        b32 is_comp = buffer == get_comp_buffer(app);
+        Rect_f32_Pair pair = layout_file_bar_on_top(region, is_comp ? get_face_metrics(app, global_face).line_height : line_height);
+        F4_DrawFileBar(app, view_id, buffer, is_comp ? global_face : face_id, pair.min);
         region = pair.max;
     }
     

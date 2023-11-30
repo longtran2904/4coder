@@ -688,9 +688,21 @@ enum Long_Index_LookupType
 {
     Long_LookupType_None,
     Long_LookupType_PreferFunc,
-    Long_LookupType_PreferType,
+    Long_LookupType_PreferConstructor,
+    Long_LookupType_PreferBase,
     Long_LookupType_PreferMember,
 };
+
+function F4_Index_Note* Long_Index_LookupNoteByKind(F4_Index_Note* parent, String8 string, F4_Index_NoteKind kind, b32 equal = 1)
+{
+    F4_Index_Note* note = 0;
+    for (F4_Index_Note* head = Long_Index_LookupChild(string, parent); head; note = head, head = head->prev);
+    
+    for (; note; note = note->next)
+        if (note->parent == parent && (note->kind == kind) == equal)
+            return note;
+    return 0;
+}
 
 function F4_Index_Note* Long_Index_LookupNoteFromList(Application_Links* app, String8List names, i64 pos,
                                                       F4_Index_File* file, F4_Index_Note* surrounding_note, F4_Index_Note* filter_note,
@@ -725,45 +737,29 @@ function F4_Index_Note* Long_Index_LookupNoteFromList(Application_Links* app, St
             }
         }
         
-        // NOTE(long): Choose parent types over the child functions when they have the same name (constructors, conversion operators, etc)
         if (note)
         {
-            if (lookup_type == Long_LookupType_PreferFunc)
+            // TODO(long): This is stupid and incorrect! Plz fix this!
+            if (names.last != names.first)
             {
-                if (note->kind == F4_Index_NoteKind_Type || note->kind == F4_Index_NoteKind_Decl)
-                {
-                    // Decl usually only has one scope child (lambda function) so we won't find any valid constructor here
-                    for (F4_Index_Note* constructor = note->first_child; constructor; constructor = constructor->next_sibling)
-                        if (string_match(constructor->string, note->string) && !constructor->base_range.max)
-                            note = constructor;
-                    
-                    if (note->kind != F4_Index_NoteKind_Function)
-                    {
-                        for (F4_Index_Note* func = Long_Index_LookupChild(note->string, note->parent); func; func = func->next)
-                        {
-                            if (func->kind == F4_Index_NoteKind_Function)
-                            {
-                                note = func;
-                                break;
-                            }
-                        }
-                    }
-                }
+                F4_Index_Note* non_func = Long_Index_LookupNoteByKind(note->parent, note->string, F4_Index_NoteKind_Function, 0);
+                if (non_func)
+                    note = non_func;
             }
-            else if (note->parent)
-            {
+            
+            // NOTE(long): Choose parent types over the child functions when they have the same name
+            // e.g constructors, conversion operators, etc
+            if (note->parent)
                 if (note->kind == F4_Index_NoteKind_Function && note->parent->kind == F4_Index_NoteKind_Type)
                     if (string_match(note->string, note->parent->string))
                         note = note->parent;
-            }
         }
         
         if (note)
         {
             F4_Index_Note* child = note;
             
-            i32 i = 0;
-            for (String8Node* name = names.first->next; name; name = name->next, ++i)
+            for (String8Node* name = names.first->next; name; name = name->next)
             {
                 // NOTE(long): The reason we need a filter_note is to make sure cases like this never crash:
                 // TestA.anything TestA;
@@ -779,16 +775,62 @@ function F4_Index_Note* Long_Index_LookupNoteFromList(Application_Links* app, St
                 {
                     if (!filter_note) filter_note = parent;
                     parent = Long_Index_LookupRef(app, parent, filter_note);
-                    child = Long_Index_LookupChild(name->string, parent);
+                    if (parent)
+                        child = Long_Index_LookupChild(name->string, parent);
                 }
                 
                 if (!child)
                     break;
             }
-            result = child;
+            
+            note = child;
         }
+        
+        if (note)
+        {
+            F4_Index_Note* new_note = 0;
+            
+            switch (lookup_type)
+            {
+                case Long_LookupType_PreferFunc:
+                {
+                    if (note->kind == F4_Index_NoteKind_Type || note->kind == F4_Index_NoteKind_Decl)
+                        new_note = Long_Index_LookupNoteByKind(note->parent, note->string, F4_Index_NoteKind_Function);
+                } break;
+                
+                case Long_LookupType_PreferConstructor:
+                {
+                    if (note->kind != F4_Index_NoteKind_Type)
+                    {
+                        F4_Index_Note* type = Long_Index_LookupNoteByKind(note->parent, note->string, F4_Index_NoteKind_Type);
+                        if (type) note = type;
+                        else break;
+                    }
+                    
+                    for (F4_Index_Note* constructor = note->first_child; constructor; constructor = constructor->next_sibling)
+                    {
+                        if (string_match(constructor->string, note->string) && !constructor->base_range.max)
+                        {
+                            note = constructor;
+                            break;
+                        }
+                    }
+                } break;
+                
+                default:
+                {
+                    if (note->kind == F4_Index_NoteKind_Function)
+                        new_note = Long_Index_LookupNoteByKind(note->parent, note->string, F4_Index_NoteKind_Function, 0);
+                } break;
+            }
+            
+            if (new_note)
+                note = new_note;
+        }
+        
+        result = note;
     }
-    else if (lookup_type == Long_LookupType_PreferType) result = surrounding_note;
+    else if (lookup_type == Long_LookupType_PreferBase) result = surrounding_note;
     
     return result;
 }
@@ -827,12 +869,18 @@ function F4_Index_Note* Long_Index_LookupBestNote(Application_Links* app, Buffer
     Token_Iterator_Array it = token_iterator_pos(0, array, range.min);
     
     b32 has_paren = 0;
+    Token_Iterator_Array saved = it;
     if (token_it_inc(&it))
     {
         String8 lexeme = push_token_lexeme(app, scratch, buffer, it.ptr);
+        if (string_match(lexeme, S8Lit("<")))
+        {
+            Long_Index_SkipBody(app, &it, buffer, 0, 1);
+            lexeme = push_token_lexeme(app, scratch, buffer, it.ptr);
+        }
         has_paren = string_match(lexeme, S8Lit("(")); 
-        token_it_dec(&it);
     }
+    it = saved;
     
     Long_Index_ParseSelection(app, scratch, &it, buffer, &names, use_first);
     
@@ -847,9 +895,13 @@ function F4_Index_Note* Long_Index_LookupBestNote(Application_Links* app, Buffer
     {
         String8 start_string = push_token_lexeme(app, scratch, buffer, it.ptr);
         if (string_match(start_string, S8Lit("this")))
-            lookup_type = Long_LookupType_PreferType;
-        else if (has_paren || string_match(start_string, S8Lit("new")))
-            lookup_type = Long_LookupType_PreferFunc;
+            lookup_type = Long_LookupType_PreferBase;
+        else
+        {
+            b32 has_new = string_match(start_string, S8Lit("new"));
+            if (has_paren)
+                lookup_type = has_new ? Long_LookupType_PreferConstructor : Long_LookupType_PreferFunc;
+        }
         
         if (lookup_type == Long_LookupType_None)
         {
@@ -887,23 +939,10 @@ function F4_Index_Note* Long_Index_LookupBestNote(Application_Links* app, Buffer
         }
         
         // NOTE(long): This is for `this.myField`
-        else if (lookup_type == Long_LookupType_PreferType)
+        else if (lookup_type == Long_LookupType_PreferBase)
         {
             while (scope_note && scope_note->kind != F4_Index_NoteKind_Type)
                 scope_note = scope_note->parent;
-        }
-        
-        // NOTE(long): This is for constructor: `a = new MyType(...)`
-        // but ignore if it's an object-initialized constructor: `a = new MyType { ... }`
-        else if (lookup_type == Long_LookupType_PreferFunc)
-        {
-            Token_Iterator_Array it = token_iterator_pos(0, array, range.min);
-            
-            // a = new A.B.C.D.E { ... }
-            Long_Index_SkipSelection(app, &it, buffer);
-            
-            if (it.ptr->kind == TokenBaseKind_ScopeOpen)
-                lookup_type = Long_LookupType_None;
         }
     }
     

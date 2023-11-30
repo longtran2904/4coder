@@ -291,7 +291,10 @@
 // [ ] Autocompletion using PosContext or casey/jack's system
 // [ ] String/Comment indenting as code
 
-//- BUGS
+//- COMPILATION
+// [ ] Display error/warning count on the file bar
+// [X] Render the file bar at a different font size
+// [ ] Render warning with a different color
 // [ ] Fix unmatched error annotation locations
 
 //~ TODO CODE/ARCHITECTURE

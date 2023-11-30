@@ -1,9 +1,9 @@
-#define A \
-    bla \
-    foo \
-    bar \
-    baz \
-    \
+define A \
+bla \
+foo \
+bar \
+baz \
+\
 
 [MyAttribute]
 void main()

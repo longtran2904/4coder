@@ -804,6 +804,13 @@ CUSTOM_DOC("Fleury startup event")
                 global_small_code_face = face_that_should_totally_be_there;
             }
         }
+        
+        // NOTE(long): Set the *compilation* buffer font
+        {
+            set_fancy_compilation_buffer_font(app);
+            long_toggle_compilation_expand(app);
+            long_toggle_compilation_expand(app);
+        }
     }
     
     //~ NOTE(rjf): Prep virtual whitespace.

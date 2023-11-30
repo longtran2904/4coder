@@ -9,6 +9,15 @@
 [NULL] { {  }
 [{] TestB { <{> declaration [local] }
 [{] TestA { <{> declaration [local] }
+[{] a { <{> declaration [local] }
+[{] t { <{> declaration [local] }
+[t] { { <t>  }
+[{] { { <{>  }
+[{] { { <{>  }
+[{] s { <{> declaration [local] }
+[s] { { <s>  }
+[{] stuff { <{> declaration [local] }
+[stuff] { { <stuff>  }
 [NULL] MyGenericType { type }
 [MyGenericType] T { <MyGenericType> type [generic] }
 [MyGenericType] a { <MyGenericType> declaration [field] }
@@ -126,6 +135,14 @@
 [Vector2] x { <Vector2> declaration [argument] }
 [Vector2] y { <Vector2> declaration [argument] }
 [NULL] vector2 { declaration [global] }
+[NULL] vector3 { declaration [global] }
+[NULL] Vector3 { type }
+[Vector3] Vector2 { <Vector3> function }
+[Vector3] Vector2 { <Vector3> type }
+[Vector2] Vector2 { <Vector2> constructor }
+[Vector2] x { <Vector2> declaration [argument] }
+[Vector2] y { <Vector2> declaration [argument] }
+[NULL] Vector3 { function }
 [NULL] { {  }
 [NULL] { {  }
 [NULL] Test { type }
@@ -141,6 +158,7 @@
 [Test] efldsfjsl { <Test> declaration [field] }
 [Test] a { <Test> declaration [field] }
 [Test] c { <Test> declaration [field] }
+[Test] stuff { <Test> declaration [field] }
 [Test] tupple { <Test> declaration [field] }
 [Test] Function { <Test> function }
 [Function] someInt { <Function> declaration [argument] }
@@ -197,6 +215,8 @@
 [SomeOtherThing] DoStuff { <SomeOtherThing> declaration [argument] }
 [SomeOtherThing] a { <SomeOtherThing> declaration [local] }
 [Test] Stuff { <Test> type }
+[Stuff] a { <Stuff> declaration [field] }
+[Stuff] b { <Stuff> declaration [field] }
 [Stuff] DoStuff { <Stuff> function }
 [DoStuff] DoStuff { <DoStuff> function }
 [DoStuff] DoStuff { <DoStuff> function }
@@ -1061,4 +1081,4 @@
 [DecreaseTrailWidth] startWidth { <DecreaseTrailWidth> declaration [local] }
 [DecreaseTrailWidth] startTime { <DecreaseTrailWidth> declaration [local] }
 [DecreaseTrailWidth] { { <DecreaseTrailWidth>  }
-Note count: 1059
+Note count: 1079

@@ -270,6 +270,12 @@ function void Long_PointStack_SetCurrent(Long_Point_Stack* stack, i32 index)
     stack->current = clamp_loop(index + 1, ArrayCount(stack->markers));
 }
 
+function void Long_PointStack_Append(Application_Links* app, Long_Point_Stack* stack, Buffer_ID buffer, i64 pos, View_ID view = 0)
+{
+    Long_PointStack_SetCurrent(stack, stack->top - 1);
+    Long_PointStack_Push(app, buffer, pos, view);
+}
+
 #define Long_IteratePointStack(app, stack, start, end, advance, size, func) \
     for (i32 i = start; i != end; i = clamp_loop(i + (advance), size)) \
     { \
@@ -339,8 +345,17 @@ function void Long_PointStack_JumpNext(Application_Links* app, View_ID view, i32
                            // NOTE(long): If virtual whitespace is enabled, we can't jump to the start of the line
                            // Long_IsPosValid will check for that and make sure pos is different from the current pos
                            if (buffer == current_buffer && pos == current_pos && exit_if_current) break;
+                           
                            if (buffer != current_buffer || Long_IsPosValid(app, view, buffer, pos, current_pos))
                            {
+                               if (clamp_loop(i + 1, size) == stack->top && advance < 0)
+                               {
+                                   i64 current_line = get_line_number_from_pos(app, current_buffer, current_pos);
+                                   i64 line = get_line_number_from_pos(app, buffer, pos);
+                                   if (current_buffer != buffer || Long_Abs((i32)(line - current_line)) >= 16)
+                                       Long_PointStack_Append(app, stack, current_buffer, current_pos, view);
+                               }
+                               
                                F4_JumpToLocation(app, view, buffer, pos);
                                Long_PointStack_SetCurrent(stack, i);
                                break;
@@ -368,6 +383,7 @@ CUSTOM_DOC("Push the current position to the point stack; if the stack's current
 
 //~ NOTE(long): Buffer Commands
 
+//- NOTE(long): Lister
 #define OUTPUT_BUFFER_HEADER 0
 
 function void Long_Buffer_OutputBuffer(Application_Links *app, Lister *lister, Buffer_ID buffer)
@@ -517,12 +533,6 @@ CUSTOM_DOC("Interactively switch to an open buffer.")
     }
 }
 
-CUSTOM_UI_COMMAND_SIG(long_switch_to_search_buffer)
-CUSTOM_DOC("Switch to the search buffer.")
-{
-    Long_JumpToBuffer(app, get_this_ctx_view(app, Access_Always), Long_Buffer_GetSearchBuffer(app), 1, 0);
-}
-
 function void Long_KillBuffer(Application_Links* app, Buffer_ID buffer, View_ID view)
 {
     // `buffer_view` is the view that has the buffer while `view` is the view that shows the kill options
@@ -546,22 +556,7 @@ CUSTOM_DOC("Interactively kill an open buffer.")
     Long_KillBuffer(app, Long_Buffer_RunLister(app, "Kill:"), get_this_ctx_view(app, Access_Always));
 }
 
-CUSTOM_COMMAND_SIG(long_kill_buffer)
-CUSTOM_DOC("Kills the current buffer.")
-{
-    View_ID view = get_active_view(app, Access_ReadVisible);
-    Buffer_ID buffer = view_get_buffer(app, view, Access_ReadVisible);
-    Long_KillBuffer(app, buffer, view);
-}
-
-CUSTOM_COMMAND_SIG(long_kill_search_buffer)
-CUSTOM_DOC("Kills the current search jump buffer.")
-{
-    Long_KillBuffer(app, Long_Buffer_GetSearchBuffer(app), get_active_view(app, Access_ReadVisible));
-}
-
 //- NOTE(long): History
-
 struct Long_Buffer_History
 {
     History_Record_Index index;
@@ -664,8 +659,7 @@ function b32 Long_Buffer_CheckHistoryAndSetDirty(Application_Links* app, Buffer_
 }
 
 //- COPYPASTA(long): undo__fade_finish, undo, redo, undo_all_buffers, redo_all_buffers
-
-// NOTE(long): Because an undo can be deferred later, I can't call CheckHistory after doing an undo.
+// Because an undo can be deferred later, I can't call CheckHistory after doing an undo.
 // I must call it inside the fade_finish callback, or in the do_immedite_undo check.
 // But a redo, on the other hand, always executes immediately, so I can safely call it right afterward.
 // I also fixed the "getting the wrong Record_Info" bug in the redo command
@@ -809,8 +803,7 @@ CUSTOM_DOC("Advances forwards through the undo history of the current buffer but
     Long_Buffer_AdvanceHistorySamePos(app, 0);
 }
 
-//-
-
+//- NOTE(long): Indentation
 function i32 Long_EndBuffer(Application_Links* app, Buffer_ID buffer_id)
 {
     F4_Index_Lock();
@@ -942,6 +935,27 @@ CUSTOM_DOC("Inserts text and auto-indents the line on which the cursor sits if a
     }
 }
 
+//- NOTE(long): Special Buffers
+CUSTOM_COMMAND_SIG(long_kill_buffer)
+CUSTOM_DOC("Kills the current buffer.")
+{
+    View_ID view = get_active_view(app, Access_ReadVisible);
+    Buffer_ID buffer = view_get_buffer(app, view, Access_ReadVisible);
+    Long_KillBuffer(app, buffer, view);
+}
+
+CUSTOM_COMMAND_SIG(long_switch_to_search_buffer)
+CUSTOM_DOC("Switch to the search buffer.")
+{
+    Long_JumpToBuffer(app, get_this_ctx_view(app, Access_Always), Long_Buffer_GetSearchBuffer(app), 1, 0);
+}
+
+CUSTOM_COMMAND_SIG(long_kill_search_buffer)
+CUSTOM_DOC("Kills the current search jump buffer.")
+{
+    Long_KillBuffer(app, Long_Buffer_GetSearchBuffer(app), get_active_view(app, Access_ReadVisible));
+}
+
 CUSTOM_COMMAND_SIG(long_open_matching_file_same_panel)
 CUSTOM_DOC("If the current file is a *.cpp or *.h, attempts to open the corresponding *.h or *.cpp file in the same view.")
 {
@@ -950,6 +964,18 @@ CUSTOM_DOC("If the current file is a *.cpp or *.h, attempts to open the correspo
     Buffer_ID new_buffer = 0;
     if (get_cpp_matching_file(app, buffer, &new_buffer))
         Long_JumpToBuffer(app, view, new_buffer);
+}
+
+CUSTOM_COMMAND_SIG(long_toggle_compilation_expand)
+CUSTOM_DOC("Expand the compilation window.")
+{
+    f32 line_height = get_face_metrics(app, get_face_id(app, view_get_buffer(app, global_compilation_view, Access_Always))).line_height;
+    i32 line_count = (global_compilation_view_expanded ^= 1) ? 31 : 3;
+    f32 bar_height = get_face_metrics(app, get_face_id(app, 0)).line_height + 2.f;
+    f32 margin_size = (f32)def_get_config_u64(app, vars_save_string_lit("f4_margin_size"));
+    f32 padding = 3.f;
+    
+    view_set_split_pixel_size(app, global_compilation_view, (i32)(line_height * line_count + bar_height + margin_size * 2.f + padding));
 }
 
 //~ NOTE(long): Search/Jump Commands
@@ -2247,7 +2273,7 @@ CUSTOM_DOC("Queries the user for a string, and incrementally replace every occur
 
 //~ NOTE(long): Index Commands
 
-//- NOTE(long): Pos Context
+//- NOTE(long): PosContext
 CUSTOM_COMMAND_SIG(long_toggle_pos_context)
 CUSTOM_DOC("Toggles position context window.")
 {

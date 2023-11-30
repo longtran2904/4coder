@@ -28,6 +28,7 @@
 // 1042 fix comment after note.scope_range and comment's duplication
 // 1045 parse "using"
 // 1059 parse inheritance and constructors
+// 1079 differentiate function calls with types
 using UnityEngine;
 
 namespace UnityEngine { class MyEngine; }
@@ -182,6 +183,19 @@ struct Vector2
 }
 
 Vector2 vector2 = new Vector2(test_global_1, test_global_2);
+Vector3.Vector2 vector3 = new Vector3.Vector2(test_global_1, test_global_2);
+
+class Vector3
+{
+    public void Vector2();
+    
+    class Vector2
+    {
+        public Vector2(float x, float y);
+    }
+}
+
+public void Vector3();
 
 [
  NewLine(a = { }, b = {0})
@@ -199,9 +213,9 @@ public class Test
     
     (int, float) tupple;
     public (int, float[][][][]) Function(int someInt, float someFloat)
-        {
-            
-        }
+    {
+        
+    }
     
     (Generic<Test>, SomeOtherType<Array[]>) Function2(int, float);
     
@@ -598,9 +612,9 @@ public class GameManager : MonoBehaviour
      NewLine
      ]
     [SomeOtherThing]
-        [Multiple] [System.Serializable]
-        [System.OtherCrap]
-        struct Bounds
+    [Multiple] [System.Serializable]
+    [System.OtherCrap]
+    struct Bounds
     {
         int a; int b;
         int c;
@@ -2265,7 +2279,7 @@ public class Entity : MonoBehaviour, IPooledObject
     
     [SomeOtherThing]
     [Multiple] [System.Serializable]
-        public class EntityVFX
+    public class EntityVFX
     {
         public Property<VFXProperty> properties;
         

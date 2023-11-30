@@ -6,7 +6,7 @@ keys_global =
     { "change_active_panel",             "Comma",  "Control"          },
     { "change_active_panel_backwards",   "Comma",  "Control", "Shift" },
     { "project_go_to_root_directory",    "H",      "Alt"              },
-    { "f4_toggle_compilation_expand",    "Insert"                     },
+    { "long_toggle_compilation_expand",  "Insert"                     },
     { "change_to_build_panel",           "Period", "Alt"              },
     { "close_build_panel",               "Comma",  "Alt"              },
     { "toggle_virtual_whitespace",       "Equal",  "Control"          },
