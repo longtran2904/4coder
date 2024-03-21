@@ -495,13 +495,17 @@ generic_parse_statement(Code_Index_File *index, Generic_Parse_State *state){
     }
     
     i64 start_paren_pos = 0;
+    Token_Iterator_Array restored = state->it;
     if (token_it_inc(&state->it))
     {
         Token* paren_token = token_it_read(&state->it);
-        b32 is_next_paren = token_it_read(&state->it)->kind == TokenBaseKind_ParentheticalOpen;
-        if (is_next_paren)
+        if (paren_token->kind == TokenBaseKind_ParentheticalOpen)
             start_paren_pos = paren_token->pos;
-        token_it_dec(&state->it);
+        
+        // NOTE(long): I reset the state here rather than calling token_it_dec because the state could have been at a whitespace/comment.
+        // token_it_dec will decrease past the previous point, causing an infinite loop.
+        // Ex: #define SomeMacro { (
+        state->it = restored;
     }
 #endif
     

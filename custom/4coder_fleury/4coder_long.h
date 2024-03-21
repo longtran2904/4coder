@@ -1,4 +1,4 @@
-/* date = January 12th 2023 5:22 pm */
+/*date = January 12th 2023 5:22 pm */
 
 #ifndef FCODER_LONG_H
 #define FCODER_LONG_H
@@ -8,8 +8,7 @@
 // In general, I really want to structure my code into a bunch of isolated drop-in files without changing
 // any code from the base and fleury's layer. But it would mean that I need to copy a lot of functions to
 // modify them slightly (I did do some of it, search for all the COPYPASTA comments). There are also multiple
-// bugs in the original layers that I fixed. That's why a lot of code still depends on those modified files.
-// Here's a list of them:
+// bugs in the original layers that I fixed. That's why a lot of code still depends on these modified files:
 
 //- @long_init_files
 // I never actually wrote my own custom_layer_init function to setup all the necessary hooks.
@@ -67,10 +66,9 @@
 // 4coder_config.cpp: Call Long_UpdateCurrentTheme in load_config_and_apply (@long_commands for more info)
 
 //- @4coder_lister_base
-// Fix the lister overdraw bug:
-// https://github.com/4coder-community/4cc/commit/dc692dc0d4b4a125475573ebfcc07cfd60a85bb7
-// Fix lister_render calls draw_file_bar rather than F4_DrawFileBar
-// Read @long_lister_intro for more details
+// The entire Lister system is a drop-in file, to use it just call Long_Lister_Run rather than run_lister.
+// Most of the default commands call run_lister so "upgrading" all those commands to the new system requires
+// a lot of work. I choose the simplest way of #define run_lister to Long_Lister_Run.
 
 //- @4coder_base_commands
 // There's a bug in the redo command in 4coder_base_commands.cpp where it gets the wrong record info.
@@ -109,25 +107,24 @@
 //- @long_index_intro
 
 // This is my biggest customization layer yet. It contains multiple helper functions for writing a parser,
-// and using or looking up the generated index note. Originally, It started as an extended version for
-// the fleury's index system. But after adding and writing most the code by hand, it has grown bigger and
-// more complete than the fleury's one. I also have modified and added multiple new fields and flags to
-// fleury's layer, so it's probably better to just completely rewrite that part and make it a simple drop-in
-// file. Until then, here's a short list of all the noteworthy things:
+// and using/lookup the generated index note. Originally, It started as an extended version for the fleury's
+// index system. But after adding and writing most the code by hand, it has grown bigger and more complete
+// than the fleury's one. I also have modified multiple fleury's files, so it's probably better to just
+// completely rewrite and make it a simple drop-in file. For now, a short list of all the noteworthy features:
 
 // - The Lookup Function
 //   Long_Index_LookupBestNote is the most important function in this layer. This function will parse a series
-//   of path accessing and lookup the best-matched note. It has proper handling for name collision and
+//   of "selective path" and lookup the best-matched note. It has a proper handling for name collision and
 //   local/nested notes. It'll search the declaration type, return type, the inheritance tree, or the imported
 //   namespaces for a match. It also understands that 'this' means search in the base type, 'new' means searching
 //   for constructor, and `new Type {...}` means object initializer in C# (hasn't implementd for in C/C++ yet).
 //   All the index commands and render functions use this, including but not limited to: Long_Index_IndentBuffer,
-//   Long_GoToDefinition, _Long_SearchDefinition, Long_Scan_Note, Long_Index_DrawPosContext, and F4_GetColor.
+//   Long_GoToDefinition, Long_SearchDefinition, Long_Scan_Note, Long_Index_DrawPosContext, and F4_GetColor.
 
 // - The C# Parser
 //   This is a mostly complete parser. It can parse (using) namespaces; classes, structs, enums, and tuples;
-//   functions and function-like features like lambdas, getters/setters, and operators; local/global
-//   declarations, type's fields, and function's arguments; generic type arguments and inheritance.
+//   functions and function-like features like constructors, lambdas, getters/setters, and operators;
+//   local/global declarations, type's fields, and function's arguments; generic type arguments and inheritance.
 //   You can take a look at it in 4coder_long_lang_cs.cpp and 4coder_cs_lexer_test.cs for more details.
 
 // - The Indent Function
@@ -136,14 +133,14 @@
 //   All the new indenting commands are just the same as their counterpart but use this new indenting system.
 
 // - The Render System
-
+//
 // 1. Long_Index_DrawPosContext
 //   Unlike F4_PosContext_Render, it will draw a function's return type, the variable's declaration type, and a type's
 //   keyword (class, struct, enum, etc). When displaying a type, it will split all the type's members into 3
 //   categories: TYPES, FUNCS, and DECLS, and display the number of entries for each one. You can cycle
 //   between each category by calling the command long_switch_pos_context_option. Calling long_toggle_pos_context
 //   for toggling the commands, and long_switch_pos_context_draw_position for changing the tooltip position.
-
+//
 // 2. Long_Index_DrawCodePeek
 //   This is the same as F4_CodePeek_Render, but uses F4_Index_Note rather than Code_Index_Note and
 //   calls Long_Index_LookupBestNote. It will prioritize def notes over prototype ones.
@@ -183,24 +180,40 @@
 
 //- @long_lister_intro
 
-// In general, I think the API design of 4coder is good but has several weaknesses.
-// You can see some of them in the default lister wrapper API.
-// In the future, I may write a new wrapper layer with more detailed comments about these shortcomings.
-// But for now, I just modify 4coder_lister_base.cpp:
-// - lister_render:
-//   - Show the number of items in the query bar
+// In general, I think the API design of 4coder is good but has several weaknesses. You can see some of
+// them in the default lister wrapper API. In the future, I may write a more detailed comments about this.
+// For now, here's a short list of all the improved features:
+// - Long_Lister_Render:
+//   - Show the number of items and the current index in the query bar
 //   - Each item can have an optional header that is its location
-// - lister_get_filtered:
+//   - Each entry can now have a tooltip (document for commands, code peek for notes, etc)
+// - Long_Lister_GetFilter:
 //   - Filter tags (inclusive and exclusive): Originally, I added this feature so that I don't need
 //     specific commands to list all functions or types, but this has become more useful than I thought
 //     because now you can search for keybindings in the command lister and unique file path in the buffer
 //     lister because those are just tags.
 //   - Filter header (only inclusive right now)
-// - run_lister:
-//   - Ctrl+V to paste to the query bar
-//   - Ctrl+Backspace to delete the entire bar's string
+// - Long_Lister_HandleKeyStroke:
+//   - Ctrl+C to copy from and Ctrl+V to paste to the query bar
+//   - Ctrl+Tick for toggling the current item's tooltip
+//   - Alt+Tick for switching between different tooltip modes
+// - Custom handlers:
+//   - The default lister layer has multiple callback functions called handlers. I added multiple custom
+//     handlers that work with the new filtered tags. Most of the new handlers are just the original but
+//     call Long_Lister_FilterList rather than lister_update_filtered_list.
+//   - Long_Lister_Backspace adds the ability to delete the entire text field with Ctrl+Backspace
 
-// Index Note Tags (declared in _Long_PushNoteTag)
+// @important
+// The new lister uses an internal data type (Long_Lister_Data) which is added by using Long_Lister_AddItem.
+// The function will always append the extra data right after the allocated item and assign the user_data
+// field to it (which means `node->user_data == node + 1`). If your custom code uses the same strategy
+// then there will be conflict so keep it in mind.
+
+// Fixed bugs:
+// - Overdraw bug: https://github.com/4coder-community/4cc/commit/dc692dc0d4b4a125475573ebfcc07cfd60a85bb7
+// - Render the wrong file bar: lister_render calls draw_file_bar rather than F4_DrawFileBar
+
+// Index note tags (defined in Long_Note_PushTag)
 // - declaration, constant, comment tag, TODO
 // - Function tags: function, operator, lambda, constructor, getter, setter, [forward]
 // - Type tags: type, namespace
@@ -255,11 +268,11 @@
 
 //- @long_commands
 
-// - Long_KillBuffer: When you kill a buffer in the original command, 4coder will switch to the most
-//   recent buffer. This isn't that bad because killing a buffer isn't that common. But what's common is
-//   killing the *search* buffer, and it's very annoying when after a quick search the buffer
-//   that you get back isn't the one before you started the search. This function will first check if the
-//   buffer you want to kill is the *search* buffer, then jump back to the correct position afterward.
+// - Long_KillBuffer: When you kill a buffer in the original command, 4coder will switch to the most recent buffer.
+//   It's not that bad because killing a buffer isn't common. But what's common is killing the *search* buffer, and
+//   it's very annoying when after a quick search the buffer that you get back isn't the one before the search.
+//   This function will first check if the buffer you want to kill is the *search* buffer, then jump back to the
+//   correct position afterward.
 //   This is used by long_interactive_kill_buffer, long_kill_buffer, and long_kill_search_buffer.
 
 // - long_select_current_line: This will move the cursor to the end of the current line and the mark to the
@@ -274,22 +287,25 @@
 //   Each project file can now contain an array of reference paths (set inside the reference_paths variable)
 //   When this command runs, it will recursively load all files in those paths as read-only and unimportant
 
-//~ TODO SEARCH
+//~ TODO LISTER
+// [ ] Show recent entries first
 // [ ] Replace all the wildcard searching in the query bar and lister with grep
 // [ ] Search for definitions like Hoogle
 // [ ] Has a lister for important but rarely used commands
-// [X] Search and open the most recent modified file on startup
-// [ ] Handle function overloading
+// [X] Fix recent files menu lists non-existed buffer
 
 //~ TODO RENDER
 
 //- LISTER
 // [ ] Put ... after a large item and scroll its content horizontally over time
 // [ ] Has syntax highlight inside each item's contents
+// [X] Show an optional tooltip for each entry in the lister (doc for commands, code peek for notes/jumps/buffers, etc)
 
 //- INDEX
 // [ ] Autocompletion using PosContext or casey/jack's system
 // [ ] String/Comment indenting as code
+// [X] Improve code peeking by highlighting and offsetting the peeked note
+// [ ] Render #if block with annotation
 
 //- COMPILATION
 // [ ] Display error/warning count on the file bar
@@ -297,18 +313,24 @@
 // [ ] Render warning with a different color
 // [ ] Fix unmatched error annotation locations
 
+//- MISC
+// [X] Helpers for layout string to fit region
+// [X] Render line offset numbers
+// [X] Toggle any panel expand
+// [X] Left+Right drag to snap panel size
+
 //~ TODO CODE/ARCHITECTURE
 
 //- LONG
 // [ ] Write my own init layer and hooks
-// [ ] Write a new lister layer from scratch as a drop-in file
+// [X] Write a new lister layer from scratch as a drop-in file
+// [ ] Merge all the default query bar code into a single function
+// [ ] Merge Long_Isearch and Long_Query_User_String into one function
 
 // [ ] Write a new cpp parser
 // [ ] Rewrite the Index system into a simple drop-in file
 // [ ] Add Index API for customizing the indentation and poscontext
-
-// [ ] Merge all the default query bar code into a single function
-// [ ] Merge Long_Isearch and Long_Query_User_String into one function
+// [ ] Handle function overloading
 
 //- FLEURY
 // [ ] Strip out *calc* buffer
@@ -316,8 +338,16 @@
 // [ ] Strip out *lego* buffer 
 // [ ] Strip out unused f4 commands
 
+//~ TODO MISC
+// [ ] Fix comment/string token selection and boundary
+// [X] Fix the copy-paste bug in the macro system
+// [X] Repeat a macro n times
+// [X] Clean all whitespace at cursor position
+// [X] Search and open the most recent modified file on startup
+
 #include "4coder_long_index.h"
 #include "4coder_long_base_commands.h"
+#include "4coder_long_lister.h"
 
 #if LONG_ENABLE_PROFILE
 #include "4coder_profile_static_enable.cpp"
@@ -338,5 +368,6 @@
 
 #include "4coder_long_index.cpp"
 #include "4coder_long_base_commands.cpp"
+#include "4coder_long_lister.cpp"
 
 #endif //FCODER_LONG_H

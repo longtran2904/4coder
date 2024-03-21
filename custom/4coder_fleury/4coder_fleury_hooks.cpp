@@ -226,9 +226,7 @@ F4_RenderBuffer(Application_Links *app, View_ID view_id, Face_ID face_id,
     f32 mark_thickness = (f32)def_get_config_u64(app, vars_save_string_lit("mark_thickness"));
     
     // NOTE(long): Jump list highlights
-    {
-        Long_Highlight_DrawList(app, buffer, text_layout_id, cursor_roundness, mark_thickness);
-    }
+    Long_Highlight_DrawList(app, buffer, text_layout_id, cursor_roundness, mark_thickness);
     
     // NOTE(rjf): Cursor
     switch (fcoder_mode)
@@ -574,7 +572,8 @@ F4_Render(Application_Links *app, Frame_Info frame_info, View_ID view_id)
     // NOTE(allen): draw line numbers
     if(def_get_config_b32(vars_save_string_lit("show_line_number_margins")))
     {
-        draw_line_number_margin(app, view_id, buffer, face_id, text_layout_id, line_number_rect);
+        //draw_line_number_margin(app, view_id, buffer, face_id, text_layout_id, line_number_rect);
+        Long_Render_LineOffsetNumber(app, view_id, buffer, face_id, text_layout_id, line_number_rect);
     }
     
     // NOTE(allen): draw the buffer

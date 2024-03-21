@@ -1560,6 +1560,9 @@ load_config_and_apply(Application_Links *app, Arena *out_arena, i32 override_fon
         modify_global_face_by_description(app, description);
     }
     
+    String8 font_name = get_global_face_description(app).font.file_name;
+    print_message(app, push_stringf(scratch, "Default Font: %.*s\n\n", string_expand(font_name)));
+    
     b32 bind_by_physical_key = def_get_config_b32(vars_save_string_lit("bind_by_physical_key"));
     if (bind_by_physical_key){
         system_set_key_mode(KeyMode_Physical);

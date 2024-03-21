@@ -89,7 +89,6 @@ function b32 Long_CS_ParseDecl(F4_Index_ParseCtx* ctx, Range_i64* base_range, Ra
         {
             Long_Index_ProfileBlock(ctx->app, "[Long] Parse Base Type");
             {
-#if true//LONG_INDEX_INLINE
                 result = false;
                 F4_Index_ParseCtx temp_ctx = *ctx;
                 
@@ -107,21 +106,12 @@ function b32 Long_CS_ParseDecl(F4_Index_ParseCtx* ctx, Range_i64* base_range, Ra
                         result = true;
                     }
                 }
-                else
-                    ctx->done = 1;
+                else ctx->done = 1;
                 
                 if (result)
                     F4_Index_ParseCtx_Inc(ctx, F4_Index_TokenSkipFlag_SkipAll);
                 else
                     *ctx = temp_ctx;
-#else
-                if (base_keywords && Long_CS_ParseKind(ctx, TokenBaseKind_Keyword, &type_range))
-                    result = Long_Index_IsMatch(ctx, type_range, base_keywords, keyword_count);
-                else if (has_base_type)
-                    result = Long_CS_ParseKind(ctx, TokenBaseKind_Identifier, &type_range);
-                else
-                    result = false;
-#endif
             }
             
             if (result)

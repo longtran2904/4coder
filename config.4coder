@@ -21,8 +21,9 @@ use_jump_highlight = true;
 use_scope_highlight = false;
 use_paren_helper = true;
 use_comment_keywords = true;
-lister_whole_word_backspace_when_modified = false;
+lister_whole_word_backspace_when_modified = true;
 show_line_number_margins = false;
+long_show_line_number_offset = true;
 enable_output_wrapping = false;
 
 enable_undo_fade_out = false;
@@ -67,7 +68,7 @@ default_theme_name = "theme-long";
 highlight_line_at_cursor = true;
 
 // Font	
-default_font_name = "JetBrainsMono-Regular.ttf";
+default_font_name = "MonaspaceNeon-Regular.ttf";
 default_font_size = 15;
 default_font_hinting = true;
 

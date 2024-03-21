@@ -391,7 +391,7 @@ typedef int socklen_t;
 
 // NOTE(long): Macros for all my modifications in the 4coder and fleury layer
 #define LONG_INDEX_INDENT_STATEMENT 1
-#define LONG_INDEX_INLINE 0
+#define LONG_INDEX_INLINE 1
 #define LONG_INDEX_INSERT_QUEUE 1
 #define LONG_INDEX_GET_COLOR 1
 #define LONG_INDEX_INDENT_PAREN 0
@@ -399,8 +399,8 @@ typedef int socklen_t;
 #define LONG_INDEX_POS_CONTEXT 1
 
 #define LONG_CS_LEXER 1
+#define LONG_LISTER_OVERLOAD 1
 
-#define LONG_LISTER_FILTER_TAG 1
 #define LONG_ENABLE_INDEX_PROFILE 1
 #define LONG_ENABLE_PROFILE 0
 

@@ -201,8 +201,7 @@ lister_render(Application_Links *app, Frame_Info frame_info, View_ID view){
         showing_file_bar && !hide_file_bar_in_ui){
         Rect_f32_Pair pair = layout_file_bar_on_top(region, line_height);
         Buffer_ID buffer = view_get_buffer(app, view, Access_Always);
-        //draw_file_bar(app, view, buffer, face_id, pair.min);
-        F4_DrawFileBar(app, view, buffer, face_id, pair.min);
+        draw_file_bar(app, view, buffer, face_id, pair.min);
         region = pair.max;
     }
     
@@ -223,8 +222,8 @@ lister_render(Application_Links *app, Frame_Info frame_info, View_ID view){
     {
         Vec2_f32 p = V2f32(text_field_rect.x0 + 3.f, text_field_rect.y0);
         Fancy_Line text_field = {};
-        push_fancy_string(scratch, &text_field, fcolor_id(defcolor_pop1), lister->query.string);
-        push_fancy_stringf(scratch, &text_field, fcolor_id(defcolor_pop1), " (%d)", lister->filtered.count);
+        push_fancy_string(scratch, &text_field, fcolor_id(defcolor_pop1),
+                          lister->query.string);
         push_fancy_stringf(scratch, &text_field, " ");
         p = draw_fancy_line(app, face_id, fcolor_zero(), &text_field, p);
         
@@ -303,8 +302,6 @@ lister_render(Application_Links *app, Frame_Info frame_info, View_ID view){
         y_pos = y.max;
         
         Rect_f32 item_rect = Rf32(x, y);
-        // NOTE(long): Fix overdraw thing
-        if (item_rect.y0 > region.y1) { break; }
         Rect_f32 item_inner = rect_inner(item_rect, 3.f);
         
         b32 hovered = rect_contains_point(item_rect, m_p);
@@ -330,7 +327,6 @@ lister_render(Application_Links *app, Frame_Info frame_info, View_ID view){
         draw_rectangle_fcolor(app, item_inner, roundness, get_item_margin_color(highlight, 1));
         
         Fancy_Line line = {};
-        push_fancy_string(scratch, &line, fcolor_id(defcolor_pop1), Long_Lister_GetHeaderString(app, scratch, node));
         push_fancy_string(scratch, &line, fcolor_id(defcolor_text_default), node->string);
         push_fancy_stringf(scratch, &line, " ");
         push_fancy_string(scratch, &line, fcolor_id(defcolor_pop2), node->status);
@@ -360,7 +356,7 @@ lister_get_user_data(Lister *lister, i32 index){
 }
 
 function Lister_Filtered
-lister_get_filtered(Application_Links* app, Arena *arena, Lister *lister){
+lister_get_filtered(Arena *arena, Lister *lister){
     i32 node_count = lister->options.count;
     
     Lister_Filtered filtered = {};
@@ -382,101 +378,9 @@ lister_get_filtered(Application_Links* app, Arena *arena, Lister *lister){
     string_list_push(&absolutes, &splits);
     string_list_push(arena, &absolutes, string_u8_litexpr(""));
     
-    // NOTE(long): /inclusive_tag: or, ~exclusive_tag: not
-    
-#if LONG_LISTER_FILTER_TAG
-    String8List include_tags = {};
-    {
-        String8Node** prev = &absolutes.first->next;
-        for (String8Node* node = absolutes.first; node;)
-        {
-            String8Node* next = node->next;
-            String8 string = node->string;
-            if (string.size >= 1 && string.str[0] == '\\')
-            {
-                string_list_push(&include_tags, node);
-                node->string = string_skip(node->string, 1);
-                (*prev) = next;
-                absolutes.node_count--;
-            }
-            else prev = &node->next;
-            node = next;
-        }
-    }
-    
-    String8List exclude_tags = {};
-    {
-        String8Node** prev = &absolutes.first->next;
-        for (String8Node* node = absolutes.first; node;)
-        {
-            String8Node* next = node->next;
-            String8 string = node->string;
-            if (string.size > 1 && string.str[0] == '~')
-            {
-                string_list_push(&exclude_tags, node);
-                node->string = string_skip(node->string, 1);
-                (*prev) = next;
-                absolutes.node_count--;
-            }
-            else prev = &node->next;
-            node = next;
-        }
-    }
-    
-    String8List header_filters = {};
-    {
-        String8Node** prev = &absolutes.first->next;
-        for (String8Node* node = absolutes.first; node;)
-        {
-            String8Node* next = node->next;
-            String8 string = node->string;
-            if (string.size > 1 && string.str[0] == '`')
-            {
-                string_list_push(&header_filters, node);
-                node->string = string_skip(node->string, 1);
-                (*prev) = next;
-                absolutes.node_count--;
-            }
-            else prev = &node->next;
-            node = next;
-        }
-    }
-#endif
-    
     for (Lister_Node *node = lister->options.first;
          node != 0;
          node = node->next){
-#if LONG_LISTER_FILTER_TAG
-        {
-            b32 has_tag = true;
-            for (String8Node* tag = include_tags.first; tag; tag = tag->next)
-                if (!(has_tag = string_has_substr(node->status, tag->string, StringMatch_CaseInsensitive)))
-                    break;
-            if (!has_tag)
-                continue;
-        }
-        
-        {
-            b32 has_tag = false;
-            for (String8Node* tag = exclude_tags.first; tag; tag = tag->next)
-                if (has_tag = string_has_substr(node->status, tag->string, StringMatch_CaseInsensitive))
-                    break;
-            if (has_tag)
-                continue;
-        }
-        
-        {
-            Scratch_Block scratch(app, arena);
-            String8 header = Long_Lister_GetHeaderString(app, scratch, node);
-            b32 has_tag = true;
-            for (String8Node* tag = header_filters.first; tag; tag = tag->next)
-                if (has_tag = string_has_substr(header, tag->string, StringMatch_CaseInsensitive))
-                    break;
-            if (!has_tag)
-                continue;
-        }
-#endif
-        
         String_Const_u8 node_string = node->string;
         if (key.size == 0 || string_wildcard_match_insensitive(absolutes, node_string)){
             if (string_match_insensitive(node_string, key) && filtered.exact_matches.count == 0){
@@ -517,7 +421,7 @@ lister_update_filtered_list(Application_Links *app, Lister *lister){
     Arena *arena = lister->arena;
     Scratch_Block scratch(app, arena);
     
-    Lister_Filtered filtered = lister_get_filtered(app, scratch, lister);
+    Lister_Filtered filtered = lister_get_filtered(scratch, lister);
     
     Lister_Node_Ptr_Array node_ptr_arrays[] = {
         filtered.exact_matches,
@@ -601,6 +505,9 @@ lister_user_data_at_p(Application_Links *app, View_ID view, Lister *lister, Vec2
     return(result);
 }
 
+#if LONG_LISTER_OVERLOAD
+function Lister_Result run_lister(Application_Links *app, Lister *lister) { return Long_Lister_Run(app, lister); }
+#else
 function Lister_Result
 run_lister(Application_Links *app, Lister *lister){
     lister->filter_restore_point = begin_temp(lister->arena);
@@ -645,36 +552,9 @@ run_lister(Application_Links *app, Lister *lister){
                         result = ListerActivation_Finished;
                     }break;
                     
-                    case KeyCode_V:
-                    {
-                        if (has_modifier(&in, KeyCode_Control))
-                        {
-                            Scratch_Block scratch(app, lister->arena);
-                            String8 string = push_clipboard_index(scratch, 0, 0);
-                            if (string.size)
-                            {
-                                lister_append_text_field(lister, string);
-                                lister_append_key(lister, string);
-                                lister->item_index = 0;
-                                lister_zero_scroll(lister);
-                                lister_update_filtered_list(app, lister);
-                            }
-                        }
-                        else goto DEFAULT;
-                    } break;
-                    
                     case KeyCode_Backspace:
                     {
                         if (lister->handlers.backspace != 0){
-                            if (lister->handlers.backspace == lister__backspace_text_field__default)
-                            {
-                                if (has_modifier(&in, KeyCode_Control))
-                                {
-                                    lister->text_field.size = 0;
-                                    lister->key_string.size = 0;
-                                }
-                            }
-                            
                             lister->handlers.backspace(app);
                         }
                         else if (lister->handlers.key_stroke != 0){
@@ -739,7 +619,6 @@ run_lister(Application_Links *app, Lister *lister){
                         }
                     }break;
                     
-                    DEFAULT:
                     default:
                     {
                         if (lister->handlers.key_stroke != 0){
@@ -850,6 +729,7 @@ run_lister(Application_Links *app, Lister *lister){
     
     return(lister->out);
 }
+#endif
 
 function Lister_Prealloced_String
 lister_prealloced(String_Const_u8 string){

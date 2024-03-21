@@ -675,7 +675,7 @@ function F4_Index_Note* Long_Index_LookupScope(F4_Index_Note* note, i64 pos)
     return result;
 }
 
-function F4_Index_Note* Long_Index_GetSurroundingNote(F4_Index_File* file, i64 pos)
+function F4_Index_Note* Long_Index_LookupSurroundingNote(F4_Index_File* file, i64 pos)
 {
     F4_Index_Note* result = 0;
     for (F4_Index_Note* note = file ? file->first_note : 0; note; note = note->next_sibling)
@@ -888,7 +888,7 @@ function F4_Index_Note* Long_Index_LookupBestNote(Application_Links* app, Buffer
     String8 debug_filename = push_buffer_base_name(app, scratch, buffer);
     
     F4_Index_File* file = F4_Index_LookupFile(app, buffer);
-    F4_Index_Note* scope_note = Long_Index_GetSurroundingNote(file, range.min);
+    F4_Index_Note* scope_note = Long_Index_LookupSurroundingNote(file, range.min);
     
     // TODO(long): C# and C++ specific crap - Abstract this out for other languages
     Long_Index_LookupType lookup_type = Long_LookupType_None;
@@ -1106,23 +1106,6 @@ global NoteFilter* long_global_context_opts[] =
     Long_Filter_Type,
 };
 
-function Rect_f32 Long_Index_DrawString(Application_Links* app, String8 string, Vec2_f32 tooltip_position,
-                                        Face_ID face, f32 line_height, f32 padding, ARGB_Color color)
-{
-    Vec2_f32 needed_size = { get_string_advance(app, face, string), line_height };
-    Rect_f32 draw_rect =
-    {
-        tooltip_position.x,
-        tooltip_position.y,
-        tooltip_position.x + needed_size.x + 2*padding,
-        tooltip_position.y + needed_size.y + 2*padding,
-    };
-    Vec2_f32 text_position = draw_rect.p0 + Vec2_f32{ padding, padding };
-    F4_DrawTooltipRect(app, draw_rect);
-    draw_string(app, face, string, text_position, color);
-    return draw_rect;
-}
-
 function Vec2_f32 Long_Index_DrawTooltip(Application_Links* app, Rect_f32 screen_rect, Vec2_f32 tooltip_pos,
                                          Face_ID face, f32 padding, f32 line_height, ARGB_Color color, ARGB_Color highlight_color,
                                          F4_Index_Note* note, i32 index, Range_i64 range, Range_i64 highlight_range)
@@ -1226,7 +1209,8 @@ function Vec2_f32 Long_Index_DrawTooltip(Application_Links* app, Rect_f32 screen
         {
             if (i == long_global_child_tooltip_count)
             {
-                tooltip_pos.y += rect_height(Long_Index_DrawString(app, S8Lit("..."), tooltip_pos, face, line_height, padding * .5f, color));
+                tooltip_pos.y += rect_height(Long_Render_DrawString(app, S8Lit("..."), tooltip_pos, screen_rect,
+                                                                    face, line_height, padding * .5f, color));
                 break;
             }
             
@@ -1239,8 +1223,8 @@ function Vec2_f32 Long_Index_DrawTooltip(Application_Links* app, Rect_f32 screen
             Range_i64_Array ranges = Long_Index_GetNoteRanges(app, scratch, child, range);
             Rect_f32 rect;
             if (Long_Index_IsNamespace(child))
-                rect = Long_Index_DrawString(app, push_stringf(scratch, "namespace %.*s", string_expand(child->string)),
-                                             tooltip_pos, face, line_height, padding, color);
+                rect = Long_Render_DrawString(app, push_stringf(scratch, "namespace %.*s", string_expand(child->string)),
+                                              tooltip_pos, screen_rect, face, line_height, padding, color);
             else
                 rect = Long_Index_DrawNote(app, ranges, child->file->buffer,
                                            face, line_height, padding, color,
@@ -1262,8 +1246,8 @@ function Vec2_f32 Long_Index_DrawTooltip(Application_Links* app, Rect_f32 screen
         Range_i64_Array ranges = Long_Index_GetNoteRanges(app, scratch, note, range);
         Rect_f32 rect;
         if (Long_Index_IsNamespace(note))
-            rect = Long_Index_DrawString(app, push_stringf(scratch, "namespace %.*s", string_expand(note->string)),
-                                         tooltip_pos, face, line_height, padding, color);
+            rect = Long_Render_DrawString(app, push_stringf(scratch, "namespace %.*s", string_expand(note->string)),
+                                          tooltip_pos, screen_rect, face, line_height, padding, color);
         else
             rect = Long_Index_DrawNote(app, ranges, note->file->buffer,
                                        face, line_height, padding, color,
@@ -1320,20 +1304,19 @@ function void Long_Index_DrawPosContext(Application_Links* app, View_ID view, F4
     }
 }
 
-#define LONG_INDEX_DRAW_PARTIAL 0
-
-function F4_Index_Note* Long_Index_GetDefNote(F4_Index_Note* note)
+function F4_Index_Note* Long_Index_GetDefNote(F4_Index_Note* note, b32 any_note = 0)
 {
     F4_Index_Note* parent = note->parent;
     F4_Index_Note* old_note = note;
     while (note->prev) note = note->prev;
     // NOTE(long): This is a clever way to do the above thing but it still works when the note pass-in is null
     // But every place that uses this function already has to check whether or not the note is null anyway
-    //for (F4_Index_Note* head = note; head; note = head, head = head->prev);
+    // for (F4_Index_Note* head = note; head; note = head, head = head->prev);
     
     for (; note; note = note->next)
-        if (note->parent == parent && !(note->flags & F4_Index_NoteFlag_Prototype) && note->kind == old_note->kind)
-            break;
+        if (note->parent == parent && note->kind == old_note->kind && note->file && note != old_note)
+            if (!(note->flags & F4_Index_NoteFlag_Prototype) || any_note)
+                break;
     
     if (!note) note = old_note;
     return note;
@@ -1341,12 +1324,76 @@ function F4_Index_Note* Long_Index_GetDefNote(F4_Index_Note* note)
 
 function void Long_Index_DrawCodePeek(Application_Links* app, View_ID view)
 {
-    if (!global_code_peek_open)
-        return;
+    View_ID active_view = get_active_view(app, Access_Always);
+    Lister* lister = view_get_lister(app, active_view);
+    Rect_f32 screen_rect = view_get_screen_rect(app, view);
     
     F4_Index_Note* note = 0;
+    
+    if (long_lister_tooltip_peek == Long_Tooltip_NextToItem && lister && lister->highlighted_node)
     {
-        View_ID active_view = get_active_view(app, Access_Always);
+        Long_Lister_Data* data = (Long_Lister_Data*)lister->highlighted_node->user_data;
+        if ((Lister_Node*)data == lister->highlighted_node + 1)
+        {
+            // @COPYPASTA(long): lister_render
+            Face_ID face = get_face_id(app, 0);
+            f32 line_height = get_face_metrics(app, face).line_height;
+            f32 block_height = lister_get_block_height(line_height);
+            f32 lister_margin = 3.f; // draw_background_and_margin
+            
+            Rect_f32 lister_rect = view_get_screen_rect(app, active_view);
+            lister_rect = rect_inner(lister_rect, lister_margin);
+            
+            f32 y_pos = Long_Lister_GetHeight(lister, line_height, block_height, &lister_rect.y0);
+            f32 width = line_height * 12;
+            f32 padding = 6.f;
+            
+            Rect_f32 clip_rect = layout_file_bar_on_top(rect_inner(screen_rect, lister_margin), line_height).max;
+            Rect_f32 rect = screen_rect;
+            rect.x0 += padding;
+            rect.x1 -= padding;
+            rect.y0 = y_pos;
+            rect.y1 = rect.y0 + width;
+            
+            if (data->tooltip.size)
+            {
+                Vec2_f32 tooltip_pos = rect.p0;
+                if (rect.x0 < lister_rect.x0)
+                    tooltip_pos.x = rect.x1; // NOTE(long): This will get clamped inside the DrawString call
+                
+                Rect_f32 prev_clip = draw_set_clip(app, clip_rect);
+                rect = Long_Render_DrawString(app, data->tooltip, tooltip_pos, rect_inner(screen_rect, padding), face, line_height,
+                                              (block_height-line_height)/2.f, finalize_color(defcolor_text_default, 0), 0);
+                draw_set_clip(app, prev_clip);
+            }
+            else
+            {
+                f32 draw_width = rect_width(rect) * .75f;
+                if (rect.x0 > lister_rect.x0)
+                    rect.x1 = rect.x0 + draw_width;
+                else
+                    rect.x0 = rect.x1 - draw_width;
+                
+                Long_Render_DrawPeek(app, rect, rect_inner(rect, line_height), clip_rect, data->buffer, Ii64(data->pos), 1, 0);
+            }
+            
+            if (lister->set_vertical_focus_to_item)
+            {
+                if (rect.y1 > lister_rect.y1)
+                {
+                    f32 scroll_margin = block_height;
+                    f32 current_height = lister->item_index * block_height + rect_height(rect);
+                    
+                    lister->scroll.target.y = current_height + scroll_margin - rect_height(lister_rect);
+                    lister->set_vertical_focus_to_item = 0;
+                }
+                else if (lister->set_vertical_focus_to_item == LONG_LISTER_TOOLTIP_SPECIAL_VALUE)
+                    lister->set_vertical_focus_to_item = 0;
+            }
+        }
+    }
+    else if (global_code_peek_open)
+    {
         i64 pos = view_get_cursor_pos(app, active_view);
         Buffer_ID buffer = view_get_buffer(app, active_view, Access_Always);
         Token* token = get_token_from_pos(app, buffer, pos);
@@ -1354,62 +1401,35 @@ function void Long_Index_DrawCodePeek(Application_Links* app, View_ID view)
         {
             Token_Array array = get_token_array_from_buffer(app, buffer);
             note = Long_Index_LookupBestNote(app, buffer, &array, token);
-            if (note && (note->flags & F4_Index_NoteFlag_Prototype))
-                note = Long_Index_GetDefNote(note);
+            if (note)
+            {
+                if (!note->file)
+                    note = 0;
+                if (note->flags & F4_Index_NoteFlag_Prototype)
+                    note = Long_Index_GetDefNote(note);
+                else if (range_contains_inclusive(note->range, pos) && note->file->buffer == buffer)
+                    note = Long_Index_GetDefNote(note, 1);
+            }
         }
     }
     
-    if (!note)
-        return;
-    
-    Buffer_ID buffer = note->file->buffer;
-    Range_i64 range = note->range;
-#if LONG_INDEX_DRAW_PARTIAL
-    range = {
-        note-> base_range.max ? note-> base_range.min : note->range.min,
-        note->scope_range.max ? note->scope_range.max : note->range.max,
-    };
-    range.max += 1;
-#endif
-    
-    Rect_f32 view_rect = view_get_screen_rect(app, view);
-    i32 peek_count = 1;
-    f32 peek_height = (f32)((view_rect.y1 - view_rect.y0) * (0.5f + 0.4f*(clamp_top(peek_count / 4, 1)))) / peek_count;
-    Rect_f32 rect = {0};
+    if (note)
     {
-        rect.x0 = view_rect.x0;
-        rect.x1 = view_rect.x1;
-        rect.y0 = view_rect.y1 - peek_height*peek_count;
-        rect.y1 = rect.y0 + peek_height;
-    }
-    Rect_f32 inner_rect = rect_inner(rect, 30);
-    
-    F4_DrawTooltipRect(app, rect);
-    
-    Buffer_Point buffer_point = { get_line_number_from_pos(app, buffer, range.min) };
-    range.max = clamp_bot(range.max, get_line_end(app, buffer, buffer_point.line_number).pos);
-    Text_Layout_ID text_layout_id = text_layout_create(app, buffer, inner_rect, buffer_point);
-    
-    Rect_f32 prev_prev_clip = draw_set_clip(app, inner_rect);
-    {
-        Token_Array array = get_token_array_from_buffer(app, buffer);
-        if(array.tokens != 0)
+        Rect_f32 rect = screen_rect;
+        i32 peek_count = 1;
+        f32 padding = 5.f;
         {
-            F4_SyntaxHighlight(app, text_layout_id, &array);
-#if LONG_INDEX_DRAW_PARTIAL
-            Range_i64 visible_range = text_layout_get_visible_range(app, text_layout_id);
-            if (visible_range.max > range.max)
-                paint_text_color(app, text_layout_id, Ii64(range.max, visible_range.max), 0);
-#endif
+            f32 peek_height = (f32)((screen_rect.y1 - screen_rect.y0) * (0.3f + 0.4f*(clamp_top(peek_count / 4, 1)))) / peek_count;
+            rect.y0 = screen_rect.y1 - peek_height*peek_count;
+            rect.y1 = rect.y0 + peek_height;
+            rect = rect_inner(rect, padding);
         }
-        else
-            paint_text_color_fcolor(app, text_layout_id, range, fcolor_id(defcolor_text_default));
         
-        draw_text_layout_default(app, text_layout_id);
+        Long_Render_DrawPeek(app, rect, note->file->buffer, note->range, 3);
     }
-    draw_set_clip(app, prev_prev_clip);
-    text_layout_free(app, text_layout_id);
 }
+
+//~ NOTE(long): Indent Functions
 
 function void Long_Index_IndentBuffer(Application_Links* app, Buffer_ID buffer, Range_i64 pos,
                                       Indent_Flag flags, i32 tab_width, i32 indent_width)
