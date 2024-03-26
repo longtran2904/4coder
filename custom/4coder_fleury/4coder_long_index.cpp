@@ -236,7 +236,7 @@ function b32 Long_Index_SkipBody(Application_Links* app, Token_Iterator_Array* i
     return paren_nest == 0 && scope_nest == 0 && gener_nest == 0 && (dec ? (final_nest >= 0) : (final_nest <= 0));
 }
 
-// COPYPASTA(long): F4_Index_ParsePattern
+// @COPYPASTA(long): F4_Index_ParsePattern
 function b32 _Long_Index_ParsePattern(F4_Index_ParseCtx* ctx, char* fmt, va_list _args)
 {
     Long_Index_ProfileScope(ctx->app, "[Long] Parse Pattern");
@@ -419,7 +419,7 @@ function void Long_Index_EraseNote(Application_Links* app, F4_Index_Note* note)
     }
 }
 
-// COPYPASTA(long): _F4_Index_FreeNoteTree
+// @COPYPASTA(long): _F4_Index_FreeNoteTree
 function void Long_Index_FreeNoteTree(F4_Index_Note *note)
 {
     Long_Index_IterateValidNoteInFile(child, note)
@@ -1436,7 +1436,7 @@ function void Long_Index_IndentBuffer(Application_Links* app, Buffer_ID buffer, 
 {
     Scratch_Block scratch(app);
     
-    // COPYPASTA(long): auto_indent_buffer
+    // @COPYPASTA(long): auto_indent_buffer
     if (HasFlag(flags, Indent_FullTokens)){
         i32 safety_counter = 0;
         for (;;){
@@ -1495,7 +1495,7 @@ function void Long_Index_IndentBuffer(Application_Links* app, Buffer_ID buffer, 
             shifted_indentations[line] = indent;
         }
         
-        // COPYPASTA(long): make_batch_from_indentations
+        // @COPYPASTA(long): make_batch_from_indentations
         Batch_Edit* batch_head = 0;
         Batch_Edit* batch_tail = 0;
         for (i64 line = lines.min; line <= lines.max; ++line)

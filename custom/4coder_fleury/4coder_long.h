@@ -344,6 +344,7 @@
 // [X] Repeat a macro n times
 // [X] Clean all whitespace at cursor position
 // [X] Search and open the most recent modified file on startup
+// [X] Tab to append whatever inside the cursor range to the bar
 
 #include "4coder_long_index.h"
 #include "4coder_long_base_commands.h"

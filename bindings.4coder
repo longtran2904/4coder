@@ -16,10 +16,11 @@ keys_global =
     
     { "long_toggle_compilation_expand",  "Insert"                     },
     { "long_toggle_panel_expand",        "Insert", "Control"          },
-    { "toggle_line_numbers",             "Equal",  "Control", "Shift" },
     
     // NOTE(jack): Ryan has these unbound
-    { "toggle_filebar",                           "B",             "Alt" },
+    { "toggle_filebar",                           "B", "Alt"              },
+    { "toggle_line_numbers",                  "Equal", "Control", "Shift" },
+    { "toggle_fullscreen",                      "F11", "Control",         },
     
     // NOTE(rjf): Files
     { "interactive_new",                         "N", "Control"          },
