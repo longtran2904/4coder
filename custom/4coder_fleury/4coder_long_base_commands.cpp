@@ -1543,7 +1543,6 @@ function void Long_SearchBuffer_MultiSelect(Application_Links* app, View_ID view
             {
 #ifdef LONG_SELECT_DEFER_PUSH_JUMP
                 Long_PointStack_Push(app, buffer, cursor_pos, view);
-                push_jump = 0;
 #endif
                 Long_PointStack_Push(app, current_location.buffer_id, current_location.pos, view);
             }
@@ -1735,10 +1734,14 @@ function void Long_SearchBuffer_MultiSelect(Application_Links* app, View_ID view
     
     if (abort)
     {
+#ifdef LONG_SELECT_DEFER_PUSH_JUMP
+        push_jump = 0;
+#endif
+        
         if (push_jump)
             Long_PointStack_JumpNext(app, view, 0, 1);
         else
-            view_set_cursor_and_preferred_x(app, view, seek_pos(cursor_pos));
+            F4_JumpToLocation(app, view, buffer, cursor_pos);
         view_set_mark(app, view, seek_pos(mark_pos));
     }
     
