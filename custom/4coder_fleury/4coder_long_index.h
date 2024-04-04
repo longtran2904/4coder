@@ -60,6 +60,7 @@ function F4_Index_Note* Long_Index_LookupBestNote(Application_Links* app, Buffer
                                                   F4_Index_Note* filter_note = 0, b32 continue_after_comma = 0);
 
 //- NOTE(long): Render Functions
+function Range_i64 Long_Index_PosContextRange(Application_Links* app, Buffer_ID buffer, i64 pos);
 function Vec2_f32 Long_Index_DrawTooltip(Application_Links* app, Rect_f32 screen_rect, Vec2_f32 tooltip_pos,
                                          Face_ID face, f32 padding, f32 line_height, ARGB_Color color, ARGB_Color highlight_color,
                                          F4_Index_Note* note, i32 index, Range_i64 range, Range_i64 highlight_range);

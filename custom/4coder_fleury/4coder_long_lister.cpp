@@ -561,23 +561,29 @@ Long_Lister_Backspace_Path(Application_Links *app){
     Lister *lister = view_get_lister(app, view);
     if (lister != 0){
         if (lister->text_field.size > 0){
+            char last_char = lister->text_field.str[lister->text_field.size - 1];
             lister->text_field.string = backspace_utf8(lister->text_field.string);
             
-            User_Input input = get_current_input(app);
-            String_Const_u8 text_field = lister->text_field.string;
-            String_Const_u8 new_hot = string_remove_last_folder(text_field);
-            b32 is_modified = has_modifier(&input, KeyCode_Control);
-            b32 whole_word_when_mod = def_get_config_b32(vars_save_string_lit("lister_whole_word_backspace_when_modified"));
-            b32 whole_word_backspace = (is_modified == whole_word_when_mod);
-            if (whole_word_backspace){
-                lister->text_field.size = new_hot.size;
+            if (character_is_slash(last_char))
+            {
+                User_Input input = get_current_input(app);
+                String_Const_u8 new_hot = string_remove_last_folder(lister->text_field.string);
+                
+                b32 is_modified = has_modifier(&input, KeyCode_Control);
+                b32 whole_word_when_mod = def_get_config_b32(vars_save_string_lit("lister_whole_word_backspace_when_modified"));
+                b32 whole_word_backspace = (is_modified == whole_word_when_mod);
+                if (whole_word_backspace)
+                    lister->text_field.size = new_hot.size;
+                
+                set_hot_directory(app, new_hot);
+                // TODO(allen): We have to protect against lister_call_refresh_handler
+                // changing the text_field here. Clean this up.
+                String_u8 dingus = lister->text_field;
+                Long_Lister_Refresh(app, lister);
+                lister->text_field = dingus;
             }
-            set_hot_directory(app, new_hot);
-            // TODO(allen): We have to protect against lister_call_refresh_handler
-            // changing the text_field here. Clean this up.
-            String_u8 dingus = lister->text_field;
-            Long_Lister_Refresh(app, lister);
-            lister->text_field = dingus;
+            else
+                lister_set_key(lister, string_front_of_path(lister->text_field.string));
             
             lister->item_index = 0;
             lister_zero_scroll(lister);

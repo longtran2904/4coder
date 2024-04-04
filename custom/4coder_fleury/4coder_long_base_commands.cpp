@@ -38,20 +38,6 @@ function void Long_SnapView(Application_Links* app)
     no_mark_snap_to_cursor(app, view);
 }
 
-// @COPYPASTA(long): backspace_utf8
-function u64 Long_UTF8_Backspace(u8* str, u64 size){
-    if (size > 0){
-        u64 i = size - 1;
-        for (; i > 0; --i){
-            if (str[i] <= 0x7F || str[i] >= 0xC0){
-                break;
-            }
-        }
-        size = i;
-    }
-    return size;
-}
-
 function i32 Long_Abs(i32 num)
 {
     i32 mask = num >> 31;

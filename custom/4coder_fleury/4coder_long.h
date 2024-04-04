@@ -304,8 +304,9 @@
 //- INDEX
 // [ ] Autocompletion using PosContext or casey/jack's system
 // [ ] String/Comment indenting as code
-// [X] Improve code peeking by highlighting and offsetting the peeked note
 // [ ] Render #if block with annotation
+// [X] Improve code peeking by highlighting and offsetting the peeked note
+// [X] Fix PosContext doesn't show generic functions or confuse between generic and normal arguments
 
 //- COMPILATION
 // [ ] Display error/warning count on the file bar

@@ -463,9 +463,14 @@ Long_CS_ParsePosContext(Application_Links* app, Arena* arena, Buffer_ID buffer, 
     F4_Language_PosContextData *first = 0;
     F4_Language_PosContextData *last = 0;
     
+    Range_i64 scope = Long_Index_PosContextRange(app, buffer, pos);
+    
     for (i32 i = 0, tooltip_count = 0; tooltip_count < 4; ++i)
     {
         Token* token = token_it_read(&it);
+        
+        if (token->pos < scope.min)
+            break;
         
         if (token->kind == TokenBaseKind_ParentheticalClose && i > 0)
             paren_nest--;
@@ -475,15 +480,19 @@ Long_CS_ParsePosContext(Application_Links* app, Arena* arena, Buffer_ID buffer, 
             paren_nest = clamp_top(paren_nest + 1, 0);
             if (old_nest == 0 && token_it_dec(&it))
             {
+                Token_Iterator_Array iterator = it;
+                Long_Index_SkipBody(app, &it, buffer, 1, 1);
                 token = token_it_read(&it);
                 if (token->kind == TokenBaseKind_Identifier)
                 {
                     has_arg = i > 0;
                     goto LOOKUP;
                 }
-                token_it_inc(&it);
+                //token_it_inc(&it);
+                it = iterator;
             }
         }
+        
         else if (paren_nest >= 0)
         {
             if (token->kind == TokenBaseKind_Identifier && tooltip_count == 0)

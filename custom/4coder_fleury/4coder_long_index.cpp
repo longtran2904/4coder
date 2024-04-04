@@ -553,12 +553,16 @@ function F4_Index_Note* Long_Index_LookupChild(String8 name, F4_Index_Note* pare
     return 0;
 }
 
+// NOTE(long): This function will not search for generic arguments
 function F4_Index_Note* Long_Index_LookupChild(F4_Index_Note* parent, i32 index)
 {
     F4_Index_Note* result = 0;
     i32 i = 0;
     for (F4_Index_Note* child = parent ? parent->first_child : 0; child; child = child->next_sibling)
     {
+        if (Long_Index_IsGenericArgument(child))
+            continue;
+        
         if (i == index)
         {
             result = child;
@@ -1256,6 +1260,21 @@ function Vec2_f32 Long_Index_DrawTooltip(Application_Links* app, Rect_f32 screen
     }
     
     return tooltip_pos;
+}
+
+// NOTE(long): This utility function is to stop displaying the outer function while inside a lambda function
+// It'll only check for the nearest scope that crosses multiple lines so one-liners or multi-lines macro's
+// code arguments will bypass this
+function Range_i64 Long_Index_PosContextRange(Application_Links* app, Buffer_ID buffer, i64 pos)
+{
+    Range_i64 scope_range = Ii64(pos);
+    while (find_surrounding_nest(app, buffer, scope_range.min, FindNest_Scope, &scope_range))
+    {
+        Range_i64 line_range = get_line_range_from_pos_range(app, buffer, scope_range);
+        if (range_size(line_range))
+            return scope_range;
+    }
+    return {};
 }
 
 function void Long_Index_DrawPosContext(Application_Links* app, View_ID view, F4_Language_PosContextData* first_ctx)

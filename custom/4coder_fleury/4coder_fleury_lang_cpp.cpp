@@ -483,6 +483,8 @@ internal F4_LANGUAGE_POSCONTEXT(F4_CPP_PosContext)
     Token_Array tokens = get_token_array_from_buffer(app, buffer);
     Token_Iterator_Array it = token_iterator_pos(0, &tokens, pos);
     
+    Range_i64 scope = Long_Index_PosContextRange(app, buffer, pos);
+    
     // NOTE(rjf): Search for left parentheses (function call or macro invocation).
     {
         int paren_nest = 0;
@@ -492,6 +494,9 @@ internal F4_LANGUAGE_POSCONTEXT(F4_CPP_PosContext)
             Token *token = token_it_read(&it);
             if(token)
             {
+                if (token->pos < scope.min)
+                    break;
+                
                 if(paren_nest == 0 &&
                    token->sub_kind == TokenCppKind_ParenOp &&
                    token_it_dec_non_whitespace(&it))
