@@ -293,6 +293,7 @@
 // [ ] Search for definitions like Hoogle
 // [ ] Has a lister for important but rarely used commands
 // [X] Fix recent files menu lists non-existed buffer
+// [X] Fix backspace for file path doesn't work with slashes properly
 
 //~ TODO RENDER
 

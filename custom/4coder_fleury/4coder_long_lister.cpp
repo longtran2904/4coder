@@ -513,7 +513,7 @@ function b32 Long_Lister_HandleKeyStroke(Application_Links* app, Lister* lister,
 }
 
 // @COPYPASTA(long): lister__write_string__default
-function Lister_Activation_Code Long_Lister_WriteString(Application_Links *app)
+function Lister_Activation_Code Long_Lister_WriteString(Application_Links* app)
 {
     Lister_Activation_Code result = ListerActivation_Continue;
     View_ID view = get_active_view(app, Access_Always);
@@ -533,7 +533,8 @@ function Lister_Activation_Code Long_Lister_WriteString(Application_Links *app)
 }
 
 // @COPYPASTA(long): lister__backspace_text_field__default
-function void Long_Lister_Backspace(Application_Links *app){
+function void Long_Lister_Backspace(Application_Links *app)
+{
     View_ID view = get_active_view(app, Access_Always);
     Lister *lister = view_get_lister(app, view);
     if (lister != 0){
@@ -555,35 +556,50 @@ function void Long_Lister_Backspace(Application_Links *app){
 }
 
 // @COPYPASTA(long): lister__backspace_text_field__file_path
-function void
-Long_Lister_Backspace_Path(Application_Links *app){
+function void Long_Lister_Backspace_Path(Application_Links* app)
+{
     View_ID view = get_this_ctx_view(app, Access_Always);
-    Lister *lister = view_get_lister(app, view);
-    if (lister != 0){
+    Lister* lister = view_get_lister(app, view);
+    if (lister != 0)
+    {
         if (lister->text_field.size > 0){
-            char last_char = lister->text_field.str[lister->text_field.size - 1];
-            lister->text_field.string = backspace_utf8(lister->text_field.string);
+            String8 text_field = lister->text_field.string;
             
-            if (character_is_slash(last_char))
+            u32 slash_count = 0;
+            while (character_is_slash(text_field.str[text_field.size-1])) // remove all duplicate slashes
+            {
+                slash_count++;
+                text_field = string_chop(text_field, 1);
+                if (!text_field.size)
+                    return; // TODO(long): Is this good enough?
+            }
+            
+            b32 whole_word_backspace;
             {
                 User_Input input = get_current_input(app);
-                String_Const_u8 new_hot = string_remove_last_folder(lister->text_field.string);
-                
-                b32 is_modified = has_modifier(&input, KeyCode_Control);
+                b32 has_mod = has_modifier(&input, KeyCode_Control);
                 b32 whole_word_when_mod = def_get_config_b32(vars_save_string_lit("lister_whole_word_backspace_when_modified"));
-                b32 whole_word_backspace = (is_modified == whole_word_when_mod);
-                if (whole_word_backspace)
-                    lister->text_field.size = new_hot.size;
-                
-                set_hot_directory(app, new_hot);
-                // TODO(allen): We have to protect against lister_call_refresh_handler
-                // changing the text_field here. Clean this up.
-                String_u8 dingus = lister->text_field;
-                Long_Lister_Refresh(app, lister);
-                lister->text_field = dingus;
+                whole_word_backspace = (has_mod == whole_word_when_mod);
             }
+            
+            if (slash_count > 1)
+                text_field.size += whole_word_backspace ? 1 : (slash_count - 1);
+            else if (slash_count == 0)
+                text_field = backspace_utf8(text_field);
+            
             else
-                lister_set_key(lister, string_front_of_path(lister->text_field.string));
+            {
+                String_Const_u8 hot = string_remove_last_folder(text_field);
+                if (whole_word_backspace)
+                    text_field.size = hot.size;
+                
+                set_hot_directory(app, hot);
+                lister->text_field.string = text_field;
+                Long_Lister_Refresh(app, lister);
+            }
+            
+            lister_set_key(lister, string_front_of_path(text_field));
+            lister->text_field.string = text_field;
             
             lister->item_index = 0;
             lister_zero_scroll(lister);
