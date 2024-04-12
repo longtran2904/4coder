@@ -17,6 +17,56 @@
 
 #define Long_CS_SkipExpression(ctx) Long_Index_SkipExpression(ctx, TokenCsKind_Comma, TokenCsKind_Semicolon)
 
+function b32 Long_CS_ParseGenericBase(F4_Index_ParseCtx* ctx)
+{
+    b32 result = 0;
+    F4_Index_ParseCtx restore_ctx = *ctx;
+    if (Long_CS_PeekToken(ctx, "<"))
+    {
+        if (Long_Index_SkipBody(ctx))
+        {
+            Token* token;
+            Token_Iterator_Array it = restore_ctx.it;
+            
+            while (token = token_it_read(&it))
+            {
+                if (it.ptr == ctx->it.ptr)
+                {
+                    result = true;
+                    break;
+                }
+                
+                if (token->kind == TokenBaseKind_Operator && token->sub_kind != TokenCsKind_Dot)
+                {
+                    Scratch_Block scratch(ctx->app);
+                    String8 lexeme = push_token_lexeme(ctx->app, scratch, ctx->file->buffer, token);
+                    
+                    b32 exit = 0;
+                    for (u64 i = 0; i < lexeme.size; ++i)
+                        if (exit = (lexeme.str[i] != '<' && lexeme.str[i] != '>'))
+                            break;
+                    
+                    if (exit)
+                        break;
+                }
+                else if (token->kind != TokenBaseKind_Identifier &&
+                         token->kind != TokenBaseKind_Keyword &&
+                         token->kind != TokenBaseKind_ParentheticalOpen &&
+                         token->kind != TokenBaseKind_ParentheticalClose &&
+                         token->sub_kind != TokenCsKind_Dot &&
+                         token->sub_kind != TokenCsKind_Comma)
+                    break;
+                
+                token_it_inc(&it);
+            }
+        }
+    }
+    
+    if (!result)
+        *ctx = restore_ctx;
+    return result;
+}
+
 function b32 Long_CS_PeekTwoStr(F4_Index_ParseCtx* ctx, String8 strA, String8 strB)
 {
     F4_Index_ParseCtx ctx_restore = *ctx;
@@ -118,7 +168,10 @@ function b32 Long_CS_ParseDecl(F4_Index_ParseCtx* ctx, Range_i64* base_range, Ra
             {
                 if (base == Range_i64{})
                     base.start = type_range.start;
-                if (Long_CS_PeekToken(ctx, "[") || Long_CS_PeekToken(ctx, "<"))
+                
+                if (Long_CS_ParseGenericBase(ctx))
+                    Long_Index_PeekPrevious(ctx, type_range.end = Ii64(Long_Index_Token(ctx)).end);
+                else if (Long_CS_PeekToken(ctx, "["))
                 {
                     result = Long_Index_SkipBody(ctx);
                     Long_Index_PeekPrevious(ctx, type_range.end = Ii64(Long_Index_Token(ctx)).end);
@@ -177,7 +230,7 @@ function b32 Long_CS_ParseDecl(F4_Index_ParseCtx* ctx, Range_i64* base_range, Ra
     return result;
 }
 
-function void Long_CS_ParseGeneric(F4_Index_ParseCtx* ctx)
+function void Long_CS_ParseGenericArg(F4_Index_ParseCtx* ctx)
 {
     if (Long_CS_ParseToken(ctx, "<"))
     {
@@ -283,11 +336,24 @@ internal F4_LANGUAGE_INDEXFILE(Long_CS_IndexFile)
         //~ NOTE(long): Namespaces
         else if (Long_CS_ParseSubKind(ctx, TokenCsKind_Namespace, &base))
         {
-            while (Long_CS_ParseKind(ctx, TokenBaseKind_Identifier, &name))
+            // NOTE(long): Namespaces can only be global or inside another namespace.
+            // A namespace can never be inside a class/type/function/decl/etc.
+            // This will make the EraseNamespace code easier to handle.
+            if (!ctx->active_parent || Long_Index_IsNamespace(ctx->active_parent))
             {
-                Long_Index_MakeNamespace(ctx, base, name);
-                if (!Long_CS_ParseToken(ctx, "."))
-                    break;
+                while (Long_CS_ParseKind(ctx, TokenBaseKind_Identifier, &name))
+                {
+                    F4_Index_Note* current_namespace = Long_Index_MakeNamespace(ctx, base, name);
+                    if (!Long_CS_ParseToken(ctx, "."))
+                        break;
+                }
+                
+                // NOTE(long): This's a quick and dirty hack to not have to worry about other cases that aren't
+                // a currly braces pair in the Parent Scope Changes section. I could just Push/PopNamespaceScope
+                // in other cases but C# doesn't handle those so this's good enough for now.
+                if (!Long_CS_PeekToken(ctx, "{"))
+                    while (!Long_Index_IsParentInitialized(ctx) && Long_Index_IsNamespace(ctx->active_parent))
+                        Long_Index_PopParent(ctx);
             }
         }
         
@@ -309,7 +375,7 @@ internal F4_LANGUAGE_INDEXFILE(Long_CS_IndexFile)
         else if (Long_CS_ParseDecl(ctx, &base, &name, ExpandArray(cs_type_keywords), Long_ParseFlag_NoBase))
         {
             Long_Index_MakeNote(ctx, base, name, F4_Index_NoteKind_Type);
-            Long_CS_ParseGeneric(ctx);
+            Long_CS_ParseGenericArg(ctx);
         }
         
         //~ NOTE(long): Functions
@@ -319,7 +385,7 @@ internal F4_LANGUAGE_INDEXFILE(Long_CS_IndexFile)
             Long_Index_BeginCtxChange(ctx);
             ctx->it = token_iterator_pos(0, &ctx->tokens, name.min);
             token_it_inc(&ctx->it);
-            Long_CS_ParseGeneric(ctx);
+            Long_CS_ParseGenericArg(ctx);
             Long_Index_EndCtxChange(ctx);
         }
         
@@ -447,6 +513,13 @@ internal F4_LANGUAGE_INDEXFILE(Long_CS_IndexFile)
         }
         
         else F4_Index_ParseCtx_Inc(ctx, F4_Index_TokenSkipFlag_SkipAll);
+    }
+    
+    while (ctx->active_parent)
+    {
+        if (Long_Index_IsNamespace(ctx->active_parent) && Long_Index_CtxScope(ctx).start)
+            Long_Index_PopNamespaceScope(ctx);
+        Long_Index_PopParent(ctx);
     }
 }
 

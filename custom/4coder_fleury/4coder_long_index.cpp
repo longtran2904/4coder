@@ -359,12 +359,6 @@ function b32 Long_Index_ParsePattern(F4_Index_ParseCtx* ctx, char* fmt, ...)
 
 //~ NOTE(long): Indexing Function
 
-function void Long_Index_UpdateTick(Application_Links* app)
-{
-    F4_Index_Tick(app);
-    code_index_update_tick(app);
-}
-
 function F4_Index_Note InitializeNamespaceRootBecauseCppIsAStupidLanguage()
 {
     F4_Index_Note stupid_placeholder = {};
@@ -373,6 +367,215 @@ function F4_Index_Note InitializeNamespaceRootBecauseCppIsAStupidLanguage()
 }
 
 global F4_Index_Note namespace_root = InitializeNamespaceRootBecauseCppIsAStupidLanguage();
+
+// @COPYPASTA(long): F4_Index_Tick
+function void Long_Index_Tick(Application_Links* app)
+{
+    Scratch_Block scratch(app);
+    
+    for (Buffer_Modified_Node *node = global_buffer_modified_set.first; node != 0;node = node->next)
+    {
+        Temp_Memory_Block temp(scratch);
+        Buffer_ID buffer_id = node->buffer;
+        
+        String_Const_u8 contents = push_whole_buffer(app, scratch, buffer_id);
+        Token_Array tokens = get_token_array_from_buffer(app, buffer_id);
+        if(tokens.count == 0) { continue; }
+        
+        F4_Index_Lock();
+        F4_Index_File *file = F4_Index_LookupOrMakeFile(app, buffer_id);
+        if(file)
+        {
+            ProfileScope(app, "[f] reparse");
+            Long_Index_ClearFile(file);
+            F4_Index_ParseFile(app, file, contents, tokens);
+        }
+        F4_Index_Unlock();
+        buffer_clear_layout_cache(app, buffer_id);
+    }
+}
+
+// @COPYPASTA(long): F4_Tick
+function void Long_Tick(Application_Links* app, Frame_Info frame_info)
+{
+    linalloc_clear(&global_frame_arena);
+    global_tooltip_count = 0;
+    
+    F4_TickColors(app, frame_info);
+    Long_Index_Tick(app);
+    F4_CLC_Tick(frame_info);
+    F4_PowerMode_Tick(app, frame_info);
+    F4_UpdateFlashes(app, frame_info);
+    
+    // NOTE(rjf): Default tick stuff from the 4th dimension:
+    default_tick(app, frame_info);
+}
+
+// @COPYPASTA(long): _F4_Index_FreeNoteTree
+function void Long_Index_FreeHashTree(F4_Index_Note* note)
+{
+    Long_Index_IterateValidNoteInFile(child, note)
+        Long_Index_FreeHashTree(child);
+    
+    Assert(!(Long_Index_IsNamespace(note) && note->kind == F4_Index_NoteKind_Type));
+    
+    F4_Index_Note* prev = note->prev;
+    F4_Index_Note* next = note->next;
+    F4_Index_Note* hash_prev = note->hash_prev;
+    F4_Index_Note* hash_next = note->hash_next;
+    
+    if (prev) prev->next = next;
+    if (next) next->prev = prev;
+    
+    if (!prev)
+    {
+        if (next)
+        {
+            next->hash_prev = hash_prev;
+            next->hash_next = hash_next;
+            
+            if (hash_prev) hash_prev->hash_next = next;
+            if (hash_next) hash_next->hash_prev = next;
+        }
+        else
+        {
+            if (hash_prev) hash_prev->hash_next = hash_next;
+            if (hash_next) hash_next->hash_prev = hash_prev;
+        }
+        
+        if (!hash_prev)
+            f4_index.note_table[note->hash % ArrayCount(f4_index.note_table)] = next ? next : hash_next;
+    }
+    
+    // NOTE(long): Consider adding a bool to determine whether or not to push this note to the free list
+    note->hash_next = f4_index.free_note;
+    f4_index.free_note = note;
+    
+    // TODO(long): Maybe change the note's name to "__Free_Note__: %old_name%"
+    note->string = push_stringf(&note->file->arena, "__Free_Note__: %.*s", string_expand(note->string));
+}
+
+function void Long_Index_FreeParentTree(F4_Index_Note* note)
+{
+    Long_Index_IterateValidNoteInFile(child, note)
+        Long_Index_FreeParentTree(child);
+    
+    Assert(!(Long_Index_IsNamespace(note) && note->kind == F4_Index_NoteKind_Type));
+    
+    F4_Index_Note* prev = note->prev_sibling;
+    F4_Index_Note* next = note->next_sibling;
+    if (prev) prev->next_sibling = next;
+    if (next) next->prev_sibling = prev;
+    
+    F4_Index_Note* parent = note->parent;
+    if (parent && Long_Index_IsNamespace(parent))
+    {
+        if (!prev) parent->first_child = next;
+        if (!next) parent-> last_child = prev;
+    }
+}
+
+function void Long_Index_EraseNamespace(F4_Index_Note* note)
+{
+    if (!Long_Index_IsNamespace(note))
+        return;
+    
+    for (F4_Index_Note* child = note->first_child; child; child = child->next_sibling)
+        Long_Index_EraseNamespace(child);
+    
+    if (!note->first_child)
+    {
+        // @COPYPASTA(long): Long_Index_FreeParentTree
+        {
+            F4_Index_Note* prev = note->prev_sibling;
+            F4_Index_Note* next = note->next_sibling;
+            if (prev) prev->next_sibling = next;
+            if (next) next->prev_sibling = prev;
+            
+            if (!prev) note->parent->first_child = next;
+            if (!next) note->parent-> last_child = prev;
+        }
+        
+        // @COPYPASTA(long): Long_Index_FreeHashTree
+        {
+            F4_Index_Note* prev = note->prev;
+            F4_Index_Note* next = note->next;
+            F4_Index_Note* hash_prev = note->hash_prev;
+            F4_Index_Note* hash_next = note->hash_next;
+            
+            if (prev) prev->next = next;
+            if (next) next->prev = prev;
+            
+            if (!prev)
+            {
+                if (next)
+                {
+                    next->hash_prev = hash_prev;
+                    next->hash_next = hash_next;
+                    
+                    if (hash_prev) hash_prev->hash_next = next;
+                    if (hash_next) hash_next->hash_prev = next;
+                }
+                else
+                {
+                    if (hash_prev) hash_prev->hash_next = hash_next;
+                    if (hash_next) hash_next->hash_prev = hash_prev;
+                }
+                
+                if (!hash_prev)
+                    f4_index.note_table[note->hash % ArrayCount(f4_index.note_table)] = next ? next : hash_next;
+            }
+            
+            note->hash_next = f4_index.free_note;
+            f4_index.free_note = note;
+            
+            // NOTE(long): This will make sure that later iteration won't erase this note again because IsNamespace will fail
+            note->flags = 0;
+            note->string = push_stringf(&f4_index.arena, "__Free_Note__: %.*s", string_expand(note->string));
+        }
+    }
+}
+
+function void Long_Index_ClearFile(F4_Index_File* file)
+{
+    if (file)
+    {
+        file->generation++;
+        
+        for (F4_Index_Note *note = file->first_note; note; note = note->next_sibling)
+            Long_Index_FreeHashTree(note);
+        
+        for (F4_Index_Note* note = file->first_note; note; note = note->next_sibling)
+            Long_Index_FreeParentTree(note);
+        
+        // NOTE(long): This will clear out all the empty namespaces, which means syntax highlight
+        // won't work properly on them. If the namespace only exists inside a single file, then
+        // this wouldn't be a problem. Because ClearFile will only be called right before ParseFile,
+        // which would parse it again right after. The problem arises when the namespace exists in
+        // multiple files, and you delete it in one of the files. In which case, ParseFile won't
+        // see it in the modified file, and because other files aren't modified ParseFile wouldn't
+        // parse those either.
+        // I need this code because I need to remove deleted namespaces somehow, but there isn't
+        // any way to know if a file contains a namespace or not, and the namespace also doesn't
+        // store any file information. Deleting empty namespaces is the closest solution that I
+        // can think of.
+        // TODO(long): In the future, consider adding a list of contained namespaces to F4_Index_File.
+        // Each file already contains a list of referenced namespaces. 
+        for (F4_Index_Note* note = file->first_note; note; note = note->next_sibling)
+            if (Long_Index_IsNamespace(note) && note->first_child)
+                Long_Index_EraseNamespace(note->first_child->parent);
+        
+        for (u64 i = 0; i < ArrayCount(f4_index.note_table); ++i)
+            for (F4_Index_Note* hash_note = f4_index.note_table[i]; hash_note; hash_note = hash_note->hash_next)
+                for (F4_Index_Note* note = hash_note; note; note = note->next)
+                    if (note->file)
+                        Assert(note->file->generation == note->file_generation);
+        
+        linalloc_clear(&file->arena);
+        file->first_note = file->last_note = 0;
+        file->references = 0;
+    }
+}
 
 function F4_Index_Note* Long_Index_LoadRef(Application_Links* app, F4_Index_Note* note, F4_Index_Note* filter_note)
 {
@@ -395,62 +598,6 @@ function F4_Index_Note* Long_Index_LoadRef(Application_Links* app, F4_Index_Note
     
     if (result == note || result == filter_note) result = 0;
     return result;
-}
-
-function void Long_Index_EraseNote(Application_Links* app, F4_Index_Note* note)
-{
-    Long_Index_IterateValidNoteInFile(child, note)
-        Long_Index_EraseNote(app, child);
-    
-    Assert(!(Long_Index_IsNamespace(note) && note->kind == F4_Index_NoteKind_Type));
-    
-    F4_Index_Note* prev = note->prev_sibling;
-    F4_Index_Note* next = note->next_sibling;
-    if (prev) prev->next_sibling = next;
-    if (next) next->prev_sibling = prev;
-    
-    F4_Index_Note* parent = note->parent;
-    if (parent && Long_Index_IsNamespace(parent))
-    {
-        if (!prev)
-            parent->first_child = next;
-        if (!next)
-            parent->last_child = prev;
-    }
-}
-
-// @COPYPASTA(long): _F4_Index_FreeNoteTree
-function void Long_Index_FreeNoteTree(F4_Index_Note *note)
-{
-    Long_Index_IterateValidNoteInFile(child, note)
-        Long_Index_FreeNoteTree(child);
-    
-    F4_Index_Note *prev = note->prev;
-    F4_Index_Note *next = note->next;
-    F4_Index_Note *hash_prev = note->hash_prev;
-    F4_Index_Note *hash_next = note->hash_next;
-    
-    if (prev) prev->next = next;
-    if (next) next->prev = prev;
-    
-    if (!prev)
-    {
-        if (next)
-        {
-            next->hash_prev = hash_prev;
-            next->hash_next = hash_next;
-            if (hash_prev) hash_prev->hash_next = next;
-            if (hash_next) hash_next->hash_prev = next;
-        }
-        else
-        {
-            if (hash_prev) hash_prev->hash_next = hash_next;
-            if (hash_next) hash_next->hash_prev = hash_prev;
-        }
-        
-        if (!hash_prev)
-            f4_index.note_table[note->hash % ArrayCount(f4_index.note_table)] = next ? next : hash_next;
-    }
 }
 
 function F4_Index_Note* Long_Index_MakeNote(F4_Index_ParseCtx* ctx, Range_i64 base_range, Range_i64 range, F4_Index_NoteKind kind,
@@ -517,7 +664,7 @@ function F4_Index_Note* Long_Index_PopNamespaceScope(F4_Index_ParseCtx* ctx)
     namespace_scope->last_child = namespace_scope->first_child ? current_namespace->last_child : 0;
     
     namespace_scope->scope_range = { current_namespace->scope_range.min, ctx->it.ptr->pos };
-    current_namespace = {};
+    current_namespace->scope_range = {};
     
     return namespace_scope;
 }
@@ -1424,7 +1571,7 @@ function void Long_Index_DrawCodePeek(Application_Links* app, View_ID view)
             {
                 if (!note->file)
                     note = 0;
-                if (note->flags & F4_Index_NoteFlag_Prototype)
+                else if (note->flags & F4_Index_NoteFlag_Prototype)
                     note = Long_Index_GetDefNote(note);
                 else if (range_contains_inclusive(note->range, pos) && note->file->buffer == buffer)
                     note = Long_Index_GetDefNote(note, 1);

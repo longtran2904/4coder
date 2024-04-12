@@ -22,7 +22,8 @@ F4_RenderBuffer(Application_Links *app, View_ID view_id, Face_ID face_id,
     {
         if (node->buffer == buffer)
         {
-            Long_Index_UpdateTick(app);
+            Long_Index_Tick(app);
+            code_index_update_tick(app);
             break;
         }
     }

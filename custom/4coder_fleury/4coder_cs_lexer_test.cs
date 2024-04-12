@@ -29,6 +29,8 @@
 // 1045 parse "using"
 // 1059 parse inheritance and constructors
 // 1079 differentiate function calls with types
+// 1078 fix generic parsing
+// 1083 fix namespace handling
 using UnityEngine;
 
 namespace UnityEngine { class MyEngine; }
@@ -37,6 +39,20 @@ MyEngine myEngine;
 #error My Error
 #warning My Warning
 #region My Region
+
+namespace MyNamespace int a = 5;
+
+namespace MyNamespace
+{
+    class A
+    {
+        namespace NamespaceInClass
+        {
+            
+        }
+    }
+    namespace OtherNamespace { }
+}
 
 int test_global_1, test_global_2;
 {

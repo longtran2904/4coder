@@ -486,7 +486,7 @@ void custom_layer_init(Application_Links *app)
     {
         set_all_default_hooks(app);
         //t $          ($  , $                             , $                     );
-        set_custom_hook(app, HookID_Tick,                    F4_Tick);
+        set_custom_hook(app, HookID_Tick,                    /*F4_Tick*/Long_Tick);
         set_custom_hook(app, HookID_RenderCaller,            F4_Render);
         set_custom_hook(app, HookID_BeginBuffer,             F4_BeginBuffer);
         set_custom_hook(app, HookID_Layout,                  F4_Layout);

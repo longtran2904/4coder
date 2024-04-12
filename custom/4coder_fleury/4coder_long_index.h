@@ -45,7 +45,9 @@ function b32 Long_Index_ParseKind(F4_Index_ParseCtx* ctx, Token_Base_Kind kind, 
 function b32 Long_Index_ParseSubKind(F4_Index_ParseCtx* ctx, i64 sub_kind, Range_i64* out_range);
 
 //- NOTE(long): Init Functions
-function void Long_Index_UpdateTick(Application_Links* app);
+function void Long_Index_Tick(Application_Links* app);
+function void Long_Index_ClearFile(F4_Index_File* file);
+
 function F4_Index_Note* Long_Index_MakeNote(F4_Index_ParseCtx* ctx, Range_i64 base_range, Range_i64 range, F4_Index_NoteKind kind,
                                             b32 push_parent = true);
 function F4_Index_Note* Long_Index_MakeNamespace(F4_Index_ParseCtx* ctx, Range_i64 base, Range_i64 name);
@@ -67,10 +69,8 @@ function Vec2_f32 Long_Index_DrawTooltip(Application_Links* app, Rect_f32 screen
 function void Long_Index_DrawPosContext(Application_Links* app, View_ID view, F4_Language_PosContextData* first_ctx);
 function void Long_Index_DrawCodePeek(Application_Links* app, View_ID view);
 
-//- NOTE(long): Buffer Functions
+//- NOTE(long): Indent Functions
 function void Long_Index_IndentBuffer(Application_Links* app, Buffer_ID buffer, Range_i64 range, b32 merge_history = false);
-function i32 Long_SaveFile(Application_Links *app, Buffer_ID buffer_id);
-function i32 Long_EndBuffer(Application_Links* app, Buffer_ID buffer_id);
 
 //~ NOTE(long): Macros
 

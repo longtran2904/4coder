@@ -28,7 +28,11 @@ function String8 Long_Buffer_NameNoProjPath(Application_Links* app, Arena* arena
 function void Long_Highlight_DrawList(Application_Links *app, Buffer_ID buffer, Text_Layout_ID layout, f32 roundness, f32 thickness);
 function b32  Long_Highlight_DrawRange(Application_Links *app, View_ID view, Buffer_ID buffer, Text_Layout_ID layout, f32 roundness);
 
-// NOTE(long): Fleury's functions
+//- NOTE(long): Hooks
+function i32 Long_SaveFile(Application_Links *app, Buffer_ID buffer_id);
+function i32 Long_EndBuffer(Application_Links* app, Buffer_ID buffer_id);
+
+//- NOTE(long): Fleury's functions
 function b32 F4_ARGBIsValid(ARGB_Color color);
 
 #endif //4CODER_LONG_BASE_COMMANDS_H

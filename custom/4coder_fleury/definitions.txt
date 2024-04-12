@@ -1,6 +1,10 @@
 [NULL] { { [namespace] }
 [UnityEngine] MyEngine { <UnityEngine> type }
 [NULL] myEngine { declaration [global] }
+[NULL] a { declaration [global] }
+[NULL] { { [namespace] }
+[MyNamespace] A { <MyNamespace> type }
+[NULL] { { [namespace] }
 [NULL] test_global_1 { declaration [global] }
 [NULL] test_global_2 { declaration [global] }
 [NULL] { {  }
@@ -243,7 +247,6 @@
 [Optional] Optional { <Optional> constructor }
 [Optional] T { <Optional> operator }
 [T] optional { <T> declaration [argument] }
-[T] c { <T> declaration [local] }
 [Optional] SomeFunc1 { <Optional> function }
 [SomeFunc1] a { <SomeFunc1> declaration [argument] }
 [SomeFunc1] a { <SomeFunc1> declaration [local] }
@@ -1081,4 +1084,4 @@
 [DecreaseTrailWidth] startWidth { <DecreaseTrailWidth> declaration [local] }
 [DecreaseTrailWidth] startTime { <DecreaseTrailWidth> declaration [local] }
 [DecreaseTrailWidth] { { <DecreaseTrailWidth>  }
-Note count: 1079
+Note count: 1082

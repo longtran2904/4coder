@@ -3,6 +3,12 @@
 [UnityEngine] MyEngine { <UnityEngine> type }
 [UnityEngine] MyEngine { <UnityEngine> type }
 [NULL] myEngine { declaration [global] }
+[] MyNamespace { <> type [namespace] }
+[NULL] a { declaration [global] }
+[] MyNamespace { <> type [namespace] }
+[MyNamespace] A { <MyNamespace> type }
+NULL: NamespaceInClass
+[MyNamespace] OtherNamespace { <MyNamespace> type [namespace] }
 [NULL] test_global_1 { declaration [global] }
 [NULL] test_global_2 { declaration [global] }
 [{] test_local_1 { <{> declaration [local] }
@@ -95,7 +101,7 @@ NULL: fjldasd
 [] TestNamespace { <> type [namespace] }
 [TestNamespace] A { <TestNamespace> type [namespace] }
 [A] B { <A> type [namespace] }
-[B] C { <B> type [generic] [namespace] }
+[B] C { <B> type [namespace] }
 [C] Namespace { <C> function }
 [] TestNamespace { <> type [namespace] }
 [TestNamespace] A { <TestNamespace> type [namespace] }
@@ -112,7 +118,7 @@ NULL: Something
 [] TestNamespace { <> type [namespace] }
 [TestNamespace] A { <TestNamespace> type [namespace] }
 [A] B { <A> type [namespace] }
-[B] C { <B> type [generic] [namespace] }
+[B] C { <B> type [namespace] }
 [C] Namespace { <C> function }
 [NULL] TEST_MACRO { macro }
 [NULL] TEST_MACRO { macro }
@@ -430,7 +436,7 @@ NULL: Generic
 [NULL] a { declaration [global] }
 NULL: b
 NULL: b
-[T] c { <T> declaration [local] }
+NULL: c
 [T] optional { <T> declaration [argument] }
 [Optional] value { <Optional> declaration [field] }
 NULL: otherThing
@@ -4479,4 +4485,4 @@ NULL: deltaTime
 [DecreaseTrailWidth] trail { <DecreaseTrailWidth> declaration [argument] }
 NULL: widthMultiplier
 [DecreaseTrailWidth] startWidth { <DecreaseTrailWidth> declaration [local] }
-Note count: 4481
+Note count: 4487

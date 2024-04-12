@@ -754,6 +754,31 @@ function Long_Buffer_History Long_Buffer_GetCurrentHistory(Application_Links* ap
     return { current, record };
 }
 
+function b32 Long_Buffer_CompareCurrentHistory(Application_Links* app, Buffer_ID buffer, i32 offset = 0)
+{
+    Long_Buffer_History current = Long_Buffer_GetCurrentHistory(app, buffer, offset);
+    Long_Buffer_History history = *Long_Buffer_GetAttachedHistory(app, buffer);
+    b32 result = current.index == history.index && current.record.edit_number == history.record.edit_number;
+    return result;
+}
+
+function b32 Long_Buffer_CheckHistoryAndSetDirty(Application_Links* app, Buffer_ID buffer = 0, i32 offset = 0)
+{
+    b32 result = 0;
+    if (!buffer)
+        buffer = view_get_buffer(app, get_active_view(app, Access_ReadWriteVisible), Access_ReadWriteVisible);
+    
+    if (buffer)
+    {
+        Dirty_State dirty = buffer_get_dirty_state(app, buffer);
+        result = Long_Buffer_CompareCurrentHistory(app, buffer, offset);
+        if (result)
+            buffer_set_dirty_state(app, buffer, RemFlag(dirty, DirtyState_UnsavedChanges));
+    }
+    
+    return result;
+}
+
 CUSTOM_UI_COMMAND_SIG(long_history_lister)
 CUSTOM_DOC("Opens an interactive list of the current buffer history.")
 {
@@ -806,33 +831,10 @@ CUSTOM_DOC("Opens an interactive list of the current buffer history.")
             else
                 new_pos = record_get_new_cursor_position_redo(app, buffer, index);
             view_set_cursor_and_preferred_x(app, view, seek_pos(new_pos));
+            
+            Long_Buffer_CheckHistoryAndSetDirty(app, buffer);
         }
     }
-}
-
-function b32 Long_Buffer_CompareCurrentHistory(Application_Links* app, Buffer_ID buffer, i32 offset = 0)
-{
-    Long_Buffer_History current = Long_Buffer_GetCurrentHistory(app, buffer, offset);
-    Long_Buffer_History history = *Long_Buffer_GetAttachedHistory(app, buffer);
-    b32 result = current.index == history.index && current.record.edit_number == history.record.edit_number;
-    return result;
-}
-
-function b32 Long_Buffer_CheckHistoryAndSetDirty(Application_Links* app, Buffer_ID buffer = 0, i32 offset = 0)
-{
-    b32 result = 0;
-    if (!buffer)
-        buffer = view_get_buffer(app, get_active_view(app, Access_ReadWriteVisible), Access_ReadWriteVisible);
-    
-    if (buffer)
-    {
-        Dirty_State dirty = buffer_get_dirty_state(app, buffer);
-        result = Long_Buffer_CompareCurrentHistory(app, buffer, offset);
-        if (result)
-            buffer_set_dirty_state(app, buffer, RemFlag(dirty, DirtyState_UnsavedChanges));
-    }
-    
-    return result;
 }
 
 //- @COPYPASTA(long): undo__fade_finish, undo, redo, undo_all_buffers, redo_all_buffers
@@ -987,16 +989,7 @@ function i32 Long_EndBuffer(Application_Links* app, Buffer_ID buffer_id)
     F4_Index_File* file = F4_Index_LookupFile(app, buffer_id);
     if (file)
     {
-        // NOTE(long): This is like F4_Index_ClearFile but doesn't reset the first/last_note pointer because EraseNote needs those.
-        {
-            for(F4_Index_Note *note = file->first_note; note; note = note->next_sibling)
-                Long_Index_FreeNoteTree(note);
-            linalloc_clear(&file->arena);
-        }
-        
-        for (F4_Index_Note* note = file->first_note; note; note = note->next_sibling)
-            Long_Index_EraseNote(app, note);
-        
+        Long_Index_ClearFile(file);
         F4_Index_EraseFile(app, buffer_id);
     }
     F4_Index_Unlock();
@@ -1049,7 +1042,7 @@ function void Long_Indent_CursorRange(Application_Links* app, b32 merge_history,
     // NOTE(long): Call the update tick function here to force the index system to reparse our buffer
     // so that it's up-to-date when we indent it later
     if (force_update)
-        Long_Index_UpdateTick(app);
+        Long_Index_Tick(app);
     View_ID view = get_active_view(app, Access_ReadWriteVisible);
     Buffer_ID buffer = view_get_buffer(app, view, Access_ReadWriteVisible);
     Range_i64 range = get_view_range(app, view);
