@@ -342,6 +342,7 @@
 
 //~ TODO MISC
 // [ ] Fix comment/string token selection and boundary
+// [X] Jump to location in comments/strings
 // [X] Fix the copy-paste bug in the macro system
 // [X] Repeat a macro n times
 // [X] Clean all whitespace at cursor position

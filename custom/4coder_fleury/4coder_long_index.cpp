@@ -732,9 +732,13 @@ function void Long_Index_ParseSelection(Application_Links* app, Arena* arena, To
     if (current && (current->kind == TokenBaseKind_Whitespace || current->kind == TokenBaseKind_Comment))
         token_it_dec(it);
     
-    Long_Index_SkipBody(app, it, buffer, 1);
     current = token_it_read(it);
+    if (current && current->kind == TokenBaseKind_ScopeClose)
+        return;
     
+    Long_Index_SkipBody(app, it, buffer, 1);
+    
+    current = token_it_read(it);
     if (current && current->kind == TokenBaseKind_Identifier)
     {
         String8 string = push_buffer_range(app, arena, buffer, Ii64(current));

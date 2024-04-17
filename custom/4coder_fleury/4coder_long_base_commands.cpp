@@ -50,6 +50,69 @@ function i64 Long_Abs(i64 num)
     return (num ^ mask) - mask;
 }
 
+//- NOTE(long): Jumping
+function b32 Long_Jump_ParseLocation(Application_Links* app, View_ID view, Buffer_ID buffer, Buffer_ID* out_buf, i64* out_pos)
+{
+    b32 result = 0;
+    Scratch_Block scratch(app);
+    
+    Buffer_ID _buf;
+    i64 _pos;
+    if (!out_buf) out_buf = &_buf;
+    if (!out_pos) out_pos = &_pos;
+    
+    i64 pos = view_get_cursor_pos(app, view);
+    String8 line = push_buffer_line(app, scratch, buffer, get_line_number_from_pos(app, buffer, pos));
+    String8 lexeme = {};
+    {
+        Token* token = get_token_from_pos(app, buffer, pos);
+        if (token)
+        {
+            lexeme = push_token_lexeme(app, scratch, buffer, token);
+            if (token->kind == TokenBaseKind_Comment)
+                lexeme = string_skip(lexeme, 2);
+            else if (token->kind == TokenBaseKind_LiteralString)
+                lexeme = string_skip(lexeme, 1);
+        }
+    }
+    
+    Parsed_Jump jump = parse_jump_location(line, 0);
+    if (!jump.success || !get_jump_buffer(app, 0, &jump.location))
+        jump = parse_jump_location(lexeme, 0);
+    
+    if (jump.success && get_jump_buffer(app, out_buf, &jump.location))
+    {
+        *out_pos = view_compute_cursor(app, view, seek_line_col(jump.location.line, jump.location.column)).pos;
+        result = 1;
+    }
+    
+    return result;
+}
+
+function void Long_PointStack_Push(Application_Links* app, Buffer_ID buffer, i64 pos, View_ID view);
+
+function void Long_Jump_ToLocation(Application_Links* app, View_ID view, Buffer_ID target_buffer, i64 target_pos,
+                                   Buffer_ID current_buffer = 0, i64 current_pos = 0)
+{
+    if (!current_buffer)
+        current_buffer = view_get_buffer(app, view, Access_Always);
+    if (!current_pos)
+        current_pos = view_get_cursor_pos(app, view);
+    
+    Long_PointStack_Push(app, current_buffer, current_pos, view);
+    F4_JumpToLocation(app, view, target_buffer, target_pos);
+    Long_PointStack_Push(app, target_buffer, target_pos, view);
+}
+
+function void Long_Jump_ToBuffer(Application_Links* app, View_ID view, Buffer_ID buffer, b32 push_src = 1, b32 push_dst = 1)
+{
+    if (push_src)
+        Long_PointStack_Push(app, view_get_buffer(app, view, Access_Always), view_get_cursor_pos(app, view), view);
+    view_set_buffer(app, view, buffer, 0);
+    if (push_dst)
+        Long_PointStack_Push(app, buffer, view_get_cursor_pos(app, view), view);
+}
+
 //- NOTE(long): Buffer
 function Buffer_ID Long_Buffer_GetSearchBuffer(Application_Links* app)
 {
@@ -398,19 +461,6 @@ function void Long_PointStack_Push(Application_Links* app, Buffer_ID buffer, i64
         stack->bot = clamp_loop(stack->bot + 1, size);
 }
 
-function void Long_Jump_ToLocation(Application_Links* app, View_ID view, Buffer_ID target_buffer, i64 target_pos,
-                                   Buffer_ID current_buffer = 0, i64 current_pos = 0)
-{
-    if (!current_buffer)
-        current_buffer = view_get_buffer(app, view, Access_Always);
-    if (!current_pos)
-        current_pos = view_get_cursor_pos(app, view);
-    
-    Long_PointStack_Push(app, current_buffer, current_pos, view);
-    F4_JumpToLocation(app, view, target_buffer, target_pos);
-    Long_PointStack_Push(app, target_buffer, target_pos, view);
-}
-
 function void Long_PointStack_SetCurrent(Long_Point_Stack* stack, i32 index)
 {
     stack->current = clamp_loop(index + 1, ArrayCount(stack->markers));
@@ -687,15 +737,6 @@ CUSTOM_DOC("Lists the recent files used in the current panel.")
         if (Long_Lister_IsResultValid(l_result))
             view_set_buffer(app, view, (Buffer_ID)PtrAsInt(l_result.user_data), 0);
     }
-}
-
-function void Long_Jump_ToBuffer(Application_Links* app, View_ID view, Buffer_ID buffer, b32 push_src = 1, b32 push_dst = 1)
-{
-    if (push_src)
-        Long_PointStack_Push(app, view_get_buffer(app, view, Access_Always), view_get_cursor_pos(app, view), view);
-    view_set_buffer(app, view, buffer, 0);
-    if (push_dst)
-        Long_PointStack_Push(app, buffer, view_get_cursor_pos(app, view), view);
 }
 
 CUSTOM_UI_COMMAND_SIG(long_interactive_switch_buffer)
@@ -2478,12 +2519,28 @@ CUSTOM_DOC("Switches between drawing the position context at cursor position or 
 }
 
 //- NOTE(long): Jumping
-function void Long_GoToDefinition(Application_Links* app, b32 same_panel)
+function void Long_GoToDefinition(Application_Links* app, b32 handle_jump_location, b32 same_panel)
 {
-    F4_Index_Note* note = 0;
     View_ID view = get_active_view(app, Access_Always);
+    Buffer_ID buffer = view_get_buffer(app, view, Access_Always);
+    
+    View_ID goto_view = view;
+    if(!same_panel)
+        goto_view = get_next_view_looped_primary_panels(app, view, Access_Always);
+    
+    if (handle_jump_location)
     {
-        Buffer_ID buffer = view_get_buffer(app, view, Access_Always);
+        Buffer_ID jump_buffer;
+        i64 jump_pos;
+        if (Long_Jump_ParseLocation(app, view, buffer, &jump_buffer, &jump_pos))
+        {
+            Long_Jump_ToLocation(app, goto_view, jump_buffer, jump_pos);
+            return;
+        }
+    }
+    
+    F4_Index_Note* note = 0;
+    {
         Token* token = get_token_from_pos(app, buffer, view_get_cursor_pos(app, view));
         
         if (token != 0 && token->size > 0 && token->kind != TokenBaseKind_Whitespace)
@@ -2523,30 +2580,27 @@ function void Long_GoToDefinition(Application_Links* app, b32 same_panel)
     // @COPYPASTA(long): F4_GoToDefinition
     if (note)
     {
-        if(!same_panel)
-            view = get_next_view_looped_primary_panels(app, view, Access_Always);
-        
         // NOTE(long): The difference between F4_JumpToLocation and F4_GoToDefinition is:
         // 1. The first one scroll to the target while the second one snap to the target instantly (scroll.position = scroll.target)
         // 2. The first one call view_set_preferred_x (I don't really know what this function does)
         // For simplicity, I just use Long_Jump_ToLocation (which calls F4_JumpToLocation) for all jumping behaviors
         // And if I want to snap the view directly, I just call Long_SnapView
-        Long_Jump_ToLocation(app, view, note->file->buffer, note->range.min);
+        Long_Jump_ToLocation(app, goto_view, note->file->buffer, note->range.min);
         if (!same_panel)
             Long_SnapView(app);
     }
 }
 
 CUSTOM_COMMAND_SIG(long_go_to_definition)
-CUSTOM_DOC("Goes to the definition of the identifier under the cursor.")
+CUSTOM_DOC("Goes to the jump location at the cursor or the definition of the identifier under the cursor.")
 {
-    Long_GoToDefinition(app, 0);
+    Long_GoToDefinition(app, 1, 0);
 }
 
 CUSTOM_COMMAND_SIG(long_go_to_definition_same_panel)
-CUSTOM_DOC("Goes to the definition of the identifier under the cursor in the same panel.")
+CUSTOM_DOC("Goes to the jump location at the cursor or the definition of the identifier under the cursor in the same panel.")
 {
-    Long_GoToDefinition(app, 1);
+    Long_GoToDefinition(app, 1, 1);
 }
 
 //- NOTE(long): Lister
