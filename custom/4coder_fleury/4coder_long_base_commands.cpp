@@ -82,7 +82,7 @@ function b32 Long_Jump_ParseLocation(Application_Links* app, View_ID view, Buffe
     
     if (jump.success && get_jump_buffer(app, out_buf, &jump.location))
     {
-        *out_pos = view_compute_cursor(app, view, seek_line_col(jump.location.line, jump.location.column)).pos;
+        *out_pos = buffer_compute_cursor(app, *out_buf, seek_line_col(jump.location.line, jump.location.column)).pos;
         result = 1;
     }
     
@@ -193,6 +193,19 @@ function String8 Long_Buffer_NameNoProjPath(Application_Links* app, Arena* arena
     if (filepath.size)
         result = push_string_copy(arena, filepath);
     return result;
+}
+
+function b32 Long_Buffer_NoSearch(Application_Links* app, Buffer_ID buffer)
+{
+    Scratch_Block scratch(app);
+    String8 str = push_buffer_unique_name(app, scratch, buffer);
+    if (str.size > 0 && str.str[0] == '*')
+    {
+        if (string_match(str, S8Lit("*scratch*"))) return 0;
+        if (string_match(str, S8Lit("*calc*"   ))) return 0;
+        return 1;
+    }
+    return 0;
 }
 
 //- NOTE(long): Render
@@ -1268,7 +1281,7 @@ function void Long_PrintAllMatches(Application_Links *app, String_Const_u8_Array
     Scratch_Block scratch(app);
     String_Match_List matches = Long_FindAllMatches(app, scratch, match_patterns, must_have_flags, must_not_have_flags, current_buffer);
     string_match_list_filter_remove_buffer(&matches, out_buffer_id);
-    string_match_list_filter_remove_buffer_predicate(app, &matches, buffer_has_name_with_star);
+    string_match_list_filter_remove_buffer_predicate(app, &matches, Long_Buffer_NoSearch);
     print_string_match_list_to_buffer(app, out_buffer_id, matches);
 }
 
@@ -3622,6 +3635,38 @@ CUSTOM_DOC("Opens an interactive list of all registered commands.")
         if (func)
             view_enqueue_command_function(app, view, func);
     }
+}
+
+// @COPYPASTA(long): execute_any_cli
+CUSTOM_COMMAND_SIG(long_execute_any_cli)
+CUSTOM_DOC("Queries for an output buffer name and system command, runs the system command as a CLI and prints the output to the specified buffer."){
+    Scratch_Block scratch(app);
+    Query_Bar_Group group(app);
+    
+    Query_Bar bar_out = {};
+    bar_out.prompt = string_u8_litexpr("Output Buffer: ");
+    bar_out.string = SCu8(out_buffer_space, (u64)0);
+    bar_out.string_capacity = sizeof(out_buffer_space);
+    if (!Long_Query_User_String(app, &bar_out, S8Lit("*run*"))) return;
+    bar_out.string.size = clamp_top(bar_out.string.size, sizeof(out_buffer_space) - 1);
+    out_buffer_space[bar_out.string.size] = 0;
+    
+    Query_Bar bar_cmd = {};
+    bar_cmd.prompt = string_u8_litexpr("Command: ");
+    bar_cmd.string = SCu8(command_space, (u64)0);
+    bar_cmd.string_capacity = sizeof(command_space);
+    if (!Long_Query_User_String(app, &bar_cmd, string_u8_empty)) return;
+    bar_cmd.string.size = clamp_top(bar_cmd.string.size, sizeof(command_space) - 1);
+    command_space[bar_cmd.string.size] = 0;
+    
+    String_Const_u8 hot = push_hot_directory(app, scratch);
+    {
+        u64 size = clamp_top(hot.size, sizeof(hot_directory_space));
+        block_copy(hot_directory_space, hot.str, size);
+        hot_directory_space[hot.size] = 0;
+    }
+    
+    execute_previous_cli(app);
 }
 
 //- NOTE(long): Theme

@@ -287,45 +287,36 @@
 //   Each project file can now contain an array of reference paths (set inside the reference_paths variable)
 //   When this command runs, it will recursively load all files in those paths as read-only and unimportant
 
+//~ TODO NAVIGATE
+// [ ] Fix comment/string token selection and boundary
+
 //~ TODO LISTER
 // [ ] Show recent entries first
 // [ ] Replace all the wildcard searching in the query bar and lister with grep
 // [ ] Search for definitions like Hoogle
 // [ ] Has a lister for important but rarely used commands
-// [X] Fix recent files menu lists non-existed buffer
-// [X] Fix backspace for file path doesn't work with slashes properly
+// [ ] Hotkeys for inserting and cycling through common tags
 
 //~ TODO RENDER
 
 //- LISTER
 // [ ] Put ... after a large item and scroll its content horizontally over time
 // [ ] Has syntax highlight inside each item's contents
-// [X] Show an optional tooltip for each entry in the lister (doc for commands, code peek for notes/jumps/buffers, etc)
 
 //- INDEX
 // [ ] Autocompletion using PosContext or casey/jack's system
 // [ ] String/Comment indenting as code
 // [ ] Render #if block with annotation
-// [X] Improve code peeking by highlighting and offsetting the peeked note
-// [X] Fix PosContext doesn't show generic functions or confuse between generic and normal arguments
 
 //- COMPILATION
 // [ ] Display error/warning count on the file bar
-// [X] Render the file bar at a different font size
 // [ ] Render warning with a different color
 // [ ] Fix unmatched error annotation locations
-
-//- MISC
-// [X] Helpers for layout string to fit region
-// [X] Render line offset numbers
-// [X] Toggle any panel expand
-// [X] Left+Right drag to snap panel size
 
 //~ TODO CODE/ARCHITECTURE
 
 //- LONG
 // [ ] Write my own init layer and hooks
-// [X] Write a new lister layer from scratch as a drop-in file
 // [ ] Merge all the default query bar code into a single function
 // [ ] Merge Long_Isearch and Long_Query_User_String into one function
 
@@ -339,15 +330,8 @@
 // [ ] Strip out power mode
 // [ ] Strip out *lego* buffer 
 // [ ] Strip out unused f4 commands
-
-//~ TODO MISC
-// [ ] Fix comment/string token selection and boundary
-// [X] Jump to location in comments/strings
-// [X] Fix the copy-paste bug in the macro system
-// [X] Repeat a macro n times
-// [X] Clean all whitespace at cursor position
-// [X] Search and open the most recent modified file on startup
-// [X] Tab to append whatever inside the cursor range to the bar
+// [ ] Rework on the *peek* buffer
+// [ ] Rework on the *loc* buffer
 
 #include "4coder_long_index.h"
 #include "4coder_long_base_commands.h"

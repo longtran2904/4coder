@@ -584,11 +584,11 @@ function void Long_Lister_Backspace_Path(Application_Links* app)
             
             if (slash_count > 1)
                 text_field.size += whole_word_backspace ? 1 : (slash_count - 1);
-            else if (slash_count == 0)
-                text_field = backspace_utf8(text_field);
-            
             else
             {
+                if (slash_count == 0)
+                    text_field = backspace_utf8(text_field);
+                
                 String_Const_u8 hot = string_remove_last_folder(text_field);
                 if (whole_word_backspace)
                     text_field.size = hot.size;

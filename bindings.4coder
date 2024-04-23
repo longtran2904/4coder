@@ -43,7 +43,7 @@ keys_global =
     { "goto_first_jump", "M", "Alt", "Shift" },
     
     // NOTE(rjf): Commands
-    { "execute_any_cli",      "Z", "Alt"              },
+    { "long_execute_any_cli", "Z", "Alt"              },
     { "execute_previous_cli", "Z", "Alt",   "Shift"   },
     { "long_command_lister",  "X", "Alt"              },
     
