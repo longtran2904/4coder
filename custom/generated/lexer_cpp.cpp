@@ -43,454 +43,478 @@ lexeme_table_lookup(u64 *hash_array, String_Const_u8 *key_array,
 }
 
 #endif
-u64 cpp_main_keys_hash_array[124] = {
-0x0000000000000000,0x0000000000000000,0x0000000000000000,0x9f36fbca3cef5643,
-0x88e77299fc13826d,0xb9804a91f6fbbe79,0x0000000000000000,0x9f36fbca3cf2b287,
-0x0000000000000000,0x0000000000000000,0x0924fa6df0e0aabf,0x88e77299d8a890db,
-0x0924f7bb0a785839,0x0000000000000000,0x7b9b9980c4e968db,0x0000000000000000,
-0x0000000000000000,0x0000000000000000,0x748550ce177be8f7,0x84a1dea630946287,
-0x0000000000000000,0x0000000000000000,0x7b9b9980b51382bf,0x0000000000000000,
-0x0000000000000000,0x0924f3cb6bd803b9,0x7b9b9981e2b2f881,0x0000000000000000,
-0x989a7730bbdfb365,0x0000000000000000,0x0000000000000000,0xb9804a91f6fb8caf,
-0x0000000000000000,0x0000000000000000,0xf8ecf2fc310cba77,0x0000000000000000,
-0x0000000000000000,0x0000000000000000,0x7b9b99b54f22a227,0x989a756f6ba925d7,
-0x96efe6afd5c83fd5,0x0000000000000000,0x88e77299d5e12f1f,0x0000000000000000,
-0x9f36fbca3cd9f389,0x88e77299febad439,0x0000000000000000,0x88e7729e5c189287,
-0x0000000000000000,0x989a7bf5cd101a79,0x7b9b99accbf431c7,0x9f36fbca3cf21927,
-0x0000000000000000,0x09242c5902e4fb89,0x9f36fbca3cf32127,0x0000000000000000,
-0x0000000000000000,0x88e77299d8ebdc51,0x9f36fbca3c3d0dc1,0x7b9b99acfc210c4f,
-0xb9804a91f6ff2425,0x0000000000000000,0x88e77299d8e3599f,0x0924f0e523825607,
-0x0000000000000000,0x7b9b9980cbda70b9,0x7b9b9980c577d9c7,0xcc9d8b35b073c657,
-0x9f36fbca3c302e97,0x989a7539058c8e85,0x0000000000000000,0x092556cabb7cd47f,
-0x0000000000000000,0xb9804a91f6fe80f5,0x0000000000000000,0x0000000000000000,
-0x0000000000000000,0x7b9b99b584ccff05,0x0000000000000000,0x0000000000000000,
-0x7b9b99b54ec0796d,0x0000000000000000,0x9f36fbca3c53a0ef,0x0000000000000000,
-0x7b9b9980b739d27d,0x0000000000000000,0x09248df1584138ff,0x0000000000000000,
-0x0000000000000000,0x0000000000000000,0x0000000000000000,0x9f36fbca3cda9487,
-0xe98136392cc640ad,0xb9804a91f6feb005,0x989a75d578679963,0x9f36fbca3c3db487,
-0x0000000000000000,0x7b9b99b20cec70b9,0x0000000000000000,0x96efe6afd5c8308f,
-0x9f36fbca3cf1b703,0x7b9b9ea973442e95,0x0924dcd264508df9,0x989a747323d33ac9,
-0x0000000000000000,0x0924e718b5390bf9,0x7b9b99804c3e0c15,0x7bf85082e5449a77,
-0x0000000000000000,0x989a7730bbdfc1c1,0x8fb7b0748352c8f7,0x0000000000000000,
-0x0000000000000000,0x88e77299d6d06a51,0x0000000000000000,0x8880544cf8ca6d07,
-0x88e77299ffed82e7,0x0924dff00029e2f1,0x0000000000000000,0x0000000000000000,
-0x88e77299f82cf865,0x0000000000000000,0x0000000000000000,0x0000000000000000,
+u64 cpp_main_keys_hash_array[133] = {
+0x21f18da831d42837,0xa3b69cb84c8bf1e7,0x0000000000000000,0x21f18db0116028cf,
+0x0000000000000000,0xa3b69cb84c844cd9,0xa3b69cb84ce5fc7d,0x21f18da23fe49ee3,
+0x0000000000000000,0x350a1f247a84b559,0x79f65e9c3bfa2491,0x18fef8f1bd1ed8cb,
+0xf4ea0a3730f12a4b,0x0000000000000000,0x79f6cf62b99e6cb9,0x0000000000000000,
+0xa3b69cb84a481b93,0x8fa3813d1678e52d,0x0000000000000000,0x0000000000000000,
+0x0000000000000000,0x350a1f2467911cd7,0x35283f093b9ecf6b,0x0000000000000000,
+0x0000000000000000,0x0000000000000000,0x350a1f24a0bbd973,0x0000000000000000,
+0x0000000000000000,0x0000000000000000,0x0000000000000000,0x21f18da28f6ca0eb,
+0x350a1f24f9150687,0xaa00476f89861b09,0x21f18da28099ffad,0x0000000000000000,
+0xa159d11b6ba52227,0x0000000000000000,0x0000000000000000,0x0000000000000000,
+0xa3b69cb84a48d395,0x0000000000000000,0x21f18da15327fded,0x0000000000000000,
+0xaa00476f89879a81,0x0000000000000000,0x21f18da280b808cb,0x0000000000000000,
+0x21f18da286f8ae87,0x0000000000000000,0x350a1f24f970d07b,0xaa00476f89806d77,
+0xa3b69cb84c864921,0xa3b69cb84a38a90b,0x0000000000000000,0x0000000000000000,
+0x78e4e2e6c87349c3,0x0000000000000000,0x0000000000000000,0x79f5860454befd37,
+0x42c90e0c5ba46463,0x21f18daf72309fcb,0x8fa386b60a5ed6c9,0x0000000000000000,
+0x0000000000000000,0xa159d11b6ba5234d,0x0000000000000000,0x0000000000000000,
+0x0000000000000000,0x0000000000000000,0x6071e17ec116024b,0x8e9b83e33d97b92b,
+0x79f5e0f7c1f6c7b9,0xa3b69cb84a154823,0x0000000000000000,0x79f51307ab8e2a9b,
+0x0000000000000000,0x79f65ec2b54a1ed9,0x8fa38429641d8c33,0xaa00476f8980e279,
+0xa3b69cb84ce665b9,0x8fa38618aee63e65,0x0000000000000000,0x0000000000000000,
+0x0000000000000000,0x0000000000000000,0x21f18da958e5dcf9,0x0000000000000000,
+0x79f4e6ef4f5388eb,0x79f6af0a56c4fb15,0x0000000000000000,0x0000000000000000,
+0x350a1f24677d9313,0x0000000000000000,0x21f18da287802b23,0x0000000000000000,
+0xa3b69cb84ce52963,0x0000000000000000,0x350a1f24a336183b,0x350a1f254fa15995,
+0x41d050f539cbd8cb,0x0000000000000000,0x0000000000000000,0x0000000000000000,
+0x0000000000000000,0x0000000000000000,0x8fa38618aee63dfb,0x79f4b9c3239fa805,
+0x0000000000000000,0x350a1f24a21244b9,0x0000000000000000,0x8ec9d388c96444d9,
+0x0000000000000000,0x21f18da831ca222d,0x8fa384d336943781,0x0000000000000000,
+0x0000000000000000,0x21f18da960f6e599,0x0000000000000000,0x0000000000000000,
+0x0000000000000000,0x21f18db0eba1b94d,0x0000000000000000,0x0000000000000000,
+0x8fa3842202a1fcb9,0xa3b69cb84cd2a4c7,0x8fa38687d8d8a94f,0x0000000000000000,
+0xaa00476f898602ff,0x2218e74c4ff01467,0x79f58c61ed401219,0x0000000000000000,
+0x350a1f24f97d920f,
 };
-u8 cpp_main_keys_key_array_3[] = {0x67,0x6f,0x74,0x6f,};
-u8 cpp_main_keys_key_array_4[] = {0x73,0x68,0x6f,0x72,0x74,};
-u8 cpp_main_keys_key_array_5[] = {0x66,0x6f,0x72,};
-u8 cpp_main_keys_key_array_7[] = {0x65,0x6c,0x73,0x65,};
-u8 cpp_main_keys_key_array_10[] = {0x75,0x6e,0x73,0x69,0x67,0x6e,0x65,0x64,};
-u8 cpp_main_keys_key_array_11[] = {0x63,0x61,0x74,0x63,0x68,};
-u8 cpp_main_keys_key_array_12[] = {0x6e,0x6f,0x65,0x78,0x63,0x65,0x70,0x74,};
-u8 cpp_main_keys_key_array_14[] = {0x73,0x77,0x69,0x74,0x63,0x68,};
-u8 cpp_main_keys_key_array_18[] = {0x64,0x79,0x6e,0x61,0x6d,0x69,0x63,0x5f,0x63,0x61,0x73,0x74,};
-u8 cpp_main_keys_key_array_19[] = {0x70,0x72,0x6f,0x74,0x65,0x63,0x74,0x65,0x64,};
-u8 cpp_main_keys_key_array_22[] = {0x73,0x69,0x67,0x6e,0x65,0x64,};
-u8 cpp_main_keys_key_array_25[] = {0x74,0x65,0x6d,0x70,0x6c,0x61,0x74,0x65,};
-u8 cpp_main_keys_key_array_26[] = {0x70,0x75,0x62,0x6c,0x69,0x63,};
-u8 cpp_main_keys_key_array_28[] = {0x61,0x6c,0x69,0x67,0x6e,0x6f,0x66,};
-u8 cpp_main_keys_key_array_31[] = {0x61,0x73,0x6d,};
-u8 cpp_main_keys_key_array_34[] = {0x72,0x65,0x69,0x6e,0x74,0x65,0x72,0x70,0x72,0x65,0x74,0x5f,0x63,0x61,0x73,0x74,};
-u8 cpp_main_keys_key_array_38[] = {0x65,0x78,0x74,0x65,0x72,0x6e,};
-u8 cpp_main_keys_key_array_39[] = {0x76,0x69,0x72,0x74,0x75,0x61,0x6c,};
-u8 cpp_main_keys_key_array_40[] = {0x69,0x66,};
-u8 cpp_main_keys_key_array_42[] = {0x66,0x6c,0x6f,0x61,0x74,};
-u8 cpp_main_keys_key_array_44[] = {0x63,0x68,0x61,0x72,};
-u8 cpp_main_keys_key_array_45[] = {0x77,0x68,0x69,0x6c,0x65,};
-u8 cpp_main_keys_key_array_47[] = {0x66,0x61,0x6c,0x73,0x65,};
-u8 cpp_main_keys_key_array_49[] = {0x70,0x72,0x69,0x76,0x61,0x74,0x65,};
-u8 cpp_main_keys_key_array_50[] = {0x72,0x65,0x74,0x75,0x72,0x6e,};
-u8 cpp_main_keys_key_array_51[] = {0x65,0x6e,0x75,0x6d,};
-u8 cpp_main_keys_key_array_53[] = {0x64,0x65,0x63,0x6c,0x74,0x79,0x70,0x65,};
-u8 cpp_main_keys_key_array_54[] = {0x62,0x6f,0x6f,0x6c,};
-u8 cpp_main_keys_key_array_57[] = {0x63,0x6c,0x61,0x73,0x73,};
-u8 cpp_main_keys_key_array_58[] = {0x74,0x68,0x69,0x73,};
-u8 cpp_main_keys_key_array_59[] = {0x74,0x79,0x70,0x65,0x69,0x64,};
-u8 cpp_main_keys_key_array_60[] = {0x69,0x6e,0x74,};
-u8 cpp_main_keys_key_array_62[] = {0x63,0x6f,0x6e,0x73,0x74,};
-u8 cpp_main_keys_key_array_63[] = {0x74,0x79,0x70,0x65,0x6e,0x61,0x6d,0x65,};
-u8 cpp_main_keys_key_array_65[] = {0x73,0x74,0x61,0x74,0x69,0x63,};
-u8 cpp_main_keys_key_array_66[] = {0x73,0x74,0x72,0x75,0x63,0x74,};
-u8 cpp_main_keys_key_array_67[] = {0x74,0x68,0x72,0x65,0x61,0x64,0x5f,0x6c,0x6f,0x63,0x61,0x6c,};
-u8 cpp_main_keys_key_array_68[] = {0x6c,0x6f,0x6e,0x67,};
-u8 cpp_main_keys_key_array_69[] = {0x74,0x79,0x70,0x65,0x64,0x65,0x66,};
-u8 cpp_main_keys_key_array_71[] = {0x63,0x6f,0x6e,0x74,0x69,0x6e,0x75,0x65,};
-u8 cpp_main_keys_key_array_73[] = {0x6e,0x65,0x77,};
-u8 cpp_main_keys_key_array_77[] = {0x64,0x6f,0x75,0x62,0x6c,0x65,};
-u8 cpp_main_keys_key_array_80[] = {0x65,0x78,0x70,0x6f,0x72,0x74,};
-u8 cpp_main_keys_key_array_82[] = {0x76,0x6f,0x69,0x64,};
-u8 cpp_main_keys_key_array_84[] = {0x73,0x69,0x7a,0x65,0x6f,0x66,};
-u8 cpp_main_keys_key_array_86[] = {0x65,0x78,0x70,0x6c,0x69,0x63,0x69,0x74,};
-u8 cpp_main_keys_key_array_91[] = {0x63,0x61,0x73,0x65,};
-u8 cpp_main_keys_key_array_92[] = {0x73,0x74,0x61,0x74,0x69,0x63,0x5f,0x61,0x73,0x73,0x65,0x72,0x74,};
-u8 cpp_main_keys_key_array_93[] = {0x74,0x72,0x79,};
-u8 cpp_main_keys_key_array_94[] = {0x6e,0x75,0x6c,0x6c,0x70,0x74,0x72,};
-u8 cpp_main_keys_key_array_95[] = {0x74,0x72,0x75,0x65,};
-u8 cpp_main_keys_key_array_97[] = {0x64,0x65,0x6c,0x65,0x74,0x65,};
-u8 cpp_main_keys_key_array_99[] = {0x64,0x6f,};
-u8 cpp_main_keys_key_array_100[] = {0x61,0x75,0x74,0x6f,};
-u8 cpp_main_keys_key_array_101[] = {0x66,0x72,0x69,0x65,0x6e,0x64,};
-u8 cpp_main_keys_key_array_102[] = {0x6f,0x70,0x65,0x72,0x61,0x74,0x6f,0x72,};
-u8 cpp_main_keys_key_array_103[] = {0x64,0x65,0x66,0x61,0x75,0x6c,0x74,};
-u8 cpp_main_keys_key_array_105[] = {0x76,0x6f,0x6c,0x61,0x74,0x69,0x6c,0x65,};
-u8 cpp_main_keys_key_array_106[] = {0x69,0x6e,0x6c,0x69,0x6e,0x65,};
-u8 cpp_main_keys_key_array_107[] = {0x63,0x6f,0x6e,0x73,0x74,0x5f,0x63,0x61,0x73,0x74,};
-u8 cpp_main_keys_key_array_109[] = {0x61,0x6c,0x69,0x67,0x6e,0x61,0x73,};
-u8 cpp_main_keys_key_array_110[] = {0x73,0x74,0x61,0x74,0x69,0x63,0x5f,0x63,0x61,0x73,0x74,};
-u8 cpp_main_keys_key_array_113[] = {0x62,0x72,0x65,0x61,0x6b,};
-u8 cpp_main_keys_key_array_115[] = {0x6e,0x61,0x6d,0x65,0x73,0x70,0x61,0x63,0x65,};
-u8 cpp_main_keys_key_array_116[] = {0x75,0x73,0x69,0x6e,0x67,};
-u8 cpp_main_keys_key_array_117[] = {0x72,0x65,0x67,0x69,0x73,0x74,0x65,0x72,};
-u8 cpp_main_keys_key_array_120[] = {0x75,0x6e,0x69,0x6f,0x6e,};
-String_Const_u8 cpp_main_keys_key_array[124] = {
+u8 cpp_main_keys_key_array_0[] = {0x65,0x78,0x70,0x6f,0x72,0x74,};
+u8 cpp_main_keys_key_array_1[] = {0x67,0x6f,0x74,0x6f,};
+u8 cpp_main_keys_key_array_3[] = {0x66,0x72,0x69,0x65,0x6e,0x64,};
+u8 cpp_main_keys_key_array_5[] = {0x63,0x61,0x73,0x65,};
+u8 cpp_main_keys_key_array_6[] = {0x65,0x6e,0x75,0x6d,};
+u8 cpp_main_keys_key_array_7[] = {0x70,0x75,0x62,0x6c,0x69,0x63,};
+u8 cpp_main_keys_key_array_9[] = {0x77,0x68,0x69,0x6c,0x65,};
+u8 cpp_main_keys_key_array_10[] = {0x6f,0x70,0x65,0x72,0x61,0x74,0x6f,0x72,};
+u8 cpp_main_keys_key_array_11[] = {0x72,0x65,0x69,0x6e,0x74,0x65,0x72,0x70,0x72,0x65,0x74,0x5f,0x63,0x61,0x73,0x74,};
+u8 cpp_main_keys_key_array_12[] = {0x73,0x74,0x61,0x74,0x69,0x63,0x5f,0x63,0x61,0x73,0x74,};
+u8 cpp_main_keys_key_array_14[] = {0x74,0x65,0x6d,0x70,0x6c,0x61,0x74,0x65,};
+u8 cpp_main_keys_key_array_16[] = {0x74,0x68,0x69,0x73,};
+u8 cpp_main_keys_key_array_17[] = {0x74,0x79,0x70,0x65,0x64,0x65,0x66,};
+u8 cpp_main_keys_key_array_21[] = {0x73,0x68,0x6f,0x72,0x74,};
+u8 cpp_main_keys_key_array_22[] = {0x5f,0x5f,0x64,0x65,0x63,0x6c,0x73,0x70,0x65,0x63,};
+u8 cpp_main_keys_key_array_26[] = {0x62,0x72,0x65,0x61,0x6b,};
+u8 cpp_main_keys_key_array_31[] = {0x73,0x69,0x67,0x6e,0x65,0x64,};
+u8 cpp_main_keys_key_array_32[] = {0x63,0x61,0x74,0x63,0x68,};
+u8 cpp_main_keys_key_array_33[] = {0x66,0x6f,0x72,};
+u8 cpp_main_keys_key_array_34[] = {0x73,0x69,0x7a,0x65,0x6f,0x66,};
+u8 cpp_main_keys_key_array_36[] = {0x64,0x6f,};
+u8 cpp_main_keys_key_array_40[] = {0x74,0x72,0x75,0x65,};
+u8 cpp_main_keys_key_array_42[] = {0x72,0x65,0x74,0x75,0x72,0x6e,};
+u8 cpp_main_keys_key_array_44[] = {0x61,0x73,0x6d,};
+u8 cpp_main_keys_key_array_46[] = {0x73,0x74,0x72,0x75,0x63,0x74,};
+u8 cpp_main_keys_key_array_48[] = {0x73,0x77,0x69,0x74,0x63,0x68,};
+u8 cpp_main_keys_key_array_50[] = {0x63,0x6f,0x6e,0x73,0x74,};
+u8 cpp_main_keys_key_array_51[] = {0x6e,0x65,0x77,};
+u8 cpp_main_keys_key_array_52[] = {0x63,0x68,0x61,0x72,};
+u8 cpp_main_keys_key_array_53[] = {0x76,0x6f,0x69,0x64,};
+u8 cpp_main_keys_key_array_56[] = {0x5f,0x5f,0x61,0x74,0x74,0x72,0x69,0x62,0x75,0x74,0x65,0x5f,0x5f,};
+u8 cpp_main_keys_key_array_59[] = {0x6e,0x6f,0x65,0x78,0x63,0x65,0x70,0x74,};
+u8 cpp_main_keys_key_array_60[] = {0x74,0x68,0x72,0x65,0x61,0x64,0x5f,0x6c,0x6f,0x63,0x61,0x6c,};
+u8 cpp_main_keys_key_array_61[] = {0x74,0x79,0x70,0x65,0x69,0x64,};
+u8 cpp_main_keys_key_array_62[] = {0x5f,0x50,0x72,0x61,0x67,0x6d,0x61,};
+u8 cpp_main_keys_key_array_65[] = {0x69,0x66,};
+u8 cpp_main_keys_key_array_70[] = {0x64,0x79,0x6e,0x61,0x6d,0x69,0x63,0x5f,0x63,0x61,0x73,0x74,};
+u8 cpp_main_keys_key_array_71[] = {0x70,0x72,0x6f,0x74,0x65,0x63,0x74,0x65,0x64,};
+u8 cpp_main_keys_key_array_72[] = {0x64,0x65,0x63,0x6c,0x74,0x79,0x70,0x65,};
+u8 cpp_main_keys_key_array_73[] = {0x6c,0x6f,0x6e,0x67,};
+u8 cpp_main_keys_key_array_75[] = {0x65,0x78,0x70,0x6c,0x69,0x63,0x69,0x74,};
+u8 cpp_main_keys_key_array_77[] = {0x76,0x6f,0x6c,0x61,0x74,0x69,0x6c,0x65,};
+u8 cpp_main_keys_key_array_78[] = {0x76,0x69,0x72,0x74,0x75,0x61,0x6c,};
+u8 cpp_main_keys_key_array_79[] = {0x74,0x72,0x79,};
+u8 cpp_main_keys_key_array_80[] = {0x65,0x6c,0x73,0x65,};
+u8 cpp_main_keys_key_array_81[] = {0x61,0x6c,0x69,0x67,0x6e,0x6f,0x66,};
+u8 cpp_main_keys_key_array_86[] = {0x64,0x65,0x6c,0x65,0x74,0x65,};
+u8 cpp_main_keys_key_array_88[] = {0x75,0x6e,0x73,0x69,0x67,0x6e,0x65,0x64,};
+u8 cpp_main_keys_key_array_89[] = {0x74,0x79,0x70,0x65,0x6e,0x61,0x6d,0x65,};
+u8 cpp_main_keys_key_array_92[] = {0x75,0x73,0x69,0x6e,0x67,};
+u8 cpp_main_keys_key_array_94[] = {0x73,0x74,0x61,0x74,0x69,0x63,};
+u8 cpp_main_keys_key_array_96[] = {0x62,0x6f,0x6f,0x6c,};
+u8 cpp_main_keys_key_array_98[] = {0x66,0x6c,0x6f,0x61,0x74,};
+u8 cpp_main_keys_key_array_99[] = {0x75,0x6e,0x69,0x6f,0x6e,};
+u8 cpp_main_keys_key_array_100[] = {0x63,0x6f,0x6e,0x73,0x74,0x5f,0x63,0x61,0x73,0x74,};
+u8 cpp_main_keys_key_array_106[] = {0x61,0x6c,0x69,0x67,0x6e,0x61,0x73,};
+u8 cpp_main_keys_key_array_107[] = {0x63,0x6f,0x6e,0x74,0x69,0x6e,0x75,0x65,};
+u8 cpp_main_keys_key_array_109[] = {0x66,0x61,0x6c,0x73,0x65,};
+u8 cpp_main_keys_key_array_111[] = {0x6e,0x61,0x6d,0x65,0x73,0x70,0x61,0x63,0x65,};
+u8 cpp_main_keys_key_array_113[] = {0x65,0x78,0x74,0x65,0x72,0x6e,};
+u8 cpp_main_keys_key_array_114[] = {0x6e,0x75,0x6c,0x6c,0x70,0x74,0x72,};
+u8 cpp_main_keys_key_array_117[] = {0x64,0x6f,0x75,0x62,0x6c,0x65,};
+u8 cpp_main_keys_key_array_121[] = {0x69,0x6e,0x6c,0x69,0x6e,0x65,};
+u8 cpp_main_keys_key_array_124[] = {0x70,0x72,0x69,0x76,0x61,0x74,0x65,};
+u8 cpp_main_keys_key_array_125[] = {0x61,0x75,0x74,0x6f,};
+u8 cpp_main_keys_key_array_126[] = {0x64,0x65,0x66,0x61,0x75,0x6c,0x74,};
+u8 cpp_main_keys_key_array_128[] = {0x69,0x6e,0x74,};
+u8 cpp_main_keys_key_array_129[] = {0x73,0x74,0x61,0x74,0x69,0x63,0x5f,0x61,0x73,0x73,0x65,0x72,0x74,};
+u8 cpp_main_keys_key_array_130[] = {0x72,0x65,0x67,0x69,0x73,0x74,0x65,0x72,};
+u8 cpp_main_keys_key_array_132[] = {0x63,0x6c,0x61,0x73,0x73,};
+String_Const_u8 cpp_main_keys_key_array[133] = {
+{cpp_main_keys_key_array_0, 6},
+{cpp_main_keys_key_array_1, 4},
 {0, 0},
+{cpp_main_keys_key_array_3, 6},
 {0, 0},
+{cpp_main_keys_key_array_5, 4},
+{cpp_main_keys_key_array_6, 4},
+{cpp_main_keys_key_array_7, 6},
 {0, 0},
-{cpp_main_keys_key_array_3, 4},
-{cpp_main_keys_key_array_4, 5},
-{cpp_main_keys_key_array_5, 3},
-{0, 0},
-{cpp_main_keys_key_array_7, 4},
-{0, 0},
-{0, 0},
+{cpp_main_keys_key_array_9, 5},
 {cpp_main_keys_key_array_10, 8},
-{cpp_main_keys_key_array_11, 5},
-{cpp_main_keys_key_array_12, 8},
+{cpp_main_keys_key_array_11, 16},
+{cpp_main_keys_key_array_12, 11},
 {0, 0},
-{cpp_main_keys_key_array_14, 6},
+{cpp_main_keys_key_array_14, 8},
 {0, 0},
-{0, 0},
-{0, 0},
-{cpp_main_keys_key_array_18, 12},
-{cpp_main_keys_key_array_19, 9},
-{0, 0},
-{0, 0},
-{cpp_main_keys_key_array_22, 6},
-{0, 0},
-{0, 0},
-{cpp_main_keys_key_array_25, 8},
-{cpp_main_keys_key_array_26, 6},
-{0, 0},
-{cpp_main_keys_key_array_28, 7},
-{0, 0},
-{0, 0},
-{cpp_main_keys_key_array_31, 3},
-{0, 0},
-{0, 0},
-{cpp_main_keys_key_array_34, 16},
+{cpp_main_keys_key_array_16, 4},
+{cpp_main_keys_key_array_17, 7},
 {0, 0},
 {0, 0},
 {0, 0},
-{cpp_main_keys_key_array_38, 6},
-{cpp_main_keys_key_array_39, 7},
-{cpp_main_keys_key_array_40, 2},
-{0, 0},
-{cpp_main_keys_key_array_42, 5},
-{0, 0},
-{cpp_main_keys_key_array_44, 4},
-{cpp_main_keys_key_array_45, 5},
-{0, 0},
-{cpp_main_keys_key_array_47, 5},
-{0, 0},
-{cpp_main_keys_key_array_49, 7},
-{cpp_main_keys_key_array_50, 6},
-{cpp_main_keys_key_array_51, 4},
-{0, 0},
-{cpp_main_keys_key_array_53, 8},
-{cpp_main_keys_key_array_54, 4},
-{0, 0},
-{0, 0},
-{cpp_main_keys_key_array_57, 5},
-{cpp_main_keys_key_array_58, 4},
-{cpp_main_keys_key_array_59, 6},
-{cpp_main_keys_key_array_60, 3},
-{0, 0},
-{cpp_main_keys_key_array_62, 5},
-{cpp_main_keys_key_array_63, 8},
-{0, 0},
-{cpp_main_keys_key_array_65, 6},
-{cpp_main_keys_key_array_66, 6},
-{cpp_main_keys_key_array_67, 12},
-{cpp_main_keys_key_array_68, 4},
-{cpp_main_keys_key_array_69, 7},
-{0, 0},
-{cpp_main_keys_key_array_71, 8},
-{0, 0},
-{cpp_main_keys_key_array_73, 3},
+{cpp_main_keys_key_array_21, 5},
+{cpp_main_keys_key_array_22, 10},
 {0, 0},
 {0, 0},
 {0, 0},
-{cpp_main_keys_key_array_77, 6},
-{0, 0},
-{0, 0},
-{cpp_main_keys_key_array_80, 6},
-{0, 0},
-{cpp_main_keys_key_array_82, 4},
-{0, 0},
-{cpp_main_keys_key_array_84, 6},
-{0, 0},
-{cpp_main_keys_key_array_86, 8},
+{cpp_main_keys_key_array_26, 5},
 {0, 0},
 {0, 0},
 {0, 0},
 {0, 0},
-{cpp_main_keys_key_array_91, 4},
-{cpp_main_keys_key_array_92, 13},
-{cpp_main_keys_key_array_93, 3},
-{cpp_main_keys_key_array_94, 7},
-{cpp_main_keys_key_array_95, 4},
+{cpp_main_keys_key_array_31, 6},
+{cpp_main_keys_key_array_32, 5},
+{cpp_main_keys_key_array_33, 3},
+{cpp_main_keys_key_array_34, 6},
 {0, 0},
-{cpp_main_keys_key_array_97, 6},
-{0, 0},
-{cpp_main_keys_key_array_99, 2},
-{cpp_main_keys_key_array_100, 4},
-{cpp_main_keys_key_array_101, 6},
-{cpp_main_keys_key_array_102, 8},
-{cpp_main_keys_key_array_103, 7},
-{0, 0},
-{cpp_main_keys_key_array_105, 8},
-{cpp_main_keys_key_array_106, 6},
-{cpp_main_keys_key_array_107, 10},
-{0, 0},
-{cpp_main_keys_key_array_109, 7},
-{cpp_main_keys_key_array_110, 11},
-{0, 0},
-{0, 0},
-{cpp_main_keys_key_array_113, 5},
-{0, 0},
-{cpp_main_keys_key_array_115, 9},
-{cpp_main_keys_key_array_116, 5},
-{cpp_main_keys_key_array_117, 8},
-{0, 0},
-{0, 0},
-{cpp_main_keys_key_array_120, 5},
+{cpp_main_keys_key_array_36, 2},
 {0, 0},
 {0, 0},
 {0, 0},
+{cpp_main_keys_key_array_40, 4},
+{0, 0},
+{cpp_main_keys_key_array_42, 6},
+{0, 0},
+{cpp_main_keys_key_array_44, 3},
+{0, 0},
+{cpp_main_keys_key_array_46, 6},
+{0, 0},
+{cpp_main_keys_key_array_48, 6},
+{0, 0},
+{cpp_main_keys_key_array_50, 5},
+{cpp_main_keys_key_array_51, 3},
+{cpp_main_keys_key_array_52, 4},
+{cpp_main_keys_key_array_53, 4},
+{0, 0},
+{0, 0},
+{cpp_main_keys_key_array_56, 13},
+{0, 0},
+{0, 0},
+{cpp_main_keys_key_array_59, 8},
+{cpp_main_keys_key_array_60, 12},
+{cpp_main_keys_key_array_61, 6},
+{cpp_main_keys_key_array_62, 7},
+{0, 0},
+{0, 0},
+{cpp_main_keys_key_array_65, 2},
+{0, 0},
+{0, 0},
+{0, 0},
+{0, 0},
+{cpp_main_keys_key_array_70, 12},
+{cpp_main_keys_key_array_71, 9},
+{cpp_main_keys_key_array_72, 8},
+{cpp_main_keys_key_array_73, 4},
+{0, 0},
+{cpp_main_keys_key_array_75, 8},
+{0, 0},
+{cpp_main_keys_key_array_77, 8},
+{cpp_main_keys_key_array_78, 7},
+{cpp_main_keys_key_array_79, 3},
+{cpp_main_keys_key_array_80, 4},
+{cpp_main_keys_key_array_81, 7},
+{0, 0},
+{0, 0},
+{0, 0},
+{0, 0},
+{cpp_main_keys_key_array_86, 6},
+{0, 0},
+{cpp_main_keys_key_array_88, 8},
+{cpp_main_keys_key_array_89, 8},
+{0, 0},
+{0, 0},
+{cpp_main_keys_key_array_92, 5},
+{0, 0},
+{cpp_main_keys_key_array_94, 6},
+{0, 0},
+{cpp_main_keys_key_array_96, 4},
+{0, 0},
+{cpp_main_keys_key_array_98, 5},
+{cpp_main_keys_key_array_99, 5},
+{cpp_main_keys_key_array_100, 10},
+{0, 0},
+{0, 0},
+{0, 0},
+{0, 0},
+{0, 0},
+{cpp_main_keys_key_array_106, 7},
+{cpp_main_keys_key_array_107, 8},
+{0, 0},
+{cpp_main_keys_key_array_109, 5},
+{0, 0},
+{cpp_main_keys_key_array_111, 9},
+{0, 0},
+{cpp_main_keys_key_array_113, 6},
+{cpp_main_keys_key_array_114, 7},
+{0, 0},
+{0, 0},
+{cpp_main_keys_key_array_117, 6},
+{0, 0},
+{0, 0},
+{0, 0},
+{cpp_main_keys_key_array_121, 6},
+{0, 0},
+{0, 0},
+{cpp_main_keys_key_array_124, 7},
+{cpp_main_keys_key_array_125, 4},
+{cpp_main_keys_key_array_126, 7},
+{0, 0},
+{cpp_main_keys_key_array_128, 3},
+{cpp_main_keys_key_array_129, 13},
+{cpp_main_keys_key_array_130, 8},
+{0, 0},
+{cpp_main_keys_key_array_132, 5},
 };
-Lexeme_Table_Value cpp_main_keys_value_array[124] = {
-{0, 0},
-{0, 0},
-{0, 0},
+Lexeme_Table_Value cpp_main_keys_value_array[133] = {
+{4, TokenCppKind_Export},
 {4, TokenCppKind_Goto},
+{0, 0},
+{4, TokenCppKind_Friend},
+{0, 0},
+{4, TokenCppKind_Case},
+{4, TokenCppKind_Enum},
+{4, TokenCppKind_Public},
+{0, 0},
+{4, TokenCppKind_While},
+{4, TokenCppKind_Operator},
+{4, TokenCppKind_ReinterpretCast},
+{4, TokenCppKind_StaticCast},
+{0, 0},
+{4, TokenCppKind_Template},
+{0, 0},
+{4, TokenCppKind_This},
+{4, TokenCppKind_Typedef},
+{0, 0},
+{0, 0},
+{0, 0},
 {4, TokenCppKind_Short},
-{4, TokenCppKind_For},
-{0, 0},
-{4, TokenCppKind_Else},
+{4, TokenCppKind_DeclSpec},
 {0, 0},
 {0, 0},
-{4, TokenCppKind_Unsigned},
+{0, 0},
+{4, TokenCppKind_Break},
+{0, 0},
+{0, 0},
+{0, 0},
+{0, 0},
+{4, TokenCppKind_Signed},
 {4, TokenCppKind_Catch},
-{4, TokenCppKind_NoExcept},
+{4, TokenCppKind_For},
+{4, TokenCppKind_SizeOf},
+{0, 0},
+{4, TokenCppKind_Do},
+{0, 0},
+{0, 0},
+{0, 0},
+{8, TokenCppKind_LiteralTrue},
+{0, 0},
+{4, TokenCppKind_Return},
+{0, 0},
+{4, TokenCppKind_Asm},
+{0, 0},
+{4, TokenCppKind_Struct},
 {0, 0},
 {4, TokenCppKind_Switch},
+{0, 0},
+{4, TokenCppKind_Const},
+{4, TokenCppKind_New},
+{4, TokenCppKind_Char},
+{4, TokenCppKind_Void},
+{0, 0},
+{0, 0},
+{4, TokenCppKind_Attribute},
+{0, 0},
+{0, 0},
+{4, TokenCppKind_NoExcept},
+{4, TokenCppKind_ThreadLocal},
+{4, TokenCppKind_TypeID},
+{4, TokenCppKind_Pragma},
+{0, 0},
+{0, 0},
+{4, TokenCppKind_If},
+{0, 0},
 {0, 0},
 {0, 0},
 {0, 0},
 {4, TokenCppKind_DynamicCast},
 {4, TokenCppKind_Protected},
+{4, TokenCppKind_DeclType},
+{4, TokenCppKind_Long},
 {0, 0},
+{4, TokenCppKind_Explicit},
 {0, 0},
-{4, TokenCppKind_Signed},
-{0, 0},
-{0, 0},
-{4, TokenCppKind_Template},
-{4, TokenCppKind_Public},
-{0, 0},
+{4, TokenCppKind_Volatile},
+{4, TokenCppKind_Virtual},
+{4, TokenCppKind_Try},
+{4, TokenCppKind_Else},
 {4, TokenCppKind_AlignOf},
 {0, 0},
 {0, 0},
-{4, TokenCppKind_Asm},
 {0, 0},
 {0, 0},
-{4, TokenCppKind_ReinterpretCast},
+{4, TokenCppKind_Delete},
+{0, 0},
+{4, TokenCppKind_Unsigned},
+{4, TokenCppKind_Typename},
 {0, 0},
 {0, 0},
+{4, TokenCppKind_Using},
 {0, 0},
-{4, TokenCppKind_Extern},
-{4, TokenCppKind_Virtual},
-{4, TokenCppKind_If},
+{4, TokenCppKind_Static},
+{0, 0},
+{4, TokenCppKind_Bool},
 {0, 0},
 {4, TokenCppKind_Float},
+{4, TokenCppKind_Union},
+{4, TokenCppKind_ConstCast},
 {0, 0},
-{4, TokenCppKind_Char},
-{4, TokenCppKind_While},
+{0, 0},
+{0, 0},
+{0, 0},
+{0, 0},
+{4, TokenCppKind_AlignAs},
+{4, TokenCppKind_Continue},
 {0, 0},
 {8, TokenCppKind_LiteralFalse},
 {0, 0},
-{4, TokenCppKind_Private},
-{4, TokenCppKind_Return},
-{4, TokenCppKind_Enum},
+{4, TokenCppKind_Namespace},
 {0, 0},
-{4, TokenCppKind_DeclType},
-{4, TokenCppKind_Bool},
-{0, 0},
-{0, 0},
-{4, TokenCppKind_Class},
-{4, TokenCppKind_This},
-{4, TokenCppKind_TypeID},
-{4, TokenCppKind_Int},
-{0, 0},
-{4, TokenCppKind_Const},
-{4, TokenCppKind_Typename},
-{0, 0},
-{4, TokenCppKind_Static},
-{4, TokenCppKind_Struct},
-{4, TokenCppKind_ThreadLocal},
-{4, TokenCppKind_Long},
-{4, TokenCppKind_Typedef},
-{0, 0},
-{4, TokenCppKind_Continue},
-{0, 0},
-{4, TokenCppKind_New},
-{0, 0},
+{4, TokenCppKind_Extern},
+{4, TokenCppKind_NullPtr},
 {0, 0},
 {0, 0},
 {4, TokenCppKind_Double},
 {0, 0},
 {0, 0},
-{4, TokenCppKind_Export},
 {0, 0},
-{4, TokenCppKind_Void},
-{0, 0},
-{4, TokenCppKind_SizeOf},
-{0, 0},
-{4, TokenCppKind_Explicit},
+{4, TokenCppKind_Inline},
 {0, 0},
 {0, 0},
-{0, 0},
-{0, 0},
-{4, TokenCppKind_Case},
-{4, TokenCppKind_StaticAssert},
-{4, TokenCppKind_Try},
-{4, TokenCppKind_NullPtr},
-{8, TokenCppKind_LiteralTrue},
-{0, 0},
-{4, TokenCppKind_Delete},
-{0, 0},
-{4, TokenCppKind_Do},
+{4, TokenCppKind_Private},
 {4, TokenCppKind_Auto},
-{4, TokenCppKind_Friend},
-{4, TokenCppKind_Operator},
 {4, TokenCppKind_Default},
 {0, 0},
-{4, TokenCppKind_Volatile},
-{4, TokenCppKind_Inline},
-{4, TokenCppKind_ConstCast},
-{0, 0},
-{4, TokenCppKind_AlignAs},
-{4, TokenCppKind_StaticCast},
-{0, 0},
-{0, 0},
-{4, TokenCppKind_Break},
-{0, 0},
-{4, TokenCppKind_Namespace},
-{4, TokenCppKind_Using},
+{4, TokenCppKind_Int},
+{4, TokenCppKind_StaticAssert},
 {4, TokenCppKind_Register},
 {0, 0},
-{0, 0},
-{4, TokenCppKind_Union},
-{0, 0},
-{0, 0},
-{0, 0},
+{4, TokenCppKind_Class},
 };
-i32 cpp_main_keys_slot_count = 124;
-u64 cpp_main_keys_seed = 0x662581b7de106778;
+i32 cpp_main_keys_slot_count = 133;
+u64 cpp_main_keys_seed = 0xdba6652313140487;
 u64 cpp_pp_directives_hash_array[25] = {
-0xb3ff93ec47cb081f,0x0000000000000000,0x0000000000000000,0x93b1947dd9375aeb,
-0x0000000000000000,0x28d063ce8af3e34b,0x867faf615c02b8eb,0x867faf5900d669f1,
-0x0000000000000000,0x0000000000000000,0xb3ffec10e79add63,0x93b1966975b458dd,
-0x0000000000000000,0x93b194539230e3a7,0x867faf590003baeb,0x440083bfc465e7a7,
-0x0000000000000000,0x440083bfc474852b,0x0000000000000000,0x93b1947915643ce7,
-0x867faf6153ab599b,0x0000000000000000,0x440083bfc474d831,0x867faf61532d81cb,
+0x0ebc881adb599c2b,0xdc48da880cfa5edb,0x0000000000000000,0x82439485d2973df3,
+0xdc48da880cfa447f,0x0000000000000000,0x0000000000000000,0x301ec14503b3e047,
+0x301ec14510d4ade7,0x0ebc881ec5dbe439,0x0000000000000000,0x0000000000000000,
+0x301ec14510cd817f,0x301ec1450d5fc729,0x0000000000000000,0x0000000000000000,
+0x0ebc8811243676ef,0x0000000000000000,0x82439591f72475f3,0x634b1ccd385778df,
+0x0ebc881e30b01047,0xdc48da880ca5a62b,0x0000000000000000,0x301ec145095c1047,
 0x0000000000000000,
 };
-u8 cpp_pp_directives_key_array_0[] = {0x69,0x6e,0x63,0x6c,0x75,0x64,0x65,};
-u8 cpp_pp_directives_key_array_3[] = {0x69,0x66,0x6e,0x64,0x65,0x66,};
-u8 cpp_pp_directives_key_array_5[] = {0x69,0x66,};
-u8 cpp_pp_directives_key_array_6[] = {0x69,0x66,0x64,0x65,0x66,};
-u8 cpp_pp_directives_key_array_7[] = {0x75,0x73,0x69,0x6e,0x67,};
-u8 cpp_pp_directives_key_array_10[] = {0x76,0x65,0x72,0x73,0x69,0x6f,0x6e,};
-u8 cpp_pp_directives_key_array_11[] = {0x70,0x72,0x61,0x67,0x6d,0x61,};
-u8 cpp_pp_directives_key_array_13[] = {0x64,0x65,0x66,0x69,0x6e,0x65,};
-u8 cpp_pp_directives_key_array_14[] = {0x75,0x6e,0x64,0x65,0x66,};
-u8 cpp_pp_directives_key_array_15[] = {0x6c,0x69,0x6e,0x65,};
-u8 cpp_pp_directives_key_array_17[] = {0x65,0x6c,0x69,0x66,};
-u8 cpp_pp_directives_key_array_19[] = {0x69,0x6d,0x70,0x6f,0x72,0x74,};
-u8 cpp_pp_directives_key_array_20[] = {0x65,0x72,0x72,0x6f,0x72,};
-u8 cpp_pp_directives_key_array_22[] = {0x65,0x6c,0x73,0x65,};
-u8 cpp_pp_directives_key_array_23[] = {0x65,0x6e,0x64,0x69,0x66,};
+u8 cpp_pp_directives_key_array_0[] = {0x64,0x65,0x66,0x69,0x6e,0x65,};
+u8 cpp_pp_directives_key_array_1[] = {0x65,0x6c,0x73,0x65,};
+u8 cpp_pp_directives_key_array_3[] = {0x76,0x65,0x72,0x73,0x69,0x6f,0x6e,};
+u8 cpp_pp_directives_key_array_4[] = {0x65,0x6c,0x69,0x66,};
+u8 cpp_pp_directives_key_array_7[] = {0x75,0x6e,0x64,0x65,0x66,};
+u8 cpp_pp_directives_key_array_8[] = {0x65,0x72,0x72,0x6f,0x72,};
+u8 cpp_pp_directives_key_array_9[] = {0x69,0x6d,0x70,0x6f,0x72,0x74,};
+u8 cpp_pp_directives_key_array_12[] = {0x65,0x6e,0x64,0x69,0x66,};
+u8 cpp_pp_directives_key_array_13[] = {0x75,0x73,0x69,0x6e,0x67,};
+u8 cpp_pp_directives_key_array_16[] = {0x70,0x72,0x61,0x67,0x6d,0x61,};
+u8 cpp_pp_directives_key_array_18[] = {0x69,0x6e,0x63,0x6c,0x75,0x64,0x65,};
+u8 cpp_pp_directives_key_array_19[] = {0x69,0x66,};
+u8 cpp_pp_directives_key_array_20[] = {0x69,0x66,0x6e,0x64,0x65,0x66,};
+u8 cpp_pp_directives_key_array_21[] = {0x6c,0x69,0x6e,0x65,};
+u8 cpp_pp_directives_key_array_23[] = {0x69,0x66,0x64,0x65,0x66,};
 String_Const_u8 cpp_pp_directives_key_array[25] = {
-{cpp_pp_directives_key_array_0, 7},
+{cpp_pp_directives_key_array_0, 6},
+{cpp_pp_directives_key_array_1, 4},
+{0, 0},
+{cpp_pp_directives_key_array_3, 7},
+{cpp_pp_directives_key_array_4, 4},
 {0, 0},
 {0, 0},
-{cpp_pp_directives_key_array_3, 6},
-{0, 0},
-{cpp_pp_directives_key_array_5, 2},
-{cpp_pp_directives_key_array_6, 5},
 {cpp_pp_directives_key_array_7, 5},
+{cpp_pp_directives_key_array_8, 5},
+{cpp_pp_directives_key_array_9, 6},
 {0, 0},
 {0, 0},
-{cpp_pp_directives_key_array_10, 7},
-{cpp_pp_directives_key_array_11, 6},
+{cpp_pp_directives_key_array_12, 5},
+{cpp_pp_directives_key_array_13, 5},
 {0, 0},
-{cpp_pp_directives_key_array_13, 6},
-{cpp_pp_directives_key_array_14, 5},
-{cpp_pp_directives_key_array_15, 4},
 {0, 0},
-{cpp_pp_directives_key_array_17, 4},
+{cpp_pp_directives_key_array_16, 6},
 {0, 0},
-{cpp_pp_directives_key_array_19, 6},
-{cpp_pp_directives_key_array_20, 5},
+{cpp_pp_directives_key_array_18, 7},
+{cpp_pp_directives_key_array_19, 2},
+{cpp_pp_directives_key_array_20, 6},
+{cpp_pp_directives_key_array_21, 4},
 {0, 0},
-{cpp_pp_directives_key_array_22, 4},
 {cpp_pp_directives_key_array_23, 5},
 {0, 0},
 };
 Lexeme_Table_Value cpp_pp_directives_value_array[25] = {
-{5, TokenCppKind_PPInclude},
+{5, TokenCppKind_PPDefine},
+{5, TokenCppKind_PPElse},
+{0, 0},
+{5, TokenCppKind_PPVersion},
+{5, TokenCppKind_PPElIf},
 {0, 0},
 {0, 0},
-{5, TokenCppKind_PPIfNDef},
+{5, TokenCppKind_PPUndef},
+{5, TokenCppKind_PPError},
+{5, TokenCppKind_PPImport},
 {0, 0},
-{5, TokenCppKind_PPIf},
-{5, TokenCppKind_PPIfDef},
+{0, 0},
+{5, TokenCppKind_PPEndIf},
 {5, TokenCppKind_PPUsing},
 {0, 0},
 {0, 0},
-{5, TokenCppKind_PPVersion},
 {5, TokenCppKind_PPPragma},
 {0, 0},
-{5, TokenCppKind_PPDefine},
-{5, TokenCppKind_PPUndef},
+{5, TokenCppKind_PPInclude},
+{5, TokenCppKind_PPIf},
+{5, TokenCppKind_PPIfNDef},
 {5, TokenCppKind_PPLine},
 {0, 0},
-{5, TokenCppKind_PPElIf},
-{0, 0},
-{5, TokenCppKind_PPImport},
-{5, TokenCppKind_PPError},
-{0, 0},
-{5, TokenCppKind_PPElse},
-{5, TokenCppKind_PPEndIf},
+{5, TokenCppKind_PPIfDef},
 {0, 0},
 };
 i32 cpp_pp_directives_slot_count = 25;
-u64 cpp_pp_directives_seed = 0x1660cfac50711d72;
+u64 cpp_pp_directives_seed = 0x278bbe721e838c35;
 u64 cpp_pp_keys_hash_array[2] = {
-0x99eac02f6b0cc205,0x0000000000000000,
+0x0000000000000000,0xe6d1a847a90e66f5,
 };
-u8 cpp_pp_keys_key_array_0[] = {0x64,0x65,0x66,0x69,0x6e,0x65,0x64,};
+u8 cpp_pp_keys_key_array_1[] = {0x64,0x65,0x66,0x69,0x6e,0x65,0x64,};
 String_Const_u8 cpp_pp_keys_key_array[2] = {
-{cpp_pp_keys_key_array_0, 7},
 {0, 0},
+{cpp_pp_keys_key_array_1, 7},
 };
 Lexeme_Table_Value cpp_pp_keys_value_array[2] = {
-{4, TokenCppKind_PPDefined},
 {0, 0},
+{4, TokenCppKind_PPDefined},
 };
 i32 cpp_pp_keys_slot_count = 2;
-u64 cpp_pp_keys_seed = 0x1eb330148274787a;
+u64 cpp_pp_keys_seed = 0x959e292cc2f09555;
 struct Lex_State_Cpp{
 u32 flags_ZF0;
 u32 flags_KF0;

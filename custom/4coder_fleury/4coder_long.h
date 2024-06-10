@@ -149,7 +149,7 @@
 // When I first wrote this system, I had some experience parsing and modifying AST nodes. After reading
 // how Ryan did his parser and indexer, I've learned a lot of new and useful techniques. Since then,
 // I've been experimenting with my other projects (including this C# parser). If I have the time and
-// energy in the future, I'll write a more detailed comment about the way the C# parser works and how
+// energy in the future, I'll write a more detailed comment about the way this C# parser works and how
 // I think about parsing now.
 
 //- @long_search_intro
@@ -287,12 +287,14 @@
 //   Each project file can now contain an array of reference paths (set inside the reference_paths variable)
 //   When this command runs, it will recursively load all files in those paths as read-only and unimportant
 
-//~ TODO NAVIGATE
-// [ ] Fix comment/string token selection and boundary
+//~ TODO SEARCH/NAVIGATE
+// [ ] Jump to location with relative path
+// [X] Fix comment/string token selection and boundary
+// [X] Tab to append the current token while Shift+Tab to append the current selection to the list_all_xxx query bar
 
 //~ TODO LISTER
 // [ ] Show recent entries first
-// [ ] Replace all the wildcard searching in the query bar and lister with grep
+// [ ] Replace all the wildcard searching in the query bar and lister with grep or glob
 // [ ] Search for definitions like Hoogle
 // [ ] Has a lister for important but rarely used commands
 // [ ] Hotkeys for inserting and cycling through common tags
@@ -311,7 +313,6 @@
 //- COMPILATION
 // [ ] Display error/warning count on the file bar
 // [ ] Render warning with a different color
-// [ ] Fix unmatched error annotation locations
 
 //~ TODO CODE/ARCHITECTURE
 
@@ -332,6 +333,12 @@
 // [ ] Strip out unused f4 commands
 // [ ] Rework on the *peek* buffer
 // [ ] Rework on the *loc* buffer
+
+//~ TODO BUGS
+// [ ] Fix unmatched error annotation locations bug
+// [ ] Fix undo/redo_all_buffers bug
+// [ ] Fix open query bar with Alt inside a lister
+// [X] Fix backspace in the path lister (again)
 
 #include "4coder_long_index.h"
 #include "4coder_long_base_commands.h"

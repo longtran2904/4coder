@@ -16,6 +16,7 @@ keys_global =
     
     { "long_toggle_compilation_expand",  "Insert"                     },
     { "long_toggle_panel_expand",        "Insert", "Control"          },
+    { "long_toggle_panel_expand_big",    "Insert", "Control", "Shift" },
     
     // NOTE(jack): Ryan has these unbound
     { "toggle_filebar",                           "B", "Alt"              },
@@ -87,10 +88,10 @@ keys_file =
     
     // NOTE(rjf): Backspace/Delete
     { "delete_char",                                  "Delete"               },
-    { "f4_delete_token_boundary",                     "Delete",    "Control" },
+    { "long_delete_token_boundary",                   "Delete",    "Control" },
     { "f4_delete_alpha_numeric_or_camel_boundary",    "Delete",    "Alt"     },
     { "backspace_char",                               "Backspace"            },
-    { "f4_backspace_token_boundary",                  "Backspace", "Control" },
+    { "long_backspace_token_boundary",                "Backspace", "Control" },
     { "f4_backspace_alpha_numeric_or_camel_boundary", "Backspace", "Alt"     },
     
     
@@ -248,7 +249,7 @@ keys_code =
     { "long_select_lower_scope",                             "RightBracket", "Control", "Shift" },
     { "long_select_prev_scope_current_level",                "LeftBracket",  "Control", "Alt"   },
     { "long_select_next_scope_current_level",                "RightBracket", "Control", "Alt"   },
-    { "long_select_surrounding_scope",                       "P",            "Alt"   },
+    { "long_select_surrounding_scope",                       "LeftBracket",  "Alt",     "Shift" },
     
     /* NOTE(long): Will I ever actually use these?
     

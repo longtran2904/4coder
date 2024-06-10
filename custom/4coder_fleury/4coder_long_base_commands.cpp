@@ -1203,11 +1203,22 @@ CUSTOM_DOC("Expand the compilation window.")
 }
 
 CUSTOM_COMMAND_SIG(long_toggle_panel_expand)
-CUSTOM_DOC("Expand the compilation window.")
+CUSTOM_DOC("Expand the current window.")
 {
     View_ID view = get_active_view(app, 0);
     Rect_f32 old_rect = view_get_screen_rect(app, view);
     view_set_split_proportion(app, view, .5f);
+    Rect_f32 new_rect = view_get_screen_rect(app, view);
+    if (rect_width(new_rect) == rect_width(old_rect) && rect_height(new_rect) == rect_height(old_rect))
+        view_set_split_proportion(app, view, .625f);
+}
+
+CUSTOM_COMMAND_SIG(long_toggle_panel_expand_big)
+CUSTOM_DOC("Expand the current window.")
+{
+    View_ID view = get_active_view(app, 0);
+    Rect_f32 old_rect = view_get_screen_rect(app, view);
+    view_set_split_proportion(app, view, .75f);
     Rect_f32 new_rect = view_get_screen_rect(app, view);
     if (rect_width(new_rect) == rect_width(old_rect) && rect_height(new_rect) == rect_height(old_rect))
         view_set_split_proportion(app, view, .625f);
@@ -1364,12 +1375,24 @@ function b32 Long_Query_User_String(Application_Links *app, Query_Bar *bar, Stri
         else if (match_key_code(&in, KeyCode_Tab))
         {
             View_ID view = get_active_view(app, 0);
-            Range_i64 range = get_view_range(app, view);
-            String8 string = push_buffer_range(app, scratch, view_get_buffer(app, view, 0), range);
+            Buffer_ID buffer = view_get_buffer(app, view, 0);
+            Range_i64 range;
+            if (has_modifier(&in, KeyCode_Control))
+                range = get_view_range(app, view);
+            else
+            {
+                i64 pos = view_get_cursor_pos(app, view);
+                range = enclose_pos_non_whitespace(app, buffer, pos);
+                if (range.max == range.min)
+                    range.min = scan(app, boundary_non_whitespace, buffer, Scan_Backward, pos);
+            }
+            
+            String8 string = push_buffer_range(app, scratch, buffer, range);
             String_u8 bar_string = Su8(bar->string.str, bar->string.size, bar->string_capacity);
             string_append(&bar_string, string);
             bar->string.size = bar_string.size;
         }
+        
         else if (match_key_code(&in, KeyCode_V) && has_modifier(&in, KeyCode_Control))
         {
             Scratch_Block scratch(app);
@@ -1836,7 +1859,11 @@ function void Long_ListAllLocations_Query(Application_Links *app, char* query, L
 function void Long_ListAllLocations_Identifier(Application_Links *app, List_All_Locations_Flag flags, b32 all_buffer)
 {
     Scratch_Block scratch(app);
-    String_Const_u8 needle = push_token_or_word_under_active_cursor(app, scratch);
+    //String_Const_u8 needle = push_token_or_word_under_active_cursor(app, scratch);
+    View_ID view = get_active_view(app, 0);
+    Buffer_ID buffer = view_get_buffer(app, view, 0);
+    i64 pos = view_get_cursor_pos(app, view);
+    String_Const_u8 needle = push_enclose_range_at_pos(app, scratch, buffer, pos, enclose_alpha_numeric_underscore);
     Long_ListAllLocations(app, needle, flags, all_buffer);
 }
 
@@ -3401,6 +3428,153 @@ CUSTOM_DOC("Moves the cursor to the next occurrence of the token that the cursor
 {
     Scratch_Block scratch(app);
     Long_Scan_Move(app, Scan_Forward, push_boundary_list(scratch, F4_Boundary_CursorToken));
+}
+
+//- NOTE(long): Delete
+// @COPYPASTA(long): F4_Boundary_TokenAndWhitespace
+function i64 Long_Boundary_TokenAndWhitespace(Application_Links *app, Buffer_ID buffer, 
+                                              Side side, Scan_Direction direction, i64 pos)
+{
+    i64 comment_offset = 2, string_offset = 1; // NOTE(long): This is specific to C/C++-like languages
+    
+    i64 result = boundary_non_whitespace(app, buffer, side, direction, pos);
+    Token_Array tokens = get_token_array_from_buffer(app, buffer);
+    if (tokens.tokens != 0){
+        switch (direction){
+            case Scan_Forward:
+            {
+                i64 buffer_size = buffer_get_size(app, buffer);
+                result = buffer_size;
+                if(tokens.count > 0)
+                {
+                    Token_Iterator_Array it = token_iterator_pos(0, &tokens, pos);
+                    Token *token = token_it_read(&it);
+                    
+                    if(token == 0)
+                    {
+                        break;
+                    }
+                    
+                    // NOTE(rjf): Comments/Strings
+                    if(token->kind == TokenBaseKind_Comment ||
+                       token->kind == TokenBaseKind_LiteralString)
+                    {
+                        result = boundary_non_whitespace(app, buffer, side, direction, pos);
+                        
+                        i64 max_pos = token->pos + token->size;
+                        i64 offset = token->kind == TokenBaseKind_Comment ? comment_offset : string_offset;
+                        if (pos > token->pos && pos < token->pos + token->size - offset)
+                            max_pos -= offset;
+                        result = clamp_top(result, max_pos);
+                        break;
+                    }
+                    
+                    // NOTE(rjf): All other cases.
+                    else
+                    {
+                        if (token->kind == TokenBaseKind_Whitespace)
+                        {
+                            // token_it_inc_non_whitespace(&it);
+                            // token = token_it_read(&it);
+                        }
+                        
+                        if (side == Side_Max){
+                            result = token->pos + token->size;
+                            
+                            token_it_inc_all(&it);
+                            Token *ws = token_it_read(&it);
+                            if(ws != 0 && ws->kind == TokenBaseKind_Whitespace &&
+                               get_line_number_from_pos(app, buffer, ws->pos + ws->size) ==
+                               get_line_number_from_pos(app, buffer, token->pos))
+                            {
+                                result = ws->pos + ws->size;
+                            }
+                        }
+                        else{
+                            if (token->pos <= pos){
+                                token_it_inc_non_whitespace(&it);
+                                token = token_it_read(&it);
+                            }
+                            if (token != 0){
+                                result = token->pos;
+                            }
+                        }
+                    }
+                    
+                }
+            }break;
+            
+            case Scan_Backward:
+            {
+                result = 0;
+                if (tokens.count > 0){
+                    Token_Iterator_Array it = token_iterator_pos(0, &tokens, pos);
+                    Token *token = token_it_read(&it);
+                    
+                    Token_Iterator_Array it2 = it;
+                    token_it_dec_non_whitespace(&it2);
+                    Token *token2 = token_it_read(&it2);
+                    
+                    // NOTE(rjf): Comments/Strings
+                    if(token->kind == TokenBaseKind_Comment ||
+                       token->kind == TokenBaseKind_LiteralString ||
+                       (token2 && 
+                        token2->kind == TokenBaseKind_Comment ||
+                        token2->kind == TokenBaseKind_LiteralString))
+                    {
+                        result = boundary_non_whitespace(app, buffer, side, direction, pos);
+                        Token* special_token = (token->kind == TokenBaseKind_Comment ||
+                                                token->kind == TokenBaseKind_LiteralString) ? token : token2;
+                        if (pos > special_token->pos)
+                        {
+                            i64 min_pos = special_token->pos;
+                            i64 offset = special_token->kind == TokenBaseKind_Comment ? comment_offset : string_offset;
+                            if (pos < special_token->pos + special_token->size && pos > special_token->pos + offset)
+                                min_pos += offset;
+                            result = clamp_bot(result, min_pos);
+                        }
+                        break;
+                    }
+                    
+                    if (token->kind == TokenBaseKind_Whitespace){
+                        token_it_dec_non_whitespace(&it);
+                        token = token_it_read(&it);
+                    }
+                    if (token != 0){
+                        if (side == Side_Min){
+                            if (token->pos >= pos){
+                                token_it_dec_non_whitespace(&it);
+                                token = token_it_read(&it);
+                            }
+                            result = token->pos;
+                        }
+                        else{
+                            if (token->pos + token->size >= pos){
+                                token_it_dec_non_whitespace(&it);
+                                token = token_it_read(&it);
+                            }
+                            result = token->pos + token->size;
+                        }
+                    }
+                }
+            }break;
+        }
+    }
+    return(result);
+}
+
+CUSTOM_COMMAND_SIG(long_backspace_token_boundary)
+CUSTOM_DOC("Deletes left to a token boundary.")
+{
+    Scratch_Block scratch(app);
+    current_view_boundary_delete(app, Scan_Backward, push_boundary_list(scratch, Long_Boundary_TokenAndWhitespace));
+}
+
+CUSTOM_COMMAND_SIG(long_delete_token_boundary)
+CUSTOM_DOC("Deletes right to a token boundary.")
+{
+    Scratch_Block scratch(app);
+    current_view_boundary_delete(app, Scan_Forward, push_boundary_list(scratch, Long_Boundary_TokenAndWhitespace));
 }
 
 //- NOTE(long): Scope

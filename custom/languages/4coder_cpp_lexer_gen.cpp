@@ -226,6 +226,9 @@ build_language_model(void){
     sm_key("New");
     sm_key("Delete");
     sm_key("Auto");
+    sm_key("DeclSpec", "__declspec");
+    sm_key("Attribute", "__attribute__");
+    sm_key("Pragma", "_Pragma");
     
     sm_select_base_kind(TokenBaseKind_LiteralInteger);
     sm_key("LiteralTrue", "true");
