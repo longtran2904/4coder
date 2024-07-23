@@ -195,6 +195,14 @@ F4_CPP_ParseEnumBodyIFuckingHateCPlusPlus(F4_Index_ParseCtx *ctx)
             {
                 break;
             }
+            else if (F4_Index_ParsePattern(ctx, "%b", TokenCppKind_PPDefine, 0))
+            {
+                F4_CPP_ParseMacroDefinition(ctx);
+            }
+            else if (F4_Index_ParsePattern(ctx, "%k", TokenBaseKind_Preprocessor, 0))
+            {
+                F4_Index_SkipSoftTokens(ctx, 1);
+            }
             else
             {
                 F4_Index_ParseCtx_Inc(ctx, 0);
@@ -367,7 +375,18 @@ internal F4_LANGUAGE_INDEXFILE(F4_CPP_IndexFile)
         
         //~ NOTE(rjf): Functions
         else if(scope_nest == 0 &&
-                (F4_Index_ParsePattern(ctx, "%k%o%k%t",
+                // NOTE(long): macro-wrap function: void MyMacro(MyFunction)(...)
+                (F4_Index_ParsePattern(ctx, "%k%o%k%t%k%t%t",
+                                       TokenBaseKind_Keyword, &base_type,
+                                       TokenBaseKind_Identifier, 0, "(",
+                                       TokenBaseKind_Identifier, &name, ")",
+                                       "(") ||
+                 F4_Index_ParsePattern(ctx, "%k%o%k%t%k%t%t",
+                                       TokenBaseKind_Identifier, &base_type,
+                                       TokenBaseKind_Identifier, 0, "(",
+                                       TokenBaseKind_Identifier, &name, ")",
+                                       "(") ||
+                 F4_Index_ParsePattern(ctx, "%k%o%k%t",
                                        TokenBaseKind_Identifier, &base_type,
                                        TokenBaseKind_Identifier, &name,
                                        "(") ||
@@ -378,9 +397,15 @@ internal F4_LANGUAGE_INDEXFILE(F4_CPP_IndexFile)
         {
             handled = 1;
             b32 prototype = 0;
-            if(F4_CPP_ParseFunctionBodyIFuckingHateCPlusPlus(ctx, &prototype))
+            
+            if (F4_Index_ParsePattern(ctx, "%k", TokenBaseKind_Keyword, 0) ||
+                F4_Index_ParsePattern(ctx, "%k", TokenBaseKind_Identifier, 0) ||
+                F4_Index_ParsePattern(ctx, "%k", TokenBaseKind_ParentheticalClose, 0))
             {
-                F4_Index_MakeNote(ctx, Ii64(name), F4_Index_NoteKind_Function, prototype ? F4_Index_NoteFlag_Prototype : 0);
+                if(F4_CPP_ParseFunctionBodyIFuckingHateCPlusPlus(ctx, &prototype))
+                {
+                    F4_Index_MakeNote(ctx, Ii64(name), F4_Index_NoteKind_Function, prototype ? F4_Index_NoteFlag_Prototype : 0);
+                }
             }
         }
         
@@ -466,6 +491,11 @@ internal F4_LANGUAGE_INDEXFILE(F4_CPP_IndexFile)
             F4_CPP_ParseMacroDefinition(ctx);
         }
         
+        else if (F4_Index_ParsePattern(ctx, "%k", TokenBaseKind_Preprocessor, 0))
+        {
+            handled = 1;
+            F4_Index_SkipSoftTokens(ctx, 1);
+        }
         
         if(handled == 0)
         {

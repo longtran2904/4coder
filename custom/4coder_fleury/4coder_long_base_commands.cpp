@@ -1685,18 +1685,24 @@ function void Long_SearchBuffer_MultiSelect(Application_Links* app, View_ID view
         else
         {
             // NOTE(allen): is the user trying to execute another command?
+            Custom_Command_Function* custom;
+#if 1
             View_Context ctx = view_current_context(app, view);
             Command_Binding binding = map_get_binding_recursive(ctx.mapping, mapping_get_map(ctx.mapping, ctx.map_id), &in.event);
-            
-            if (binding.custom)
+            custom = binding.custom;
+#else
+            Implicit_Map_Result map_result = implicit_map_function(app, 0, 0, &in.event);
+            custom = map_result.command;
+#endif
+            if (custom)
             {
-                Command_Metadata* metadata = get_command_metadata(binding.custom);
+                Command_Metadata* metadata = get_command_metadata(custom);
                 if (metadata && metadata->is_ui)
                 {
-                    view_enqueue_command_function(app, view, binding.custom);
+                    view_enqueue_command_function(app, view, custom);
                     break;
                 }
-                binding.custom(app);
+                custom(app);
             }
             else leave_current_input_unhandled(app);
         }

@@ -287,10 +287,9 @@
 //   Each project file can now contain an array of reference paths (set inside the reference_paths variable)
 //   When this command runs, it will recursively load all files in those paths as read-only and unimportant
 
-//~ TODO SEARCH/NAVIGATE
+//~ TODO REPLACE/NAVIGATE
+// [ ] Upper/Lower a character
 // [ ] Jump to location with relative path
-// [X] Fix comment/string token selection and boundary
-// [X] Tab to append the current token while Shift+Tab to append the current selection to the list_all_xxx query bar
 
 //~ TODO LISTER
 // [ ] Show recent entries first
@@ -338,7 +337,6 @@
 // [ ] Fix unmatched error annotation locations bug
 // [ ] Fix undo/redo_all_buffers bug
 // [ ] Fix open query bar with Alt inside a lister
-// [X] Fix backspace in the path lister (again)
 
 #include "4coder_long_index.h"
 #include "4coder_long_base_commands.h"
