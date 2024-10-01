@@ -99,9 +99,6 @@ F4_PosContext_Render(Application_Links *app, View_ID view, Buffer_ID buffer,
     F4_Language *language = F4_LanguageFromBuffer(app, buffer);
     f32 padding = 4.f;
     
-    view_rect.x0 += padding * 4;
-    view_rect.x1 -= padding * 2;
-    
     if(language != 0)
     {
         

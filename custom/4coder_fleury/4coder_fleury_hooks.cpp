@@ -234,13 +234,12 @@ F4_RenderBuffer(Application_Links *app, View_ID view_id, Face_ID face_id,
     {
         case FCoderMode_Original:
         {
-            F4_Cursor_RenderEmacsStyle(app, view_id, is_active_view, buffer, text_layout_id, cursor_roundness, mark_thickness, frame_info);
+            Long_Render_EmacsCursor(app, view_id, is_active_view, buffer, text_layout_id, cursor_roundness, mark_thickness, frame_info);
         }break;
         
         case FCoderMode_NotepadLike:
         {
-            F4_Cursor_RenderNotepadStyle(app, view_id, is_active_view, buffer, text_layout_id, cursor_roundness,
-                                         mark_thickness, frame_info);
+            Long_Render_NotepadCursor(app, view_id, is_active_view, buffer, text_layout_id, cursor_roundness, mark_thickness, frame_info);
             break;
         }
     }
@@ -376,7 +375,33 @@ F4_DrawFileBar(Application_Links *app, View_ID view_id, Buffer_ID buffer, Face_I
     
     Fancy_Line list = {};
     String_Const_u8 unique_name = push_buffer_unique_name(app, scratch, buffer);
-    push_fancy_string (scratch, &list, base_color, unique_name);
+    push_fancy_string(scratch, &list, base_color, unique_name);
+    
+    if (buffer == get_comp_buffer(app))
+    {
+        String8 str = push_whole_buffer(app, scratch, buffer);
+        u32 counts[2] = {};
+        for (u64 i = 0; i < str.size; ++i)
+        {
+            String8 searches[] = { S8Lit(": error"), S8Lit(": warning") };
+            for (u64 search = 0; search < ArrayCount(searches); ++search)
+            {
+                String8 substr = string_substring(str, Ii64_size(i, searches[search].size));
+                if (string_match(substr, searches[search], StringMatch_CaseInsensitive))
+                {
+                    i += substr.size - 1;
+                    counts[search]++;
+                    break;
+                }
+            }
+        }
+        
+        i64 line_count = buffer_get_line_count(app, buffer);
+        push_fancy_stringf(scratch, &list, base_color, " - Line Count: %3llu - %3u Error(s) %3u Warning(s)",
+                           line_count, counts[0], counts[1]);
+        goto END;
+    }
+    
     push_fancy_stringf(scratch, &list, base_color, ": %d", buffer);
     push_fancy_stringf(scratch, &list, base_color, " - Row: %3.lld Col: %3.lld Pos: %4lld -", cursor.line, cursor.col, cursor.pos);
     
@@ -423,6 +448,7 @@ F4_DrawFileBar(Application_Links *app, View_ID view_id, Buffer_ID buffer, Face_I
     b32 enable_virtual_whitespace = def_get_config_b32(vars_save_string_lit("enable_virtual_whitespace"));
     push_fancy_string(scratch, &list, base_color, enable_virtual_whitespace ? S8Lit("On") : S8Lit("Off"));
     
+    END:
     Vec2_f32 p = bar.p0 + V2f32(2.f, 2.f);
     draw_fancy_line(app, face_id, fcolor_zero(), &list, p);
     

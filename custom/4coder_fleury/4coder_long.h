@@ -290,6 +290,7 @@
 //~ TODO REPLACE/NAVIGATE
 // [ ] Upper/Lower a character
 // [ ] Jump to location with relative path
+// [X] Improve panel switching between normal ones and compilation panel
 
 //~ TODO LISTER
 // [ ] Show recent entries first
@@ -310,8 +311,8 @@
 // [ ] Render #if block with annotation
 
 //- COMPILATION
-// [ ] Display error/warning count on the file bar
-// [ ] Render warning with a different color
+// [X] Display error/warning count on the file bar
+// [X] Update the cursor position in the *compilation* buffer
 
 //~ TODO CODE/ARCHITECTURE
 
@@ -338,15 +339,31 @@
 // [ ] Fix undo/redo_all_buffers bug
 // [ ] Fix open query bar with Alt inside a lister
 
-#include "4coder_long_index.h"
-#include "4coder_long_base_commands.h"
-#include "4coder_long_lister.h"
-
-#if LONG_ENABLE_PROFILE
-#include "4coder_profile_static_enable.cpp"
-#else
-#include "4coder_profile_static_disable.cpp"
+//~ NOTE(rjf): For DION team docs server stuff.
+// {
+#if OS_WINDOWS
+#include <WinSock2.h>
+#include <Ws2tcpip.h>
+#include <windows.h>
+typedef int socklen_t;
+#pragma comment(lib, "Ws2_32.lib")
 #endif
+// }
+
+//~ NOTE(long): @long_macros and default include
+#define LONG_INDEX_INDENT_STATEMENT 1
+#define LONG_INDEX_INLINE 1
+#define LONG_INDEX_INSERT_QUEUE 1
+#define LONG_INDEX_GET_COLOR 1
+#define LONG_INDEX_INDENT_PAREN 0
+#define LONG_INDEX_CODE_PEEK 1
+#define LONG_INDEX_POS_CONTEXT 1
+
+#define LONG_CS_LEXER 1
+#define LONG_LISTER_OVERLOAD 1
+
+#define LONG_ENABLE_INDEX_PROFILE 1
+#define LONG_ENABLE_PROFILE 0
 
 #if LONG_ENABLE_INDEX_PROFILE
 #define Long_Index_ProfileScope(T, N) ProfileScope(T, N)
@@ -356,11 +373,401 @@
 #define Long_Index_ProfileBlock(...)
 #endif
 
-#elif !defined(FCODER_LONG_CPP)
-#define FCODER_LONG_CPP
+//~ NOTE(rjf): Macros and pragmase stuff that have to be put here for various reasons
+#include <stdlib.h>
+#include <stdio.h>
+#include <string.h>
+#include "4coder_default_include.cpp"
+#pragma warning(disable : 4706)
+#pragma warning(disable : 4456)
+#define COMMAND_SERVER_PORT 4041
+#define COMMAND_SERVER_UPDATE_PERIOD_MS 200
+#define COMMAND_SERVER_AUTO_LAUNCH_IF_FILE_PRESENT "project_namespaces.txt"
 
+//~ NOTE(rjf): @f4_headers
+#include "4coder_fleury_ubiquitous.h"
+#include "4coder_fleury_audio.h"
+#include "4coder_fleury_lang.h"
+#include "4coder_fleury_index.h"
+#include "4coder_fleury_colors.h"
+#include "4coder_fleury_render_helpers.h"
+#include "4coder_fleury_brace.h"
+#include "4coder_fleury_error_annotations.h"
+#include "4coder_fleury_divider_comments.h"
+#include "4coder_fleury_power_mode.h"
+#include "4coder_fleury_cursor.h"
+#include "4coder_fleury_plot.h"
+#include "4coder_fleury_calc.h"
+#include "4coder_fleury_lego.h"
+#include "4coder_fleury_pos_context_tooltips.h"
+#include "4coder_fleury_code_peek.h"
+#include "4coder_fleury_recent_files.h"
+#include "4coder_fleury_bindings.h"
+#if OS_WINDOWS
+#include "4coder_fleury_command_server.h"
+#endif
+#include "4coder_fleury_hooks.h"
+
+//~ NOTE(long): @long_headers
+#include "4coder_long_hooks.h"
+#include "4coder_long_index.h"
+#include "4coder_long_base_commands.h"
+#include "4coder_long_lister.h"
+
+//#elif !defined(FCODER_LONG_CPP)
+//#define FCODER_LONG_CPP
+
+//~ NOTE(rjf): @f4_src
+#include "4coder_fleury_ubiquitous.cpp"
+#include "4coder_fleury_audio.cpp"
+#include "4coder_fleury_lang.cpp"
+#include "4coder_fleury_index.cpp"
+#include "4coder_fleury_colors.cpp"
+#include "4coder_fleury_render_helpers.cpp"
+#include "4coder_fleury_brace.cpp"
+#include "4coder_fleury_error_annotations.cpp"
+#include "4coder_fleury_divider_comments.cpp"
+#include "4coder_fleury_power_mode.cpp"
+#include "4coder_fleury_cursor.cpp"
+#include "4coder_fleury_plot.cpp"
+#include "4coder_fleury_calc.cpp"
+#include "4coder_fleury_lego.cpp"
+#include "4coder_fleury_pos_context_tooltips.cpp"
+#include "4coder_fleury_code_peek.cpp"
+#include "4coder_fleury_recent_files.cpp"
+#include "4coder_fleury_bindings.cpp"
+#include "4coder_fleury_base_commands.cpp"
+#if OS_WINDOWS
+#include "4coder_fleury_command_server.cpp"
+#endif
+#include "4coder_fleury_casey.cpp"
+#include "4coder_fleury_hooks.cpp"
+
+//~ NOTE(long): @long_src
+#include "4coder_long_hooks.cpp"
 #include "4coder_long_index.cpp"
 #include "4coder_long_base_commands.cpp"
 #include "4coder_long_lister.cpp"
+
+#if LONG_ENABLE_PROFILE
+#include "4coder_profile_static_enable.cpp"
+#else
+#include "4coder_profile_static_disable.cpp"
+#endif
+
+//~ NOTE(rjf): Plots Demo File
+#include "4coder_fleury_plots_demo.cpp"
+
+//~ NOTE(rjf): 4coder Stuff
+#include "generated/managed_id_metadata.cpp"
+
+//~ NOTE(long): @long_custom_layer_initialization
+
+// @COPYPASTA(long): F4_SetAbsolutelyNecessaryBindings
+function void Long_SetBaseBindings(Mapping* mapping)
+{
+    String_ID global_map_id = vars_save_string_lit("keys_global");
+    String_ID file_map_id = vars_save_string_lit("keys_file");
+    String_ID code_map_id = vars_save_string_lit("keys_code");
+    
+    String_ID global_command_map_id = vars_save_string_lit("keys_global_1");
+    String_ID file_command_map_id = vars_save_string_lit("keys_file_1");
+    String_ID code_command_map_id = vars_save_string_lit("keys_code_1");
+    
+    implicit_map_function = F4_ImplicitMap;
+    
+    MappingScope();
+    SelectMapping(mapping);
+    
+    SelectMap(global_map_id);
+    BindCore(long_startup, CoreCode_Startup);
+    BindCore(default_try_exit, CoreCode_TryExit);
+    Bind(exit_4coder,          KeyCode_F4, KeyCode_Alt);
+    BindMouseWheel(mouse_wheel_scroll);
+    BindMouseWheel(mouse_wheel_change_face_size, KeyCode_Control);
+    
+    SelectMap(file_map_id);
+    ParentMap(global_map_id);
+    BindTextInput(f4_write_text_input);
+    BindMouse(click_set_cursor_and_mark, MouseCode_Left);
+    BindMouseRelease(click_set_cursor, MouseCode_Left);
+    BindCore(click_set_cursor_and_mark, CoreCode_ClickActivateView);
+    BindMouseMove(click_set_cursor_if_lbutton);
+    
+    SelectMap(code_map_id);
+    ParentMap(file_map_id);
+    BindTextInput(long_write_text_and_auto_indent);
+    BindMouse(f4_lego_click_store_token_1, MouseCode_Right);
+    BindMouse(f4_lego_click_store_token_2, MouseCode_Middle);
+    
+    SelectMap(global_command_map_id);
+    ParentMap(global_map_id);
+    GlobalCommandMapReroute[0].From = global_map_id;
+    GlobalCommandMapReroute[0].To = global_command_map_id;
+    
+    SelectMap(file_command_map_id);
+    ParentMap(global_command_map_id);
+    GlobalCommandMapReroute[1].From = file_map_id;
+    GlobalCommandMapReroute[1].To = file_command_map_id;
+    
+    SelectMap(code_command_map_id);
+    ParentMap(file_command_map_id);
+    GlobalCommandMapReroute[2].From = code_map_id;
+    GlobalCommandMapReroute[2].To = code_command_map_id;
+}
+
+void custom_layer_init(Application_Links* app)
+{
+    default_framework_init(app);
+    global_frame_arena = make_arena(get_base_allocator_system());
+    permanent_arena = make_arena(get_base_allocator_system());
+    
+    // NOTE(rjf): Set up hooks.
+    {
+        set_all_default_hooks(app);
+        set_custom_hook(app, HookID_Tick,                    Long_Tick);
+        set_custom_hook(app, HookID_RenderCaller,            F4_Render);
+        set_custom_hook(app, HookID_BeginBuffer,             F4_BeginBuffer);
+        set_custom_hook(app, HookID_Layout,                  F4_Layout);
+        set_custom_hook(app, HookID_WholeScreenRenderCaller, F4_WholeScreenRender);
+        set_custom_hook(app, HookID_DeltaRule,               F4_DeltaRule);
+        set_custom_hook(app, HookID_BufferEditRange,         F4_BufferEditRange);
+        set_custom_hook_memory_size(app, HookID_DeltaRule,   delta_ctx_size(sizeof(Vec2_f32)));
+        
+        set_custom_hook(app, HookID_EndBuffer, Long_EndBuffer);
+        set_custom_hook(app, HookID_SaveFile,  Long_SaveFile);
+    }
+    
+    // NOTE(rjf): Set up mapping.
+    {
+        Thread_Context* tctx = get_thread_context(app);
+        mapping_init(tctx, &framework_mapping);
+        String_Const_u8 bindings_file = string_u8_litexpr("bindings.4coder");
+        if (!dynamic_binding_load_from_file(app, &framework_mapping, bindings_file))
+            F4_SetDefaultBindings(&framework_mapping); // TODO(long)
+        Long_SetBaseBindings(&framework_mapping);
+    }
+    
+    // TODO(long): Improve the index and language layers.
+    F4_Index_Initialize();
+    F4_RegisterLanguages();
+}
+
+CUSTOM_COMMAND_SIG(long_startup)
+CUSTOM_DOC("Long startup event")
+{
+    ProfileScope(app, "default startup");
+    
+    User_Input input = get_current_input(app);
+    if (!match_core_code(&input, CoreCode_Startup))
+        return;
+    
+    //- NOTE(rjf): Default 4coder initialization.
+    {
+        String8Array file_names = input.event.core.file_names;
+        load_themes_default_folder(app);
+        default_4coder_initialize(app, file_names);
+    }
+    
+    //- NOTE(rjf): Open special buffers.
+    Buffer_ID comp_buffer, left_buffer, right_buffer;
+    {
+        Buffer_Create_Flag special_flags = BufferCreate_NeverAttachToFile|BufferCreate_AlwaysNew;
+        
+        comp_buffer = create_buffer(app, string_u8_litexpr("*compilation*"), special_flags);
+        buffer_set_setting(app, comp_buffer, BufferSetting_Unimportant, true);
+        buffer_set_setting(app, comp_buffer, BufferSetting_ReadOnly, true);
+        buffer_set_setting(app, comp_buffer, BufferSetting_Unkillable, true);
+        
+        Buffer_ID lego_buffer = create_buffer(app, string_u8_litexpr("*lego*"), special_flags);
+        buffer_set_setting(app, lego_buffer, BufferSetting_Unimportant, true);
+        buffer_set_setting(app, lego_buffer, BufferSetting_ReadOnly, true);
+        
+        Buffer_ID calc_buffer = create_buffer(app, string_u8_litexpr("*calc*"), special_flags);
+        buffer_set_setting(app, calc_buffer, BufferSetting_Unimportant, true);
+        
+        Buffer_ID peek_buffer = create_buffer(app, string_u8_litexpr("*peek*"), special_flags);
+        buffer_set_setting(app, peek_buffer, BufferSetting_Unimportant, true);
+        
+        Buffer_ID loc_buffer = create_buffer(app, string_u8_litexpr("*loc*"), special_flags);
+        buffer_set_setting(app, loc_buffer, BufferSetting_Unimportant, true);
+        
+        left_buffer  = get_buffer_by_name(app, S8Lit( "*scratch*"), 0);
+        right_buffer = get_buffer_by_name(app, S8Lit("*messages*"), 0);
+    }
+    
+    //- NOTE(rjf): Initialize panels
+    {
+        // NOTE(rjf): Left Panel
+        View_ID view = get_active_view(app, Access_Always);
+        new_view_settings(app, view);
+        view_set_buffer(app, view, left_buffer, 0);
+        
+        // NOTE(rjf): Bottom panel
+        View_ID compilation_view = 0;
+        {
+            compilation_view = open_view(app, view, ViewSplit_Bottom);
+            new_view_settings(app, compilation_view);
+            Buffer_ID buffer = view_get_buffer(app, compilation_view, Access_Always);
+            Face_ID face_id = get_face_id(app, buffer);
+            Face_Metrics metrics = get_face_metrics(app, face_id);
+            view_set_split_pixel_size(app, compilation_view, (i32)(metrics.line_height*4.f));
+            view_set_passive(app, compilation_view, true);
+            global_compilation_view = compilation_view;
+            view_set_buffer(app, compilation_view, comp_buffer, 0);
+        }
+        
+        view_set_active(app, view);
+        
+        // NOTE(rjf): Right Panel
+        open_panel_vsplit(app);
+        View_ID right_view = get_active_view(app, Access_Always);
+        view_set_buffer(app, right_view, right_buffer, 0);
+        
+        // NOTE(rjf): Restore Active to Left
+        view_set_active(app, view);
+    }
+    
+    //- NOTE(rjf): Auto-Load Project.
+    {
+        b32 auto_load = def_get_config_b32(vars_save_string_lit("automatically_load_project"));
+        if (auto_load)
+            load_project(app);
+    }
+    
+    //- NOTE(long): Open most recent modified files on startup
+    {
+        Scratch_Block scratch(app);
+        u64 last_write[2] = {};
+        Buffer_ID recent_buffers[2];
+        
+        String8 treat_as_code_string = def_get_config_string(scratch, vars_save_string_lit("treat_as_code"));
+        String8Array extensions = parse_extension_line_to_extension_list(app, scratch, treat_as_code_string);
+        
+        for (Buffer_ID buffer = get_buffer_next(app, 0, 0); buffer; buffer = get_buffer_next(app, buffer, 0))
+        {
+            Temp_Memory_Block temp(scratch);
+            String8 filename = push_buffer_file_name(app, scratch, buffer);
+            
+            i64 unimportant = 0, readonly = 0, is_code_file = 0;
+            buffer_get_setting(app, buffer, BufferSetting_Unimportant, &unimportant);
+            buffer_get_setting(app, buffer, BufferSetting_ReadOnly, &readonly);
+            is_code_file = Long_Index_IsMatch(string_file_extension(filename), extensions.strings, extensions.count);
+            
+            if (filename.size && !unimportant && !readonly && is_code_file)
+            {
+                File_Attributes att = system_quick_file_attributes(scratch, filename);
+                if (att.last_write_time > last_write[0])
+                {
+                    last_write[1] = last_write[0];
+                    recent_buffers[1] = recent_buffers[0];
+                    
+                    last_write[0] = att.last_write_time;
+                    recent_buffers[0] = buffer;
+                }
+                
+                else if (att.last_write_time > last_write[1])
+                {
+                    last_write[1] = att.last_write_time;
+                    recent_buffers[1] = buffer;
+                }
+            }
+        }
+        
+        String8 left  = push_buffer_unique_name(app, scratch, recent_buffers[0]);
+        String8 right = push_buffer_unique_name(app, scratch, recent_buffers[1]);
+        print_message(app, push_stringf(scratch, "Recent Files:\n  Left:  %.*s\n  Right: %.*s",
+                                        string_expand(left), string_expand(right)));
+        
+        u64 max_days_older = 7;
+        u64 days_older = (last_write[0] - last_write[1]) / (24*60*60*10000000ULL);
+        
+        if (days_older >= max_days_older)
+            print_message(app, push_stringf(scratch, " (%llu days older than left)", days_older));
+        print_message(app, S8Lit("\n\n"));
+        
+        View_ID view = get_active_view(app, 0);
+        view_set_buffer(app, view, recent_buffers[0], 0);
+        if (days_older < max_days_older)
+        {
+            view = get_next_view_looped_primary_panels(app, view, 0);
+            view_set_buffer(app, view, recent_buffers[1], 0);
+        }
+    }
+    
+    //- NOTE(rjf): Initialize audio.
+    def_audio_init();
+    
+    //- NOTE(rjf): Initialize stylish fonts.
+    {
+        Scratch_Block scratch(app);
+        String8 bin_path = system_get_path(scratch, SystemPath_Binary);
+        
+        // NOTE(rjf): Fallback font.
+        Face_ID fallback_font = get_face_id(app, 0);
+        
+        // NOTE(rjf): Title font.
+        {
+            Face_Description desc = {0};
+            {
+                desc.font.file_name =  push_u8_stringf(scratch, "%.*sfonts/RobotoCondensed-Regular.ttf", string_expand(bin_path));
+                desc.parameters.pt_size = 18;
+                desc.parameters.bold = 0;
+                desc.parameters.italic = 0;
+                desc.parameters.hinting = 0;
+            }
+            
+            global_styled_title_face = try_create_new_face(app, &desc);
+            if (!global_styled_title_face)
+                global_styled_title_face = fallback_font;
+        }
+        
+        // NOTE(rjf): Label font.
+        {
+            Face_Description desc = {0};
+            {
+                desc.font.file_name =  push_u8_stringf(scratch, "%.*sfonts/RobotoCondensed-Regular.ttf", string_expand(bin_path));
+                desc.parameters.pt_size = 10;
+                desc.parameters.bold = 1;
+                desc.parameters.italic = 1;
+                desc.parameters.hinting = 0;
+            }
+            
+            global_styled_label_face = try_create_new_face(app, &desc);
+            if (!global_styled_label_face)
+                global_styled_label_face = fallback_font;
+        }
+        
+        // NOTE(rjf): Small code font.
+        {
+            Face_Description normal_code_desc = get_face_description(app, fallback_font);
+            Face_Description desc = {0};
+            {
+                desc.font.file_name =  push_u8_stringf(scratch, "%.*sfonts/Inconsolata-Regular.ttf", string_expand(bin_path));
+                desc.parameters.pt_size = normal_code_desc.parameters.pt_size - 1;
+                desc.parameters.bold = 1;
+                desc.parameters.italic = 1;
+                desc.parameters.hinting = 0;
+            }
+            
+            global_small_code_face = try_create_new_face(app, &desc);
+            if (!global_small_code_face)
+                global_small_code_face = fallback_font;
+        }
+        
+        // NOTE(long): Set the *compilation* buffer font
+        {
+            set_fancy_compilation_buffer_font(app);
+            long_toggle_compilation_expand(app);
+            long_toggle_compilation_expand(app);
+        }
+    }
+    
+    //- NOTE(rjf): Prep virtual whitespace.
+    {
+        def_enable_virtual_whitespace = def_get_config_b32(vars_save_string_lit("enable_virtual_whitespace"));
+        clear_all_layouts(app);
+    }
+}
 
 #endif //FCODER_LONG_H

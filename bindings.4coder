@@ -2,21 +2,21 @@
 keys_global =
 {
     // NOTE(rjf): Meta
-    { "exit_4coder",                     "F4",     "Alt"              },
-    { "change_active_panel",             "Comma",  "Control"          },
-    { "change_active_panel_backwards",   "Comma",  "Control", "Shift" },
-    { "project_go_to_root_directory",    "H",      "Alt"              },
-    { "change_to_build_panel",           "Period", "Alt"              },
-    { "close_build_panel",               "Comma",  "Alt"              },
-    { "toggle_virtual_whitespace",       "Equal",  "Control"          },
+    { "exit_4coder",                        "F4",     "Alt"              },
+    { "long_change_active_panel",           "Comma",  "Control"          },
+    { "long_change_active_panel_backwards", "Comma",  "Control", "Shift" },
+    { "project_go_to_root_directory",       "H",      "Alt"              },
+    { "long_change_to_build_panel",         "Period", "Control"          },
+    { "close_build_panel",                  "Comma",  "Alt"              },
+    { "toggle_virtual_whitespace",          "Equal",  "Control"          },
     
-    { "long_macro_toggle_recording",     "U",      "Control"          },
-    { "keyboard_macro_replay",           "U",      "Control", "Shift" },
-    { "long_macro_repeat",               "U",      "Control", "Alt"   },
+    { "long_macro_toggle_recording",        "U",      "Control"          },
+    { "keyboard_macro_replay",              "U",      "Control", "Shift" },
+    { "long_macro_repeat",                  "U",      "Control", "Alt"   },
     
-    { "long_toggle_compilation_expand",  "Insert"                     },
-    { "long_toggle_panel_expand",        "Insert", "Control"          },
-    { "long_toggle_panel_expand_big",    "Insert", "Control", "Shift" },
+    { "long_toggle_compilation_expand",     "Insert"                     },
+    { "long_toggle_panel_expand",           "Insert", "Control"          },
+    { "long_toggle_panel_expand_big",       "Insert", "Control", "Shift" },
     
     // NOTE(jack): Ryan has these unbound
     { "toggle_filebar",                           "B", "Alt"              },

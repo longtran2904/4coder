@@ -54,7 +54,7 @@ push_fallback_command(Arena *arena){
 
 global_const Buffer_Identifier standard_build_build_buffer_identifier = buffer_identifier(string_u8_litexpr("*compilation*"));
 
-global_const u32 standard_build_exec_flags = CLI_OverlapWithConflict|CLI_SendEndSignal;
+global_const u32 standard_build_exec_flags = (CLI_OverlapWithConflict|CLI_SendEndSignal);
 
 static void
 standard_build_exec_command(Application_Links *app, View_ID view, String_Const_u8 dir, String_Const_u8 cmd){
@@ -66,7 +66,7 @@ standard_build_exec_command(Application_Links *app, View_ID view, String_Const_u
 function b32
 standard_search_and_build_from_dir(Application_Links *app, View_ID view, String_Const_u8 start_dir){
     Scratch_Block scratch(app);
-
+    
     // NOTE(allen): Search
     String_Const_u8 full_file_path = {};
     String_Const_u8 cmd_string  = {};
@@ -77,7 +77,7 @@ standard_search_and_build_from_dir(Application_Links *app, View_ID view, String_
             break;
         }
     }
-
+    
     b32 result = (full_file_path.size > 0);
     if (result){
         // NOTE(allen): Build
@@ -94,7 +94,7 @@ standard_search_and_build_from_dir(Application_Links *app, View_ID view, String_
         print_message(app, push_u8_stringf(scratch, "Building with: %.*s\n",
                                            string_expand(full_file_path)));
     }
-
+    
     return(result);
 }
 
@@ -163,12 +163,12 @@ CUSTOM_DOC("Looks for a build.bat, build.sh, or makefile in the current and pare
 {
     View_ID view = get_active_view(app, Access_Always);
     Buffer_ID buffer = view_get_buffer(app, view, Access_Always);
-
+    
     View_ID build_view = get_or_open_build_panel(app);
-
+    
     standard_search_and_build(app, build_view, buffer);
     set_fancy_compilation_buffer_font(app);
-
+    
     block_zero_struct(&prev_location);
     lock_jump_buffer(app, string_u8_litexpr("*compilation*"));
 }

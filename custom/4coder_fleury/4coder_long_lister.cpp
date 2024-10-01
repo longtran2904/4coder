@@ -31,7 +31,7 @@ function String8 Long_Lister_GetHeaderString(Application_Links* app, Arena* aren
         {
             case Long_Header_Path:
             {
-                String8 filepath = Long_Buffer_NameNoProjPath(app, arena, data.buffer);
+                String8 filepath = Long_Prj_RelBufferName(app, arena, data.buffer);
                 if (filepath.size)
                     result = push_stringf(arena, "[%.*s] ", string_expand(filepath));
             } break;

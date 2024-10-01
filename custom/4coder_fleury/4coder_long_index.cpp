@@ -401,6 +401,10 @@ function void Long_Tick(Application_Links* app, Frame_Info frame_info)
     linalloc_clear(&global_frame_arena);
     global_tooltip_count = 0;
     
+    View_ID view = get_active_view(app, 0);
+    if (view != global_compilation_view)
+        long_global_active_view = view;
+    
     F4_TickColors(app, frame_info);
     Long_Index_Tick(app);
     F4_CLC_Tick(frame_info);
@@ -1600,6 +1604,171 @@ function void Long_Index_DrawCodePeek(Application_Links* app, View_ID view)
 }
 
 //~ NOTE(long): Indent Functions
+
+// @COPYPASTA(long): generic_parse_statement
+function Code_Index_Nest*
+Long_Index_ParseGenericStatement(Code_Index_File *index, Generic_Parse_State *state){
+    generic_parse_skip_soft_tokens(index, state);
+    
+    Token *token = token_it_read(&state->it);
+    Code_Index_Nest *result = push_array_zero(state->arena, Code_Index_Nest, 1);
+    result->kind = CodeIndexNest_Statement;
+    result->open = Ii64(token->pos);
+    result->close = Ii64(max_i64);
+    result->file = index;
+    
+    state->in_statement = true;
+    
+    b32 is_keyword = 0;
+    if (token->kind == TokenBaseKind_Keyword)
+    {
+        String8 keywords[] =
+        {
+            S8Lit("if"), S8Lit("else"), S8Lit("do"),
+            S8Lit("for"), S8Lit("foreach"), S8Lit("while"),
+            S8Lit("try"), S8Lit("catch"), S8Lit("except"),
+        };
+        
+        Scratch_Block scratch(state->app);
+        String8 lexeme = push_token_lexeme(state->app, scratch, index->buffer, token);
+        for (u64 i = 0; i < ArrayCount(keywords); ++i)
+        {
+            if (string_match(lexeme, keywords[i]))
+            {
+                is_keyword = 1;
+                break;
+            }
+        }
+    }
+    
+    b32 is_metadesk = 0;
+    {
+        F4_Language* language = F4_LanguageFromBuffer(state->app, index->buffer);
+        if (language && language->IndexFile == F4_MD_IndexFile)
+            is_metadesk = 1;
+    }
+    
+    b32 is_operator = token->kind == TokenBaseKind_Operator;
+    
+    i64 start_paren_pos = 0;
+    Token_Iterator_Array restored = state->it;
+    if (token_it_inc(&state->it))
+    {
+        Token* next = token_it_read(&state->it);
+        if (next->kind == TokenBaseKind_ParentheticalOpen)
+            start_paren_pos = next->pos;
+        
+        if (next->kind == TokenBaseKind_Operator)
+            is_operator = 1;
+        
+        // NOTE(long): I reset the state here rather than calling token_it_dec because the state could have been at a whitespace/comment.
+        // token_it_dec will decrease past the previous point, causing an infinite loop.
+        // Ex: #define SomeMacro { (
+        state->it = restored;
+    }
+    
+    for (b32 first_time = 1; ; first_time = 0){
+        generic_parse_skip_soft_tokens(index, state);
+        token = token_it_read(&state->it);
+        if (token == 0 || state->finished){
+            break;
+        }
+        
+        if (state->in_preprocessor){
+            if (!HasFlag(token->flags, TokenBaseFlag_PreprocessorBody) ||
+                token->kind == TokenBaseKind_Preprocessor){
+                result->is_closed = true;
+                result->close = Ii64(token->pos);
+                break;
+            }
+        }
+        else{
+            if (token->kind == TokenBaseKind_Preprocessor){
+                result->is_closed = true;
+                result->close = Ii64(token->pos);
+                break;
+            }
+        }
+        
+        if (is_keyword && token->pos == start_paren_pos)
+        {
+            Code_Index_Nest *nest = generic_parse_paren(index, state);
+            nest->parent = result;
+            code_index_push_nest(&result->nest_list, nest);
+            
+            // NOTE(long): After a parenthetical group we consider ourselves immediately transitioning into a statement
+            nest = generic_parse_statement(index, state);
+            nest->parent = result;
+            code_index_push_nest(&result->nest_list, nest);
+            Range_i64 close = nest->close;
+            
+            token = token_it_read(&state->it);
+            // NOTE(long): Check if the child statement was ended by a scope open
+            if (token->pos != nest->open.max && token->kind == TokenBaseKind_ScopeOpen)
+            {
+                nest = generic_parse_scope(index, state);
+                nest->parent = result;
+                code_index_push_nest(&result->nest_list, nest);
+                close = Ii64(nest->close.max);
+            }
+            
+            result->is_closed = nest->is_closed;
+            result->close = close;
+            break;
+        }
+        
+        if (!first_time && token->kind == TokenBaseKind_ParentheticalOpen)
+        {
+            Code_Index_Nest* nest = generic_parse_paren(index, state);
+            nest->parent = result;
+            code_index_push_nest(&result->nest_list, nest);
+            continue;
+        }
+        
+        if (is_metadesk)
+        {
+            //if (is_tag || token->kind == TokenBaseKind_LiteralString)
+            if (!is_operator)
+            {
+                result->is_closed = true;
+                result->close = Ii64(token);
+                generic_parse_inc(state);
+                break;
+            }
+        }
+        
+        if (state->paren_counter > 0 && token->kind == TokenBaseKind_ParentheticalClose)
+        {
+            result->is_closed = true;
+            result->close = Ii64(token->pos);
+            break;
+        }
+        
+        if (token->kind == TokenBaseKind_ScopeOpen  ||
+            token->kind == TokenBaseKind_ScopeClose ||
+            token->kind == TokenBaseKind_ParentheticalOpen // NOTE(long): This case can only be true on the first iteration
+            )
+        {
+            result->is_closed = true;
+            result->close = Ii64(token->pos);
+            break;
+        }
+        
+        if (token->kind == TokenBaseKind_StatementClose){
+            result->is_closed = true;
+            result->close = Ii64(token);
+            generic_parse_inc(state);
+            break;
+        }
+        
+        generic_parse_inc(state);
+    }
+    
+    result->nest_array = code_index_nest_ptr_array_from_list(state->arena, &result->nest_list);
+    state->in_statement = false;
+    
+    return(result);
+}
 
 function void Long_Index_IndentBuffer(Application_Links* app, Buffer_ID buffer, Range_i64 pos,
                                       Indent_Flag flags, i32 tab_width, i32 indent_width)
