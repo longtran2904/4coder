@@ -25,7 +25,7 @@ keys_global =
     
     // NOTE(rjf): Files
     { "interactive_new",                         "N", "Control"          },
-    { "setup_new_project",                       "N", "Control", "Shift" },
+    { "long_setup_new_project",                  "N", "Control", "Shift" },
     { "interactive_open_or_new",                 "O", "Control"          },
     { "f4_interactive_open_or_new_in_project",   "O", "Alt"              },
     { "f4_open_project",                         "O", "Control", "Shift" },
@@ -217,8 +217,8 @@ keys_file =
     { "long_history_lister",                           "H", "Control" },
     
     // NOTE(rjf): Code Peek
-    { "f4_code_peek",                   "Tick", "Control" },
-    { "f4_code_peek_yank",              "Tick", "Control", "Shift" },
+    { "long_code_peek",                   "Tick", "Control" },
+    //{ "f4_code_peek_yank",              "Tick", "Control", "Shift" },
     
     // NOTE(long): Pos Context
     { "long_toggle_pos_context",               "Tick" , "Alt" },

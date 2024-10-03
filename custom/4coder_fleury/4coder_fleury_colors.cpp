@@ -76,19 +76,17 @@ enum
 struct ColorCtx
 {
     Token token;
-    Token_Array* array;
     Buffer_ID buffer;
     ColorFlags flags;
     keybinding_mode mode;
 };
 
 internal ColorCtx
-ColorCtx_Token(Token token, Buffer_ID buffer, Token_Array* array)
+ColorCtx_Token(Token token, Buffer_ID buffer)
 {
     ColorCtx ctx = {0};
     ctx.token = token;
     ctx.buffer = buffer;
-    ctx.array = array;
     return ctx;
 }
 
@@ -142,14 +140,10 @@ F4_GetColor(Application_Links *app, ColorCtx ctx)
         {
             case TokenBaseKind_Identifier:
             {
-#if LONG_INDEX_GET_COLOR
-                F4_Index_Note* note = Long_Index_LookupBestNote(app, ctx.buffer, ctx.array, &ctx.token);
-#else
-                String_Const_u8 string = push_buffer_range(app, scratch, ctx.buffer, Ii64(&ctx.token));
+                String_Const_u8 string = push_buffer_range(app, scratch, ctx.buffer, Ii64(ctx.token.pos, ctx.token.pos + ctx.token.size));
                 F4_Index_Note *note = F4_Index_LookupNote(string);
-#endif
                 
-                if(note)
+                if (note)
                 {
                     color = 0xffff0000;
                     switch(note->kind)
@@ -285,7 +279,7 @@ F4_SyntaxHighlight(Application_Links *app, Text_Layout_ID text_layout_id, Token_
             break;
         }
         
-        ARGB_Color argb = F4_GetColor(app, ColorCtx_Token(*token, buffer, array));
+        ARGB_Color argb = F4_GetColor(app, ColorCtx_Token(*token, buffer));
         paint_text_color(app, text_layout_id, Ii64_size(token->pos, token->size), argb);
         
         // NOTE(rjf): Substrings from comments

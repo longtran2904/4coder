@@ -10,11 +10,6 @@
 // modify them slightly (I did do some of it, search for all the COPYPASTA comments). There are also multiple
 // bugs in the original layers that I fixed. That's why a lot of code still depends on these modified files:
 
-//- @long_init_files
-// I never actually wrote my own custom_layer_init function to setup all the necessary hooks.
-// I just modified the one from 4coder_fleury.cpp and included all my files there.
-// I also put some additional includes and forward declarations in 4coder_default_include.cpp
-
 //- @long_index_files
 
 // @important
@@ -46,35 +41,10 @@
 // 4coder_fleury_lang_cpp.cpp: Modify the F4_CPP_PosContext hook to work with my new position-context system
 // (I should just write a new cpp parser at some point)
 
-//- @long_render_files
-
-// 4coder_fleury_hooks.cpp
-// - F4_RenderBuffer: Read the RENDER section in @long_index_intro for more details
-// - F4_DrawFileBar: I redesign the file bar slightly, this is optional
-
-// 4coder_fleury_cursor.cpp:
-// - For some reason, F4_Cursor_RenderEmacsStyle doesn't use outline_thickness when render the cursor.
-//   This's probably a bug, so I change the two C4_RenderCursorSymbolThingy calls.
-// - Replace draw_highlight_range with Long_Highlight_DrawRange
-//   This is for the "search for whitespace when enabling virtual whitespace" bug. More detail here:
-//   https://discord.com/channels/657067375681863699/657067375681863703/1167466549339234384
-
-//- @long_project_files
-// 4coder_fleury_base_commands.cpp: f4_setup_new_project
-// 4coder_project_commands.cpp: prj_open_files_pattern_filter__rec and load_project (@long_commands for more info)
-// 4coder_project_commands.h: Add the PrjOpenFileFlag_ReadOnly flag
-// 4coder_config.cpp: Call Long_UpdateCurrentTheme in load_config_and_apply (@long_commands for more info)
-
 //- @4coder_lister_base
 // The entire Lister system is a drop-in file, to use it just call Long_Lister_Run rather than run_lister.
 // Most of the default commands call run_lister so "upgrading" all those commands to the new system requires
 // a lot of work. I choose the simplest way of #define run_lister to Long_Lister_Run.
-
-//- @4coder_base_commands
-// There's a bug in the redo command in 4coder_base_commands.cpp where it gets the wrong record info.
-// I fixed it in the long_redo command (read @long_history_intro for more details as to what change)
-// without touching the base file, change the base command directly if you want:
-// https://discord.com/channels/657067375681863699/657067375681863703/1008430045548789840
 
 //~ @features 4coder Long Feature/Option List
 
@@ -283,14 +253,14 @@
 //   Then it will try to find the theme that was being used and select it. It'll do it by calling
 //   Long_UpdateCurrentTheme in the theme lister and on startup.
 
-// - load_project: I modified this command to work with the new reference library concept.
+// - long_load_project: I modified this command to work with the new reference library concept.
 //   Each project file can now contain an array of reference paths (set inside the reference_paths variable)
 //   When this command runs, it will recursively load all files in those paths as read-only and unimportant
 
 //~ TODO REPLACE/NAVIGATE
 // [ ] Upper/Lower a character
 // [ ] Jump to location with relative path
-// [X] Improve panel switching between normal ones and compilation panel
+// [ ] Jump to definition/buffer in comment/string
 
 //~ TODO LISTER
 // [ ] Show recent entries first
@@ -304,15 +274,12 @@
 //- LISTER
 // [ ] Put ... after a large item and scroll its content horizontally over time
 // [ ] Has syntax highlight inside each item's contents
+// [ ] Improve relative path display in the file lister
 
 //- INDEX
 // [ ] Autocompletion using PosContext or casey/jack's system
 // [ ] String/Comment indenting as code
 // [ ] Render #if block with annotation
-
-//- COMPILATION
-// [X] Display error/warning count on the file bar
-// [X] Update the cursor position in the *compilation* buffer
 
 //~ TODO CODE/ARCHITECTURE
 
@@ -339,27 +306,21 @@
 // [ ] Fix undo/redo_all_buffers bug
 // [ ] Fix open query bar with Alt inside a lister
 
-//~ NOTE(rjf): For DION team docs server stuff.
-// {
-#if OS_WINDOWS
-#include <WinSock2.h>
-#include <Ws2tcpip.h>
-#include <windows.h>
-typedef int socklen_t;
-#pragma comment(lib, "Ws2_32.lib")
-#endif
-// }
+//~ TODO MUST
+// [ ] Undo/redo/indent history
+// [ ] undo/redo_all_buffers right after saving
+// [ ] Search/list identifiers
+// [ ] Multi select the buffer under the search buffer
+// [ ] Implement a tab system using byp_qol
+// [ ] Show the *message* buffer on startup when there's an error or there're new messages
+// [ ] Advanced AlphaNumericUpperLowerUnderscore navigation
 
 //~ NOTE(long): @long_macros and default include
 #define LONG_INDEX_INDENT_STATEMENT 1
 #define LONG_INDEX_INLINE 1
 #define LONG_INDEX_INSERT_QUEUE 1
-#define LONG_INDEX_GET_COLOR 1
 #define LONG_INDEX_INDENT_PAREN 0
-#define LONG_INDEX_CODE_PEEK 1
-#define LONG_INDEX_POS_CONTEXT 1
 
-#define LONG_CS_LEXER 1
 #define LONG_LISTER_OVERLOAD 1
 
 #define LONG_ENABLE_INDEX_PROFILE 1
@@ -374,80 +335,61 @@ typedef int socklen_t;
 #endif
 
 //~ NOTE(rjf): Macros and pragmase stuff that have to be put here for various reasons
-#include <stdlib.h>
-#include <stdio.h>
 #include <string.h>
 #include "4coder_default_include.cpp"
 #pragma warning(disable : 4706)
-#pragma warning(disable : 4456)
-#define COMMAND_SERVER_PORT 4041
-#define COMMAND_SERVER_UPDATE_PERIOD_MS 200
-#define COMMAND_SERVER_AUTO_LAUNCH_IF_FILE_PRESENT "project_namespaces.txt"
 
 //~ NOTE(rjf): @f4_headers
 #include "4coder_fleury_ubiquitous.h"
-#include "4coder_fleury_audio.h"
 #include "4coder_fleury_lang.h"
 #include "4coder_fleury_index.h"
 #include "4coder_fleury_colors.h"
 #include "4coder_fleury_render_helpers.h"
+
+//~ NOTE(long): @f4_optional_headers
 #include "4coder_fleury_brace.h"
 #include "4coder_fleury_error_annotations.h"
 #include "4coder_fleury_divider_comments.h"
-#include "4coder_fleury_power_mode.h"
-#include "4coder_fleury_cursor.h"
+#include "4coder_fleury_recent_files.h"
 #include "4coder_fleury_plot.h"
 #include "4coder_fleury_calc.h"
-#include "4coder_fleury_lego.h"
-#include "4coder_fleury_pos_context_tooltips.h"
-#include "4coder_fleury_code_peek.h"
-#include "4coder_fleury_recent_files.h"
-#include "4coder_fleury_bindings.h"
-#if OS_WINDOWS
-#include "4coder_fleury_command_server.h"
-#endif
-#include "4coder_fleury_hooks.h"
 
 //~ NOTE(long): @long_headers
 #include "4coder_long_hooks.h"
 #include "4coder_long_index.h"
 #include "4coder_long_base_commands.h"
 #include "4coder_long_lister.h"
+#include "4coder_long_render.h"
 
-//#elif !defined(FCODER_LONG_CPP)
-//#define FCODER_LONG_CPP
+#define F4_PowerMode_CharacterPressed(...)
+#define F4_PowerMode_Spawn(...)
+
+#pragma warning(disable : 4456)
 
 //~ NOTE(rjf): @f4_src
 #include "4coder_fleury_ubiquitous.cpp"
-#include "4coder_fleury_audio.cpp"
 #include "4coder_fleury_lang.cpp"
 #include "4coder_fleury_index.cpp"
 #include "4coder_fleury_colors.cpp"
 #include "4coder_fleury_render_helpers.cpp"
+#include "4coder_fleury_base_commands.cpp"
+
+//~ NOTE(long): @f4_optional_src
 #include "4coder_fleury_brace.cpp"
 #include "4coder_fleury_error_annotations.cpp"
 #include "4coder_fleury_divider_comments.cpp"
-#include "4coder_fleury_power_mode.cpp"
-#include "4coder_fleury_cursor.cpp"
+#include "4coder_fleury_recent_files.cpp"
 #include "4coder_fleury_plot.cpp"
 #include "4coder_fleury_calc.cpp"
-#include "4coder_fleury_lego.cpp"
-#include "4coder_fleury_pos_context_tooltips.cpp"
-#include "4coder_fleury_code_peek.cpp"
-#include "4coder_fleury_recent_files.cpp"
-#include "4coder_fleury_bindings.cpp"
-#include "4coder_fleury_base_commands.cpp"
-#if OS_WINDOWS
-#include "4coder_fleury_command_server.cpp"
-#endif
-#include "4coder_fleury_casey.cpp"
-#include "4coder_fleury_hooks.cpp"
+
+#pragma warning(default : 4456)
 
 //~ NOTE(long): @long_src
 #include "4coder_long_hooks.cpp"
 #include "4coder_long_index.cpp"
 #include "4coder_long_base_commands.cpp"
 #include "4coder_long_lister.cpp"
+#include "4coder_long_render.cpp"
 
 #if LONG_ENABLE_PROFILE
 #include "4coder_profile_static_enable.cpp"
@@ -455,26 +397,19 @@ typedef int socklen_t;
 #include "4coder_profile_static_disable.cpp"
 #endif
 
-//~ NOTE(rjf): Plots Demo File
-#include "4coder_fleury_plots_demo.cpp"
-
 //~ NOTE(rjf): 4coder Stuff
 #include "generated/managed_id_metadata.cpp"
 
 //~ NOTE(long): @long_custom_layer_initialization
 
-// @COPYPASTA(long): F4_SetAbsolutelyNecessaryBindings
-function void Long_SetBaseBindings(Mapping* mapping)
+// @COPYPASTA(long): setup_essential_mapping
+function void Long_SetupEssentialBindings(Mapping* mapping)
 {
     String_ID global_map_id = vars_save_string_lit("keys_global");
     String_ID file_map_id = vars_save_string_lit("keys_file");
     String_ID code_map_id = vars_save_string_lit("keys_code");
     
-    String_ID global_command_map_id = vars_save_string_lit("keys_global_1");
-    String_ID file_command_map_id = vars_save_string_lit("keys_file_1");
-    String_ID code_command_map_id = vars_save_string_lit("keys_code_1");
-    
-    implicit_map_function = F4_ImplicitMap;
+    implicit_map_function = default_implicit_map;
     
     MappingScope();
     SelectMapping(mapping);
@@ -488,7 +423,7 @@ function void Long_SetBaseBindings(Mapping* mapping)
     
     SelectMap(file_map_id);
     ParentMap(global_map_id);
-    BindTextInput(f4_write_text_input);
+    BindTextInput(write_text_input);
     BindMouse(click_set_cursor_and_mark, MouseCode_Left);
     BindMouseRelease(click_set_cursor, MouseCode_Left);
     BindCore(click_set_cursor_and_mark, CoreCode_ClickActivateView);
@@ -497,23 +432,6 @@ function void Long_SetBaseBindings(Mapping* mapping)
     SelectMap(code_map_id);
     ParentMap(file_map_id);
     BindTextInput(long_write_text_and_auto_indent);
-    BindMouse(f4_lego_click_store_token_1, MouseCode_Right);
-    BindMouse(f4_lego_click_store_token_2, MouseCode_Middle);
-    
-    SelectMap(global_command_map_id);
-    ParentMap(global_map_id);
-    GlobalCommandMapReroute[0].From = global_map_id;
-    GlobalCommandMapReroute[0].To = global_command_map_id;
-    
-    SelectMap(file_command_map_id);
-    ParentMap(global_command_map_id);
-    GlobalCommandMapReroute[1].From = file_map_id;
-    GlobalCommandMapReroute[1].To = file_command_map_id;
-    
-    SelectMap(code_command_map_id);
-    ParentMap(file_command_map_id);
-    GlobalCommandMapReroute[2].From = code_map_id;
-    GlobalCommandMapReroute[2].To = code_command_map_id;
 }
 
 void custom_layer_init(Application_Links* app)
@@ -522,30 +440,37 @@ void custom_layer_init(Application_Links* app)
     global_frame_arena = make_arena(get_base_allocator_system());
     permanent_arena = make_arena(get_base_allocator_system());
     
-    // NOTE(rjf): Set up hooks.
+    // NOTE(long): Set up hooks.
     {
         set_all_default_hooks(app);
         set_custom_hook(app, HookID_Tick,                    Long_Tick);
-        set_custom_hook(app, HookID_RenderCaller,            F4_Render);
-        set_custom_hook(app, HookID_BeginBuffer,             F4_BeginBuffer);
-        set_custom_hook(app, HookID_Layout,                  F4_Layout);
-        set_custom_hook(app, HookID_WholeScreenRenderCaller, F4_WholeScreenRender);
-        set_custom_hook(app, HookID_DeltaRule,               F4_DeltaRule);
-        set_custom_hook(app, HookID_BufferEditRange,         F4_BufferEditRange);
+        set_custom_hook(app, HookID_RenderCaller,            Long_Render);
+        set_custom_hook(app, HookID_BeginBuffer,             Long_BeginBuffer);
+        set_custom_hook(app, HookID_Layout,                  Long_Layout);
+        set_custom_hook(app, HookID_DeltaRule,               Long_DeltaRule);
+        set_custom_hook(app, HookID_BufferEditRange,         Long_BufferEditRange);
         set_custom_hook_memory_size(app, HookID_DeltaRule,   delta_ctx_size(sizeof(Vec2_f32)));
         
         set_custom_hook(app, HookID_EndBuffer, Long_EndBuffer);
         set_custom_hook(app, HookID_SaveFile,  Long_SaveFile);
     }
     
-    // NOTE(rjf): Set up mapping.
+    // NOTE(long): Set up bindings.
     {
         Thread_Context* tctx = get_thread_context(app);
         mapping_init(tctx, &framework_mapping);
         String_Const_u8 bindings_file = string_u8_litexpr("bindings.4coder");
+        
         if (!dynamic_binding_load_from_file(app, &framework_mapping, bindings_file))
-            F4_SetDefaultBindings(&framework_mapping); // TODO(long)
-        Long_SetBaseBindings(&framework_mapping);
+        {
+            String_ID global_map_id = vars_save_string_lit("keys_global");
+            String_ID file_map_id = vars_save_string_lit("keys_file");
+            String_ID code_map_id = vars_save_string_lit("keys_code");
+            
+            // TODO(long): Long_SetDefaultBindings(&framework_mapping);
+            setup_default_mapping(&framework_mapping, global_map_id, file_map_id, code_map_id);
+        }
+        Long_SetupEssentialBindings(&framework_mapping);
     }
     
     // TODO(long): Improve the index and language layers.
@@ -557,16 +482,64 @@ CUSTOM_COMMAND_SIG(long_startup)
 CUSTOM_DOC("Long startup event")
 {
     ProfileScope(app, "default startup");
+    Scratch_Block scratch(app);
     
     User_Input input = get_current_input(app);
     if (!match_core_code(&input, CoreCode_Startup))
         return;
     
-    //- NOTE(rjf): Default 4coder initialization.
+    // NOTE(long): default font.
+    Face_ID default_font = get_face_id(app, 0);
+    
+    //- @COPYPASTA(long): default_4coder_initialize
     {
-        String8Array file_names = input.event.core.file_names;
         load_themes_default_folder(app);
-        default_4coder_initialize(app, file_names);
+        
+        // TODO(long): Better default message
+#define M \
+    "Welcome to " VERSION "\n" \
+    "If you're new to 4coder there is a built in tutorial\n" \
+    "Use the key combination [ X Alt ] (on mac [ X Control ])\n" \
+    "Type in 'hms_demo_tutorial' and press enter\n" \
+    "\n" \
+    "Direct bug reports and feature requests to https://github.com/4coder-editor/4coder/issues\n" \
+    "\n" \
+    "Other questions and discussion can be directed to editor@4coder.net or 4coder.handmade.network\n" \
+    "\n" \
+    "The change log can be found in CHANGES.txt\n" \
+    "\n"
+        print_message(app, S8Lit(M));
+#undef M
+        
+        // config loading
+        {
+            Face_Description description = get_face_description(app, 0);
+            load_config_and_apply(app, &global_config_arena, description.parameters.pt_size, description.parameters.hinting);
+            String8 font_name = get_global_face_description(app).font.file_name;
+            print_message(app, push_stringf(scratch, "Default Font: %.*s\n\n", string_expand(font_name)));
+        }
+        
+        // setup default theme
+        {
+            String8 default_theme_name = def_get_config_string(scratch, vars_save_string_lit("default_theme_name"));
+            Color_Table* colors = get_color_table_by_name(default_theme_name);
+            Long_UpdateCurrentTheme(colors); 
+        }
+        
+        // open command line files
+        String_Const_u8 hot = push_hot_directory(app, scratch);
+        String8Array files = input.event.core.file_names;
+        
+        for (i32 i = 0; i < files.count; i += 1)
+        {
+            Temp_Memory_Block temp(scratch);
+            String8 filename = files.vals[i];
+            String8 fullname = push_u8_stringf(scratch, "%.*s/%.*s", string_expand(hot), string_expand(filename));
+            
+            Buffer_ID new_buffer = create_buffer(app, fullname, BufferCreate_NeverNew|BufferCreate_MustAttachToFile);
+            if (new_buffer == 0)
+                create_buffer(app, filename, 0);
+        }
     }
     
     //- NOTE(rjf): Open special buffers.
@@ -609,8 +582,7 @@ CUSTOM_DOC("Long startup event")
             compilation_view = open_view(app, view, ViewSplit_Bottom);
             new_view_settings(app, compilation_view);
             Buffer_ID buffer = view_get_buffer(app, compilation_view, Access_Always);
-            Face_ID face_id = get_face_id(app, buffer);
-            Face_Metrics metrics = get_face_metrics(app, face_id);
+            Face_Metrics metrics = get_face_metrics(app, default_font);
             view_set_split_pixel_size(app, compilation_view, (i32)(metrics.line_height*4.f));
             view_set_passive(app, compilation_view, true);
             global_compilation_view = compilation_view;
@@ -632,12 +604,11 @@ CUSTOM_DOC("Long startup event")
     {
         b32 auto_load = def_get_config_b32(vars_save_string_lit("automatically_load_project"));
         if (auto_load)
-            load_project(app);
+            long_load_project(app);
     }
     
     //- NOTE(long): Open most recent modified files on startup
     {
-        Scratch_Block scratch(app);
         u64 last_write[2] = {};
         Buffer_ID recent_buffers[2];
         
@@ -700,11 +671,7 @@ CUSTOM_DOC("Long startup event")
     
     //- NOTE(rjf): Initialize stylish fonts.
     {
-        Scratch_Block scratch(app);
         String8 bin_path = system_get_path(scratch, SystemPath_Binary);
-        
-        // NOTE(rjf): Fallback font.
-        Face_ID fallback_font = get_face_id(app, 0);
         
         // NOTE(rjf): Title font.
         {
@@ -719,7 +686,7 @@ CUSTOM_DOC("Long startup event")
             
             global_styled_title_face = try_create_new_face(app, &desc);
             if (!global_styled_title_face)
-                global_styled_title_face = fallback_font;
+                global_styled_title_face = default_font;
         }
         
         // NOTE(rjf): Label font.
@@ -735,12 +702,12 @@ CUSTOM_DOC("Long startup event")
             
             global_styled_label_face = try_create_new_face(app, &desc);
             if (!global_styled_label_face)
-                global_styled_label_face = fallback_font;
+                global_styled_label_face = default_font;
         }
         
         // NOTE(rjf): Small code font.
         {
-            Face_Description normal_code_desc = get_face_description(app, fallback_font);
+            Face_Description normal_code_desc = get_face_description(app, default_font);
             Face_Description desc = {0};
             {
                 desc.font.file_name =  push_u8_stringf(scratch, "%.*sfonts/Inconsolata-Regular.ttf", string_expand(bin_path));
@@ -752,7 +719,7 @@ CUSTOM_DOC("Long startup event")
             
             global_small_code_face = try_create_new_face(app, &desc);
             if (!global_small_code_face)
-                global_small_code_face = fallback_font;
+                global_small_code_face = default_font;
         }
         
         // NOTE(long): Set the *compilation* buffer font

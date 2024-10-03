@@ -506,6 +506,7 @@ lister_user_data_at_p(Application_Links *app, View_ID view, Lister *lister, Vec2
 }
 
 #if LONG_LISTER_OVERLOAD
+function Lister_Result Long_Lister_Run(Application_Links *app, Lister *lister);
 function Lister_Result run_lister(Application_Links *app, Lister *lister) { return Long_Lister_Run(app, lister); }
 #else
 function Lister_Result

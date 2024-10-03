@@ -563,22 +563,22 @@ internal F4_LANGUAGE_POSCONTEXT(F4_CPP_PosContext)
                             Range_i64 range = {};
                             Range_i64 highlight_range = {};
                             {
-                                i32 paren_nest = 0;
+                                i32 nest = 0;
                                 i32 index = arg_idx;
                                 range.start = note_iter.ptr->pos;
                                 
                                 while (true)
                                 {
-                                    Token* token = token_it_read(&note_iter);
+                                    Token* nest_token = token_it_read(&note_iter);
                                     
-                                    switch (token->kind)
+                                    switch (nest_token->kind)
                                     {
-                                        case TokenBaseKind_ParentheticalOpen:  { paren_nest++; } break;
-                                        case TokenBaseKind_ParentheticalClose: { paren_nest--; } break;
+                                        case TokenBaseKind_ParentheticalOpen:  { nest++; } break;
+                                        case TokenBaseKind_ParentheticalClose: { nest--; } break;
                                         
                                         case TokenBaseKind_StatementClose:
                                         {
-                                            if (token->sub_kind == TokenCppKind_Comma && !highlight_range.max)
+                                            if (nest_token->sub_kind == TokenCppKind_Comma && !highlight_range.max)
                                             {
                                                 if (index > 0)
                                                 {
@@ -586,22 +586,22 @@ internal F4_LANGUAGE_POSCONTEXT(F4_CPP_PosContext)
                                                     highlight_range.min = 0;
                                                 }
                                                 else
-                                                    highlight_range.max = token->pos;
+                                                    highlight_range.max = nest_token->pos;
                                             }
                                         } break;
                                         
                                         case TokenBaseKind_Identifier:
                                         {
                                             if (!highlight_range.min)
-                                                highlight_range.min = token->pos;
+                                                highlight_range.min = nest_token->pos;
                                         } break;
                                     }
                                     
-                                    if (paren_nest == 0)
+                                    if (nest == 0)
                                     {
                                         if (index == 0 && !highlight_range.max && highlight_range.min)
-                                            highlight_range.max = token->pos;
-                                        range.end = token->pos + token->size;
+                                            highlight_range.max = nest_token->pos;
+                                        range.end = nest_token->pos + nest_token->size;
                                         break;
                                     }
                                     

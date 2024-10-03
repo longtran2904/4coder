@@ -1463,8 +1463,6 @@ theme_parse__file_name(Application_Links *app, Arena *arena, char *file_name, Ar
 
 ////////////////////////////////
 
-function void Long_UpdateCurrentTheme(Color_Table* table);
-
 // TODO(allen): review this function
 function void
 load_config_and_apply(Application_Links *app, Arena *out_arena, i32 override_font_size, b32 override_hinting){
@@ -1527,7 +1525,6 @@ load_config_and_apply(Application_Links *app, Arena *out_arena, i32 override_fon
     String_Const_u8 default_theme_name = def_get_config_string(scratch, vars_save_string_lit("default_theme_name"));
     Color_Table *colors = get_color_table_by_name(default_theme_name);
     set_active_color(colors);
-    Long_UpdateCurrentTheme(colors); 
     
     Face_Description description = {};
     if (override_font_size != 0){
@@ -1559,9 +1556,6 @@ load_config_and_apply(Application_Links *app, Arena *out_arena, i32 override_fon
         description.font.file_name = def_search_normal_full_path(scratch, name_in_fonts_folder);
         modify_global_face_by_description(app, description);
     }
-    
-    String8 font_name = get_global_face_description(app).font.file_name;
-    print_message(app, push_stringf(scratch, "Default Font: %.*s\n\n", string_expand(font_name)));
     
     b32 bind_by_physical_key = def_get_config_b32(vars_save_string_lit("bind_by_physical_key"));
     if (bind_by_physical_key){

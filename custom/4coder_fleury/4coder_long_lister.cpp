@@ -126,7 +126,7 @@ function void Long_Lister_Render(Application_Links* app, Frame_Info frame_info, 
     {
         Rect_f32_Pair pair = layout_file_bar_on_top(region, line_height);
         Buffer_ID buffer = view_get_buffer(app, view, Access_Always);
-        F4_DrawFileBar(app, view, buffer, face_id, pair.min); // NOTE(long): Fix render the wrong file bar
+        Long_DrawFileBar(app, view, buffer, face_id, pair.min); // NOTE(long): Fix render the wrong file bar
         region = pair.max;
     }
     

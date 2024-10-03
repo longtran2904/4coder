@@ -1,13 +1,13 @@
 
-//~ NOTE(long): Buffer Render
+//~ NOTE(rjf): Render Hooks
 
 // @COPYPASTA(long): F4_RenderBuffer
-function void Long_RenderBuffer(Application_Links* app, View_ID view_id, Face_ID face_id,
-                                Buffer_ID buffer, Text_Layout_ID text_layout_id,
+function void Long_RenderBuffer(Application_Links* app, View_ID view_id, Buffer_ID buffer, Face_ID face_id,
+                                Text_Layout_ID text_layout_id,
                                 Rect_f32 rect, Frame_Info frame_info)
 {
     Scratch_Block scratch(app);
-    ProfileScope(app, "[Fleury] Render Buffer");
+    ProfileScope(app, "[Long] Render Buffer");
     
     // NOTE(long): When fading out an undo, the BufferEditRange hook will run before the Tick hook, making the note tree outdated.
     // Later, the RenderCaller hook will try to look up the color based on the old tree and crash the program.
@@ -37,7 +37,7 @@ function void Long_RenderBuffer(Application_Links* app, View_ID view_id, Face_ID
     Token_Array token_array = get_token_array_from_buffer(app, buffer);
     if(token_array.tokens != 0)
     {
-        F4_SyntaxHighlight(app, text_layout_id, &token_array);
+        Long_SyntaxHighlight(app, text_layout_id, &token_array);
         
         // NOTE(allen): Scan for TODOs and NOTEs
         b32 use_comment_keywords = def_get_config_b32(vars_save_string_lit("use_comment_keywords"));
@@ -70,6 +70,7 @@ function void Long_RenderBuffer(Application_Links* app, View_ID view_id, Face_ID
     }
     
     // NOTE(rjf): Brace highlight
+#ifdef FCODER_FLEURY_BRACE_H
     {
         Color_Array colors = finalize_color_array(fleury_color_brace_highlight);
         if(colors.count >= 1 && F4_ARGBIsValid(colors.vals[0]))
@@ -78,6 +79,7 @@ function void Long_RenderBuffer(Application_Links* app, View_ID view_id, Face_ID
                                      colors.vals, colors.count);
         }
     }
+#endif
     
     // NOTE(allen): Line highlight
     {
@@ -116,17 +118,19 @@ function void Long_RenderBuffer(Application_Links* app, View_ID view_id, Face_ID
         }
     }
     
+#ifdef FCODER_FLEURY_ERROR_ANNOTATIONS_H
     // NOTE(rjf): Error annotations
     {
         String_Const_u8 name = string_u8_litexpr("*compilation*");
         Buffer_ID compilation_buffer = get_buffer_by_name(app, name, Access_Always);
         F4_RenderErrorAnnotations(app, buffer, text_layout_id, compilation_buffer);
     }
+#endif
     
     // NOTE(jack): Token Occurance Highlight
     if (!def_get_config_b32(vars_save_string_lit("f4_disable_cursor_token_occurance"))) 
     {
-        ProfileScope(app, "[Fleury] Token Occurance Highlight");
+        ProfileScope(app, "[Long] Token Occurance Highlight");
         
         // NOTE(jack): Get the active cursor's token string
         Buffer_ID active_cursor_buffer = view_get_buffer(app, active_view, Access_Always);
@@ -185,7 +189,7 @@ function void Long_RenderBuffer(Application_Links* app, View_ID view_id, Face_ID
     // NOTE(jack): if "f4_disable_cursor_token_occurance" is set, just highlight the cusror 
     else
     {
-        ProfileScope(app, "[Fleury] Token Highlight");
+        ProfileScope(app, "[Long] Token Highlight");
         
         Token_Iterator_Array it = token_iterator_pos(0, &token_array, cursor_pos);
         Token* token = token_it_read(&it);
@@ -210,15 +214,15 @@ function void Long_RenderBuffer(Application_Links* app, View_ID view_id, Face_ID
         draw_paren_highlight(app, buffer, text_layout_id, cursor_pos, colors.vals, colors.count);
     }
     
+#ifdef FCODER_FLEURY_DIVIDER_COMMENTS_H
     // NOTE(rjf): Divider Comments
-    {
-        F4_RenderDividerComments(app, buffer, view_id, text_layout_id);
-    }
+    F4_RenderDividerComments(app, buffer, view_id, text_layout_id);
+#endif
     
     // NOTE(rjf): Cursor Mark Range
     if(is_active_view && fcoder_mode == FCoderMode_Original)
     {
-        F4_HighlightCursorMarkRange(app, view_id);
+        Long_HighlightCursorMarkRange(app, view_id);
     }
     
     // NOTE(allen): Cursor shape
@@ -245,32 +249,26 @@ function void Long_RenderBuffer(Application_Links* app, View_ID view_id, Face_ID
         }
     }
     
-    // NOTE(rjf): Brace annotations
-    {
-        F4_Brace_RenderCloseBraceAnnotation(app, buffer, text_layout_id, cursor_pos);
-    }
-    
-    // NOTE(rjf): Brace lines
-    {
-        F4_Brace_RenderLines(app, buffer, view_id, text_layout_id, cursor_pos);
-    }
+#ifdef FCODER_FLEURY_BRACE_H
+    // NOTE(rjf): Brace annotations/lines
+    F4_Brace_RenderCloseBraceAnnotation(app, buffer, text_layout_id, cursor_pos);
+    F4_Brace_RenderLines(app, buffer, view_id, text_layout_id, cursor_pos);
+#endif
     
     // NOTE(allen): put the actual text on the actual screen
     draw_text_layout_default(app, text_layout_id);
     
-    // NOTE(rjf): Interpret buffer as calc code, if it's the calc buffer.
+#ifdef FCODER_FLEURY_CALC_H
     {
+        // NOTE(rjf): Interpret buffer as calc code, if it's the calc buffer.
         Buffer_ID calc_buffer_id = get_buffer_by_name(app, string_u8_litexpr("*calc*"), AccessFlag_Read);
-        if(calc_buffer_id == buffer)
-        {
+        if (calc_buffer_id == buffer)
             F4_CLC_RenderBuffer(app, buffer, view_id, text_layout_id, frame_info);
-        }
-    }
-    
-    // NOTE(rjf): Draw calc comments.
-    {
+        
+        // NOTE(rjf): Draw calc comments.
         F4_CLC_RenderComments(app, buffer, view_id, text_layout_id, frame_info);
     }
+#endif
     
     draw_set_clip(app, prev_clip);
     
@@ -333,12 +331,7 @@ function void Long_RenderBuffer(Application_Links* app, View_ID view_id, Face_ID
     // NOTE(rjf): Render code peek.
     if (!view_get_is_passive(app, view_id) && !is_active_view)
         Long_Index_DrawCodePeek(app, view_id);
-    
-    // NOTE(rjf): Draw power mode.
-    F4_PowerMode_RenderBuffer(app, view_id, face_id, frame_info);
 }
-
-//~ NOTE(rjf): Render Hooks
 
 // @COPYPASTA(long): F4_DrawFileBar
 function void Long_DrawFileBar(Application_Links* app, View_ID view_id, Buffer_ID buffer, Face_ID face_id, Rect_f32 bar)
@@ -449,9 +442,11 @@ function void Long_DrawFileBar(Application_Links* app, View_ID view_id, Buffer_I
 
 function void Long_Render(Application_Links* app, Frame_Info frame_info, View_ID view_id)
 {
+#ifdef FCODER_FLEURY_RECENT_FILES_H
     F4_RecentFiles_RefreshView(app, view_id);
+#endif
     
-    ProfileScope(app, "[Fleury] Render");
+    ProfileScope(app, "[Long] Render");
     Scratch_Block scratch(app);
     
     View_ID active_view = get_active_view(app, Access_Always);
@@ -490,8 +485,7 @@ function void Long_Render(Application_Links* app, Frame_Info frame_info, View_ID
         if(def_get_config_b32(vars_save_string_lit("f4_margin_use_mode_color")) &&
            is_active_view)
         {
-            color = F4_GetColor(app, ColorCtx_Cursor(power_mode.enabled ? ColorFlag_PowerMode : 0,
-                                                     GlobalKeybindingMode));
+            color = Long_GetColor(app, ColorCtx_Cursor(0, GlobalKeybindingMode));
         }
         draw_margin(app, view_rect, region, color);
     }
@@ -511,7 +505,7 @@ function void Long_Render(Application_Links* app, Frame_Info frame_info, View_ID
         Face_ID global_face = get_face_id(app, 0);
         b32 is_comp = buffer == get_comp_buffer(app);
         Rect_f32_Pair pair = layout_file_bar_on_top(region, is_comp ? get_face_metrics(app, global_face).line_height : line_height);
-        F4_DrawFileBar(app, view_id, buffer, is_comp ? global_face : face_id, pair.min);
+        Long_DrawFileBar(app, view_id, buffer, is_comp ? global_face : face_id, pair.min);
         region = pair.max;
     }
     
@@ -566,10 +560,6 @@ function void Long_Render(Application_Links* app, Frame_Info frame_info, View_ID
     
     // NOTE(allen): begin buffer render
     Buffer_Point buffer_point = scroll.position;
-    if(is_active_view)
-    {
-        buffer_point.pixel_shift.y += F4_PowerMode_ScreenShake()*1.f;
-    }
     Text_Layout_ID text_layout_id = text_layout_create(app, buffer, region, buffer_point);
     
     // NOTE(allen): draw line numbers
@@ -577,13 +567,461 @@ function void Long_Render(Application_Links* app, Frame_Info frame_info, View_ID
         Long_Render_LineOffsetNumber(app, view_id, buffer, face_id, text_layout_id, line_number_rect);
     
     // NOTE(allen): draw the buffer
-    F4_RenderBuffer(app, view_id, face_id, buffer, text_layout_id, region, frame_info);
-    
-    // NOTE(rjf): Render command server
-#if OS_WINDOWS
-    CS_render_caller(app, frame_info, view_id);
-#endif
+    Long_RenderBuffer(app, view_id, buffer, face_id, text_layout_id, region, frame_info);
     
     text_layout_free(app, text_layout_id);
     draw_set_clip(app, prev_clip);
+}
+
+//~ NOTE(rjf): Tick Hook
+
+// @COPYPASTA(long): F4_Tick
+function void Long_Tick(Application_Links* app, Frame_Info frame_info)
+{
+    linalloc_clear(&global_frame_arena);
+    global_tooltip_count = 0;
+    
+    View_ID view = get_active_view(app, 0);
+    if (view != global_compilation_view)
+        long_global_active_view = view;
+    
+    F4_TickColors(app, frame_info);
+    Long_Index_Tick(app);
+#ifdef FCODER_FLEURY_CALC_H
+    F4_CLC_Tick(frame_info);
+#endif
+    F4_UpdateFlashes(app, frame_info);
+    
+    // NOTE(rjf): Default tick stuff from the 4th dimension:
+    default_tick(app, frame_info);
+}
+
+//~ NOTE(long): Buffer Hooks
+
+function i32 Long_EndBuffer(Application_Links* app, Buffer_ID buffer_id)
+{
+    F4_Index_Lock();
+    F4_Index_File* file = F4_Index_LookupFile(app, buffer_id);
+    if (file)
+    {
+        Long_Index_ClearFile(file);
+        F4_Index_EraseFile(app, buffer_id);
+    }
+    F4_Index_Unlock();
+    return end_buffer_close_jump_list(app, buffer_id);
+}
+
+// @COPYPASTA(long): default_file_save
+function i32 Long_SaveFile(Application_Links *app, Buffer_ID buffer_id)
+{
+    ProfileScope(app, "[Long] Save File");
+    
+    b32 auto_indent = def_get_config_b32(vars_save_string_lit("automatically_indent_text_on_save"));
+    b32 is_virtual = def_get_config_b32(vars_save_string_lit("enable_virtual_whitespace"));
+    History_Record_Index index = buffer_history_get_current_state_index(app, buffer_id);
+    if (auto_indent && is_virtual && index)
+        Long_Index_IndentBuffer(app, buffer_id, buffer_range(app, buffer_id), true);
+    
+    Long_Buffer_History  current = Long_Buffer_GetCurrentHistory (app, buffer_id);
+    Long_Buffer_History* history = Long_Buffer_GetAttachedHistory(app, buffer_id);
+    
+    Scratch_Block scratch(app);
+    String8 name = push_buffer_base_name(app, scratch, buffer_id);
+    print_message(app, push_stringf(scratch, "Saving Buffer: \"%.*s\", Current Undo: %.3d, Previous Saved: (%.3d, %.3d)\n",
+                                    string_expand(name), current.index, history->index, history->record.edit_number));
+    
+    *history = current;
+    
+    Managed_Scope scope = buffer_get_managed_scope(app, buffer_id);
+    Line_Ending_Kind *eol = scope_attachment(app, scope, buffer_eol_setting, Line_Ending_Kind);
+    
+    switch (*eol)
+    {
+        case LineEndingKind_LF:   rewrite_lines_to_lf  (app, buffer_id); break;
+        case LineEndingKind_CRLF: rewrite_lines_to_crlf(app, buffer_id); break;
+    }
+    
+    // no meaning for return
+    return 0;
+}
+
+// @COPYPASTA(long): F4_LayoutInner
+function Layout_Item_List Long_Layout(Application_Links *app, Arena *arena, Buffer_ID buffer, Range_i64 range, Face_ID face, f32 width)
+{
+    Layout_Item_List list = get_empty_item_list(range);
+    
+    Scratch_Block scratch(app);
+    String_Const_u8 text = push_buffer_range(app, scratch, buffer, range);
+    
+    Face_Advance_Map advance_map = get_face_advance_map(app, face);
+    Face_Metrics metrics = get_face_metrics(app, face);
+    f32 tab_width = (f32)def_get_config_u64(app, vars_save_string_lit("default_tab_width"));
+    tab_width = clamp_bot(1, tab_width);
+    LefRig_TopBot_Layout_Vars pos_vars = get_lr_tb_layout_vars(&advance_map, &metrics, tab_width, width);
+    
+    if (text.size == 0){
+        lr_tb_write_blank(&pos_vars, face, arena, &list, range.first);
+    }
+    else{
+        b32 skipping_leading_whitespace = 0;
+        Newline_Layout_Vars newline_vars = get_newline_layout_vars();
+        
+        u8 *ptr = text.str;
+        u8 *end_ptr = ptr + text.size;
+        for (;ptr < end_ptr;){
+            Character_Consume_Result consume = utf8_consume(ptr, (u64)(end_ptr - ptr));
+            
+            i64 index = layout_index_from_ptr(ptr, text.str, range.first);
+            switch (consume.codepoint){
+                case '\t':
+                case ' ':
+                {
+                    newline_layout_consume_default(&newline_vars);
+                    f32 advance = lr_tb_advance(&pos_vars, face, consume.codepoint);
+                    if (!skipping_leading_whitespace){
+                        lr_tb_write_with_advance(&pos_vars, face, advance, arena, &list, index, consume.codepoint);
+                    }
+                    else{
+                        lr_tb_advance_x_without_item(&pos_vars, advance);
+                    }
+                }break;
+                
+                default:
+                {
+                    newline_layout_consume_default(&newline_vars);
+                    lr_tb_write(&pos_vars, face, arena, &list, index, consume.codepoint);
+                }break;
+                
+                case '\r':
+                {
+                    newline_layout_consume_CR(&newline_vars, index);
+                }break;
+                
+                case '\n':
+                {
+                    i64 newline_index = newline_layout_consume_LF(&newline_vars, index);
+                    lr_tb_write_blank(&pos_vars, face, arena, &list, newline_index);
+                    lr_tb_next_line(&pos_vars);
+                }break;
+                
+                case max_u32:
+                {
+                    newline_layout_consume_default(&newline_vars);
+                    lr_tb_write_byte(&pos_vars, face, arena, &list, index, *ptr);
+                }break;
+            }
+            
+            ptr += consume.inc;
+        }
+        
+        if (newline_layout_consume_finish(&newline_vars)){
+            i64 index = layout_index_from_ptr(ptr, text.str, range.first);
+            lr_tb_write_blank(&pos_vars, face, arena, &list, index);
+        }
+    }
+    
+    layout_item_list_finish(&list, -pos_vars.line_to_text_shift);
+    
+    return list;
+}
+
+//~ NOTE(long): F4 Clone Hooks
+
+// @COPYPASTA(long): F4_DoFullLex_ASYNC
+function void Long_DoFullLex_ASYNC(Async_Context* actx, String8 data)
+{
+    if (data.size == sizeof(Buffer_ID))
+    {
+        Buffer_ID buffer = *(Buffer_ID*)data.str;
+        Application_Links* app = actx->app;
+        ProfileScope(app, "[F4] Async Lex");
+        Scratch_Block scratch(app);
+        
+        String8 contents = {};
+        {
+            ProfileBlock(app, "[F4] Async Lex Contents (before mutex)");
+            acquire_global_frame_mutex(app);
+            ProfileBlock(app, "[F4] Async Lex Contents (after mutex)");
+            contents = push_whole_buffer(app, scratch, buffer);
+            release_global_frame_mutex(app);
+        }
+        
+        i32 limit_factor = 10000;
+        
+        Token_List list = {};
+        b32 canceled = false;
+        
+        F4_Language* language = F4_LanguageFromBuffer(app, buffer);
+        
+        // NOTE(rjf): Fall back to C++ if we don't have a proper language.
+        if (language == 0)
+            language = F4_LanguageFromString(S8Lit("cpp"));
+        
+        if (language != 0)
+        {
+            void* lexing_state = push_array_zero(scratch, u8, language->lex_state_size);
+            language->LexInit(lexing_state, contents);
+            
+            for (;;)
+            {
+                ProfileBlock(app, "[F4] Async Lex Block");
+                if (language->LexFullInput(scratch, &list, lexing_state, limit_factor))
+                    break;
+                
+                if (async_check_canceled(actx))
+                {
+                    canceled = true;
+                    break;
+                }
+            }
+        }
+        
+        if (!canceled)
+        {
+            ProfileBlock(app, "[F4] Async Lex Save Results (before mutex)");
+            acquire_global_frame_mutex(app);
+            ProfileBlock(app, "[F4] Async Lex Save Results (after mutex)");
+            Managed_Scope scope = buffer_get_managed_scope(app, buffer);
+            
+            if (scope != 0)
+            {
+                Base_Allocator* allocator = managed_scope_allocator(app, scope);
+                Token_Array* tokens_ptr = scope_attachment(app, scope, attachment_tokens, Token_Array);
+                base_free(allocator, tokens_ptr->tokens);
+                
+                Token_Array tokens = {};
+                tokens.tokens = base_array(allocator, Token, list.total_count);
+                tokens.count = list.total_count;
+                tokens.max = list.total_count;
+                
+                token_fill_memory_from_list(tokens.tokens, &list);
+                block_copy_struct(tokens_ptr, &tokens);
+            }
+            
+            buffer_mark_as_modified(buffer);
+            release_global_frame_mutex(app);
+        }
+    }
+}
+
+// @COPYPASTA(long): F4_BeginBuffer
+function BUFFER_HOOK_SIG(Long_BeginBuffer)
+{
+    ProfileScope(app, "[Long] Begin Buffer");
+    
+    Scratch_Block scratch(app);
+    b32 treat_as_code = false;
+    String_Const_u8 file_name = push_buffer_file_name(app, scratch, buffer_id);
+    String_Const_u8 buffer_name = push_buffer_base_name(app, scratch, buffer_id);
+    
+    // NOTE(rjf): Treat as code if the config tells us to.
+    if (treat_as_code == false)
+    {
+        if (file_name.size > 0)
+        {
+            String_Const_u8 treat_as_code_string = def_get_config_string(scratch, vars_save_string_lit("treat_as_code"));
+            String_Const_u8_Array extensions = parse_extension_line_to_extension_list(app, scratch, treat_as_code_string);
+            String_Const_u8 ext = string_file_extension(file_name);
+            for (i32 i = 0; i < extensions.count; ++i)
+            {
+                if (string_match(ext, extensions.strings[i]))
+                {
+                    treat_as_code = true;
+                    break;
+                }
+            }
+        }
+    }
+    
+    // NOTE(rjf): Treat as code for *calc* and *peek* buffers.
+    if (treat_as_code == false && buffer_name.size > 0)
+        if (string_match(buffer_name, S8Lit("*calc*")) || string_match(buffer_name, S8Lit("*peek*")))
+            treat_as_code = true;
+    
+    // NOTE(rjf): Treat as code if we've identified the language of a file.
+    if (treat_as_code == false)
+    {
+        F4_Language* language = F4_LanguageFromBuffer(app, buffer_id);
+        if (language)
+            treat_as_code = true;
+    }
+    
+    String_ID file_map_id = vars_save_string_lit("keys_file");
+    String_ID code_map_id = vars_save_string_lit("keys_code");
+    
+    Command_Map_ID map_id = (treat_as_code) ? (code_map_id) : (file_map_id);
+    Managed_Scope scope = buffer_get_managed_scope(app, buffer_id);
+    Command_Map_ID *map_id_ptr = scope_attachment(app, scope, buffer_map_id, Command_Map_ID);
+    *map_id_ptr = map_id;
+    
+    Line_Ending_Kind setting = guess_line_ending_kind_from_buffer(app, buffer_id);
+    Line_Ending_Kind *eol_setting = scope_attachment(app, scope, buffer_eol_setting, Line_Ending_Kind);
+    *eol_setting = setting;
+    
+    // NOTE(allen): Decide buffer settings
+    b32 wrap_lines = true;
+    b32 use_lexer = false;
+    if (treat_as_code)
+    {
+        wrap_lines = def_get_config_b32(vars_save_string_lit("enable_code_wrapping"));
+        use_lexer = true;
+    }
+    
+    if(string_match(buffer_name, string_u8_litexpr("*compilation*")))
+        wrap_lines = false;
+    
+    if (use_lexer)
+    {
+        ProfileBlock(app, "begin buffer kick off lexer");
+        Async_Task *lex_task_ptr = scope_attachment(app, scope, buffer_lex_task, Async_Task);
+        *lex_task_ptr = async_task_no_dep(&global_async_system, Long_DoFullLex_ASYNC, make_data_struct(&buffer_id));
+    }
+    
+    {
+        b32 *wrap_lines_ptr = scope_attachment(app, scope, buffer_wrap_lines, b32);
+        *wrap_lines_ptr = wrap_lines;
+    }
+    
+    if (use_lexer)
+        buffer_set_layout(app, buffer_id, layout_virt_indent_index_generic);
+    else if (treat_as_code)
+        buffer_set_layout(app, buffer_id, layout_virt_indent_literal_generic);
+    else
+        buffer_set_layout(app, buffer_id, layout_generic);
+    
+    // no meaning for return
+    return 0;
+}
+
+// @COPYPASTA(long): F4_BufferEditRange
+function BUFFER_EDIT_RANGE_SIG(Long_BufferEditRange)
+{
+    // buffer_id, new_range, original_size
+    ProfileScope(app, "[Long] Buffer Edit Range");
+    
+    Range_i64 old_range = Ii64(old_cursor_range.min.pos, old_cursor_range.max.pos);
+    
+    buffer_shift_fade_ranges(buffer_id, old_range.max, (new_range.max - old_range.max));
+    
+    {
+        code_index_lock();
+        Code_Index_File *file = code_index_get_file(buffer_id);
+        if (file != 0)
+            code_index_shift(file, old_range, range_size(new_range));
+        code_index_unlock();
+    }
+    
+    i64 insert_size = range_size(new_range);
+    i64 text_shift = replace_range_shift(old_range, insert_size);
+    
+    Scratch_Block scratch(app);
+    
+    Managed_Scope scope = buffer_get_managed_scope(app, buffer_id);
+    Async_Task *lex_task_ptr = scope_attachment(app, scope, buffer_lex_task, Async_Task);
+    
+    Base_Allocator *allocator = managed_scope_allocator(app, scope);
+    b32 do_full_relex = false;
+    
+    if (async_task_is_running_or_pending(&global_async_system, *lex_task_ptr)){
+        async_task_cancel(app, &global_async_system, *lex_task_ptr);
+        buffer_unmark_as_modified(buffer_id);
+        do_full_relex = true;
+        *lex_task_ptr = 0;
+    }
+    
+    Token_Array *ptr = scope_attachment(app, scope, attachment_tokens, Token_Array);
+    if (ptr != 0 && ptr->tokens != 0){
+        ProfileBlockNamed(app, "attempt resync", profile_attempt_resync);
+        
+        i64 token_index_first = token_relex_first(ptr, old_range.first, 1);
+        i64 token_index_resync_guess =
+            token_relex_resync(ptr, old_range.one_past_last, 16);
+        
+        if (token_index_resync_guess - token_index_first >= 4000)
+            do_full_relex = true;
+        else
+        {
+            Token *token_first = ptr->tokens + token_index_first;
+            Token *token_resync = ptr->tokens + token_index_resync_guess;
+            
+            Range_i64 relex_range = Ii64(token_first->pos, token_resync->pos + token_resync->size + text_shift);
+            String_Const_u8 partial_text = push_buffer_range(app, scratch, buffer_id, relex_range);
+            
+            //- NOTE(rjf): Lex
+            F4_Language *language = F4_LanguageFromBuffer(app, buffer_id);
+            // NOTE(rjf): Fall back to C++ if we don't have a proper language.
+            if(language == 0)
+            {
+                language = F4_LanguageFromString(S8Lit("cpp"));
+            }
+            Token_List relex_list = F4_Language_LexFullInput_NoBreaks(app, language, scratch, partial_text);
+            
+            if (relex_range.one_past_last < buffer_get_size(app, buffer_id))
+                token_drop_eof(&relex_list);
+            
+            Token_Relex relex = token_relex(relex_list, relex_range.first - text_shift, ptr->tokens,
+                                            token_index_first, token_index_resync_guess);
+            
+            ProfileCloseNow(profile_attempt_resync);
+            
+            if (!relex.successful_resync)
+                do_full_relex = true;
+            else
+            {
+                ProfileBlock(app, "apply resync");
+                
+                i64 token_index_resync = relex.first_resync_index;
+                
+                Range_i64 head = Ii64(0, token_index_first);
+                Range_i64 replaced = Ii64(token_index_first, token_index_resync);
+                Range_i64 tail = Ii64(token_index_resync, ptr->count);
+                i64 resynced_count = (token_index_resync_guess + 1) - token_index_resync;
+                i64 relexed_count = relex_list.total_count - resynced_count;
+                i64 tail_shift = relexed_count - (token_index_resync - token_index_first);
+                
+                i64 new_tokens_count = ptr->count + tail_shift;
+                Token *new_tokens = base_array(allocator, Token, new_tokens_count);
+                
+                Token *old_tokens = ptr->tokens;
+                block_copy_array_shift(new_tokens, old_tokens, head, 0);
+                token_fill_memory_from_list(new_tokens + replaced.first, &relex_list, relexed_count);
+                for (i64 i = 0, index = replaced.first; i < relexed_count; i += 1, index += 1)
+                    new_tokens[index].pos += relex_range.first;
+                for (i64 i = tail.first; i < tail.one_past_last; i += 1)
+                    old_tokens[i].pos += text_shift;
+                block_copy_array_shift(new_tokens, ptr->tokens, tail, tail_shift);
+                
+                base_free(allocator, ptr->tokens);
+                
+                ptr->tokens = new_tokens;
+                ptr->count = new_tokens_count;
+                ptr->max = new_tokens_count;
+                
+                buffer_mark_as_modified(buffer_id);
+            }
+        }
+    }
+    
+    if (do_full_relex)
+        *lex_task_ptr = async_task_no_dep(&global_async_system, Long_DoFullLex_ASYNC, make_data_struct(&buffer_id));
+    
+    // no meaning for return
+    return 0;
+}
+
+// @COPYPASTA(long): F4_DeltaRule
+function DELTA_RULE_SIG(Long_DeltaRule)
+{
+    Vec2_f32 *velocity = (Vec2_f32*)data;
+    if (velocity->x == 0.f)
+    {
+        velocity->x = 1.f;
+        velocity->y = 1.f;
+    }
+    
+    Smooth_Step step_x = smooth_camera_step(pending.x, velocity->x, 80.f, 1.f/4.f);
+    Smooth_Step step_y = smooth_camera_step(pending.y, velocity->y, 80.f, 1.f/4.f);
+    *velocity = V2f32(step_x.v, step_y.v);
+    
+    return V2f32(step_x.p, step_y.p);
 }

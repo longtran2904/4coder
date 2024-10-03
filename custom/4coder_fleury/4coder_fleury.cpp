@@ -393,21 +393,6 @@ typedef int socklen_t;
 #endif
 // }
 
-// NOTE(long): Macros for all my modifications in the 4coder and fleury layer
-#define LONG_INDEX_INDENT_STATEMENT 1
-#define LONG_INDEX_INLINE 1
-#define LONG_INDEX_INSERT_QUEUE 1
-#define LONG_INDEX_GET_COLOR 1
-#define LONG_INDEX_INDENT_PAREN 0
-#define LONG_INDEX_CODE_PEEK 1
-#define LONG_INDEX_POS_CONTEXT 1
-
-#define LONG_CS_LEXER 1
-#define LONG_LISTER_OVERLOAD 1
-
-#define LONG_ENABLE_INDEX_PROFILE 1
-#define LONG_ENABLE_PROFILE 0
-
 //~ NOTE(rjf): Macros and pragmase stuff that have to be put here for various
 // reasons
 #include <stdlib.h>
@@ -443,7 +428,6 @@ typedef int socklen_t;
 #include "4coder_fleury_command_server.h"
 #endif
 #include "4coder_fleury_hooks.h"
-#include "4coder_long.h"
 
 //~ NOTE(rjf): @f4_src
 #include "4coder_fleury_ubiquitous.cpp"
@@ -470,7 +454,6 @@ typedef int socklen_t;
 #endif
 #include "4coder_fleury_casey.cpp"
 #include "4coder_fleury_hooks.cpp"
-#include "4coder_long.h"
 
 //~ NOTE(rjf): Plots Demo File
 #include "4coder_fleury_plots_demo.cpp"
@@ -490,7 +473,7 @@ void custom_layer_init(Application_Links *app)
     {
         set_all_default_hooks(app);
         //t $          ($  , $                             , $                     );
-        set_custom_hook(app, HookID_Tick,                    /*F4_Tick*/Long_Tick);
+        set_custom_hook(app, HookID_Tick,                    F4_Tick);
         set_custom_hook(app, HookID_RenderCaller,            F4_Render);
         set_custom_hook(app, HookID_BeginBuffer,             F4_BeginBuffer);
         set_custom_hook(app, HookID_Layout,                  F4_Layout);
@@ -498,9 +481,6 @@ void custom_layer_init(Application_Links *app)
         set_custom_hook(app, HookID_DeltaRule,               F4_DeltaRule);
         set_custom_hook(app, HookID_BufferEditRange,         F4_BufferEditRange);
         set_custom_hook_memory_size(app, HookID_DeltaRule, delta_ctx_size(sizeof(Vec2_f32)));
-        
-        set_custom_hook(app, HookID_EndBuffer, Long_EndBuffer);
-        set_custom_hook(app, HookID_SaveFile,  Long_SaveFile);
     }
     
     // NOTE(rjf): Set up mapping.
@@ -562,15 +542,6 @@ CUSTOM_DOC("Fleury startup event")
     String_Const_u8_Array file_names = input.event.core.file_names;
     load_themes_default_folder(app);
     default_4coder_initialize(app, file_names);
-    
-    //~ NOTE(long): Override the text input mapping
-    {
-        MappingScope();
-        SelectMapping(&framework_mapping);
-        SelectMap(vars_save_string_lit("keys_code"));
-        ParentMap(vars_save_string_lit("keys_file"));
-        BindTextInput(long_write_text_and_auto_indent);
-    }
     
     //~ NOTE(rjf): Open special buffers.
     {
@@ -667,66 +638,6 @@ CUSTOM_DOC("Fleury startup event")
         }
     }
     
-    //~ NOTE(long): Open most recent modified files on startup
-    {
-        Scratch_Block scratch(app);
-        u64 last_write[2] = {};
-        Buffer_ID recent_buffers[2];
-        
-        String8 treat_as_code_string = def_get_config_string(scratch, vars_save_string_lit("treat_as_code"));
-        String8Array extensions = parse_extension_line_to_extension_list(app, scratch, treat_as_code_string);
-        
-        for (Buffer_ID buffer = get_buffer_next(app, 0, 0); buffer; buffer = get_buffer_next(app, buffer, 0))
-        {
-            Temp_Memory_Block temp(scratch);
-            String8 filename = push_buffer_file_name(app, scratch, buffer);
-            
-            i64 unimportant = 0, readonly = 0, is_code_file = 0;
-            buffer_get_setting(app, buffer, BufferSetting_Unimportant, &unimportant);
-            buffer_get_setting(app, buffer, BufferSetting_ReadOnly, &readonly);
-            is_code_file = Long_Index_IsMatch(string_file_extension(filename), extensions.strings, extensions.count);
-            
-            if (filename.size && !unimportant && !readonly && is_code_file)
-            {
-                File_Attributes att = system_quick_file_attributes(scratch, filename);
-                if (att.last_write_time > last_write[0])
-                {
-                    last_write[1] = last_write[0];
-                    recent_buffers[1] = recent_buffers[0];
-                    
-                    last_write[0] = att.last_write_time;
-                    recent_buffers[0] = buffer;
-                }
-                
-                else if (att.last_write_time > last_write[1])
-                {
-                    last_write[1] = att.last_write_time;
-                    recent_buffers[1] = buffer;
-                }
-            }
-        }
-        
-        u64 max_days_older = 7;
-        u64 days_older = (last_write[0] - last_write[1]) / (24*60*60*10000000ULL);
-        
-        String8 left  = push_buffer_unique_name(app, scratch, recent_buffers[0]);
-        String8 right = push_buffer_unique_name(app, scratch, recent_buffers[1]);
-        print_message(app, push_stringf(scratch, "Recent Files:\n  Left:  %.*s\n  Right: %.*s",
-                                        string_expand(left), string_expand(right)));
-        if (days_older >= max_days_older)
-            print_message(app, push_stringf(scratch, " (%llu days older than left)", days_older));
-        print_message(app, S8Lit("\n\n"));
-        
-        View_ID view = get_active_view(app, 0);
-        view_set_buffer(app, view, recent_buffers[0], 0);
-        
-        if (days_older < max_days_older)
-        {
-            view = get_next_view_looped_primary_panels(app, view, 0);
-            view_set_buffer(app, view, recent_buffers[1], 0);
-        }
-    }
-    
     //~ NOTE(rjf): Set misc options.
     {
         global_battery_saver = def_get_config_b32(vars_save_string_lit("f4_battery_saver"));
@@ -808,13 +719,6 @@ CUSTOM_DOC("Fleury startup event")
             {
                 global_small_code_face = face_that_should_totally_be_there;
             }
-        }
-        
-        // NOTE(long): Set the *compilation* buffer font
-        {
-            set_fancy_compilation_buffer_font(app);
-            long_toggle_compilation_expand(app);
-            long_toggle_compilation_expand(app);
         }
     }
     

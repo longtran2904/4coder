@@ -395,26 +395,6 @@ function void Long_Index_Tick(Application_Links* app)
     }
 }
 
-// @COPYPASTA(long): F4_Tick
-function void Long_Tick(Application_Links* app, Frame_Info frame_info)
-{
-    linalloc_clear(&global_frame_arena);
-    global_tooltip_count = 0;
-    
-    View_ID view = get_active_view(app, 0);
-    if (view != global_compilation_view)
-        long_global_active_view = view;
-    
-    F4_TickColors(app, frame_info);
-    Long_Index_Tick(app);
-    F4_CLC_Tick(frame_info);
-    F4_PowerMode_Tick(app, frame_info);
-    F4_UpdateFlashes(app, frame_info);
-    
-    // NOTE(rjf): Default tick stuff from the 4th dimension:
-    default_tick(app, frame_info);
-}
-
 // @COPYPASTA(long): _F4_Index_FreeNoteTree
 function void Long_Index_FreeHashTree(F4_Index_Note* note)
 {
@@ -1078,12 +1058,12 @@ function F4_Index_Note* Long_Index_LookupBestNote(Application_Links* app, Buffer
                 
                 if (is_obj_field)
                 {
-                    Token_Iterator_Array it = token_iterator_pos(0, array, scope_note->range.min);
-                    if (token_it_dec(&it) && it.ptr->kind == TokenBaseKind_Identifier)
+                    Token_Iterator_Array _it = token_iterator_pos(0, array, scope_note->range.min);
+                    if (token_it_dec(&_it) && _it.ptr->kind == TokenBaseKind_Identifier)
                     {
-                        Token* type_token = it.ptr;
-                        Long_Index_SkipSelection(app, &it, buffer, 1);
-                        if (string_match(push_token_lexeme(app, scratch, buffer, it.ptr), S8Lit("new")))
+                        Token* type_token = _it.ptr;
+                        Long_Index_SkipSelection(app, &_it, buffer, 1);
+                        if (string_match(push_token_lexeme(app, scratch, buffer, _it.ptr), S8Lit("new")))
                         {
                             F4_Index_Note* type_scope = Long_Index_LookupBestNote(app, buffer, array, type_token, filter_note);
                             if (type_scope)

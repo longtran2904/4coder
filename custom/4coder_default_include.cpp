@@ -32,9 +32,6 @@
 
 #include "4coder_token.h"
 #include "generated/lexer_cpp.h"
-#if LONG_CS_LEXER
-#include "generated/lexer_cs.h"
-#endif
 
 #include "4coder_variables.h"
 #include "4coder_audio.h"
@@ -68,13 +65,6 @@
 #include "4coder_tutorial.h"
 #include "4coder_search_list.h"
 
-//- NOTE(long): These are for 4coder_lister_base.cpp
-function String8 Long_Lister_GetHeaderString(Application_Links* app, Arena* arena, Lister_Node* node);
-function void lister__backspace_text_field__default(Application_Links *app);
-function void F4_DrawFileBar(Application_Links *app, View_ID view_id, Buffer_ID buffer, Face_ID face_id, Rect_f32 bar);
-function void Long_Lister_Render(Application_Links* app, Frame_Info frame_info, View_ID view);
-function Lister_Result Long_Lister_Run(Application_Links *app, Lister *lister);
-
 ////////////////////////////////
 
 #include "4coder_base_types.cpp"
@@ -105,9 +95,6 @@ function Lister_Result Long_Lister_Run(Application_Links *app, Lister *lister);
 #include "4coder_command_map.cpp"
 
 #include "generated/lexer_cpp.cpp"
-#if LONG_CS_LEXER
-#include "generated/lexer_cs.cpp"
-#endif
 
 #include "4coder_default_map.cpp"
 #include "4coder_mac_map.cpp"

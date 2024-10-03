@@ -8,26 +8,6 @@ F4_RenderBuffer(Application_Links *app, View_ID view_id, Face_ID face_id,
     Scratch_Block scratch(app);
     ProfileScope(app, "[Fleury] Render Buffer");
     
-    // NOTE(long): When fading out an undo, the BufferEditRange hook will run before the Tick hook, making the note tree outdated.
-    // Later, the RenderCaller hook will try to look up the color based on the old tree and crash the program.
-    // 1. F4_Language_LexFullInput_NoBreaks (BufferEditRange) will modify the Token list and the buffer (buffer_mark_as_modified)
-    // 2. F4_Render (HookdID_RenderCaller) uses the outdated note tree and crashes the program, so step 3 never runs
-    // 3. F4_Index_Tick (F4_Tick/HookID_Tick) updates the note tree correctly and clears the global_buffer_modified_set
-    // (F4_Tick -> default_tick -> code_index_update_tick -> buffer_modified_set_clear)
-    // Calling the Tick function here will fix the problem.
-    
-    // This bug only happens when you undo/paste some text, not when you redo/delete/type the text.
-    // The render hook always runs after the tick hook and global_buffer_modified_set is always empty in the latter case
-    for (Buffer_Modified_Node* node = global_buffer_modified_set.first; node; node = node->next)
-    {
-        if (node->buffer == buffer)
-        {
-            Long_Index_Tick(app);
-            code_index_update_tick(app);
-            break;
-        }
-    }
-    
     View_ID active_view = get_active_view(app, Access_Always);
     b32 is_active_view = (active_view == view_id);
     Rect_f32 prev_clip = draw_set_clip(app, rect);
@@ -226,20 +206,18 @@ F4_RenderBuffer(Application_Links *app, View_ID view_id, Face_ID face_id,
     f32 cursor_roundness = metrics.normal_advance*cursor_roundness_100*0.01f;
     f32 mark_thickness = (f32)def_get_config_u64(app, vars_save_string_lit("mark_thickness"));
     
-    // NOTE(long): Jump list highlights
-    Long_Highlight_DrawList(app, buffer, text_layout_id, cursor_roundness, mark_thickness);
-    
     // NOTE(rjf): Cursor
     switch (fcoder_mode)
     {
         case FCoderMode_Original:
         {
-            Long_Render_EmacsCursor(app, view_id, is_active_view, buffer, text_layout_id, cursor_roundness, mark_thickness, frame_info);
+            F4_Cursor_RenderEmacsStyle(app, view_id, is_active_view, buffer, text_layout_id, cursor_roundness, mark_thickness, frame_info);
         }break;
         
         case FCoderMode_NotepadLike:
         {
-            Long_Render_NotepadCursor(app, view_id, is_active_view, buffer, text_layout_id, cursor_roundness, mark_thickness, frame_info);
+            F4_Cursor_RenderNotepadStyle(app, view_id, is_active_view, buffer, text_layout_id, cursor_roundness,
+                                         mark_thickness, frame_info);
             break;
         }
     }
@@ -278,13 +256,7 @@ F4_RenderBuffer(Application_Links *app, View_ID view_id, Face_ID face_id,
     {
         // NOTE(rjf): Position context helper
         {
-#if LONG_INDEX_POS_CONTEXT
-            F4_Language* language = F4_LanguageFromBuffer(app, buffer);
-            if (language)
-                Long_Index_DrawPosContext(app, view_id, language->PosContext(app, scratch, buffer, cursor_pos));
-#else
             F4_PosContext_Render(app, view_id, buffer, text_layout_id, cursor_pos);
-#endif
         }
         
         // NOTE(rjf): Draw tooltip list.
@@ -343,11 +315,7 @@ F4_RenderBuffer(Application_Links *app, View_ID view_id, Face_ID face_id,
         if(!view_get_is_passive(app, view_id) &&
            !is_active_view)
         {
-#if LONG_INDEX_CODE_PEEK
-            Long_Index_DrawCodePeek(app, view_id);
-#else
             F4_CodePeek_Render(app, view_id, face_id, buffer, frame_info);
-#endif
         }
     }
     
@@ -376,34 +344,7 @@ F4_DrawFileBar(Application_Links *app, View_ID view_id, Buffer_ID buffer, Face_I
     Fancy_Line list = {};
     String_Const_u8 unique_name = push_buffer_unique_name(app, scratch, buffer);
     push_fancy_string(scratch, &list, base_color, unique_name);
-    
-    if (buffer == get_comp_buffer(app))
-    {
-        String8 str = push_whole_buffer(app, scratch, buffer);
-        u32 counts[2] = {};
-        for (u64 i = 0; i < str.size; ++i)
-        {
-            String8 searches[] = { S8Lit(": error"), S8Lit(": warning") };
-            for (u64 search = 0; search < ArrayCount(searches); ++search)
-            {
-                String8 substr = string_substring(str, Ii64_size(i, searches[search].size));
-                if (string_match(substr, searches[search], StringMatch_CaseInsensitive))
-                {
-                    i += substr.size - 1;
-                    counts[search]++;
-                    break;
-                }
-            }
-        }
-        
-        i64 line_count = buffer_get_line_count(app, buffer);
-        push_fancy_stringf(scratch, &list, base_color, " - Line Count: %3llu - %3u Error(s) %3u Warning(s)",
-                           line_count, counts[0], counts[1]);
-        goto END;
-    }
-    
-    push_fancy_stringf(scratch, &list, base_color, ": %d", buffer);
-    push_fancy_stringf(scratch, &list, base_color, " - Row: %3.lld Col: %3.lld Pos: %4lld -", cursor.line, cursor.col, cursor.pos);
+    push_fancy_stringf(scratch, &list, base_color, " - Row: %3.lld Col: %3.lld -", cursor.line, cursor.col);
     
     Managed_Scope scope = buffer_get_managed_scope(app, buffer);
     Line_Ending_Kind *eol_setting = scope_attachment(app, scope, buffer_eol_setting,
@@ -441,14 +382,9 @@ F4_DrawFileBar(Application_Links *app, View_ID view_id, Buffer_ID buffer, Face_I
         push_fancy_string(scratch, &list, pop2_color, str.string);
     }
     
-    //push_fancy_string(scratch, &list, base_color, S8Lit(" SM: "));
-    //push_fancy_string(scratch, &list, base_color, F4_SyntaxOptionString());
+    push_fancy_string(scratch, &list, base_color, S8Lit(" Syntax Mode: "));
+    push_fancy_string(scratch, &list, base_color, F4_SyntaxOptionString());
     
-    push_fancy_string(scratch, &list, base_color, S8Lit(" Virtual Whitespace: "));
-    b32 enable_virtual_whitespace = def_get_config_b32(vars_save_string_lit("enable_virtual_whitespace"));
-    push_fancy_string(scratch, &list, base_color, enable_virtual_whitespace ? S8Lit("On") : S8Lit("Off"));
-    
-    END:
     Vec2_f32 p = bar.p0 + V2f32(2.f, 2.f);
     draw_fancy_line(app, face_id, fcolor_zero(), &list, p);
     
@@ -531,11 +467,8 @@ F4_Render(Application_Links *app, Frame_Info frame_info, View_ID view_id)
     b64 showing_file_bar = false;
     if(view_get_setting(app, view_id, ViewSetting_ShowFileBar, &showing_file_bar) && showing_file_bar)
     {
-        // NOTE(long): If the buffer is the *compilation* buffer, don't use its font but the global font
-        Face_ID global_face = get_face_id(app, 0);
-        b32 is_comp = buffer == get_comp_buffer(app);
-        Rect_f32_Pair pair = layout_file_bar_on_top(region, is_comp ? get_face_metrics(app, global_face).line_height : line_height);
-        F4_DrawFileBar(app, view_id, buffer, is_comp ? global_face : face_id, pair.min);
+        Rect_f32_Pair pair = layout_file_bar_on_top(region, line_height);
+        F4_DrawFileBar(app, view_id, buffer, face_id, pair.min);
         region = pair.max;
     }
     
@@ -599,8 +532,7 @@ F4_Render(Application_Links *app, Frame_Info frame_info, View_ID view_id)
     // NOTE(allen): draw line numbers
     if(def_get_config_b32(vars_save_string_lit("show_line_number_margins")))
     {
-        //draw_line_number_margin(app, view_id, buffer, face_id, text_layout_id, line_number_rect);
-        Long_Render_LineOffsetNumber(app, view_id, buffer, face_id, text_layout_id, line_number_rect);
+        draw_line_number_margin(app, view_id, buffer, face_id, text_layout_id, line_number_rect);
     }
     
     // NOTE(allen): draw the buffer
