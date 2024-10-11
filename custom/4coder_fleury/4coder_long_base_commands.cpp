@@ -3847,6 +3847,14 @@ CUSTOM_DOC("Opens an interactive list of all registered themes.")
     }
 }
 
+CUSTOM_COMMAND_SIG(long_explorer)
+CUSTOM_DOC("Opens file explorer in cmd")
+{
+    Scratch_Block scratch(app);
+    String8 hot = push_hot_directory(app, scratch);
+    exec_system_command(app, 0, buffer_identifier(0), hot, S8Lit("explorer ."), 0);
+}
+
 //~ NOTE(long): Macro Commands
 
 CUSTOM_COMMAND_SIG(long_macro_toggle_recording)

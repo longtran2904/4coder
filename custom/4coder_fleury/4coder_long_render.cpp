@@ -458,6 +458,53 @@ CUSTOM_DOC("Toggles between line numbers and offsets.")
 
 //~ NOTE(long): Highlight Rendering
 
+// @COPYPASTA(long): qol_draw_compile_errors and F4_RenderErrorAnnotations
+function void Long_Highlight_DrawErrors(Application_Links* app, Buffer_ID buffer, Text_Layout_ID text_layout_id, Buffer_ID jump_buffer)
+{
+    Marker_List* list = get_or_make_list_for_buffer(app, &global_heap, jump_buffer);
+    if (!jump_buffer || !list)
+        return;
+    
+    Scratch_Block scratch(app);
+    Range_i64 visible_range = text_layout_get_visible_range(app, text_layout_id);
+    
+    Managed_Scope scopes[2];
+    scopes[0] = buffer_get_managed_scope(app, jump_buffer);
+    scopes[1] = buffer_get_managed_scope(app, buffer);
+    Managed_Scope comp_scope = get_managed_scope_with_multiple_dependencies(app, scopes, ArrayCount(scopes));
+    Managed_Object* markers_object = scope_attachment(app, comp_scope, sticky_jump_marker_handle, Managed_Object);
+    
+    i32 count = managed_object_get_item_count(app, *markers_object);
+    Marker* markers = push_array(scratch, Marker, count);
+    managed_object_load_data(app, *markers_object, 0, count, markers);
+    
+    for (i32 i = 0; i < count; i += 1)
+    {
+        i64 jump_line_number = 0, code_line_number = 0;
+        Sticky_Jump_Stored stored = {};
+        if (get_stored_jump_from_list(app, list, i, &stored))
+        {
+            jump_line_number = stored.list_line;
+            code_line_number = get_line_number_from_pos(app, buffer, markers[stored.index_into_marker_array].pos);
+        }
+        
+        Range_i64 line_range = get_line_pos_range(app, buffer, code_line_number);
+        if (!range_overlap(visible_range, line_range)){ continue; }
+        
+        String_Const_u8 comp_line = push_buffer_line(app, scratch, jump_buffer, jump_line_number);
+        Parsed_Jump jump = parse_jump_location(comp_line);
+        if (!jump.success)
+            continue;
+        
+        i64 end_pos = get_line_end_pos(app, buffer, code_line_number)-1;
+        Rect_f32 end_rect = text_layout_character_on_screen(app, text_layout_id, end_pos);
+        Vec2_f32 p0 = V2f32(end_rect.x1 + 40.f, end_rect.y0);
+        String_Const_u8 error_string = string_skip(comp_line, jump.colon_position + 2);
+        draw_line_highlight(app, text_layout_id, code_line_number, fcolor_id(defcolor_highlight_junk));
+        draw_string(app, global_small_code_face, error_string, p0, fcolor_id(fleury_color_error_annotation));
+    }
+}
+
 // @COPYPASTA(long): draw_highlight_range
 function b32 Long_Highlight_DrawRange(Application_Links* app, View_ID view_id,
                                       Buffer_ID buffer, Text_Layout_ID text_layout_id,

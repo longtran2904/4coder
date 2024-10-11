@@ -98,34 +98,23 @@ function void Long_RenderBuffer(Application_Links* app, View_ID view_id, Buffer_
     {
         b32 use_error_highlight = def_get_config_b32(vars_save_string_lit("use_error_highlight"));
         b32 use_jump_highlight = def_get_config_b32(vars_save_string_lit("use_jump_highlight"));
-        if (use_error_highlight || use_jump_highlight){
+        if (use_error_highlight || use_jump_highlight)
+        {
             // NOTE(allen): Error highlight
             String_Const_u8 name = string_u8_litexpr("*compilation*");
             Buffer_ID compilation_buffer = get_buffer_by_name(app, name, Access_Always);
-            if (use_error_highlight){
-                draw_jump_highlights(app, buffer, text_layout_id, compilation_buffer,
-                                     fcolor_id(defcolor_highlight_junk));
-            }
+            if (use_error_highlight)
+                Long_Highlight_DrawErrors(app, buffer, text_layout_id, compilation_buffer);
             
             // NOTE(allen): Search highlight
-            if (use_jump_highlight){
+            if (use_jump_highlight)
+            {
                 Buffer_ID jump_buffer = get_locked_jump_buffer(app);
-                if (jump_buffer != compilation_buffer){
-                    draw_jump_highlights(app, buffer, text_layout_id, jump_buffer,
-                                         fcolor_id(defcolor_highlight_white));
-                }
+                if (jump_buffer != compilation_buffer)
+                    draw_jump_highlights(app, buffer, text_layout_id, jump_buffer, fcolor_id(defcolor_highlight_white));
             }
         }
     }
-    
-#ifdef FCODER_FLEURY_ERROR_ANNOTATIONS_H
-    // NOTE(rjf): Error annotations
-    {
-        String_Const_u8 name = string_u8_litexpr("*compilation*");
-        Buffer_ID compilation_buffer = get_buffer_by_name(app, name, Access_Always);
-        F4_RenderErrorAnnotations(app, buffer, text_layout_id, compilation_buffer);
-    }
-#endif
     
     // NOTE(jack): Token Occurance Highlight
     if (!def_get_config_b32(vars_save_string_lit("f4_disable_cursor_token_occurance"))) 

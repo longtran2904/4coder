@@ -42,6 +42,7 @@ function void Long_Render_LineOffsetNumber(Application_Links *app, View_ID view_
 
 //~ NOTE(long): Highlight Rendering
 
+function void Long_Highlight_DrawErrors(Application_Links* app, Buffer_ID buffer, Text_Layout_ID text_layout_id, Buffer_ID jump_buffer);
 function void Long_Highlight_DrawList(Application_Links *app, Buffer_ID buffer, Text_Layout_ID layout, f32 roundness, f32 thickness);
 function b32  Long_Highlight_DrawRange(Application_Links *app, View_ID view, Buffer_ID buffer, Text_Layout_ID layout, f32 roundness);
 

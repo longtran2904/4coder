@@ -258,15 +258,12 @@
 //   When this command runs, it will recursively load all files in those paths as read-only and unimportant
 
 //~ TODO MODIFY/NAVIGATE
-// [X] Upper/Lower a character
-// [X] Improve AlphaNumericCamel navigation
-// [X] Finalize the word boundary movement
+// [X] Open file explorer for the current directory
 // [ ] Rectangular selection and indentation
-// [ ] Jump to location with relative path
 // [ ] Jump to definition/buffer in comment/string
+// [ ] byp_qol multi-cursor
 
 //~ TODO LISTER
-// [ ] Show recent entries first
 // [ ] Replace all the wildcard searching in the query bar and lister with grep or glob
 // [ ] Search for definitions like Hoogle
 // [ ] Has a lister for important but rarely used commands
@@ -275,6 +272,7 @@
 //~ TODO TABS
 // [ ] Implement a tab system using byp_qol
 // [ ] Put *message* buffer to a separate tab
+// [ ] Put  *search* buffer to a separate tab
 
 //~ TODO RENDER
 
@@ -282,46 +280,41 @@
 // [ ] Put ... after a large item and scroll its content horizontally over time
 // [ ] Has syntax highlight inside each item's contents
 // [ ] Improve relative path display in the file lister
+// [ ] Render multi-column grid like byp_qol
 
 //- INDEX
 // [ ] Autocompletion using PosContext or casey/jack's system
 // [ ] String/Comment indenting as code
 // [ ] Render #if block with annotation
+// [ ] Render hex/bin/oct/dec number with separator in between
 
 //~ TODO CODE/ARCHITECTURE
 
-//- LONG
-// [X] Write my own init layer and hooks
+//- SEARCH
 // [ ] Merge all the default query bar code into a single function
 // [ ] Merge Long_Isearch and Long_Query_User_String into one function
 
+//- INDEX
 // [ ] Write a new cpp parser
 // [ ] Rewrite the Index system into a simple drop-in file
 // [ ] Add Index API for customizing the indentation and poscontext
 // [ ] Handle function overloading
 
 //- FLEURY
-// [X] Strip out power mode
-// [X] Strip out unused f4 commands
-// [X] Strip out *lego* buffer 
-// [X] Optionally include fleury_calc, fleury_plot, fleury_recent_files
-// [X] Optionally fleury_divider_comments, fleury_error_annotations, fleury_brace
 // [ ] Rework on the *peek* buffer
 // [ ] Rework on the  *loc* buffer
 
 //~ TODO BUGS
-// [ ] Fix unmatched/duplicate error annotation locations bug
+// [X] Fix unmatched/duplicate error annotation locations bug
 // [ ] Fix undo/redo_all_buffers right after saving bug
 // [ ] Clipboard bug (again)
-// [X] Fix open query bar with Alt inside a lister
-// [X] Delete empty range doesn't set buffer to dirty
-// [X] Tabbing while doing interactive search/replace bug
-// [X] Fix highlight the wrong region when start searching in notepad mode bug
-// [X] Fix Multi-select while in notepad mode
-// [X] Crash when undo jump when in lister mode
-// [X] Multi-select the buffer under the search buffer bug
-// [X] Fix not drawing highlight background when virtual whitespace is on
 // [?] Fix undo/redo/indent history bug
+
+//~ @CONSIDER(long): Interesting but low-priority stuff that may or may not be useful but deserves a look
+// [ ] Move range selection up and down
+// [ ] Modal auto-complete {} () [] on enter or typing
+// [ ] Render hex colors
+// [ ] Jump to location with relative path
 
 //~ NOTE(long): @long_macros and default include
 #define LONG_INDEX_INDENT_STATEMENT 1
@@ -356,7 +349,6 @@
 
 //~ NOTE(long): @f4_optional_headers
 #include "4coder_fleury_brace.h"
-#include "4coder_fleury_error_annotations.h"
 #include "4coder_fleury_divider_comments.h"
 #include "4coder_fleury_recent_files.h"
 #include "4coder_fleury_plot.h"
@@ -380,7 +372,6 @@
 
 //~ NOTE(long): @f4_optional_src
 #include "4coder_fleury_brace.cpp"
-#include "4coder_fleury_error_annotations.cpp"
 #include "4coder_fleury_divider_comments.cpp"
 #include "4coder_fleury_recent_files.cpp"
 #include "4coder_fleury_plot.cpp"
