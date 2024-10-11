@@ -69,7 +69,7 @@ keys_global =
     { "project_fkey_command",   "F16" },
     
     // NOTE(rjf): Panels
-    { "open_panel_vsplit", "P", "Control" },
+    { "open_panel_vsplit", "BackwardSlash", "Control" },
     { "open_panel_hsplit", "Minus", "Control" },
     { "close_panel", "P", "Control", "Shift" },
     { "long_search_for_definition__project_wide", "J", "Control" },
@@ -87,30 +87,31 @@ keys_file =
     //            Alt  => Alphanumeric/Camel
     
     // NOTE(rjf): Backspace/Delete
-    { "delete_char",                                  "Delete"               },
-    { "long_delete_token_boundary",                   "Delete",    "Control" },
-    { "f4_delete_alpha_numeric_or_camel_boundary",    "Delete",    "Alt"     },
-    { "backspace_char",                               "Backspace"            },
-    { "long_backspace_token_boundary",                "Backspace", "Control" },
-    { "f4_backspace_alpha_numeric_or_camel_boundary", "Backspace", "Alt"     },
-    
+    { "delete_char",                                    "Delete"               },
+    { "long_delete_token_boundary",                     "Delete",    "Control" },
+    { "long_delete_alpha_numeric_or_camel_boundary",    "Delete",    "Alt"     },
+    { "backspace_char",                                 "Backspace"            },
+    { "long_backspace_token_boundary",                  "Backspace", "Control" },
+    { "long_backspace_alpha_numeric_or_camel_boundary", "Backspace", "Alt"     },
     
     // NOTE(rjf): Left/Right Arrow Keys
     // NOTE(long): Shift binding will make notepad-mode unselectable
-    { "move_left",                                       "Left"                  },
-    { "move_left_whitespace_or_token_boundary",          "Left",  "Control"      },
-    { "move_left_alpha_numeric_or_camel_boundary",       "Left",  "Alt"          },
+    { "move_left",                                      "Left"                  },
+    { "long_move_prev_word",                            "Left",  "Control"      },
+    { "long_move_prev_alpha_numeric_or_camel_boundary", "Left",  "Alt"          },
     
-    { "move_right",                                      "Right"                 },
-    { "move_right_whitespace_or_token_boundary",         "Right", "Control"      },
-    { "move_right_alpha_numeric_or_camel_boundary",      "Right", "Alt"          },
+    { "move_right",                                     "Right"                 },
+    { "long_move_next_word",                            "Right", "Control"     },
+    { "long_move_next_alpha_numeric_or_camel_boundary", "Right", "Alt"          },
+    
+    { "long_switch_move_side_mode",                     "Minus", "Alt"          },
     
     // NOTE(rjf): Up/Down Arrow Keys
     { "move_up",                         "Up" },
     { "move_down",                       "Down" },
-	{ "move_line_up",                    "Up", "Alt" },
+    { "move_line_up",                    "Up", "Alt" },
     { "move_line_down",                  "Down", "Alt" },
-	{ "move_up_to_blank_line_end",       "Up", "Control" },
+    { "move_up_to_blank_line_end",       "Up", "Control" },
     { "move_down_to_blank_line_end",     "Down", "Control" },
     { "long_move_up_token_occurrence",   "Up", "Control", "Alt" },
     { "long_move_down_token_occurrence", "Down", "Control", "Alt" },
@@ -187,7 +188,7 @@ keys_file =
     { "long_select_current_token",                     "A", "Alt" },*/
     
     // NOTE(rjf): Deletion
-    { "delete_range",                                  "D", "Control" },
+    { "long_delete_range",                             "D", "Control" },
     { "delete_line",                                   "D", "Control", "Shift" },
     
     // NOTE(rjf): Insertion
@@ -235,10 +236,9 @@ keys_file =
 
 keys_code =
 {
-	{ "f4_comment_selection",                                "Semicolon",    "Control" },
+    { "f4_comment_selection",                                "Semicolon",    "Control" },
     { "f4_uncomment_selection",                              "Semicolon",    "Control", "Shift" },
     { "f4_autocomplete_or_indent",                           "Tab" },   
-    { "f4_unindent",                                         "Tab",          "Shift"   },
     { "long_indent_range",                                   "Tab",          "Control" },
     
     { "word_complete_drop_down",                             "Tab",          "Control", "Shift" },

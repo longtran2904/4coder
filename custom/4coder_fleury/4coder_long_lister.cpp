@@ -608,7 +608,7 @@ function void Long_Lister_Backspace_Path(Application_Links* app)
 }
 
 // @COPYPASTA(long): run_lister
-function Lister_Result Long_Lister_Run(Application_Links *app, Lister *lister)
+function Lister_Result Long_Lister_Run(Application_Links* app, Lister* lister)
 {
     lister->filter_restore_point = begin_temp(lister->arena);
     Long_Lister_FilterList(app, lister);
@@ -625,6 +625,17 @@ function Lister_Result Long_Lister_Run(Application_Links *app, Lister *lister)
     long_lister_tooltip_peek &= 0x7FFFFFFF;
     
     View_ID view = get_this_ctx_view(app, Access_Always);
+    
+    Mapping* mapping = lister->mapping;
+    Command_Map* map = lister->map;
+    {
+        Buffer_ID buffer = view_get_buffer(app, view, Access_Always);
+        Managed_Scope buffer_scope = buffer_get_managed_scope(app, buffer);
+        Command_Map_ID* map_id_ptr = scope_attachment(app, buffer_scope, buffer_map_id, Command_Map_ID);
+        if (map_id_ptr)
+            map = mapping_get_map(mapping, *map_id_ptr);
+    }
+    
     View_Context ctx = view_current_context(app, view);
     ctx.render_caller = Long_Lister_Render;
     ctx.hides_buffer = true;
@@ -820,22 +831,44 @@ function Lister_Result Long_Lister_Run(Application_Links *app, Lister *lister)
         }
         
         if (!handled){
-            Mapping *mapping = lister->mapping;
-            Command_Map *map = lister->map;
             
-            Fallback_Dispatch_Result disp_result = fallback_command_dispatch(app, mapping, map, &in);
-            if (disp_result.code == FallbackDispatch_DelayedUICall){
+            // @COYPASTA(long): fallback_command_dispatch
+            Fallback_Dispatch_Result disp_result = {};
+            {
+                if (mapping && map)
+                {
+                    Command_Binding binding = map_get_binding_recursive(mapping, map, &in.event);
+                    if (binding.custom != 0)
+                    {
+                        Command_Metadata* metadata = get_command_metadata(binding.custom);
+                        if (metadata && metadata->is_ui)
+                        {
+                            disp_result.code = FallbackDispatch_DelayedUICall;
+                            disp_result.func = binding.custom;
+                        }
+                        else
+                        {
+                            disp_result.code = FallbackDispatch_DidCall;
+                            disp_result.func = binding.custom;
+                        }
+                    }
+                }
+            }
+            
+            if (disp_result.code == FallbackDispatch_DelayedUICall || disp_result.code == FallbackDispatch_DidCall)
+            {
+                // NOTE(long): Delay the call for FallbackDispatch_DidCall because it doesn't seem safe to call func here.
+                // For example, view_snap_mark_to_cursor will return a null pointer.
                 call_after_ctx_shutdown(app, view, disp_result.func);
                 break;
             }
-            if (disp_result.code == FallbackDispatch_Unhandled){
-                leave_current_input_unhandled(app);
-            }
-            else{
-                Long_Lister_Refresh(app, lister);
-            }
+            
+            leave_current_input_unhandled(app); // disp_result.code == FallbackDispatch_Unhandled
         }
     }
     
-    return(lister->out);
+    return lister->out;
 }
+
+CUSTOM_COMMAND_SIG(long_test_lister_render)
+CUSTOM_DOC("Lorem ipsum dolor sit amet, consectetur adipiscing elit. Donec placerat tellus vitae feugiat tincidunt. Suspendisse sagittis velit porttitor justo commodo sagittis. Etiam erat metus, elementum eu aliquam et, dictum at eros. Vivamus nulla ex, gravida malesuada iaculis id, maximus at quam. Fusce sodales, velit id varius rhoncus, odio ipsum placerat eros, nec euismod dui nunc in mauris. Donec quis commodo enim. Etiam sed efficitur elit, in interdum lacus. Vivamus sollicitudin hendrerit lacinia. Suspendisse aliquet bibendum nunc, eget fermentum quam feugiat ac. Sed at fringilla neque, eu aliquam risus. Donec ut ante eu erat cursus semper eget et velit. Quisque ut aliquam nibh. Curabitur et justo hendrerit, finibus sapien quis, fringilla ante. Nullam vehicula, nisi in facilisis egestas, tellus nunc faucibus lacus, tempor aliquet nulla felis sit amet felis. Nam non vulputate elit.\n\nVestibulum volutpat est vel felis tincidunt, sed imperdiet neque feugiat. Integer placerat dignissim eros, in sollicitudin lacus venenatis varius. Maecenas in feugiat ex. Nunc elementum sem est, sodales facilisis ligula hendrerit interdum. Integer pulvinar orci eget ipsum porta dapibus. Pellentesque sapien eros, semper sit amet placerat a, viverra malesuada nulla. Donec cursus turpis ut metus auctor pellentesque. Etiam dolor dui, maximus vitae malesuada ac, tincidunt eu tortor. Nullam felis ante, varius elementum mattis nec, pretium in diam.\n\nUt ut malesuada justo. Donec consequat magna sed diam feugiat pellentesque. Duis quis tempus tortor. Donec vulputate ullamcorper massa, eget porta metus ultrices nec. Cras dignissim dictum blandit. Nullam pellentesque volutpat purus vitae bibendum. Aenean quis neque eget orci imperdiet lacinia id finibus lorem. Interdum et malesuada fames ac ante ipsum primis in faucibus. Interdum et malesuada fames ac ante ipsum primis in faucibus. Praesent dictum lectus a ligula venenatis, nec ultricies turpis placerat. Proin euismod ut odio eu luctus. Vivamus eleifend eros sit amet felis dapibus, ac tempus est feugiat. Vivamus sit amet quam id lorem commodo volutpat. Maecenas ac nulla non turpis euismod vestibulum eget vitae tortor.\n\nMauris venenatis nunc ac enim fringilla, vitae varius neque imperdiet. Duis odio purus, commodo in dolor in, mollis malesuada tellus. Duis pharetra vulputate mauris ut cursus. Cras non eros feugiat, lacinia augue ut, tincidunt arcu. Donec pulvinar pulvinar lorem, vel sollicitudin arcu commodo ac. Sed facilisis lorem elit, sit amet dapibus urna varius elementum. Cras at viverra urna, eu vehicula ligula. Etiam ut convallis magna. Suspendisse feugiat quam sit amet accumsan aliquet. Pellentesque vestibulum sapien ut urna sollicitudin consequat. Duis non ullamcorper nibh.\n\nNullam hendrerit, sem et dictum faucibus, neque purus tristique ligula, eu sollicitudin arcu orci in magna. Vivamus auctor, enim varius ornare mattis, dolor magna condimentum enim, nec convallis sem velit nec augue. Pellentesque rutrum mauris ut nulla consectetur condimentum. Aliquam nec massa eu metus sollicitudin tincidunt. Donec lobortis ultricies sem id pretium. Donec quis felis vel ante fermentum pretium. Nulla at mi sit amet ex molestie imperdiet a eget lacus. Nullam rutrum aliquet tellus interdum bibendum.") { }

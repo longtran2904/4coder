@@ -1,7 +1,7 @@
 
 //~ NOTE(long): Helper Functions
 
-//- NOTE(long): Misc
+//- NOTE(long): Math
 function b32 Long_F32_Invalid(f32 f)
 {
     return f == max_f32 || f == min_f32 || f == -max_f32 || f == -min_f32;
@@ -12,6 +12,19 @@ function b32 Long_Rf32_Invalid(Rect_f32 r)
     return (Long_F32_Invalid(r.x0) || Long_F32_Invalid(r.x1) || Long_F32_Invalid(r.y0) || Long_F32_Invalid(r.y1));
 }
 
+function i32 Long_Abs(i32 num)
+{
+    i32 mask = num >> 31;
+    return (num ^ mask) - mask;
+}
+
+function i64 Long_Abs(i64 num)
+{
+    i32 mask = num >> 63;
+    return (num ^ mask) - mask;
+}
+
+//- NOTE(long): Jumping
 function b32 Long_IsPosValid(Application_Links* app, View_ID view, Buffer_ID buffer, i64 pos, i64 current_pos)
 {
     b32 result = pos != current_pos;
@@ -39,19 +52,6 @@ function void Long_SnapView(Application_Links* app, View_ID view)
     no_mark_snap_to_cursor(app, view);
 }
 
-function i32 Long_Abs(i32 num)
-{
-    i32 mask = num >> 31;
-    return (num ^ mask) - mask;
-}
-
-function i64 Long_Abs(i64 num)
-{
-    i32 mask = num >> 63;
-    return (num ^ mask) - mask;
-}
-
-//- NOTE(long): Jumping
 function b32 Long_Jump_ParseLocation(Application_Links* app, View_ID view, Buffer_ID buffer, Buffer_ID* out_buf, i64* out_pos)
 {
     b32 result = 0;
@@ -148,6 +148,8 @@ function b32 Long_Buffer_NoSearch(Application_Links* app, Buffer_ID buffer)
 
 //~ NOTE(long): Point Stack Commands
 
+CUSTOM_ID(attachment, long_point_stacks);
+
 function Long_Point_Stack* Long_GetPointStack(Application_Links* app, View_ID view = 0)
 {
     if (view == 0)
@@ -155,7 +157,7 @@ function Long_Point_Stack* Long_GetPointStack(Application_Links* app, View_ID vi
     return scope_attachment(app, view_get_managed_scope(app, view), long_point_stacks, Long_Point_Stack);
 }
 
-function void Long_PointStack_Read(Application_Links* app, Long_Point_Stack* stack, i32 index, Buffer_ID* out_buffer, i64* out_pos)
+function b32 Long_PointStack_Read(Application_Links* app, Long_Point_Stack* stack, i32 index, Buffer_ID* out_buffer, i64* out_pos)
 {
     Marker* marker = (Marker*)managed_object_get_pointer(app, stack->markers[index]);
     if (marker)
@@ -163,6 +165,7 @@ function void Long_PointStack_Read(Application_Links* app, Long_Point_Stack* sta
         *out_buffer = stack->buffers[index];
         *out_pos = marker->pos;
     }
+    return !!marker;
 }
 
 function void Long_PointStack_Push(Application_Links* app, Buffer_ID buffer, i64 pos, View_ID view)
@@ -223,6 +226,11 @@ function void Long_PointStack_Append(Application_Links* app, Long_Point_Stack* s
         func; \
     }
 
+#define Long_PointStack_Iter(app, stack, start, end, advance) \
+    Buffer_ID buffer = 0; i64 pos = 0;\
+    for (i32 i = (start), _size_ = ArrayCount((stack)->markers); i != (end); i = clamp_loop(i + (advance), _size_)) \
+    if (Long_PointStack_Read(app, (stack), i, &buffer, &pos))
+
 CUSTOM_UI_COMMAND_SIG(long_point_lister)
 CUSTOM_DOC("List jump history")
 {
@@ -270,7 +278,7 @@ function void Long_PointStack_Jump(Application_Links* app, View_ID view, Buffer_
     Long_PointStack_Push(app, target_buffer, target_pos, view);
 }
 
-function void Long_PointStack_JumpNext(Application_Links* app, View_ID view, i32 advance, b32 exit_if_current)
+function void Long_PointStack_JumpNext(Application_Links* app, View_ID view, i32 advance)
 {
     if (!view)
         view = get_active_view(app, Access_Always);
@@ -286,30 +294,32 @@ function void Long_PointStack_JumpNext(Application_Links* app, View_ID view, i32
     if (advance == 0)
     {
         end = stack->bot - 1;
-        advance = -1;
+        //advance = -1;
     }
     else if (advance > 0) end = stack->top;
     else if (advance < 0) end = stack->bot - 1;
     
-    Long_IteratePointStack(app, stack, clamp_loop(stack->current - 1, size), clamp_loop(end, size), advance, size,
-                           // NOTE(long): If virtual whitespace is enabled, we can't jump to the start of the line
-                           // Long_IsPosValid will check for that and make sure pos is different from the current pos
-                           if (buffer == current_buffer && pos == current_pos && exit_if_current) break;
-                           
-                           if (buffer != current_buffer || Long_IsPosValid(app, view, buffer, pos, current_pos))
-                           {
-                               if (clamp_loop(i + 1, size) == stack->top && advance < 0)
-                               {
-                                   i64 current_line = get_line_number_from_pos(app, current_buffer, current_pos);
-                                   i64 line = get_line_number_from_pos(app, buffer, pos);
-                                   if (current_buffer != buffer || Long_Abs((i32)(line - current_line)) >= 16)
-                                       Long_PointStack_Append(app, stack, current_buffer, current_pos, view);
-                               }
-                               
-                               Long_Jump_ToLocation(app, view, buffer, pos);
-                               Long_PointStack_SetCurrent(stack, i);
-                               break;
-                           });
+    Long_PointStack_Iter(app, stack, clamp_loop(stack->current - 1, size), clamp_loop(end, size), advance)
+    {
+        if (buffer == current_buffer && pos == current_pos && advance == 0) break;
+        
+        // NOTE(long): If virtual whitespace is enabled, we can't jump to the start of the line
+        // Long_IsPosValid will check for that and make sure pos is different from the current pos
+        if (buffer != current_buffer || Long_IsPosValid(app, view, buffer, pos, current_pos) || advance == 0)
+        {
+            if (clamp_loop(i + 1, size) == stack->top && advance < 0)
+            {
+                i64 current_line = get_line_number_from_pos(app, current_buffer, current_pos);
+                i64 line = get_line_number_from_pos(app, buffer, pos);
+                if (current_buffer != buffer || Long_Abs((i32)(line - current_line)) >= 35)
+                    Long_PointStack_Append(app, stack, current_buffer, current_pos, view);
+            }
+            
+            Long_Jump_ToLocation(app, view, buffer, pos);
+            Long_PointStack_SetCurrent(stack, i);
+            break;
+        }
+    }
 }
 
 CUSTOM_COMMAND_SIG(long_undo_jump)
@@ -513,12 +523,12 @@ function void Long_KillBuffer(Application_Links* app, Buffer_ID buffer, View_ID 
     View_ID buffer_view = get_first_view_with_buffer(app, buffer);
     // must do this check before killing the buffer
     b32 is_search_buffer = Long_IsSearchBuffer(app, buffer);
-    // killed always equals to false because the search buffer is never dirty and always killable
+    // killing the search buffer is always possible because it's never dirty and always killable
     b32 killed = try_buffer_kill(app, buffer, view, 0) == BufferKillResult_Killed;
     
     if (is_search_buffer && killed && buffer_view)
     {
-        Long_PointStack_JumpNext(app, buffer_view, 0, 1);
+        Long_PointStack_JumpNext(app, buffer_view, 0);
         Long_SnapView(app, view);
         view_set_active(app, view);
     }
@@ -551,7 +561,7 @@ function b32 Long_Buffer_CompareCurrentHistory(Application_Links* app, Buffer_ID
     return result;
 }
 
-function b32 Long_Buffer_CheckHistoryAndSetDirty(Application_Links* app, Buffer_ID buffer = 0, i32 offset = 0)
+function b32 Long_Buffer_CheckDirtyHistory(Application_Links* app, Buffer_ID buffer, i32 offset)
 {
     b32 result = 0;
     if (!buffer)
@@ -621,7 +631,7 @@ CUSTOM_DOC("Opens an interactive list of the current buffer history.")
                 new_pos = record_get_new_cursor_position_redo(app, buffer, index);
             view_set_cursor_and_preferred_x(app, view, seek_pos(new_pos));
             
-            Long_Buffer_CheckHistoryAndSetDirty(app, buffer);
+            Long_Buffer_CheckDirtyHistory(app, buffer);
         }
     }
 }
@@ -638,7 +648,7 @@ function void Long_Undo_FinishFade(Application_Links* app, Fade_Range* range)
     if (current > 0)
     {
         buffer_history_set_current_state_index(app, range->buffer_id, current - 1);
-        Long_Buffer_CheckHistoryAndSetDirty(app, range->buffer_id);
+        Long_Buffer_CheckDirtyHistory(app, range->buffer_id);
     }
 }
 
@@ -683,7 +693,7 @@ CUSTOM_DOC("Advances backwards through the undo history of the current buffer.")
         
         if (do_immedite_undo){
             buffer_history_set_current_state_index(app, buffer, current - 1);
-            Long_Buffer_CheckHistoryAndSetDirty(app, buffer);
+            Long_Buffer_CheckDirtyHistory(app, buffer);
             if (record.single_string_backward.size > 0){
                 Range_i64 range = Ii64_size(record.single_first, record.single_string_backward.size);
                 ARGB_Color color = fcolor_resolve(fcolor_id(defcolor_undo));
@@ -720,7 +730,7 @@ CUSTOM_DOC("Advances forwards through the undo history of the current buffer.")
         view_set_cursor_and_preferred_x(app, view, seek_pos(new_position));
     }
     
-    Long_Buffer_CheckHistoryAndSetDirty(app);
+    Long_Buffer_CheckDirtyHistory(app);
 }
 
 CUSTOM_COMMAND_SIG(long_undo_all_buffers)
@@ -728,7 +738,7 @@ CUSTOM_DOC("Advances backward through the undo history in the buffer containing 
 {
     undo_all_buffers(app);
     for (Buffer_ID buffer = get_buffer_next(app, 0, Access_Always); buffer; buffer = get_buffer_next(app, buffer, Access_Always))
-        Long_Buffer_CheckHistoryAndSetDirty(app, buffer);
+        Long_Buffer_CheckDirtyHistory(app, buffer);
 }
 
 CUSTOM_COMMAND_SIG(long_redo_all_buffers)
@@ -736,7 +746,7 @@ CUSTOM_DOC("Advances forward through the undo history in the buffer containing t
 {
     redo_all_buffers(app);
     for (Buffer_ID buffer = get_buffer_next(app, 0, Access_Always); buffer; buffer = get_buffer_next(app, buffer, Access_Always))
-        Long_Buffer_CheckHistoryAndSetDirty(app, buffer);
+        Long_Buffer_CheckDirtyHistory(app, buffer);
 }
 
 function void Long_Buffer_AdvanceHistorySamePos(Application_Links* app, b32 undo)
@@ -847,7 +857,7 @@ CUSTOM_DOC("Inserts text and auto-indents the line on which the cursor sits if a
     }
 }
 
-//- NOTE(long): Special Buffers
+//- NOTE(long): Special Buffers/Panels
 CUSTOM_COMMAND_SIG(long_kill_buffer)
 CUSTOM_DOC("Kills the current buffer.")
 {
@@ -882,7 +892,7 @@ CUSTOM_COMMAND_SIG(long_toggle_compilation_expand)
 CUSTOM_DOC("Expand the compilation window.")
 {
     f32 line_height = get_face_metrics(app, get_face_id(app, view_get_buffer(app, global_compilation_view, Access_Always))).line_height;
-    i32 line_count = (global_compilation_view_expanded ^= 1) ? 31 : 5;
+    i32 line_count = (global_compilation_view_expanded ^= 1) ? 31 : 8;
     f32 bar_height = get_face_metrics(app, get_face_id(app, 0)).line_height + 2.f;
     f32 margin_size = (f32)def_get_config_u64(app, vars_save_string_lit("f4_margin_size"));
     f32 padding = 3.f;
@@ -927,6 +937,46 @@ CUSTOM_DOC("Expand the current window.")
         view_set_split_proportion(app, view, .625f);
 }
 
+CUSTOM_COMMAND_SIG(long_change_active_panel)
+CUSTOM_DOC("Change the currently active panel, moving to the panel with the next highest view_id.")
+{
+    View_ID view = get_active_view(app, Access_Always);
+    if (view == global_compilation_view)
+        view = long_global_active_view;
+    
+    view = get_next_view_looped_primary_panels(app, view, Access_Always);
+    if (view)
+    {
+        view_set_active(app, view);
+        long_global_active_view = view;
+    }
+}
+
+CUSTOM_COMMAND_SIG(long_change_active_panel_backwards)
+CUSTOM_DOC("Change the currently active panel, moving to the panel with the next lowest view_id.")
+{
+    View_ID view = get_active_view(app, Access_Always);
+    if (view == global_compilation_view)
+        view = long_global_active_view;
+    
+    view = get_prev_view_looped_primary_panels(app, view, Access_Always);
+    if (view)
+    {
+        view_set_active(app, view);
+        long_global_active_view = view;
+    }
+}
+
+CUSTOM_COMMAND_SIG(long_change_to_build_panel)
+CUSTOM_DOC("If the special build panel is open, makes the build panel the active panel.")
+{
+    View_ID view = get_or_open_build_panel(app);
+    View_ID active_view = get_active_view(app, 0);
+    if (view == active_view)
+        view = long_global_active_view;
+    view_set_active(app, view);
+}
+
 //~ NOTE(long): Search/Jump Commands
 
 #define LONG_QUERY_STRING_SIZE KB(1)
@@ -958,6 +1008,7 @@ function Buffer_ID Long_CreateOrSwitchBuffer(Application_Links* app, String_Cons
         buffer_set_setting(app, search_buffer, BufferSetting_ReadOnly, true);
     }
     
+    // TODO(long): This will overwrite the buffer's history from this point forward
     Long_Jump_ToBuffer(app, default_target_view, search_buffer, jump_to_buffer, 0);
     view_set_active(app, default_target_view);
     return(search_buffer);
@@ -1085,9 +1136,11 @@ function b32 Long_Query_User_String(Application_Links* app, Query_Bar* bar, Stri
             else
             {
                 i64 pos = view_get_cursor_pos(app, view);
-                range = enclose_pos_non_whitespace(app, buffer, pos);
+                range = enclose_pos_alpha_numeric_underscore_utf8(app, buffer, pos);
+                
+                // NOTE(long): The cursor can still be right after
                 if (range.max == range.min)
-                    range.min = scan(app, boundary_non_whitespace, buffer, Scan_Backward, pos);
+                    range = enclose_pos_alpha_numeric_underscore_utf8(app, buffer, pos - 1);
             }
             
             String8 string = push_buffer_range(app, scratch, buffer, range);
@@ -1204,6 +1257,22 @@ function Sticky_Jump Long_SearchBuffer_NearestJump(Application_Links* app, View_
     return result;
 }
 
+function void Long_SnapMarkToCursor(Application_Links* app)
+{
+    if (fcoder_mode == FCoderMode_NotepadLike)
+    {
+        for (View_ID view = get_view_next(app, 0, 0); view; view = get_view_next(app, view, 0))
+        {
+            i64 pos = view_get_cursor_pos(app, view);
+            view_set_mark(app, view, seek_pos(pos));
+            
+            Managed_Scope scope = view_get_managed_scope(app, view);
+            b32* snap_mark_to_cursor = scope_attachment(app, scope, view_snap_mark_to_cursor, b32);
+            *snap_mark_to_cursor = true;
+        }
+    }
+}
+
 function void Long_SearchBuffer_MultiSelect(Application_Links* app, View_ID view, Buffer_ID search_buffer,
                                             String8 title, i64 init_size, b32 push_jump = 0)
 {
@@ -1266,6 +1335,7 @@ function void Long_SearchBuffer_MultiSelect(Application_Links* app, View_ID view
     for (;;)
     {
         Scratch_Block scratch(app);
+        Long_SnapMarkToCursor(app);
         
         User_Input in = get_next_input(app, EventPropertyGroup_Any, EventProperty_Escape);
         if (in.abort)
@@ -1387,15 +1457,10 @@ function void Long_SearchBuffer_MultiSelect(Application_Links* app, View_ID view
         else
         {
             // NOTE(allen): is the user trying to execute another command?
-            Custom_Command_Function* custom;
-#if 1
             View_Context ctx = view_current_context(app, view);
             Command_Binding binding = map_get_binding_recursive(ctx.mapping, mapping_get_map(ctx.mapping, ctx.map_id), &in.event);
-            custom = binding.custom;
-#else
-            Implicit_Map_Result map_result = implicit_map_function(app, 0, 0, &in.event);
-            custom = map_result.command;
-#endif
+            Custom_Command_Function* custom = binding.custom;
+            
             if (custom)
             {
                 Command_Metadata* metadata = get_command_metadata(custom);
@@ -1480,7 +1545,7 @@ function void Long_SearchBuffer_MultiSelect(Application_Links* app, View_ID view
                     {
                         buffer_history_set_current_state_index(app, buff, first_index - 1);
                         buffer_history_clear_after_current_state(app, buff);
-                        Long_Buffer_CheckHistoryAndSetDirty(app, buff);
+                        Long_Buffer_CheckDirtyHistory(app, buff);
                     }
                     else if (first_index < last_index)
                         buffer_history_merge_record_range(app, buff, first_index, last_index, 0);
@@ -1503,7 +1568,7 @@ function void Long_SearchBuffer_MultiSelect(Application_Links* app, View_ID view
 #endif
         
         if (push_jump)
-            Long_PointStack_JumpNext(app, view, 0, 1);
+            Long_PointStack_JumpNext(app, view, 0);
         else
             Long_Jump_ToLocation(app, view, buffer, cursor_pos);
         view_set_mark(app, view, seek_pos(mark_pos));
@@ -1942,8 +2007,13 @@ function void Long_Search(Application_Links* app, Scan_Direction dir, b32 insens
         i64 mark = view_get_mark_pos(app, view);
         i64 cursor_line = get_line_number_from_pos(app, buffer, cursor);
         i64 mark_line = get_line_number_from_pos(app, buffer, mark);
-        String_Const_u8 query_init = (fcoder_mode != FCoderMode_NotepadLike || cursor == mark || cursor_line != mark_line) ?
-            SCu8() : push_buffer_range(app, scratch, buffer, Ii64(cursor, mark));
+        String_Const_u8 query_init = string_u8_empty;
+        if (fcoder_mode == FCoderMode_NotepadLike && cursor != mark /*&& cursor_line == mark_line*/)
+        {
+            if (cursor > mark)
+                Swap(i64, cursor, mark);
+            query_init = push_buffer_range(app, scratch, buffer, Ii64(cursor, mark));
+        }
         Long_ISearch(app, dir, cursor, query_init, insensitive);
     }
 }
@@ -2616,8 +2686,9 @@ CUSTOM_DOC("Save all identifiers in the hash table.")
     Long_Buffer_Write(app, scratch, S8Lit("identifiers.txt"), string);
 }
 
-//~ NOTE(long): Clipboard Commands
+//~ NOTE(long): Navigate Commands
 
+//- NOTE(long): Cursor/Mark
 CUSTOM_COMMAND_SIG(long_paste_and_replace_range)
 CUSTOM_DOC("replace the text between the mark and the cursor with the text from the top of the clipboard.")
 {
@@ -2656,6 +2727,17 @@ CUSTOM_DOC("replace the text between the mark and the cursor with the text from 
     Long_Indent_CursorRange(app, 1, 1);
 }
 
+// @COPYPASTA(long): delete_range except not setting the buffer to dirty when the range is empty
+CUSTOM_COMMAND_SIG(long_delete_range)
+CUSTOM_DOC("Deletes the text in the range between the cursor and the mark.")
+{
+    View_ID view = get_active_view(app, Access_ReadWriteVisible);
+    Buffer_ID buffer = view_get_buffer(app, view, Access_ReadWriteVisible);
+    Range_i64 range = get_view_range(app, view);
+    if (range_size(range))
+        buffer_replace_range(app, buffer, range, string_u8_empty);
+}
+
 CUSTOM_COMMAND_SIG(long_paste_and_indent)
 CUSTOM_DOC("Paste from the top of clipboard and run auto-indent on the newly pasted text.")
 {
@@ -2663,6 +2745,25 @@ CUSTOM_DOC("Paste from the top of clipboard and run auto-indent on the newly pas
     Long_Indent_CursorRange(app, 1, 1);
 }
 
+CUSTOM_COMMAND_SIG(long_clean_whitespace_at_cursor)
+CUSTOM_DOC("Removes all trailing and leading whitespace at the cursor")
+{
+    View_ID view = get_active_view(app, 0);
+    i64 pos = view_get_cursor_pos(app, view);
+    Buffer_ID buffer = view_get_buffer(app, view, 0);
+    Range_i64 range = {};
+    
+    String_Match left  = buffer_seek_character_class(app, buffer, &character_predicate_non_whitespace, Scan_Backward, pos);
+    String_Match right = buffer_seek_character_class(app, buffer, &character_predicate_non_whitespace, Scan_Forward , pos - 1);
+    if (left.buffer = right.buffer)
+        range = { left.range.max, right.range.min };
+    Range_i64 line_range = get_line_range_from_pos_range(app, buffer, range);
+    
+    if (range_size(range) > 1 && range_size(line_range) == 0)
+        buffer_replace_range(app, buffer, range, S8Lit(" "));
+}
+
+//- NOTE(long): Line
 function void Long_SelectCurrentLine(Application_Links* app, b32 toggle)
 {
     View_ID view = get_active_view(app, Access_Read);
@@ -2706,6 +2807,13 @@ CUSTOM_DOC("Cut the text in the current line onto the clipboard.")
     cut(app);
 }
 
+CUSTOM_COMMAND_SIG(long_select_current_line)
+CUSTOM_DOC("Set the mark to the end of the previous line and cursor to the end of the current line")
+{
+    Long_SelectCurrentLine(app, 1);
+}
+
+//- NOTE(long): Token
 CUSTOM_COMMAND_SIG(long_copy_token)
 CUSTOM_DOC("Copy the token that the cursor is currently on onto the clipboard.")
 {
@@ -2718,26 +2826,6 @@ CUSTOM_DOC("Cut the token that the cursor is currently on onto the clipboard.")
 {
     long_select_current_token(app);
     cut(app);
-}
-
-//~ NOTE(long): Move Commands
-
-//- NOTE(long): Select
-CUSTOM_COMMAND_SIG(long_select_current_line)
-CUSTOM_DOC("Set the mark to the end of the previous line and cursor to the end of the current line")
-{
-    Long_SelectCurrentLine(app, 1);
-}
-
-function void Long_Scan_Move(Application_Links* app, Scan_Direction direction, Boundary_Function_List funcs, b32 snap_mark = 0)
-{
-    View_ID view = get_active_view(app, Access_ReadVisible);
-    Buffer_ID buffer = view_get_buffer(app, view, Access_ReadVisible);
-    i64 cursor_pos = view_get_cursor_pos(app, view);
-    i64 pos = scan(app, funcs, buffer, direction, cursor_pos);
-    view_set_cursor_and_preferred_x(app, view, seek_pos(pos));
-    if (!snap_mark)
-        no_mark_snap_to_cursor_if_shift(app, view);
 }
 
 CUSTOM_COMMAND_SIG(long_select_current_token)
@@ -2778,110 +2866,277 @@ CUSTOM_DOC("Set the mark and cursor to the current token's boundary.")
     }
 }
 
-CUSTOM_COMMAND_SIG(long_clean_whitespace_at_cursor)
-CUSTOM_DOC("Removes all trailing and leading whitespace at the cursor")
+function Side Long_Scan_GetSide(Scan_Direction direction)
 {
-    View_ID view = get_active_view(app, 0);
-    i64 pos = view_get_cursor_pos(app, view);
-    Buffer_ID buffer = view_get_buffer(app, view, 0);
-    Range_i64 range = {};
-    
-    String_Match left  = buffer_seek_character_class(app, buffer, &character_predicate_non_whitespace, Scan_Backward, pos);
-    String_Match right = buffer_seek_character_class(app, buffer, &character_predicate_non_whitespace, Scan_Forward , pos - 1);
-    if (left.buffer = right.buffer)
-        range = { left.range.max, right.range.min };
-    Range_i64 line_range = get_line_range_from_pos_range(app, buffer, range);
-    
-    if (range_size(range) > 1 && range_size(line_range) == 0)
-        buffer_replace_range(app, buffer, range, S8Lit(" "));
+    Side  forward_side = long_global_move_side  & 1;
+    Side backward_side = long_global_move_side >> 1;
+    return direction == Scan_Forward ? forward_side : backward_side;
 }
 
-//- NOTE(long): Index
-function i64 Long_Boundary(Application_Links* app, Buffer_ID buffer, Side side, Scan_Direction direction, i64 pos)
+// @COPYPASTA(long): current_view_scan_move
+function void Long_Scan_Move(Application_Links* app, Side side, Scan_Direction direction, Boundary_Function func)
 {
-    i64 result = boundary_non_whitespace(app, buffer, side, direction, pos);
+    View_ID view = get_active_view(app, Access_ReadVisible);
+    Buffer_ID buffer = view_get_buffer(app, view, Access_ReadVisible);
+    i64 cursor_pos = view_get_cursor_pos(app, view);
+    i64 pos = func(app, buffer, side, direction, cursor_pos);
+    view_set_cursor_and_preferred_x(app, view, seek_pos(pos));
+    no_mark_snap_to_cursor_if_shift(app, view);
+}
+
+function void Long_Scan_Move(Application_Links* app, Scan_Direction direction, Boundary_Function func)
+{
+    Long_Scan_Move(app, Long_Scan_GetSide(direction), direction, func);
+}
+
+// @COPYPASTA(long): current_view_boundary_delete
+function void Long_Scan_Delete(Application_Links* app, Side side, Scan_Direction direction, Boundary_Function func)
+{
+    View_ID view = get_active_view(app, Access_ReadWriteVisible);
+    Buffer_ID buffer = view_get_buffer(app, view, Access_ReadWriteVisible);
+    Range_i64 range = {};
+    range.first = view_get_cursor_pos(app, view);
+    range.one_past_last = func(app, buffer, side, direction, range.first);
+    range = rectify(range);
+    buffer_replace_range(app, buffer, range, string_u8_empty);
+}
+
+function void Long_Scan_Delete(Application_Links* app, Scan_Direction direction, Boundary_Function func)
+{
+    Long_Scan_Delete(app, Long_Scan_GetSide(direction), direction, func);
+}
+
+function i64 Long_Boundary_TokenAndWhitespace(Application_Links* app, Buffer_ID buffer, 
+                                              Side side, Scan_Direction direction, i64 pos)
+{
+    /*
+    **  f4_move_left_token_boundary: |void|* |alloc|(|intptr_t |size|) |{  move-to-prev-word-start
+    ** f4_move_right_token_boundary:  void|* |alloc|(|intptr_t |size|) |{| move-to-next-word-start
+    
+    **  move_left_whitespace_or_token_boundary: |void|* |alloc|(|intptr_t |size|) |{  move-to-prev-word-start
+    ** move_right_whitespace_or_token_boundary:  void|*| alloc|(|intptr_t| size|)| {| move-to-next-word-end
+    
+    ** You can use this function as your test code.
+    */
+    
+    i64 result = direction == Scan_Forward ? buffer_get_size(app, buffer) : 0;
     Token_Array tokens = get_token_array_from_buffer(app, buffer);
-    if (tokens.tokens)
+    if (!tokens.tokens)
+        result = boundary_non_whitespace(app, buffer, side, direction, pos);
+    
+    else if (tokens.count > 1)
     {
+        Token_Iterator_Array it = token_iterator_pos(0, &tokens, pos);
+        Token* token = token_it_read(&it);
+        i64 line = get_line_number_from_pos(app, buffer, pos);
+        
         switch (direction)
         {
             case Scan_Forward:
             {
-                i64 buffer_size = buffer_get_size(app, buffer);
-                result = buffer_size;
-                if (tokens.count > 0)
+                if (token->kind == TokenBaseKind_Whitespace)
                 {
-                    Token_Iterator_Array it = token_iterator_pos(0, &tokens, pos);
-                    result = it.ptr->pos + it.ptr->size;
+                    token_it_inc_non_whitespace(&it);
+                    token = token_it_read(&it);
+                }
+                
+                // TODO(long): DSL Comments/Strings
+                if (token->kind == TokenBaseKind_Comment || token->kind == TokenBaseKind_LiteralString)
+                {
+                    result = boundary_non_whitespace(app, buffer, side, direction, pos);
+                    result = clamp_top(result, token->pos + token->size);
+                }
+                
+                // NOTE(long): All other cases
+                else
+                {
+                    if (side == Side_Max)
+                    {
+                        result = token->pos + token->size;
+                        if (line != get_line_number_from_pos(app, buffer, result))
+                            result = token->pos;
+                    }
+                    
+                    else
+                    {
+                        Token* old = token;
+                        if (token->pos <= pos)
+                            if (token_it_inc_non_whitespace(&it))
+                                token = token_it_read(&it);
+                        
+                        result = token->pos;
+                        if (line != get_line_number_from_pos(app, buffer, result))
+                            result = old->pos + old->size;
+                    }
                 }
             } break;
             
             case Scan_Backward:
             {
-                result = 0;
-                if (tokens.count > 0)
+                if (token->kind == TokenBaseKind_Whitespace)
                 {
-                    Token_Iterator_Array it = token_iterator_pos(0, &tokens, pos);
-                    if (it.ptr->pos == pos)
-                        token_it_dec_all(&it);
-                    result = it.ptr->pos;
+                    token_it_dec_non_whitespace(&it);
+                    token = token_it_read(&it);
+                }
+                else
+                {
+                    Token_Iterator_Array it2 = token_iterator_pos(0, &tokens, pos);
+                    token_it_dec_non_whitespace(&it2);
+                    Token* token2 = token_it_read(&it2);
+                    if (token2->kind == TokenBaseKind_Comment || token2->kind == TokenBaseKind_LiteralString)
+                        token = token2;
+                }
+                
+                // TODO(long): DSL Comments/Strings
+                if ((token->kind == TokenBaseKind_Comment || token->kind == TokenBaseKind_LiteralString) && pos > token->pos)
+                {
+                    result = boundary_non_whitespace(app, buffer, side, direction, pos);
+                    result = clamp_bot(result, token->pos);
+                }
+                
+                // NOTE(long): All other cases
+                else
+                {
+                    if (side == Side_Min)
+                    {
+                        Assert(token->pos <= pos);
+                        if (token->pos == pos)
+                        {
+                            token_it_dec_non_whitespace(&it);
+                            token = token_it_read(&it);
+                        }
+                        
+                        result = token->pos;
+                        if (line != get_line_number_from_pos(app, buffer, result))
+                            result = token->pos + token->size;
+                    }
+                    
+                    else
+                    {
+                        i64 same_line_pos = token->pos + token->size; // pos is inside whitespace
+                        if (token->pos + token->size >= pos)
+                        {
+                            // pos is inside non-whitespace or the end boundary of non-whitespace
+                            same_line_pos = token->pos;
+                            token_it_dec_non_whitespace(&it);
+                            token = token_it_read(&it);
+                            
+                            if (token->pos + token->size == pos)
+                            {
+                                // pos is the intersection of two non-whitespace tokens
+                                // e.g. token_it_dec|(...
+                                same_line_pos = token->pos;
+                                token_it_dec_non_whitespace(&it);
+                                token = token_it_read(&it);
+                            }
+                        }
+                        
+                        result = token->pos + token->size;
+                        if (line != get_line_number_from_pos(app, buffer, result) && same_line_pos < pos)
+                            result = same_line_pos;
+                    }
                 }
             } break;
         }
     }
-    return(result);
+    
+    return result;
 }
 
-CUSTOM_COMMAND_SIG(long_move_right_boundary)
-CUSTOM_DOC("Seek right for the next end of a token.")
+CUSTOM_COMMAND_SIG(long_switch_move_side_mode)
+CUSTOM_DOC("Change which side move_left/right/next/prev moves to.")
 {
-    Scratch_Block scratch(app);
-    Long_Scan_Move(app, Scan_Forward, push_boundary_list(scratch, Long_Boundary));
+    long_global_move_side = (long_global_move_side + 1) % 4;
 }
 
-CUSTOM_COMMAND_SIG(long_move_left_boundary)
-CUSTOM_DOC("Seek left for the next beginning of a token.")
+CUSTOM_COMMAND_SIG(long_move_next_word)
+CUSTOM_DOC("Seek left for the next token.")
+{
+    Long_Scan_Move(app, Scan_Forward, Long_Boundary_TokenAndWhitespace);
+}
+
+CUSTOM_COMMAND_SIG(long_move_prev_word)
+CUSTOM_DOC("Seek left for the prev token.")
+{
+    Long_Scan_Move(app, Scan_Backward, Long_Boundary_TokenAndWhitespace);
+}
+
+CUSTOM_COMMAND_SIG(long_backspace_token_boundary)
+CUSTOM_DOC("Deletes left to a token boundary.")
 {
     Scratch_Block scratch(app);
-    Long_Scan_Move(app, Scan_Backward, push_boundary_list(scratch, Long_Boundary));
+    Long_Scan_Delete(app, Scan_Backward, Long_Boundary_TokenAndWhitespace);
+}
+
+CUSTOM_COMMAND_SIG(long_delete_token_boundary)
+CUSTOM_DOC("Deletes right to a token boundary.")
+{
+    Scratch_Block scratch(app);
+    Long_Scan_Delete(app, Scan_Forward, Long_Boundary_TokenAndWhitespace);
+}
+
+//- NOTE(long): Alpha-Numeric/Camel
+function i64 Long_Boundary_UpperLower(Application_Links* app, Buffer_ID buffer, Scan_Direction direction, i64 pos)
+{
+    i64 min = boundary_predicate(app, buffer, Side_Min, direction, pos, &character_predicate_uppercase);
+    i64 max = boundary_predicate(app, buffer, Side_Max, direction, pos, &character_predicate_uppercase);
+    i64 max_start = boundary_predicate(app, buffer, Side_Min, Scan_Backward, max, &character_predicate_uppercase);
+    
+    i64 result = min;
+    if (max > max_start + 1) // Camel vs UPPERlower
+        result = direction == Scan_Forward ? Min(min, max) : Max(min, max);
+    return result;
 }
 
 function i64 Long_Boundary_AlphaNumericCamel(Application_Links* app, Buffer_ID buffer, Side side, Scan_Direction direction, i64 pos)
 {
-    i64 an_pos = boundary_alpha_numeric(app, buffer, side, direction, pos);
-    String_Match m = buffer_seek_character_class(app, buffer, &character_predicate_uppercase, direction, pos);
-    i64 cap_pos = m.range.min;
+    // Test Code: AAA_BBB_CCC AaaBbbCcc Aaa_Bbb_Ccc
+    // AAAaaaAAAbbbBcdAbcd AAA_aaaAAA_AAAaaaAaaa_aaa
     
-    {
-        i64 an_next_pos = boundary_alpha_numeric(app, buffer, flip_side(side), flip_direction(direction), an_pos);
-        if (direction == Scan_Backward && an_next_pos < pos)
-            an_pos = Max(an_pos, an_next_pos);
-        else if (direction == Scan_Forward && an_next_pos > pos)
-            an_pos = Min(an_pos, an_next_pos);
-    }
+    i64 an_pos = boundary_alpha_numeric(app, buffer, side, direction, pos);
+    i64 cm_pos = Long_Boundary_UpperLower(app, buffer, direction, pos);
+    
+    i64 an_opposite_pos = boundary_alpha_numeric(app, buffer, flip_side(side), flip_direction(direction), an_pos);
+    if (an_opposite_pos == cm_pos)
+        cm_pos = Long_Boundary_UpperLower(app, buffer, direction, cm_pos);
     
     i64 result = 0;
     if (direction == Scan_Backward)
-        result = Max(an_pos, cap_pos);
+        result = Max(an_pos, cm_pos);
     else
-        result = Min(an_pos, cap_pos);
+        result = Min(an_pos, cm_pos);
     return result;
 }
 
-CUSTOM_COMMAND_SIG(long_move_right_alpha_numeric_or_camel_boundary)
+CUSTOM_COMMAND_SIG(long_move_next_alpha_numeric_or_camel_boundary)
 CUSTOM_DOC("Seek right for boundary between alphanumeric characters or camel case word and non-alphanumeric characters.")
 {
     Scratch_Block scratch(app);
-    Long_Scan_Move(app, Scan_Forward, push_boundary_list(scratch, Long_Boundary_AlphaNumericCamel));
+    Long_Scan_Move(app, Scan_Forward, Long_Boundary_AlphaNumericCamel);
 }
 
-CUSTOM_COMMAND_SIG(long_move_left_alpha_numeric_or_camel_boundary)
+CUSTOM_COMMAND_SIG(long_move_prev_alpha_numeric_or_camel_boundary)
 CUSTOM_DOC("Seek left for boundary between alphanumeric characters or camel case word and non-alphanumeric characters.")
 {
     Scratch_Block scratch(app);
-    Long_Scan_Move(app, Scan_Backward, push_boundary_list(scratch, Long_Boundary_AlphaNumericCamel));
+    Long_Scan_Move(app, Scan_Backward, Long_Boundary_AlphaNumericCamel);
 }
 
+CUSTOM_COMMAND_SIG(long_backspace_alpha_numeric_or_camel_boundary)
+CUSTOM_DOC("Deletes left to a alphanumeric or camel boundary.")
+{
+    Scratch_Block scratch(app);
+    Long_Scan_Delete(app, Scan_Backward, Long_Boundary_AlphaNumericCamel);
+}
+
+CUSTOM_COMMAND_SIG(long_delete_alpha_numeric_or_camel_boundary)
+CUSTOM_DOC("Deletes right to an alphanumeric or camel boundary.")
+{
+    Scratch_Block scratch(app);
+    Long_Scan_Delete(app, Scan_Forward, Long_Boundary_AlphaNumericCamel);
+}
+
+//- NOTE(long): Index
 function F4_Index_Note* Long_Scan_Note(Scan_Direction dir, F4_Index_Note* note, NoteFilter* filter, i64 pos)
 {
     F4_Index_Note* result = 0;
@@ -2932,24 +3187,25 @@ CUSTOM_COMMAND_SIG(long_move_to_next_function_and_type)
 CUSTOM_DOC("Seek right for the next function or type in the buffer.")
 {
     Scratch_Block scratch(app);
-    Long_Scan_Move(app, Scan_Forward, push_boundary_list(scratch, Long_Boundary_FunctionAndType), 1);
+    Long_Scan_Move(app, Scan_Forward, Long_Boundary_FunctionAndType);
+    Long_SnapMarkToCursor(app);
 }
 
 CUSTOM_COMMAND_SIG(long_move_to_prev_function_and_type)
 CUSTOM_DOC("Seek left for the previous function or type in the buffer.")
 {
     Scratch_Block scratch(app);
-    Long_Scan_Move(app, Scan_Backward, push_boundary_list(scratch, Long_Boundary_FunctionAndType), 1);
+    Long_Scan_Move(app, Scan_Backward, Long_Boundary_FunctionAndType);
+    Long_SnapMarkToCursor(app);
 }
 
 // @COPYPASTA(long):
 // https://github.com/Jack-Punter/4coder_punter/blob/0b43bad07998132e76d7094ed7ee385151a52ab7/4coder_fleury_base_commands.cpp#L651
-function i64 F4_Boundary_CursorToken(Application_Links* app, Buffer_ID buffer, 
-                                     Side side, Scan_Direction direction, i64 pos)
+function i64 Long_Boundary_CursorToken(Application_Links* app, Buffer_ID buffer, 
+                                       Side side, Scan_Direction direction, i64 pos)
 {
     Scratch_Block scratch(app);
     
-    //-
     // NOTE(jack): Iterate the code index file for the buffer to find the search range for tokens
     // The search range_bounds should contain the function body, and its parameter list
     Code_Index_File* file = code_index_get_file(buffer);
@@ -3001,7 +3257,6 @@ function i64 F4_Boundary_CursorToken(Application_Links* app, Buffer_ID buffer,
         }
     }
     
-    //-
     View_ID view = get_active_view(app, Access_Always);
     i64 active_cursor_pos = view_get_cursor_pos(app, view);
     Token_Array tokens = get_token_array_from_buffer(app, buffer);
@@ -3010,7 +3265,6 @@ function i64 F4_Boundary_CursorToken(Application_Links* app, Buffer_ID buffer,
     String_Const_u8 cursor_string = push_buffer_range(app, scratch, buffer, Ii64(active_cursor_token));
     i64 cursor_offset = pos - active_cursor_token->pos;
     
-    //-
     // NOTE(jack): Loop to find the next cursor token occurance in the search_bounds. 
     // (only if we are on an identifier and have valid search bounds.
     i64 result = pos;
@@ -3062,161 +3316,65 @@ CUSTOM_COMMAND_SIG(long_move_up_token_occurrence)
 CUSTOM_DOC("Moves the cursor to the previous occurrence of the token that the cursor is over.")
 {
     Scratch_Block scratch(app);
-    Long_Scan_Move(app, Scan_Backward, push_boundary_list(scratch, F4_Boundary_CursorToken));
+    Long_Scan_Move(app, Scan_Backward, Long_Boundary_CursorToken);
 }
 
 CUSTOM_COMMAND_SIG(long_move_down_token_occurrence)
 CUSTOM_DOC("Moves the cursor to the next occurrence of the token that the cursor is over.")
 {
     Scratch_Block scratch(app);
-    Long_Scan_Move(app, Scan_Forward, push_boundary_list(scratch, F4_Boundary_CursorToken));
+    Long_Scan_Move(app, Scan_Forward, Long_Boundary_CursorToken);
 }
 
-//- NOTE(long): Delete
-// @COPYPASTA(long): F4_Boundary_TokenAndWhitespace
-function i64 Long_Boundary_TokenAndWhitespace(Application_Links* app, Buffer_ID buffer, 
-                                              Side side, Scan_Direction direction, i64 pos)
+//- NOTE(long): Upper/Lower Case
+function void Long_UpperLowerRange(Application_Links* app, b32 upper, b32 lower)
 {
-    i64 comment_offset = 2, string_offset = 1; // NOTE(long): This is specific to C/C++-like languages
+    Scratch_Block scratch(app);
+    View_ID view = get_active_view(app, 0);
+    Range_i64 range = get_view_range(app, view);
+    Buffer_ID buffer = view_get_buffer(app, view, 0);
     
-    i64 result = boundary_non_whitespace(app, buffer, side, direction, pos);
-    Token_Array tokens = get_token_array_from_buffer(app, buffer);
-    if (tokens.tokens != 0){
-        switch (direction){
-            case Scan_Forward:
-            {
-                i64 buffer_size = buffer_get_size(app, buffer);
-                result = buffer_size;
-                if(tokens.count > 0)
-                {
-                    Token_Iterator_Array it = token_iterator_pos(0, &tokens, pos);
-                    Token* token = token_it_read(&it);
-                    
-                    if(token == 0)
-                    {
-                        break;
-                    }
-                    
-                    // NOTE(rjf): Comments/Strings
-                    if(token->kind == TokenBaseKind_Comment ||
-                       token->kind == TokenBaseKind_LiteralString)
-                    {
-                        result = boundary_non_whitespace(app, buffer, side, direction, pos);
-                        
-                        i64 max_pos = token->pos + token->size;
-                        i64 offset = token->kind == TokenBaseKind_Comment ? comment_offset : string_offset;
-                        if (pos > token->pos && pos < token->pos + token->size - offset)
-                            max_pos -= offset;
-                        result = clamp_top(result, max_pos);
-                        break;
-                    }
-                    
-                    // NOTE(rjf): All other cases.
-                    else
-                    {
-                        if (token->kind == TokenBaseKind_Whitespace)
-                        {
-                            // token_it_inc_non_whitespace(&it);
-                            // token = token_it_read(&it);
-                        }
-                        
-                        if (side == Side_Max){
-                            result = token->pos + token->size;
-                            
-                            token_it_inc_all(&it);
-                            Token* ws = token_it_read(&it);
-                            if(ws != 0 && ws->kind == TokenBaseKind_Whitespace &&
-                               get_line_number_from_pos(app, buffer, ws->pos + ws->size) ==
-                               get_line_number_from_pos(app, buffer, token->pos))
-                            {
-                                result = ws->pos + ws->size;
-                            }
-                        }
-                        else{
-                            if (token->pos <= pos){
-                                token_it_inc_non_whitespace(&it);
-                                token = token_it_read(&it);
-                            }
-                            if (token != 0){
-                                result = token->pos;
-                            }
-                        }
-                    }
-                    
-                }
-            }break;
-            
-            case Scan_Backward:
-            {
-                result = 0;
-                if (tokens.count > 0){
-                    Token_Iterator_Array it = token_iterator_pos(0, &tokens, pos);
-                    Token* token = token_it_read(&it);
-                    
-                    Token_Iterator_Array it2 = it;
-                    token_it_dec_non_whitespace(&it2);
-                    Token* token2 = token_it_read(&it2);
-                    
-                    // NOTE(rjf): Comments/Strings
-                    if(token->kind == TokenBaseKind_Comment ||
-                       token->kind == TokenBaseKind_LiteralString ||
-                       (token2 && 
-                        token2->kind == TokenBaseKind_Comment ||
-                        token2->kind == TokenBaseKind_LiteralString))
-                    {
-                        result = boundary_non_whitespace(app, buffer, side, direction, pos);
-                        Token* special_token = (token->kind == TokenBaseKind_Comment ||
-                                                token->kind == TokenBaseKind_LiteralString) ? token : token2;
-                        if (pos > special_token->pos)
-                        {
-                            i64 min_pos = special_token->pos;
-                            i64 offset = special_token->kind == TokenBaseKind_Comment ? comment_offset : string_offset;
-                            if (pos < special_token->pos + special_token->size && pos > special_token->pos + offset)
-                                min_pos += offset;
-                            result = clamp_bot(result, min_pos);
-                        }
-                        break;
-                    }
-                    
-                    if (token->kind == TokenBaseKind_Whitespace){
-                        token_it_dec_non_whitespace(&it);
-                        token = token_it_read(&it);
-                    }
-                    if (token != 0){
-                        if (side == Side_Min){
-                            if (token->pos >= pos){
-                                token_it_dec_non_whitespace(&it);
-                                token = token_it_read(&it);
-                            }
-                            result = token->pos;
-                        }
-                        else{
-                            if (token->pos + token->size >= pos){
-                                token_it_dec_non_whitespace(&it);
-                                token = token_it_read(&it);
-                            }
-                            result = token->pos + token->size;
-                        }
-                    }
-                }
-            }break;
+    String8 str = push_buffer_range(app, scratch, buffer, range);
+    if (str.size)
+    {
+        for (u64 i = 0; i < str.size; ++i)
+        {
+            char c = str.str[i];
+            if (c < 'A' || c > 'z')
+                continue;
+            else if (upper && c >= 'a')
+                c -= 'a' - 'A';
+            else if (lower && c <= 'Z')
+                c += 'a' - 'A';
+            str.str[i] = c;
         }
+        
+        i64 c = view_get_cursor_pos(app, view);
+        i64 m =   view_get_mark_pos(app, view);
+        buffer_replace_range(app, buffer, range, str);
+        if (c < m)
+            view_set_mark(app, view, seek_pos(range.max));
+        else
+            view_set_cursor_and_preferred_x(app, view, seek_pos(range.max));
     }
-    return(result);
 }
 
-CUSTOM_COMMAND_SIG(long_backspace_token_boundary)
-CUSTOM_DOC("Deletes left to a token boundary.")
+CUSTOM_COMMAND_SIG(long_inverse_case)
+CUSTOM_DOC("Turn all the upper-case characaters to lower-case and vice versa in the range between the cursor and the mark.")
 {
-    Scratch_Block scratch(app);
-    current_view_boundary_delete(app, Scan_Backward, push_boundary_list(scratch, Long_Boundary_TokenAndWhitespace));
+    Long_UpperLowerRange(app, 1, 1);
 }
 
-CUSTOM_COMMAND_SIG(long_delete_token_boundary)
-CUSTOM_DOC("Deletes right to a token boundary.")
+CUSTOM_COMMAND_SIG(long_lower_case)
+CUSTOM_DOC("Turn all the upper-case characaters to lower-case in the range between the cursor and the mark.")
 {
-    Scratch_Block scratch(app);
-    current_view_boundary_delete(app, Scan_Forward, push_boundary_list(scratch, Long_Boundary_TokenAndWhitespace));
+    Long_UpperLowerRange(app, 0, 1);
+}
+
+CUSTOM_COMMAND_SIG(long_upper_case)
+CUSTOM_DOC("Turn all the lower-case characaters to upper-case in the range between the cursor and the mark.")
+{
+    Long_UpperLowerRange(app, 1, 0);
 }
 
 //- NOTE(long): Scope
@@ -3550,13 +3708,7 @@ CUSTOM_DOC("Looks for a project.4coder file in the current directory and tries t
     }
 }
 
-//~ NOTE(long): Misc Commands
-
-//- NOTE(long): Command
-CUSTOM_COMMAND_SIG(long_test_lister_render)
-CUSTOM_DOC("Lorem ipsum dolor sit amet, consectetur adipiscing elit. Donec placerat tellus vitae feugiat tincidunt. Suspendisse sagittis velit porttitor justo commodo sagittis. Etiam erat metus, elementum eu aliquam et, dictum at eros. Vivamus nulla ex, gravida malesuada iaculis id, maximus at quam. Fusce sodales, velit id varius rhoncus, odio ipsum placerat eros, nec euismod dui nunc in mauris. Donec quis commodo enim. Etiam sed efficitur elit, in interdum lacus. Vivamus sollicitudin hendrerit lacinia. Suspendisse aliquet bibendum nunc, eget fermentum quam feugiat ac. Sed at fringilla neque, eu aliquam risus. Donec ut ante eu erat cursus semper eget et velit. Quisque ut aliquam nibh. Curabitur et justo hendrerit, finibus sapien quis, fringilla ante. Nullam vehicula, nisi in facilisis egestas, tellus nunc faucibus lacus, tempor aliquet nulla felis sit amet felis. Nam non vulputate elit.\n\nVestibulum volutpat est vel felis tincidunt, sed imperdiet neque feugiat. Integer placerat dignissim eros, in sollicitudin lacus venenatis varius. Maecenas in feugiat ex. Nunc elementum sem est, sodales facilisis ligula hendrerit interdum. Integer pulvinar orci eget ipsum porta dapibus. Pellentesque sapien eros, semper sit amet placerat a, viverra malesuada nulla. Donec cursus turpis ut metus auctor pellentesque. Etiam dolor dui, maximus vitae malesuada ac, tincidunt eu tortor. Nullam felis ante, varius elementum mattis nec, pretium in diam.\n\nUt ut malesuada justo. Donec consequat magna sed diam feugiat pellentesque. Duis quis tempus tortor. Donec vulputate ullamcorper massa, eget porta metus ultrices nec. Cras dignissim dictum blandit. Nullam pellentesque volutpat purus vitae bibendum. Aenean quis neque eget orci imperdiet lacinia id finibus lorem. Interdum et malesuada fames ac ante ipsum primis in faucibus. Interdum et malesuada fames ac ante ipsum primis in faucibus. Praesent dictum lectus a ligula venenatis, nec ultricies turpis placerat. Proin euismod ut odio eu luctus. Vivamus eleifend eros sit amet felis dapibus, ac tempus est feugiat. Vivamus sit amet quam id lorem commodo volutpat. Maecenas ac nulla non turpis euismod vestibulum eget vitae tortor.\n\nMauris venenatis nunc ac enim fringilla, vitae varius neque imperdiet. Duis odio purus, commodo in dolor in, mollis malesuada tellus. Duis pharetra vulputate mauris ut cursus. Cras non eros feugiat, lacinia augue ut, tincidunt arcu. Donec pulvinar pulvinar lorem, vel sollicitudin arcu commodo ac. Sed facilisis lorem elit, sit amet dapibus urna varius elementum. Cras at viverra urna, eu vehicula ligula. Etiam ut convallis magna. Suspendisse feugiat quam sit amet accumsan aliquet. Pellentesque vestibulum sapien ut urna sollicitudin consequat. Duis non ullamcorper nibh.\n\nNullam hendrerit, sem et dictum faucibus, neque purus tristique ligula, eu sollicitudin arcu orci in magna. Vivamus auctor, enim varius ornare mattis, dolor magna condimentum enim, nec convallis sem velit nec augue. Pellentesque rutrum mauris ut nulla consectetur condimentum. Aliquam nec massa eu metus sollicitudin tincidunt. Donec lobortis ultricies sem id pretium. Donec quis felis vel ante fermentum pretium. Nulla at mi sit amet ex molestie imperdiet a eget lacus. Nullam rutrum aliquet tellus interdum bibendum.")
-{
-}
+//~ NOTE(long): Command-related Commands
 
 function Custom_Command_Function* Long_Query_User_Command(Application_Links* app, String8 query, Command_Lister_Status_Rule* rule)
 {
@@ -3650,7 +3802,8 @@ CUSTOM_DOC("Queries for an output buffer name and system command, runs the syste
     execute_previous_cli(app);
 }
 
-//- NOTE(long): Theme
+//~ NOTE(long): Theme Commands
+
 function void Long_UpdateCurrentTheme(Color_Table* table)
 {
     for (Color_Table_Node* node = global_theme_list.first; node != 0; node = node->next)
@@ -3694,7 +3847,8 @@ CUSTOM_DOC("Opens an interactive list of all registered themes.")
     }
 }
 
-//- NOTE(long): Macro
+//~ NOTE(long): Macro Commands
+
 CUSTOM_COMMAND_SIG(long_macro_toggle_recording)
 CUSTOM_DOC("Toggle macro recording")
 {
@@ -3726,43 +3880,815 @@ CUSTOM_DOC("Repeat most recently recorded keyboard macro n times.")
     }
 }
 
-//- NOTE(long): Panel
-CUSTOM_COMMAND_SIG(long_change_active_panel)
-CUSTOM_DOC("Change the currently active panel, moving to the panel with the next highest view_id.")
+//~ NOTE(long): @f4_base_commands
+// These are some useful f4 commands that I personally use.
+// Most of these are just straight-up copied from the original 4coder_fleury_base_commands file.
+// Except for some small or isolated functions that were inlined directly at their call site.
+
+CUSTOM_UI_COMMAND_SIG(f4_open_project)
+CUSTOM_DOC("Open a project by navigating to the project file.")
 {
-    View_ID view = get_active_view(app, Access_Always);
-    if (view == global_compilation_view)
-        view = long_global_active_view;
-    
-    view = get_next_view_looped_primary_panels(app, view, Access_Always);
-    if (view)
+    for(;;)
     {
-        view_set_active(app, view);
-        long_global_active_view = view;
+        Scratch_Block scratch(app);
+        View_ID view = get_this_ctx_view(app, Access_Always);
+        File_Name_Result result = get_file_name_from_user(app, scratch, "Open Project:", view);
+        if (result.canceled) break;
+        
+        String_Const_u8 file_name = result.file_name_activated;
+        if (file_name.size == 0)
+        {
+            file_name = result.file_name_in_text_field;
+        }
+        if (file_name.size == 0) break;
+        
+        String_Const_u8 path = result.path_in_text_field;
+        String_Const_u8 full_file_name = push_u8_stringf(scratch, "%.*s/%.*s",
+                                                         string_expand(path), string_expand(file_name));
+        
+        if (result.is_folder)
+        {
+            set_hot_directory(app, full_file_name);
+            continue;
+        }
+        
+        if(character_is_slash(file_name.str[file_name.size - 1]))
+        {
+            File_Attributes attribs = system_quick_file_attributes(scratch, full_file_name);
+            if (HasFlag(attribs.flags, FileAttribute_IsDirectory)){
+                set_hot_directory(app, full_file_name);
+                continue;
+            }
+            if (string_looks_like_drive_letter(file_name)){
+                set_hot_directory(app, file_name);
+                continue;
+            }
+            if (query_create_folder(app, file_name)){
+                set_hot_directory(app, full_file_name);
+                continue;
+            }
+            break;
+        }
+        
+        set_hot_directory(app, full_file_name);
+        load_project(app);
+        break;
     }
 }
 
-CUSTOM_COMMAND_SIG(long_change_active_panel_backwards)
-CUSTOM_DOC("Change the currently active panel, moving to the panel with the next lowest view_id.")
+CUSTOM_COMMAND_SIG(f4_home_first_non_whitespace)
+CUSTOM_DOC("Goes to the beginning of the line.")
 {
-    View_ID view = get_active_view(app, Access_Always);
-    if (view == global_compilation_view)
-        view = long_global_active_view;
-    
-    view = get_prev_view_looped_primary_panels(app, view, Access_Always);
-    if (view)
+    View_ID view = get_active_view(app, Access_Read);
+    Buffer_ID buffer = view_get_buffer(app, view, Access_Read);
+    if(view && buffer)
     {
-        view_set_active(app, view);
-        long_global_active_view = view;
+        i64 start_pos = view_get_cursor_pos(app, view);
+        seek_pos_of_visual_line(app, Side_Min);
+        i64 end_pos = view_get_cursor_pos(app, view);
+        i64 line = get_line_number_from_pos(app, buffer, start_pos);
+        
+        // NOTE(rjf): If we are on the first column, go to the first non-whitespace
+        // in the line.
+        if(start_pos == end_pos && start_pos == get_line_start_pos(app, buffer, line))
+        {
+            Scratch_Block scratch(app);
+            String_Const_u8 string = push_buffer_line(app, scratch, buffer, line);
+            for(u64 i = 0; i < string.size; i += 1)
+            {
+                if(!character_is_whitespace(string.str[i]))
+                {
+                    view_set_cursor_by_character_delta(app, view, (i64)i);
+                    break;
+                }
+            }
+        }
+        
+        // NOTE(rjf): If we hit any non-whitespace, move to the first possible
+        // non-whitespace instead of the front of the line entirely.
+        else 
+        {
+            Scratch_Block scratch(app);
+            String_Const_u8 string = push_buffer_range(app, scratch, buffer, Ii64(start_pos, end_pos));
+            
+            b32 skipped_non_whitespace = 0;
+            {
+                for(i64 i = string.size-1; i >= 0; i -= 1)
+                {
+                    if(!character_is_whitespace(string.str[i]))
+                    {
+                        skipped_non_whitespace = 1;
+                        break;
+                    }
+                }
+            }
+            
+            if(skipped_non_whitespace)
+            {
+                for(i64 i = 0; i < (i64)string.size; i += 1)
+                {
+                    if(!character_is_whitespace(string.str[i]))
+                    {
+                        view_set_cursor_by_character_delta(app, view, i);
+                        break;
+                    }
+                }
+            }
+        }
+        
+        // NOTE(rjf): Scroll all the way left.
+        {
+            Buffer_Scroll scroll = view_get_buffer_scroll(app, view);
+            scroll.target.pixel_shift.x = 0;
+            view_set_buffer_scroll(app, view, scroll, SetBufferScroll_NoCursorChange);
+        }
     }
 }
 
-CUSTOM_COMMAND_SIG(long_change_to_build_panel)
-CUSTOM_DOC("If the special build panel is open, makes the build panel the active panel.")
+function void
+F4_ReIndentLine(Application_Links *app, Buffer_ID buffer, i64 line, i64 indent_delta)
 {
-    View_ID view = get_or_open_build_panel(app);
-    View_ID active_view = get_active_view(app, 0);
-    if (view == active_view)
-        view = long_global_active_view;
-    view_set_active(app, view);
+    Scratch_Block scratch(app);
+    String_Const_u8 line_string = push_buffer_line(app, scratch, buffer, line);
+    i64 line_start_pos = get_line_start_pos(app, buffer, line);
+    
+    Range_i64 line_indent_range = Ii64(0, 0);
+    i64 tabs_at_beginning = 0;
+    i64 spaces_at_beginning = 0;
+    for(u64 i = 0; i < line_string.size; i += 1)
+    {
+        if(line_string.str[i] == '\t')
+        {
+            tabs_at_beginning += 1;
+        }
+        else if(character_is_whitespace(line_string.str[i]))
+        {
+            spaces_at_beginning += 1;
+        }
+        else if(!character_is_whitespace(line_string.str[i]))
+        {
+            line_indent_range.max = (i64)i;
+            break;
+        }
+    }
+    
+    // NOTE(rjf): Indent lines.
+    {
+        Range_i64 indent_range =
+        {
+            line_indent_range.min + line_start_pos,
+            line_indent_range.max + line_start_pos,
+        };
+        
+        i64 indent_width = (i64)def_get_config_u64(app, vars_save_string_lit("indent_width"));
+        b32 indent_with_tabs = def_get_config_b32(vars_save_string_lit("indent_with_tabs"));
+        i64 spaces_per_indent_level = indent_width;
+        i64 indent_level = spaces_at_beginning / spaces_per_indent_level + tabs_at_beginning;
+        i64 new_indent_level = indent_level + indent_delta;
+        
+        String_Const_u8 indent_string = indent_with_tabs ? S8Lit("\t") : push_stringf(scratch, "%.*s", Min(indent_width, 16),
+                                                                                      "                ");
+        buffer_replace_range(app, buffer, indent_range, S8Lit(""));
+        for(i64 i = 0; i < new_indent_level; i += 1)
+        {
+            buffer_replace_range(app, buffer, Ii64(line_start_pos), indent_string);
+        }
+    }
+    
+}
+
+internal Range_i64
+F4_LineRangeFromPosRange(Application_Links *app, Buffer_ID buffer, Range_i64 pos_range)
+{
+    Range_i64 lines_range =
+        Ii64(get_line_number_from_pos(app, buffer, pos_range.min),
+             get_line_number_from_pos(app, buffer, pos_range.max));
+    return lines_range;
+}
+
+internal void
+F4_ReIndentPosRange(Application_Links *app, Buffer_ID buffer, Range_i64 range, i64 indent_delta)
+{
+    range = F4_LineRangeFromPosRange(app, buffer, range);
+    for (i64 i = range.min; i <= range.max; i += 1)
+        F4_ReIndentLine(app, buffer, i, indent_delta);
+}
+
+internal void
+F4_AdjustCursorAndMarkForIndentation(Application_Links *app, View_ID view, i64 original_cursor, i64 original_mark, Range_i64 original_line_range)
+{
+    Buffer_ID buffer = view_get_buffer(app, view, Access_Read);
+    Scratch_Block scratch(app);
+    if(original_cursor == original_mark)
+    {
+        i64 start_pos = get_line_start_pos(app, buffer, original_line_range.min);
+        i64 new_pos = start_pos;
+        String_Const_u8 line = push_buffer_line(app, scratch, buffer, original_line_range.min);
+        for(u64 i = 0; i < line.size; i += 1)
+        {
+            if(!character_is_whitespace(line.str[i]))
+            {
+                new_pos = start_pos + (i64)i;
+                break;
+            }
+        }
+        
+        view_set_cursor(app, view, seek_pos(new_pos));
+        view_set_mark(app, view, seek_pos(new_pos));
+    }
+    else
+    {
+        Range_i64 range;
+        {
+            Range_i64 line_range = original_line_range;
+            if (line_range.min > line_range.max)
+            {
+                i64 swap = line_range.max;
+                line_range.max = line_range.min;
+                line_range.min = swap;
+            }
+            range = Ii64(get_line_start_pos(app, buffer, line_range.min), get_line_end_pos(app, buffer, line_range.max));
+        }
+        
+        view_set_cursor(app, view, seek_pos(original_cursor > original_mark ? range.max : range.min));
+        view_set_mark(app, view, seek_pos(original_cursor > original_mark ? range.min : range.max));
+    }
+}
+
+CUSTOM_COMMAND_SIG(f4_autocomplete_or_indent)
+CUSTOM_DOC("Tries to autocomplete the word currently being typed, and inserts indentation if such a word is not found.")
+{
+    ProfileScope(app, "[F4] Word Complete");
+    
+    View_ID view = get_active_view(app, Access_ReadWriteVisible);
+    Buffer_ID buffer = view_get_buffer(app, view, Access_ReadWriteVisible);
+    
+    if(buffer != 0)
+    {
+        Managed_Scope scope = view_get_managed_scope(app, view);
+        
+        b32 first_completion = false;
+        Rewrite_Type *rewrite = scope_attachment(app, scope, view_rewrite_loc, Rewrite_Type);
+        if (*rewrite != Rewrite_WordComplete){
+            first_completion = true;
+        }
+        
+        set_next_rewrite(app, view, Rewrite_WordComplete);
+        
+        Word_Complete_Iterator *it = word_complete_get_shared_iter(app);
+        local_persist b32 initialized = false;
+        local_persist Range_i64 range = {};
+        
+        if(first_completion || !initialized)
+        {
+            ProfileScope(app, "[F4] Word Complete State Init");
+            initialized = false;
+            i64 pos = view_get_cursor_pos(app, view);
+            Range_i64 needle_range = get_word_complete_needle_range(app, buffer, pos);
+            if(range_size(needle_range) > 0)
+            {
+                initialized = true;
+                range = needle_range;
+                word_complete_iter_init(buffer, needle_range, it);
+            }
+        }
+        
+        // NOTE(rjf): Word-Complete
+        if(initialized)
+        {
+            ProfileScope(app, "[F4] Word Complete Apply");
+            
+            word_complete_iter_next(it);
+            String_Const_u8 str = word_complete_iter_read(it);
+            
+            buffer_replace_range(app, buffer, range, str);
+            
+            range.max = range.min + str.size;
+            view_set_cursor_and_preferred_x(app, view, seek_pos(range.max));
+        }
+        
+        // NOTE(rjf): Insert indentation if autocomplete failed
+        else if(initialized == 0)
+        {
+            i64 pos = view_get_cursor_pos(app, view);
+            i64 mark = view_get_mark_pos(app, view);
+            Range_i64 pos_range = Ii64(pos, mark);
+            Range_i64 line_range = F4_LineRangeFromPosRange(app, buffer, pos_range);
+            
+            History_Group group = history_group_begin(app, buffer);
+            F4_ReIndentPosRange(app, buffer, Ii64(pos, mark), +1);
+            F4_AdjustCursorAndMarkForIndentation(app, view, pos, mark, line_range);
+            history_group_end(group);
+            no_mark_snap_to_cursor(app, view);
+        }
+    }
+}
+
+CUSTOM_COMMAND_SIG(f4_unindent)
+CUSTOM_DOC("Unindent the selected range.")
+{
+    Scratch_Block scratch(app);
+    
+    View_ID view = get_active_view(app, Access_ReadWrite);
+    Buffer_ID buffer = view_get_buffer(app, view, Access_ReadWrite);
+    i64 pos = view_get_cursor_pos(app, view);
+    i64 mark = view_get_mark_pos(app, view);
+    Range_i64 pos_range = Ii64(pos, mark);
+    Range_i64 line_range = F4_LineRangeFromPosRange(app, buffer, pos_range);
+    History_Group group = history_group_begin(app, buffer);
+    F4_ReIndentPosRange(app, buffer, Ii64(pos, mark), -1);
+    F4_AdjustCursorAndMarkForIndentation(app, view, pos, mark, line_range);
+    history_group_end(group);
+    no_mark_snap_to_cursor(app, view);
+}
+
+function File_Name_Result
+F4_GetFileNameFromUser_Project(Application_Links *app, Arena *arena, String_Const_u8 query, View_ID view)
+{
+    Lister_Handlers handlers = lister_get_default_handlers();
+    handlers.write_character = lister__write_character__file_path;
+    handlers.backspace = lister__backspace_text_field__file_path;
+    
+    Lister_Result l_result = run_lister_with_refresh_handler(app, arena, query, handlers);
+    
+    File_Name_Result result = {};
+    result.canceled = l_result.canceled;
+    if (!l_result.canceled){
+        result.clicked = l_result.activated_by_click;
+        if (l_result.user_data != 0){
+            String_Const_u8 name = SCu8((u8*)l_result.user_data);
+            result.file_name_activated = name;
+            result.is_folder = character_is_slash(string_get_character(name, name.size - 1));
+        }
+        result.file_name_in_text_field = string_front_of_path(l_result.text_field);
+        
+        String_Const_u8 path = {};
+        if (l_result.user_data == 0 && result.file_name_in_text_field.size == 0 && l_result.text_field.size > 0){
+            result.file_name_in_text_field = string_front_folder_of_path(l_result.text_field);
+            path = string_remove_front_folder_of_path(l_result.text_field);
+        }
+        else{
+            path = string_remove_front_of_path(l_result.text_field);
+        }
+        if (character_is_slash(string_get_character(path, path.size - 1))){
+            path = string_chop(path, 1);
+        }
+        result.path_in_text_field = path;
+    }
+    
+    return(result);
+}
+
+CUSTOM_UI_COMMAND_SIG(f4_interactive_open_or_new_in_project)
+CUSTOM_DOC("Interactively open a file out of the file system, filtered to files only in the project.")
+{
+    for(;;)
+    {
+        Scratch_Block scratch(app);
+        View_ID view = get_this_ctx_view(app, Access_Always);
+        File_Name_Result result = F4_GetFileNameFromUser_Project(app, scratch, S8Lit("Open (File In Project):"), view);
+        if (result.canceled) break;
+        
+        String_Const_u8 file_name = result.file_name_activated;
+        if (file_name.size == 0){
+            file_name = result.file_name_in_text_field;
+        }
+        if (file_name.size == 0) break;
+        
+        String_Const_u8 path = result.path_in_text_field;
+        String_Const_u8 full_file_name = push_u8_stringf(scratch, "%.*s/%.*s",
+                                                         string_expand(path), string_expand(file_name));
+        
+        if(result.is_folder)
+        {
+            set_hot_directory(app, full_file_name);
+            continue;
+        }
+        
+        if(character_is_slash(file_name.str[file_name.size - 1]))
+        {
+            File_Attributes attribs = system_quick_file_attributes(scratch, full_file_name);
+            if(HasFlag(attribs.flags, FileAttribute_IsDirectory))
+            {
+                set_hot_directory(app, full_file_name);
+                continue;
+            }
+            if(string_looks_like_drive_letter(file_name))
+            {
+                set_hot_directory(app, file_name);
+                continue;
+            }
+            if(query_create_folder(app, file_name))
+            {
+                set_hot_directory(app, full_file_name);
+                continue;
+            }
+            break;
+        }
+        
+        Buffer_ID buffer = create_buffer(app, full_file_name, 0);
+        if (buffer != 0){
+            view_set_buffer(app, view, buffer, 0);
+        }
+        break;
+    }
+}
+
+internal void
+F4_SetLineCommentedOnLine(Application_Links *app, Buffer_ID buffer, i64 *cursor_p, i64 *mark_p, b32 commented)
+{
+    i64 cursor = *cursor_p;
+    i64 mark = *mark_p;
+    i64 cursor_line = get_line_number_from_pos(app, buffer, cursor);
+    i64 mark_line = get_line_number_from_pos(app, buffer, mark);
+    
+    if(cursor_line == mark_line)
+    {
+        i64 line = cursor_line;
+        i64 line_start = get_pos_past_lead_whitespace_from_line_number(app, buffer, line);
+        b32 already_has_comment = c_line_comment_starts_at_position(app, buffer, line_start);
+        
+        if(commented)
+        {
+            if(!already_has_comment)
+            {
+                buffer_replace_range(app, buffer, Ii64(line_start), string_u8_litexpr("//"));
+                cursor = mark += 2;
+            }
+        }
+        else
+        {
+            if(already_has_comment)
+            {
+                buffer_replace_range(app, buffer, Ii64(line_start, line_start + 2), string_u8_empty);
+                cursor = mark -= 2;
+            }
+        }
+    }
+    
+    *cursor_p = cursor;
+    *mark_p = mark;
+}
+
+internal void
+F4_SetBlockCommentedOnRange(Application_Links *app, Buffer_ID buffer, i64 *cursor_p, i64 *mark_p, b32 commented)
+{
+    Scratch_Block scratch(app);
+    
+    i64 cursor = *cursor_p;
+    i64 mark = *mark_p;
+    Range_i64 range = Ii64(cursor, mark);
+    
+    if(commented)
+    {
+        buffer_replace_range(app, buffer, Ii64(range.max, range.max), S8Lit("*/"));
+        buffer_replace_range(app, buffer, Ii64(range.min, range.min), S8Lit("/*"));
+        if(cursor > mark) { cursor += 4; }
+        else              { mark   += 4; }
+    }
+    else if(range.max - range.min >= 2)
+    {
+        String_Const_u8 opener = push_buffer_range(app, scratch, buffer, Ii64(range.min, range.min+2));
+        String_Const_u8 closer = push_buffer_range(app, scratch, buffer, Ii64(range.max-2, range.max));
+        if(string_match(opener, S8Lit("/*")) &&
+           string_match(closer, S8Lit("*/")))
+        {
+            buffer_replace_range(app, buffer, Ii64(range.max-2, range.max), S8Lit(""));
+            buffer_replace_range(app, buffer, Ii64(range.min, range.min+2), S8Lit(""));
+            if(cursor > mark) { cursor -= 4; }
+            if(mark > cursor) { mark -= 4; }
+        }
+    }
+    
+    *cursor_p = cursor;
+    *mark_p = mark;
+}
+
+function b32
+F4_CBlockCommentStartsAtPosition(Application_Links *app, Buffer_ID buffer, i64 pos)
+{
+    b32 alread_has_comment = false;
+    u8 check_buffer[2];
+    if(buffer_read_range(app, buffer, Ii64(pos, pos + 2), check_buffer))
+    {
+        if(check_buffer[0] == '/' && check_buffer[1] == '*')
+        {
+            alread_has_comment = true;
+        }
+    }
+    return(alread_has_comment);
+}
+
+internal void
+F4_SetCommentedOnRange(Application_Links *app, Buffer_ID buffer, i64 *cursor_p, i64 *mark_p, b32 commented)
+{
+    Scratch_Block scratch(app);
+    
+    i64 cursor = *cursor_p;
+    i64 mark = *mark_p;
+    Range_i64 range = Ii64(cursor, mark);
+    Range_i64 line_range = F4_LineRangeFromPosRange(app, buffer, range);
+    Token_Array tokens = get_token_array_from_buffer(app, buffer);
+    
+    // NOTE(rjf): No selection
+    if(range.min == range.max)
+    {
+        F4_SetLineCommentedOnLine(app, buffer, &cursor, &mark, commented);
+    }
+    
+    // NOTE(rjf): Single-Line Selection
+    else if(line_range.min == line_range.max)
+    {
+        Token *min_token = get_token_from_pos(app, &tokens, (u64)range.min);
+        Token *max_token = get_token_from_pos(app, &tokens, (u64)range.max);
+        
+        // NOTE(rjf): Selection is inside comment
+        if(min_token == max_token && min_token && min_token->kind == TokenBaseKind_Comment)
+        {
+            (commented ? comment_line : uncomment_line)(app);
+        }
+        
+        // NOTE(rjf): Selection is not inside comment
+        else 
+        {
+            F4_SetBlockCommentedOnRange(app, buffer, &cursor, &mark, commented);
+        }
+    }
+    
+    // NOTE(rjf): Multi-Line Selection
+    else if(line_range.min != line_range.max)
+    {
+        if(commented)
+        {
+            i64 min_pos = Min(cursor, mark);
+            i64 line = get_line_number_from_pos(app, buffer, min_pos);
+            i64 start_of_line = get_line_start_pos(app, buffer, line);
+            
+            // NOTE(rjf): Selection starts on first column.
+            if(min_pos == start_of_line)
+            {
+                for(i64 i = line_range.min; i <= line_range.max; i += 1)
+                {
+                    i64 cursor2 = get_line_start_pos(app, buffer, i);
+                    i64 mark2 = get_line_end_pos(app, buffer, i);
+                    F4_SetLineCommentedOnLine(app, buffer, &cursor2, &mark2, commented);
+                }
+                if(cursor < mark)
+                {
+                    cursor = get_line_start_pos(app, buffer, line_range.min);
+                    mark = get_line_end_pos(app, buffer, line_range.max);
+                }
+                else
+                {
+                    mark = get_line_start_pos(app, buffer, line_range.min);
+                    cursor = get_line_end_pos(app, buffer, line_range.max);
+                }
+            }
+            
+            // NOTE(rjf): Selection does not start on first column.
+            else
+            {
+                F4_SetBlockCommentedOnRange(app, buffer, &cursor, &mark, 1);
+            }
+        }
+        else
+        {
+            b32 starts_with_block_comment = F4_CBlockCommentStartsAtPosition(app, buffer, range.min);
+            if(starts_with_block_comment)
+            {
+                F4_SetBlockCommentedOnRange(app, buffer, &cursor, &mark, 0);
+            }
+            else
+            {
+                for(i64 i = line_range.min; i <= line_range.max; i += 1)
+                {
+                    i64 cursor2 = get_line_start_pos(app, buffer, i);
+                    i64 mark2 = get_line_start_pos(app, buffer, i);
+                    F4_SetLineCommentedOnLine(app, buffer, &cursor2, &mark2, 0);
+                }
+                if(cursor < mark)
+                {
+                    cursor = get_line_start_pos(app, buffer, line_range.min);
+                    mark = get_line_end_pos(app, buffer, line_range.max);
+                }
+                else
+                {
+                    mark = get_line_start_pos(app, buffer, line_range.min);
+                    cursor = get_line_end_pos(app, buffer, line_range.max);
+                }
+            }
+        }
+    }
+    
+    *cursor_p = cursor;
+    *mark_p = mark;
+}
+
+CUSTOM_COMMAND_SIG(f4_comment_selection)
+CUSTOM_DOC("Performs VS-style commenting on the selected range.")
+{
+    View_ID view = get_active_view(app, Access_ReadWriteVisible);
+    Buffer_ID buffer = view_get_buffer(app, view, Access_ReadWriteVisible);
+    i64 cursor = view_get_cursor_pos(app, view);
+    i64 mark = view_get_mark_pos(app, view);
+    
+    History_Group group = history_group_begin(app, buffer);
+    F4_SetCommentedOnRange(app, buffer, &cursor, &mark, 1);
+    view_set_cursor(app, view, seek_pos(cursor));
+    view_set_mark(app, view, seek_pos(mark));
+    history_group_end(group);
+    no_mark_snap_to_cursor(app, view);
+}
+
+CUSTOM_COMMAND_SIG(f4_uncomment_selection)
+CUSTOM_DOC("Performs VS-style uncommenting on the selected range.")
+{
+    View_ID view = get_active_view(app, Access_ReadWriteVisible);
+    Buffer_ID buffer = view_get_buffer(app, view, Access_ReadWriteVisible);
+    i64 cursor = view_get_cursor_pos(app, view);
+    i64 mark = view_get_mark_pos(app, view);
+    History_Group group = history_group_begin(app, buffer);
+    F4_SetCommentedOnRange(app, buffer, &cursor, &mark, 0);
+    view_set_cursor(app, view, seek_pos(cursor));
+    view_set_mark(app, view, seek_pos(mark));
+    history_group_end(group);
+    no_mark_snap_to_cursor(app, view);
+}
+
+struct F4_LOCInfo
+{
+    F4_LOCInfo *next;
+    String_Const_u8 name;
+    i64 lines;
+    i64 whitespace_only_lines;
+    i64 open_brace_only_lines;
+};
+
+function F4_LOCInfo *
+F4_LOCInfoFromBuffer(Application_Links *app, Arena *arena, Buffer_ID buffer)
+{
+    F4_LOCInfo *first = 0;
+    F4_LOCInfo *last = 0;
+    
+    F4_LOCInfo *file_info = push_array_zero(arena, F4_LOCInfo, 1);
+    sll_queue_push(first, last, file_info);
+    file_info->name = str8_lit("all");
+    F4_LOCInfo *active_info = 0;
+    
+    i64 line_count = buffer_get_line_count(app, buffer);
+    for(i64 line_idx = 0; line_idx < line_count; line_idx += 1)
+    {
+        Scratch_Block scratch(app, arena);
+        String_Const_u8 line = push_buffer_line(app, scratch, buffer, line_idx);
+        if(line.size != 0 && line.str[line.size-1] == '\r')
+        {
+            line.size -= 1;
+        }
+        
+        //- rjf: begin a section if we find a root divider comment here
+        if(line.size >= 3 && line.str[0] == '/' && line.str[1] == '/' && line.str[2] == '~')
+        {
+            active_info = push_array_zero(arena, F4_LOCInfo, 1);
+            active_info->name = push_string_copy(arena, string_substring(line, Ii64(3, line.size)));
+            sll_queue_push(first, last, active_info);
+        }
+        
+        //- rjf: find out if this is a line with only whitespace
+        b32 is_only_whitespace = true;
+        {
+            for(u64 i = 0; i < line.size; i += 1)
+            {
+                if(!character_is_whitespace(line.str[i]))
+                {
+                    is_only_whitespace = false;
+                    break;
+                }
+            }
+        }
+        
+        //- rjf: find out if this is a line with only whitespace and an open brace
+        b32 is_only_open_brace = false;
+        if(is_only_whitespace == false)
+        {
+            for(u64 i = 0; i < line.size; i += 1)
+            {
+                if(!character_is_whitespace(line.str[i]))
+                {
+                    is_only_open_brace = line.str[i] == '{';
+                    if(!is_only_open_brace)
+                    {
+                        break;
+                    }
+                }
+            }
+        }
+        
+        //- rjf: increment line counts
+        {
+            file_info->lines += 1;
+            if(active_info != 0)
+            {
+                active_info->lines += 1;
+            }
+            if(is_only_whitespace)
+            {
+                file_info->whitespace_only_lines += 1;
+                if(active_info != 0)
+                {
+                    active_info->whitespace_only_lines += 1;
+                }
+            }
+            if(is_only_open_brace)
+            {
+                file_info->open_brace_only_lines += 1;
+                if(active_info != 0)
+                {
+                    active_info->open_brace_only_lines += 1;
+                }
+            }
+        }
+    }
+    
+    return first;
+}
+
+function int
+F4_LOCInfoCompare(const void *a_void_fuck_cplusplus, const void *b_void_fuck_cplusplus)
+{
+    F4_LOCInfo *a = (F4_LOCInfo *)a_void_fuck_cplusplus;
+    F4_LOCInfo *b = (F4_LOCInfo *)b_void_fuck_cplusplus;
+    return ((a->lines < b->lines) ? +1 :
+            (a->lines > b->lines) ? -1 :
+            0);
+}
+
+CUSTOM_COMMAND_SIG(f4_loc)
+CUSTOM_DOC("Counts the lines of code in the current buffer, breaks it down by section, and outputs to the *loc* buffer.")
+{
+    Scratch_Block scratch(app);
+    View_ID view = get_active_view(app, Access_Read);
+    Buffer_ID buffer = view_get_buffer(app, view, Access_Read);
+    
+    //- rjf: get all sections and counts from buffer
+    F4_LOCInfo *infos_list = F4_LOCInfoFromBuffer(app, scratch, buffer);
+    
+    //- rjf: build unsorted info in array form
+    int info_count = 0;
+    F4_LOCInfo *info_array = 0;
+    {
+        for(F4_LOCInfo *info = infos_list; info; info = info->next, info_count += 1);
+        info_array = push_array_zero(scratch, F4_LOCInfo, info_count);
+        int i = 0;
+        for(F4_LOCInfo *info = infos_list; info; info = info->next, i += 1)
+        {
+            info_array[i] = *info;
+        }
+    }
+    
+    //- rjf: sort array
+    {
+        qsort(info_array, info_count, sizeof(F4_LOCInfo), F4_LOCInfoCompare);
+    }
+    
+    //- rjf: print loc info
+    Buffer_ID loc_buffer = get_buffer_by_name(app, str8_lit("*loc*"), AccessFlag_Write);
+    if(loc_buffer != 0)
+    {
+        clear_buffer(app, loc_buffer);
+        
+        for(int i = 0; i < info_count; i += 1)
+        {
+            F4_LOCInfo *info = info_array + i;
+            
+            Scratch_Block scratch2(app, scratch);
+            int padding = 25;
+            int chrs = (int)info->name.size;
+            int spaces = 0;
+            if(chrs > padding)
+            {
+                chrs = padding;
+                spaces = 0;
+            }
+            else
+            {
+                spaces = padding - chrs;
+            }
+            
+            if(spaces < 0)
+            {
+                spaces = 0;
+            }
+            
+            String_Const_u8 string = push_stringf(scratch2,
+                                                  ">>> %.*s%.*s: %6i lines; %6i whitespace; %6i open braces; %6i significant\n",
+                                                  chrs, info->name.str,
+                                                  spaces, "                                            ",
+                                                  (int)info->lines,
+                                                  (int)info->whitespace_only_lines,
+                                                  (int)info->open_brace_only_lines,
+                                                  (int)(info->lines - (info->whitespace_only_lines+info->open_brace_only_lines)));
+            b32 write_successful = buffer_replace_range(app, loc_buffer, Ii64(buffer_get_size(app, loc_buffer)), string);
+            write_successful = write_successful;
+        }
+    }
 }

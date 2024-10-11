@@ -552,7 +552,6 @@ CUSTOM_DOC("Fleury startup event")
                                              BufferCreate_AlwaysNew);
             buffer_set_setting(app, buffer, BufferSetting_Unimportant, true);
             buffer_set_setting(app, buffer, BufferSetting_ReadOnly, true);
-            buffer_set_setting(app, buffer, BufferSetting_Unkillable, true);
         }
         
         // NOTE(rjf): Open lego buffer.

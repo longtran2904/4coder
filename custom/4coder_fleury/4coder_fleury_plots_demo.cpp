@@ -13,8 +13,7 @@ plot_title('My Plot')
 plot_xaxis('x', -4, 4)
 plot_yaxis('y', -4, 4)
 plot(x^2 * sin(time()), 4*cos(time())*sin(x*time()))
-plot(sin(time())*cos(x+time()), x^3 * sin(time()),
-sin(-time())*3*x)
+plot(sin(time())*cos(x+time()), x^3 * sin(time()), sin(-time())*3*x)
 */
 
 
@@ -45,7 +44,7 @@ sin(-time())*3*x)
 plot_title('Histogram')
 plot_bin_count(10+5*sin(time()))
 plot_bin_range(-40, 40)
-plot_histogram(@global_data, @global_data_2)
+plot_histogram(@global_data, @global_data_2, @global_data_3)
 */
 
 

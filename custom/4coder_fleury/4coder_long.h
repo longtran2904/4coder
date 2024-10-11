@@ -257,8 +257,11 @@
 //   Each project file can now contain an array of reference paths (set inside the reference_paths variable)
 //   When this command runs, it will recursively load all files in those paths as read-only and unimportant
 
-//~ TODO REPLACE/NAVIGATE
-// [ ] Upper/Lower a character
+//~ TODO MODIFY/NAVIGATE
+// [X] Upper/Lower a character
+// [X] Improve AlphaNumericCamel navigation
+// [X] Finalize the word boundary movement
+// [ ] Rectangular selection and indentation
 // [ ] Jump to location with relative path
 // [ ] Jump to definition/buffer in comment/string
 
@@ -268,6 +271,10 @@
 // [ ] Search for definitions like Hoogle
 // [ ] Has a lister for important but rarely used commands
 // [ ] Hotkeys for inserting and cycling through common tags
+
+//~ TODO TABS
+// [ ] Implement a tab system using byp_qol
+// [ ] Put *message* buffer to a separate tab
 
 //~ TODO RENDER
 
@@ -284,7 +291,7 @@
 //~ TODO CODE/ARCHITECTURE
 
 //- LONG
-// [ ] Write my own init layer and hooks
+// [X] Write my own init layer and hooks
 // [ ] Merge all the default query bar code into a single function
 // [ ] Merge Long_Isearch and Long_Query_User_String into one function
 
@@ -294,26 +301,27 @@
 // [ ] Handle function overloading
 
 //- FLEURY
-// [ ] Strip out *calc* buffer
-// [ ] Strip out power mode
-// [ ] Strip out *lego* buffer 
-// [ ] Strip out unused f4 commands
+// [X] Strip out power mode
+// [X] Strip out unused f4 commands
+// [X] Strip out *lego* buffer 
+// [X] Optionally include fleury_calc, fleury_plot, fleury_recent_files
+// [X] Optionally fleury_divider_comments, fleury_error_annotations, fleury_brace
 // [ ] Rework on the *peek* buffer
-// [ ] Rework on the *loc* buffer
+// [ ] Rework on the  *loc* buffer
 
 //~ TODO BUGS
-// [ ] Fix unmatched error annotation locations bug
-// [ ] Fix undo/redo_all_buffers bug
-// [ ] Fix open query bar with Alt inside a lister
-
-//~ TODO MUST
-// [ ] Undo/redo/indent history
-// [ ] undo/redo_all_buffers right after saving
-// [ ] Search/list identifiers
-// [ ] Multi select the buffer under the search buffer
-// [ ] Implement a tab system using byp_qol
-// [ ] Show the *message* buffer on startup when there's an error or there're new messages
-// [ ] Advanced AlphaNumericUpperLowerUnderscore navigation
+// [ ] Fix unmatched/duplicate error annotation locations bug
+// [ ] Fix undo/redo_all_buffers right after saving bug
+// [ ] Clipboard bug (again)
+// [X] Fix open query bar with Alt inside a lister
+// [X] Delete empty range doesn't set buffer to dirty
+// [X] Tabbing while doing interactive search/replace bug
+// [X] Fix highlight the wrong region when start searching in notepad mode bug
+// [X] Fix Multi-select while in notepad mode
+// [X] Crash when undo jump when in lister mode
+// [X] Multi-select the buffer under the search buffer bug
+// [X] Fix not drawing highlight background when virtual whitespace is on
+// [?] Fix undo/redo/indent history bug
 
 //~ NOTE(long): @long_macros and default include
 #define LONG_INDEX_INDENT_STATEMENT 1
@@ -361,9 +369,6 @@
 #include "4coder_long_lister.h"
 #include "4coder_long_render.h"
 
-#define F4_PowerMode_CharacterPressed(...)
-#define F4_PowerMode_Spawn(...)
-
 #pragma warning(disable : 4456)
 
 //~ NOTE(rjf): @f4_src
@@ -372,7 +377,6 @@
 #include "4coder_fleury_index.cpp"
 #include "4coder_fleury_colors.cpp"
 #include "4coder_fleury_render_helpers.cpp"
-#include "4coder_fleury_base_commands.cpp"
 
 //~ NOTE(long): @f4_optional_src
 #include "4coder_fleury_brace.cpp"
@@ -459,7 +463,7 @@ void custom_layer_init(Application_Links* app)
     {
         Thread_Context* tctx = get_thread_context(app);
         mapping_init(tctx, &framework_mapping);
-        String_Const_u8 bindings_file = string_u8_litexpr("bindings.4coder");
+        String_Const_u8 bindings_file = S8Lit("bindings.4coder");
         
         if (!dynamic_binding_load_from_file(app, &framework_mapping, bindings_file))
         {
@@ -547,22 +551,22 @@ CUSTOM_DOC("Long startup event")
     {
         Buffer_Create_Flag special_flags = BufferCreate_NeverAttachToFile|BufferCreate_AlwaysNew;
         
-        comp_buffer = create_buffer(app, string_u8_litexpr("*compilation*"), special_flags);
+        comp_buffer = create_buffer(app, S8Lit("*compilation*"), special_flags);
         buffer_set_setting(app, comp_buffer, BufferSetting_Unimportant, true);
         buffer_set_setting(app, comp_buffer, BufferSetting_ReadOnly, true);
         buffer_set_setting(app, comp_buffer, BufferSetting_Unkillable, true);
         
-        Buffer_ID lego_buffer = create_buffer(app, string_u8_litexpr("*lego*"), special_flags);
+        Buffer_ID lego_buffer = create_buffer(app, S8Lit("*lego*"), special_flags);
         buffer_set_setting(app, lego_buffer, BufferSetting_Unimportant, true);
         buffer_set_setting(app, lego_buffer, BufferSetting_ReadOnly, true);
         
-        Buffer_ID calc_buffer = create_buffer(app, string_u8_litexpr("*calc*"), special_flags);
+        Buffer_ID calc_buffer = create_buffer(app, S8Lit("*calc*"), special_flags);
         buffer_set_setting(app, calc_buffer, BufferSetting_Unimportant, true);
         
-        Buffer_ID peek_buffer = create_buffer(app, string_u8_litexpr("*peek*"), special_flags);
+        Buffer_ID peek_buffer = create_buffer(app, S8Lit("*peek*"), special_flags);
         buffer_set_setting(app, peek_buffer, BufferSetting_Unimportant, true);
         
-        Buffer_ID loc_buffer = create_buffer(app, string_u8_litexpr("*loc*"), special_flags);
+        Buffer_ID loc_buffer = create_buffer(app, S8Lit("*loc*"), special_flags);
         buffer_set_setting(app, loc_buffer, BufferSetting_Unimportant, true);
         
         left_buffer  = get_buffer_by_name(app, S8Lit( "*scratch*"), 0);

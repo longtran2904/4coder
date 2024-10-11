@@ -370,59 +370,51 @@ function void Long_DrawFileBar(Application_Links* app, View_ID view_id, Buffer_I
         }
         
         i64 line_count = buffer_get_line_count(app, buffer);
-        push_fancy_stringf(scratch, &list, base_color, " - Line Count: %3llu - %3u Error(s) %3u Warning(s)",
-                           line_count, counts[0], counts[1]);
-        goto END;
+        push_fancy_stringf(scratch, &list, base_color, " - Line Count: %3llu Row: %3.lld Col: %3.lld - %3u Error(s) %3u Warning(s)",
+                           line_count, cursor.line, cursor.col, counts[0], counts[1]);
     }
-    
-    push_fancy_stringf(scratch, &list, base_color, ": %d", buffer);
-    push_fancy_stringf(scratch, &list, base_color, " - Row: %3.lld Col: %3.lld Pos: %4lld -", cursor.line, cursor.col, cursor.pos);
-    
-    Managed_Scope scope = buffer_get_managed_scope(app, buffer);
-    Line_Ending_Kind* eol_setting = scope_attachment(app, scope, buffer_eol_setting,
-                                                     Line_Ending_Kind);
-    switch (*eol_setting){
-        case LineEndingKind_Binary:
-        {
-            push_fancy_string(scratch, &list, base_color, string_u8_litexpr(" bin"));
-        }break;
-        
-        case LineEndingKind_LF:
-        {
-            push_fancy_string(scratch, &list, base_color, string_u8_litexpr(" lf"));
-        }break;
-        
-        case LineEndingKind_CRLF:
-        {
-            push_fancy_string(scratch, &list, base_color, string_u8_litexpr(" crlf"));
-        }break;
-    }
-    
-    u8 space[3];
+    else
     {
-        Dirty_State dirty = buffer_get_dirty_state(app, buffer);
-        String_u8 str = Su8(space, 0, 3);
-        if (dirty != 0){
-            string_append(&str, string_u8_litexpr(" "));
+        push_fancy_stringf(scratch, &list, base_color, ": %d", buffer);
+        push_fancy_stringf(scratch, &list, base_color, " - Row: %3.lld Col: %3.lld Pos: %4lld -", cursor.line, cursor.col, cursor.pos);
+        
+        Managed_Scope scope = buffer_get_managed_scope(app, buffer);
+        Line_Ending_Kind* eol_setting = scope_attachment(app, scope, buffer_eol_setting, Line_Ending_Kind);
+        switch (*eol_setting)
+        {
+            case LineEndingKind_Binary: push_fancy_string(scratch, &list, base_color, string_u8_litexpr( " bin")); break;
+            case LineEndingKind_LF:     push_fancy_string(scratch, &list, base_color, string_u8_litexpr(  " lf")); break;
+            case LineEndingKind_CRLF:   push_fancy_string(scratch, &list, base_color, string_u8_litexpr(" crlf")); break;
         }
-        if (HasFlag(dirty, DirtyState_UnsavedChanges)){
-            string_append(&str, string_u8_litexpr("*"));
+        
+        u8 space[3];
+        {
+            Dirty_State dirty = buffer_get_dirty_state(app, buffer);
+            String_u8 str = Su8(space, 0, 3);
+            if (dirty != 0){
+                string_append(&str, string_u8_litexpr(" "));
+            }
+            if (HasFlag(dirty, DirtyState_UnsavedChanges)){
+                string_append(&str, string_u8_litexpr("*"));
+            }
+            if (HasFlag(dirty, DirtyState_UnloadedChanges)){
+                string_append(&str, string_u8_litexpr("!"));
+            }
+            push_fancy_string(scratch, &list, pop2_color, str.string);
         }
-        if (HasFlag(dirty, DirtyState_UnloadedChanges)){
-            string_append(&str, string_u8_litexpr("!"));
-        }
-        push_fancy_string(scratch, &list, pop2_color, str.string);
+        
+        b32 enable_virtual_whitespace = def_get_config_b32(vars_save_string_lit("enable_virtual_whitespace"));
+        push_fancy_stringf(scratch, &list, base_color, " Virtual Whitespace: %s",
+                           enable_virtual_whitespace ? "On" : "Off");
+        
+        push_fancy_stringf(scratch, &list, base_color, " - Left/Right: %s/%s",
+                           (long_global_move_side>>1) ? "Max" : "Min", (long_global_move_side&1) ? "Max" : "Min");
     }
     
-    push_fancy_string(scratch, &list, base_color, S8Lit(" Virtual Whitespace: "));
-    b32 enable_virtual_whitespace = def_get_config_b32(vars_save_string_lit("enable_virtual_whitespace"));
-    push_fancy_string(scratch, &list, base_color, enable_virtual_whitespace ? S8Lit("On") : S8Lit("Off"));
-    
-    END:
     Vec2_f32 p = bar.p0 + V2f32(2.f, 2.f);
     draw_fancy_line(app, face_id, fcolor_zero(), &list, p);
     
-    if(!def_get_config_b32(vars_save_string_lit("f4_disable_progress_bar")))
+    if (!def_get_config_b32(vars_save_string_lit("f4_disable_progress_bar")))
     {
         f32 progress = (f32)cursor.line / (f32)buffer_get_line_count(app, buffer);
         Rect_f32 progress_bar_rect =
@@ -432,11 +424,10 @@ function void Long_DrawFileBar(Application_Links* app, View_ID view_id, Buffer_I
             bar.x1,
             bar.y1,
         };
+        
         ARGB_Color progress_bar_color = fcolor_resolve(fcolor_id(fleury_color_file_progress_bar));
-        if(F4_ARGBIsValid(progress_bar_color))
-        {
+        if (F4_ARGBIsValid(progress_bar_color))
             draw_rectangle(app, progress_bar_rect, 0, progress_bar_color);
-        }
     }
 }
 

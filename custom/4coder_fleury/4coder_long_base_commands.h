@@ -9,10 +9,27 @@ global View_ID long_global_active_view;
 
 global b32 global_code_peek_open = 0;
 
+// NOTE(long): first bit is the move_next side, second bit is the move_prev side
+global u32 long_global_move_side = 1;
+
 global Range_i64 long_cursor_select_range;
 
 global String8 current_theme_name = {};
 #define DEFAULT_THEME_NAME S8Lit("4coder")
+
+global Character_Predicate long_predicate_lower_alpha_numeric = { {
+        0,   0,   0,   0,   0,   0, 255,   3, 
+        0,   0,   0,   0, 254, 255, 255,   7, 
+        0,   0,   0,   0,   0,   0,   0,   0, 
+        0,   0,   0,   0,   0,   0,   0,   0, 
+    } };
+
+global Character_Predicate long_predicate_upper_alpha_numeric = { {
+        0,   0,   0,   0,   0,   0, 255,   3, 
+        254, 255, 255, 7,   0,   0,   0,   0, 
+        0,   0,   0,   0,   0,   0,   0,   0, 
+        0,   0,   0,   0,   0,   0,   0,   0, 
+    } };
 
 //~ NOTE(long): Helper Functions
 
@@ -46,15 +63,13 @@ struct Long_Point_Stack
     i32 top;
 };
 
-CUSTOM_ID(attachment, long_point_stacks);
-
 function void Long_PointStack_Push(Application_Links* app, Buffer_ID buffer, i64 pos, View_ID view = 0);
 function void Long_PointStack_SetCurrent(Long_Point_Stack* stack, i32 index);
 function void Long_PointStack_Append(Application_Links* app, Long_Point_Stack* stack, Buffer_ID buffer, i64 pos, View_ID view = 0);
 
 function void Long_PointStack_Jump(Application_Links* app, View_ID view, Buffer_ID target_buffer, i64 target_pos,
                                    Buffer_ID current_buffer = 0, i64 current_pos = 0);
-function void Long_PointStack_JumpNext(Application_Links* app, View_ID view, i32 advance, b32 exit_if_current = 0);
+function void Long_PointStack_JumpNext(Application_Links* app, View_ID view, i32 advance);
 
 //~ NOTE(long): History Functions
 
@@ -68,17 +83,6 @@ CUSTOM_ID(attachment, long_buffer_history);
 
 function Long_Buffer_History* Long_Buffer_GetAttachedHistory(Application_Links* app, Buffer_ID buffer);
 function Long_Buffer_History   Long_Buffer_GetCurrentHistory(Application_Links* app, Buffer_ID buffer, i32 offset = 0);
-
-//~ NOTE(long): F4 Commands
-
-// f4_autocomplete_or_indent
-// f4_backspace_alpha_numeric_or_camel_boundary
-// f4_comment_selection
-// f4_delete_alpha_numeric_or_camel_boundary
-// f4_home_first_non_whitespace
-// f4_interactive_open_or_new_in_project
-// f4_open_project
-// f4_uncomment_selection
-// f4_unindent
+function b32                   Long_Buffer_CheckDirtyHistory(Application_Links* app, Buffer_ID buffer = 0, i32 offset = 0);
 
 #endif //4CODER_LONG_BASE_COMMANDS_H

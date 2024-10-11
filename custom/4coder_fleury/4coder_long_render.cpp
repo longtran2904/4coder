@@ -104,8 +104,13 @@ function void Long_Render_CursorInterpolation(Application_Links* app, Frame_Info
 function void Long_Render_DrawBlock(Application_Links* app, Text_Layout_ID layout, Range_i64 range, f32 roundness, FColor color)
 {
     for (i64 i = range.first; i < range.one_past_last; ++i)
-        if (Long_Rf32_Invalid(text_layout_character_on_screen(app, layout, i)))
-            return;
+    {
+        Rect_f32 rect = text_layout_character_on_screen(app, layout, i);
+        if (Long_Rf32_Invalid(rect))
+            range.first++;
+        else
+            break;
+    }
     draw_character_block(app, layout, range, roundness, color);
 }
 
