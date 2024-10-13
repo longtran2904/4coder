@@ -17,16 +17,9 @@ global Range_i64 long_cursor_select_range;
 global String8 current_theme_name = {};
 #define DEFAULT_THEME_NAME S8Lit("4coder")
 
-global Character_Predicate long_predicate_lower_alpha_numeric = { {
-        0,   0,   0,   0,   0,   0, 255,   3, 
-        0,   0,   0,   0, 254, 255, 255,   7, 
-        0,   0,   0,   0,   0,   0,   0,   0, 
-        0,   0,   0,   0,   0,   0,   0,   0, 
-    } };
-
-global Character_Predicate long_predicate_upper_alpha_numeric = { {
-        0,   0,   0,   0,   0,   0, 255,   3, 
-        254, 255, 255, 7,   0,   0,   0,   0, 
+global Character_Predicate long_predicate_alpha_numeric_underscore_dot = { {
+        0,   0,   0,   0,   0,   64,  255, 3, 
+        254, 255, 255, 135, 254, 255, 255, 7, 
         0,   0,   0,   0,   0,   0,   0,   0, 
         0,   0,   0,   0,   0,   0,   0,   0, 
     } };

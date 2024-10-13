@@ -258,10 +258,7 @@
 //   When this command runs, it will recursively load all files in those paths as read-only and unimportant
 
 //~ TODO MODIFY/NAVIGATE
-// [X] Open file explorer for the current directory
-// [ ] Rectangular selection and indentation
-// [ ] Jump to definition/buffer in comment/string
-// [ ] byp_qol multi-cursor
+// [X] Jump to note/buffer in comment/string
 
 //~ TODO LISTER
 // [ ] Replace all the wildcard searching in the query bar and lister with grep or glob
@@ -269,10 +266,12 @@
 // [ ] Has a lister for important but rarely used commands
 // [ ] Hotkeys for inserting and cycling through common tags
 
-//~ TODO TABS
-// [ ] Implement a tab system using byp_qol
+//~ TODO BYP_QOL
+// [ ] Multi-cursor
+// [ ] Virtual column
+// [ ] Tab system
 // [ ] Put *message* buffer to a separate tab
-// [ ] Put  *search* buffer to a separate tab
+// [ ] Put *search*  buffer to a separate tab
 
 //~ TODO RENDER
 
@@ -286,7 +285,7 @@
 // [ ] Autocompletion using PosContext or casey/jack's system
 // [ ] String/Comment indenting as code
 // [ ] Render #if block with annotation
-// [ ] Render hex/bin/oct/dec number with separator in between
+// [ ] Render hex/bin/oct/dec number with thousands/byte separator
 
 //~ TODO CODE/ARCHITECTURE
 
@@ -305,12 +304,13 @@
 // [ ] Rework on the  *loc* buffer
 
 //~ TODO BUGS
-// [X] Fix unmatched/duplicate error annotation locations bug
+// [X] Fix Long_GoToDefinition at the end of a token's boundary
+// [X] Fix overlapped toolips when rendering
 // [ ] Fix undo/redo_all_buffers right after saving bug
 // [ ] Clipboard bug (again)
 // [?] Fix undo/redo/indent history bug
 
-//~ @CONSIDER(long): Interesting but low-priority stuff that may or may not be useful but deserves a look
+//~ @CONSIDER Interesting but low-priority stuff that may or may not be useful but deserves a look
 // [ ] Move range selection up and down
 // [ ] Modal auto-complete {} () [] on enter or typing
 // [ ] Render hex colors

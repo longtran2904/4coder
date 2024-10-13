@@ -77,6 +77,9 @@ function b32 Long_Jump_ParseLocation(Application_Links* app, View_ID view, Buffe
         }
     }
     
+    // TODO(long): This works: my/jump/location.cpp(2904): abc
+    // But not this: my/jump/location.cpp(2904):
+    // Or this: my/jump/location.cpp(2904):abc
     Parsed_Jump jump = parse_jump_location(line, 0);
     if (!jump.success || !get_jump_buffer(app, 0, &jump.location))
         jump = parse_jump_location(lexeme, 0);
@@ -2271,6 +2274,11 @@ CUSTOM_DOC("Switches between drawing the position context at cursor position or 
 }
 
 //- NOTE(long): Jumping
+function i64 Long_Boundary_ANUD(Application_Links *app, Buffer_ID buffer, Side side, Scan_Direction direction, i64 pos)
+{
+    return boundary_predicate(app, buffer, side, direction, pos, &long_predicate_alpha_numeric_underscore_dot);
+}
+
 function void Long_GoToDefinition(Application_Links* app, b32 handle_jump_location, b32 same_panel)
 {
     View_ID view = get_active_view(app, Access_Always);
@@ -2293,12 +2301,34 @@ function void Long_GoToDefinition(Application_Links* app, b32 handle_jump_locati
     
     F4_Index_Note* note = 0;
     {
-        Token* token = get_token_from_pos(app, buffer, view_get_cursor_pos(app, view));
+        i64 pos = view_get_cursor_pos(app, view);
+        Token* token = get_token_from_pos(app, buffer, pos);
         
-        if (token != 0 && token->size > 0 && token->kind != TokenBaseKind_Whitespace)
+        if (token != 0 && token->size > 0)
         {
-            Token_Array array = get_token_array_from_buffer(app, buffer);
-            note = Long_Index_LookupBestNote(app, buffer, &array, token);
+            if (token->kind == TokenBaseKind_Whitespace && pos == token->pos)
+                token = get_token_from_pos(app, buffer, pos - 1);
+            
+            if (token->kind == TokenBaseKind_Comment || token->kind == TokenBaseKind_LiteralString)
+            {
+                Scratch_Block scratch(app);
+                Range_i64 range = enclose_boundary(app, buffer, Ii64(pos), Long_Boundary_ANUD);
+                if (range_size(range) == 0)
+                    range = enclose_boundary(app, buffer, Ii64(pos-1), Long_Boundary_ANUD);
+                
+                if (range_size(range) != 0)
+                {
+                    String8 lexeme = push_buffer_range(app, scratch, buffer, range);
+                    note = Long_Index_LookupNote(lexeme);
+                    if (!note)
+                        Long_Jump_ToBuffer(app, view, get_buffer_by_name(app, lexeme, 0));
+                }
+            }
+            else if (token->kind != TokenBaseKind_Whitespace)
+            {
+                Token_Array array = get_token_array_from_buffer(app, buffer);
+                note = Long_Index_LookupBestNote(app, buffer, &array, token);
+            }
             
             if (note && note->file)
             {
@@ -2909,7 +2939,8 @@ function void Long_Scan_Delete(Application_Links* app, Scan_Direction direction,
 function i64 Long_Boundary_TokenAndWhitespace(Application_Links* app, Buffer_ID buffer, 
                                               Side side, Scan_Direction direction, i64 pos)
 {
-    /*
+    /* NOTE(long): https://halt76.notion.site/On-word-boundaries-6f68d5d6dda34859ab2a9d54425c4667
+    
     **  f4_move_left_token_boundary: |void|* |alloc|(|intptr_t |size|) |{  move-to-prev-word-start
     ** f4_move_right_token_boundary:  void|* |alloc|(|intptr_t |size|) |{| move-to-next-word-start
     

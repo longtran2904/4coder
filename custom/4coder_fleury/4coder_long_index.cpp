@@ -1187,7 +1187,7 @@ function Rect_f32 Long_Index_DrawNote(Application_Links* app, Range_i64_Array ra
         draw_rect.x1 = max_range_x.max;
     }
     
-    F4_DrawTooltipRect(app, draw_rect);
+    Long_Render_TooltipRect(app, draw_rect);
     
     Vec2_f32 text_position = draw_rect.p0 + Vec2_f32{ padding, padding };
     f32 start_x = text_position.x;
@@ -1328,7 +1328,7 @@ function Vec2_f32 Long_Index_DrawTooltip(Application_Links* app, Rect_f32 screen
                 Rect_f32 rect = Rf32_xy_wh(tooltip_pos, get_fancy_line_dim(app, face, &list) + padding_vec * 2);
                 Vec2_f32 text_pos = tooltip_pos + padding_vec;
                 
-                F4_DrawTooltipRect(app, rect);
+                Long_Render_TooltipRect(app, rect);
                 draw_fancy_line(app, face, fcolor_zero(), &list, text_pos);
                 tooltip_pos.y += rect_height(rect);
                 

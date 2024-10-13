@@ -301,9 +301,13 @@ function void Long_RenderBuffer(Application_Links* app, View_ID view_id, Buffer_
                     tooltip_rect.x0 = (float)(int)(tooltip_rect.x0 - difference);
                 }
                 
-                F4_DrawTooltipRect(app, tooltip_rect);
+                Long_Render_TooltipRect(app, tooltip_rect);
                 draw_string(app, tooltip_face_id, string, V2f32(tooltip_rect.x0 + 4, tooltip_rect.y0 + 4),
                             global_tooltips[i].color);
+                
+                f32 height = rect_height(tooltip_rect) + 1;
+                tooltip_rect.y0 += height;
+                tooltip_rect.y1 += height;
             }
         }
     }

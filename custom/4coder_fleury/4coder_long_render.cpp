@@ -496,12 +496,36 @@ function void Long_Highlight_DrawErrors(Application_Links* app, Buffer_ID buffer
         if (!jump.success)
             continue;
         
-        i64 end_pos = get_line_end_pos(app, buffer, code_line_number)-1;
-        Rect_f32 end_rect = text_layout_character_on_screen(app, text_layout_id, end_pos);
-        Vec2_f32 p0 = V2f32(end_rect.x1 + 40.f, end_rect.y0);
-        String_Const_u8 error_string = string_skip(comp_line, jump.colon_position + 2);
         draw_line_highlight(app, text_layout_id, code_line_number, fcolor_id(defcolor_highlight_junk));
-        draw_string(app, global_small_code_face, error_string, p0, fcolor_id(fleury_color_error_annotation));
+        
+        String_Const_u8 error_string = string_skip(comp_line, jump.colon_position + 2);
+        Rect_f32 end_rect = text_layout_character_on_screen(app, text_layout_id,
+                                                            get_line_end_pos(app, buffer, code_line_number)-1);
+        Face_ID face = global_small_code_face;
+        Range_f32 y = text_layout_line_on_screen(app, text_layout_id, code_line_number);
+        
+        if (range_size(y) > 0.f)
+        {
+            Rect_f32 region = text_layout_region(app, text_layout_id);
+            
+#if 1
+            Vec2_f32 draw_position = V2f32(end_rect.x1 + 40.f, end_rect.y0);
+#else
+            Face_Metrics metrics = get_face_metrics(app, face);
+            Vec2_f32 draw_position =
+            {
+                region.x1 - metrics.max_advance*error_string.size - (y.max-y.min)/2 - metrics.line_height/2,
+                y.min + (y.max-y.min)/2 - metrics.line_height/2,
+            };
+            draw_position.x = clamp_bot(draw_position.x, end_rect.x1 + 30);
+#endif
+            
+            draw_string(app, face, error_string, draw_position, fcolor_id(fleury_color_error_annotation));
+            
+            Mouse_State mouse = get_mouse_state(app);
+            if (mouse.x >= region.x0 && mouse.x <= region.x1 && mouse.y >= y.min && mouse.y <= y.max)
+                F4_PushTooltip(error_string, 0xffff0000);
+        }
     }
 }
 
@@ -592,7 +616,7 @@ function ARGB_Color Long_GetColor(Application_Links* app, ColorCtx ctx)
         color = F4_ARGBFromID(table, id); \
     } while(0)
     
-    //~ NOTE(rjf): Token Color
+    // NOTE(rjf): Token Color
     if(ctx.token.size != 0)
     {
         Scratch_Block scratch(app);
@@ -667,7 +691,7 @@ function ARGB_Color Long_GetColor(Application_Links* app, ColorCtx ctx)
         }
     }
     
-    //~ NOTE(rjf): Cursor Color
+    // NOTE(rjf): Cursor Color
     else
     {
         if (ctx.flags & ColorFlag_Macro)
