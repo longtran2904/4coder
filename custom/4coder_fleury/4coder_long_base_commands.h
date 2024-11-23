@@ -14,9 +14,6 @@ global u32 long_global_move_side = 1;
 
 global Range_i64 long_cursor_select_range;
 
-global String8 current_theme_name = {};
-#define DEFAULT_THEME_NAME S8Lit("4coder")
-
 global Character_Predicate long_predicate_alpha_numeric_underscore_dot = { {
         0,   0,   0,   0,   0,   64,  255, 3, 
         254, 255, 255, 135, 254, 255, 255, 7, 
@@ -28,7 +25,7 @@ global Character_Predicate long_predicate_alpha_numeric_underscore_dot = { {
 
 #define clamp_loop(x, size) ((((x) % (size)) + (size)) % (size))
 
-function b32  Long_F32_Invalid(f32 f);
+function b32 Long_F32_Invalid(f32 f);
 function b32 Long_Rf32_Invalid(Rect_f32 r);
 function i32 Long_Abs(i32 num);
 function i64 Long_Abs(i64 num);
@@ -39,9 +36,17 @@ function void  Long_SnapView(Application_Links* app, View_ID view = 0);
 function void Long_Jump_ToLocation(Application_Links* app, View_ID view, Buffer_ID buffer, i64 pos);
 function void   Long_Jump_ToBuffer(Application_Links* app, View_ID view, Buffer_ID buffer, b32 push_src = 1, b32 push_dst = 1);
 
+function void Long_Print_Messagef(Application_Links* app, char* fmt, ...);
+function void   Long_Print_Errorf(Application_Links* app, char* fmt, ...);
+#define Long_Print_Error(app, err) Long_Print_Errorf((app), "%.*s", string_expand(err))
+
+function void     Long_Print_AppendVars(Application_Links* app, Arena* arena, String8List* list, Variable_Handle var, i32 indent);
+function String8 Long_Print_StrFromVars(Application_Links* app, Arena* arena, Variable_Handle var, i32 indent= 0);
+
 //~ NOTE(long): Project Functions
 
 function String8 Long_Prj_RelBufferName(Application_Links* app, Arena* arena, Buffer_ID buffer);
+function void Long_Config_ApplyFromData(Application_Links* app, String8 data, i32 override_font_size, b32 override_hinting);
 
 //~ NOTE(long): Point Stack Functions
 

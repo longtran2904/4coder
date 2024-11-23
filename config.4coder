@@ -11,10 +11,8 @@ mapping = "";
 mode = "4coder";
 bind_by_physical_key = false;
 
-// NOTE(long): No idea what scroll_bars, jump_highlight, and undo_fade_out are
-
 // UI
-use_scroll_bars = false;
+use_scroll_bars = false; // NOTE(long): No idea what use_scroll_bars is
 use_file_bars = true;
 use_error_highlight = true;
 use_jump_highlight = true;
@@ -26,6 +24,7 @@ show_line_number_margins = false;
 long_show_line_number_offset = true;
 enable_output_wrapping = false;
 
+// NOTE(long): Immediate undo will still have fadeout, this's only for disabling hard character's fadeout
 enable_undo_fade_out = false;
 
 // cursor_roundess is a value [0,50] setting the radius of

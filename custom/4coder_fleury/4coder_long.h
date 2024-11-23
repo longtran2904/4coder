@@ -257,8 +257,17 @@
 //   Each project file can now contain an array of reference paths (set inside the reference_paths variable)
 //   When this command runs, it will recursively load all files in those paths as read-only and unimportant
 
-//~ TODO MODIFY/NAVIGATE
-// [X] Jump to note/buffer in comment/string
+//~ TODO BINDINGS
+// [X] Essential bindings
+// [X] Default bindings
+
+//~ TODO HOT RELOADING
+// [X] Theme
+// [X] Binding
+// [X] Config
+// [ ] Project
+// [X] Print all errors to *compilation* panel
+// [ ] Custom commands for each reloadable file
 
 //~ TODO LISTER
 // [ ] Replace all the wildcard searching in the query bar and lister with grep or glob
@@ -266,10 +275,25 @@
 // [ ] Has a lister for important but rarely used commands
 // [ ] Hotkeys for inserting and cycling through common tags
 
-//~ TODO BYP_QOL
-// [ ] Multi-cursor
-// [ ] Virtual column
-// [ ] Tab system
+//~ TODO NOTEPAD MODE
+// [X] Fix movement commands that bind with shift causes a selection when in notepad mode
+// [X] Replace text while highlighting
+// [X] Swap mark and cursor
+// [X] Copy doesn't delete highlight
+
+//~ TODO MULTI CURSOR
+// [X] Basic system and commands/bindings
+// [X] Block multi-cursor
+// [X] Line multi-cursor
+// [X] Add new cursos while in mc mode
+// [X] list_all_locations multi-cursor
+// [X] New way to add/remove selection in multi-select
+// [X] Notepad mode
+// [ ] MC across buffers
+// [ ] Add/Remove a cursor at the current location while in search mode
+
+//~ TODO TAB
+// [ ] Basic system and commands/bindings
 // [ ] Put *message* buffer to a separate tab
 // [ ] Put *search*  buffer to a separate tab
 
@@ -287,9 +311,15 @@
 // [ ] Render #if block with annotation
 // [ ] Render hex/bin/oct/dec number with thousands/byte separator
 
+//- MISC
+// [X] Render fading effect
+// [X] Post a fade effect when fail to query replace
+// [ ] Highlight selection when replace_in_range
+
 //~ TODO CODE/ARCHITECTURE
 
 //- SEARCH
+// [X] Simplify and cleanup all the query search/replace commands
 // [ ] Merge all the default query bar code into a single function
 // [ ] Merge Long_Isearch and Long_Query_User_String into one function
 
@@ -300,21 +330,32 @@
 // [ ] Handle function overloading
 
 //- FLEURY
-// [ ] Rework on the *peek* buffer
-// [ ] Rework on the  *loc* buffer
+// [X] Remove the *peek* buffer
+// [X] Remove the  *loc* buffer
+// [X] Cleanup base commands
+// [X] Implement my own 4coder_fleury_divider_comments
+
+//~ TODO MISC
+// [X] move_line_up/down doesn't change the cursor x position
+// [X] Toggle slection comment rather than comment/uncomment
 
 //~ TODO BUGS
-// [X] Fix Long_GoToDefinition at the end of a token's boundary
-// [X] Fix overlapped toolips when rendering
+// [ ] Fix global function macro color for variable
 // [ ] Fix undo/redo_all_buffers right after saving bug
-// [ ] Clipboard bug (again)
 // [?] Fix undo/redo/indent history bug
+// [ ] Clipboard bug (again)
+// [X] Long_Jump_ToBuffer with an invalid buffer
+// [ ] Fix ListAllLocations highlights the current range in *compilation*
 
 //~ @CONSIDER Interesting but low-priority stuff that may or may not be useful but deserves a look
 // [ ] Move range selection up and down
 // [ ] Modal auto-complete {} () [] on enter or typing
-// [ ] Render hex colors
+// [X] Render hex colors
+// [X] Multi-cursor indenting
 // [ ] Jump to location with relative path
+// [ ] Code peek yank
+// [ ] A new LOC counting system
+// [ ] Virtual column
 
 //~ NOTE(long): @long_macros and default include
 #define LONG_INDEX_INDENT_STATEMENT 1
@@ -349,7 +390,6 @@
 
 //~ NOTE(long): @f4_optional_headers
 #include "4coder_fleury_brace.h"
-#include "4coder_fleury_divider_comments.h"
 #include "4coder_fleury_recent_files.h"
 #include "4coder_fleury_plot.h"
 #include "4coder_fleury_calc.h"
@@ -360,8 +400,12 @@
 #include "4coder_long_base_commands.h"
 #include "4coder_long_lister.h"
 #include "4coder_long_render.h"
+#include "4coder_long_bindings.h"
 
 #pragma warning(disable : 4456)
+
+//~ NOTE(long): @byp_src
+#include "plugins/4coder_multi_cursor.cpp"
 
 //~ NOTE(rjf): @f4_src
 #include "4coder_fleury_ubiquitous.cpp"
@@ -372,7 +416,6 @@
 
 //~ NOTE(long): @f4_optional_src
 #include "4coder_fleury_brace.cpp"
-#include "4coder_fleury_divider_comments.cpp"
 #include "4coder_fleury_recent_files.cpp"
 #include "4coder_fleury_plot.cpp"
 #include "4coder_fleury_calc.cpp"
@@ -385,6 +428,7 @@
 #include "4coder_long_base_commands.cpp"
 #include "4coder_long_lister.cpp"
 #include "4coder_long_render.cpp"
+#include "4coder_long_bindings.cpp"
 
 #if LONG_ENABLE_PROFILE
 #include "4coder_profile_static_enable.cpp"
@@ -397,57 +441,30 @@
 
 //~ NOTE(long): @long_custom_layer_initialization
 
-// @COPYPASTA(long): setup_essential_mapping
-function void Long_SetupEssentialBindings(Mapping* mapping)
-{
-    String_ID global_map_id = vars_save_string_lit("keys_global");
-    String_ID file_map_id = vars_save_string_lit("keys_file");
-    String_ID code_map_id = vars_save_string_lit("keys_code");
-    
-    implicit_map_function = default_implicit_map;
-    
-    MappingScope();
-    SelectMapping(mapping);
-    
-    SelectMap(global_map_id);
-    BindCore(long_startup, CoreCode_Startup);
-    BindCore(default_try_exit, CoreCode_TryExit);
-    Bind(exit_4coder,          KeyCode_F4, KeyCode_Alt);
-    BindMouseWheel(mouse_wheel_scroll);
-    BindMouseWheel(mouse_wheel_change_face_size, KeyCode_Control);
-    
-    SelectMap(file_map_id);
-    ParentMap(global_map_id);
-    BindTextInput(write_text_input);
-    BindMouse(click_set_cursor_and_mark, MouseCode_Left);
-    BindMouseRelease(click_set_cursor, MouseCode_Left);
-    BindCore(click_set_cursor_and_mark, CoreCode_ClickActivateView);
-    BindMouseMove(click_set_cursor_if_lbutton);
-    
-    SelectMap(code_map_id);
-    ParentMap(file_map_id);
-    BindTextInput(long_write_text_and_auto_indent);
-}
-
 void custom_layer_init(Application_Links* app)
 {
     default_framework_init(app);
+    MC_init(app);
+    implicit_map_function = 0;
     global_frame_arena = make_arena(get_base_allocator_system());
     permanent_arena = make_arena(get_base_allocator_system());
     
     // NOTE(long): Set up hooks.
     {
         set_all_default_hooks(app);
-        set_custom_hook(app, HookID_Tick,                    Long_Tick);
-        set_custom_hook(app, HookID_RenderCaller,            Long_Render);
-        set_custom_hook(app, HookID_BeginBuffer,             Long_BeginBuffer);
-        set_custom_hook(app, HookID_Layout,                  Long_Layout);
-        set_custom_hook(app, HookID_DeltaRule,               Long_DeltaRule);
-        set_custom_hook(app, HookID_BufferEditRange,         Long_BufferEditRange);
-        set_custom_hook_memory_size(app, HookID_DeltaRule,   delta_ctx_size(sizeof(Vec2_f32)));
         
-        set_custom_hook(app, HookID_EndBuffer, Long_EndBuffer);
-        set_custom_hook(app, HookID_SaveFile,  Long_SaveFile);
+        set_custom_hook(app, HookID_Tick,             Long_Tick);
+        set_custom_hook(app, HookID_RenderCaller,     Long_Render);
+        set_custom_hook(app, HookID_ViewEventHandler, long_view_input_handler);
+        
+        set_custom_hook(app, HookID_BeginBuffer,      Long_BeginBuffer);
+        set_custom_hook(app, HookID_EndBuffer,        Long_EndBuffer);
+        set_custom_hook(app, HookID_SaveFile,         Long_SaveFile);
+        set_custom_hook(app, HookID_BufferEditRange,  Long_BufferEditRange);
+        
+        set_custom_hook(app, HookID_Layout,           Long_Layout);
+        set_custom_hook(app, HookID_DeltaRule,        Long_DeltaRule);
+        set_custom_hook_memory_size(app, HookID_DeltaRule, delta_ctx_size(sizeof(Vec2_f32)));
     }
     
     // NOTE(long): Set up bindings.
@@ -456,16 +473,14 @@ void custom_layer_init(Application_Links* app)
         mapping_init(tctx, &framework_mapping);
         String_Const_u8 bindings_file = S8Lit("bindings.4coder");
         
+        String_ID global_id = vars_save_string_lit("keys_global");
+        String_ID   file_id = vars_save_string_lit("keys_file");
+        String_ID   code_id = vars_save_string_lit("keys_code");
+        
         if (!dynamic_binding_load_from_file(app, &framework_mapping, bindings_file))
-        {
-            String_ID global_map_id = vars_save_string_lit("keys_global");
-            String_ID file_map_id = vars_save_string_lit("keys_file");
-            String_ID code_map_id = vars_save_string_lit("keys_code");
-            
-            // TODO(long): Long_SetDefaultBindings(&framework_mapping);
-            setup_default_mapping(&framework_mapping, global_map_id, file_map_id, code_map_id);
-        }
-        Long_SetupEssentialBindings(&framework_mapping);
+            Long_Binding_SetupDefault(&framework_mapping, global_id, file_id, code_id);
+        Long_Binding_SetupEssential(&framework_mapping, global_id, file_id, code_id);
+        Long_Binding_MultiCursor(&framework_mapping, global_id, file_id, code_id);
     }
     
     // TODO(long): Improve the index and language layers.
@@ -511,14 +526,7 @@ CUSTOM_DOC("Long startup event")
             Face_Description description = get_face_description(app, 0);
             load_config_and_apply(app, &global_config_arena, description.parameters.pt_size, description.parameters.hinting);
             String8 font_name = get_global_face_description(app).font.file_name;
-            print_message(app, push_stringf(scratch, "Default Font: %.*s\n\n", string_expand(font_name)));
-        }
-        
-        // setup default theme
-        {
-            String8 default_theme_name = def_get_config_string(scratch, vars_save_string_lit("default_theme_name"));
-            Color_Table* colors = get_color_table_by_name(default_theme_name);
-            Long_UpdateCurrentTheme(colors); 
+            Long_Print_Messagef(app, "Default Font: %.*s\n\n", string_expand(font_name));
         }
         
         // open command line files
@@ -553,12 +561,6 @@ CUSTOM_DOC("Long startup event")
         
         Buffer_ID calc_buffer = create_buffer(app, S8Lit("*calc*"), special_flags);
         buffer_set_setting(app, calc_buffer, BufferSetting_Unimportant, true);
-        
-        Buffer_ID peek_buffer = create_buffer(app, S8Lit("*peek*"), special_flags);
-        buffer_set_setting(app, peek_buffer, BufferSetting_Unimportant, true);
-        
-        Buffer_ID loc_buffer = create_buffer(app, S8Lit("*loc*"), special_flags);
-        buffer_set_setting(app, loc_buffer, BufferSetting_Unimportant, true);
         
         left_buffer  = get_buffer_by_name(app, S8Lit( "*scratch*"), 0);
         right_buffer = get_buffer_by_name(app, S8Lit("*messages*"), 0);
@@ -642,14 +644,13 @@ CUSTOM_DOC("Long startup event")
         
         String8 left  = push_buffer_unique_name(app, scratch, recent_buffers[0]);
         String8 right = push_buffer_unique_name(app, scratch, recent_buffers[1]);
-        print_message(app, push_stringf(scratch, "Recent Files:\n  Left:  %.*s\n  Right: %.*s",
-                                        string_expand(left), string_expand(right)));
+        Long_Print_Messagef(app, "Recent Files:\n  Left:  %.*s\n  Right: %.*s", string_expand(left), string_expand(right));
         
         u64 max_days_older = 7;
         u64 days_older = (last_write[0] - last_write[1]) / (24*60*60*10000000ULL);
         
         if (days_older >= max_days_older)
-            print_message(app, push_stringf(scratch, " (%llu days older than left)", days_older));
+            Long_Print_Messagef(app, " (%llu days older than left)", days_older);
         print_message(app, S8Lit("\n\n"));
         
         View_ID view = get_active_view(app, 0);

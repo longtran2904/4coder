@@ -16,7 +16,7 @@ function void Long_Tick(Application_Links* app, Frame_Info frame_info);
 
 //~ NOTE(long): Buffer Hooks
 
-function i32 Long_SaveFile(Application_Links *app, Buffer_ID buffer_id);
+function i32 Long_SaveFile(Application_Links *app, Buffer_ID buffer);
 function i32 Long_EndBuffer(Application_Links* app, Buffer_ID buffer_id);
 
 //~ NOTE(long): F4 Clone Hooks

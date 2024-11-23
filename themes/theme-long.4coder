@@ -6,7 +6,7 @@ defcolor_margin_active = 0xFF713cdc;
 defcolor_list_item = {defcolor_margin, defcolor_back};
 defcolor_list_item_hover = {defcolor_margin_hover, defcolor_margin};
 defcolor_list_item_active = {defcolor_margin_active, 0xFF202020};
-defcolor_cursor = {0xFF00EE00, 0xffEE00EE};
+defcolor_cursor = {0xFF00FF77, 0xFF22FFAA, 0xFF00EE00};
 defcolor_at_cursor = defcolor_back;
 defcolor_highlight_cursor_line = 0x10FFFFFF;
 defcolor_highlight = 0xFFDDEE00;
@@ -79,8 +79,8 @@ fleury_color_cursor_power_mode          = 0xffC82048;
 fleury_color_cursor_inactive            = 0xff008000;
 
 fleury_color_plot_cycle                 = { 0xff03d3fc, 0xff22b80b, 0xfff0bb0c, 0xfff0500c };
-fleury_color_token_highlight            = 0xC000EE00;
-fleury_color_token_minor_highlight      = 0xC0797979;
+fleury_color_token_highlight            = /*0xD0EE7700*/0xD064FAAA/*0xC0FFEE00*/;
+fleury_color_token_minor_highlight      = 0xD0759C61;
 
 fleury_color_lego_grab                  = 0xFF6FAFEF;
 fleury_color_lego_splat                 = 0xffefaaef;

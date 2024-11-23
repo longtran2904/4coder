@@ -116,6 +116,16 @@ function void Long_RenderBuffer(Application_Links* app, View_ID view_id, Buffer_
         }
     }
     
+    f32 cursor_roundness, mark_thickness;
+    {
+        Face_Metrics metrics = get_face_metrics(app, face_id);
+        u64 cursor_roundness_100 = def_get_config_u64(app, vars_save_string_lit("cursor_roundness"));
+        cursor_roundness = metrics.normal_advance*cursor_roundness_100*0.01f;
+        mark_thickness = (f32)def_get_config_u64(app, vars_save_string_lit("mark_thickness"));
+    }
+    
+    Long_Highlight_DrawRange(app, view_id, buffer, text_layout_id, cursor_roundness);
+    
     // NOTE(jack): Token Occurance Highlight
     if (!def_get_config_b32(vars_save_string_lit("f4_disable_cursor_token_occurance"))) 
     {
@@ -203,10 +213,8 @@ function void Long_RenderBuffer(Application_Links* app, View_ID view_id, Buffer_
         draw_paren_highlight(app, buffer, text_layout_id, cursor_pos, colors.vals, colors.count);
     }
     
-#ifdef FCODER_FLEURY_DIVIDER_COMMENTS_H
     // NOTE(rjf): Divider Comments
-    F4_RenderDividerComments(app, buffer, view_id, text_layout_id);
-#endif
+    Long_Render_DividerComments(app, buffer, text_layout_id);
     
     // NOTE(rjf): Cursor Mark Range
     if(is_active_view && fcoder_mode == FCoderMode_Original)
@@ -214,35 +222,29 @@ function void Long_RenderBuffer(Application_Links* app, View_ID view_id, Buffer_
         Long_HighlightCursorMarkRange(app, view_id);
     }
     
-    // NOTE(allen): Cursor shape
-    Face_Metrics metrics = get_face_metrics(app, face_id);
-    u64 cursor_roundness_100 = def_get_config_u64(app, vars_save_string_lit("cursor_roundness"));
-    f32 cursor_roundness = metrics.normal_advance*cursor_roundness_100*0.01f;
-    f32 mark_thickness = (f32)def_get_config_u64(app, vars_save_string_lit("mark_thickness"));
-    
     // NOTE(long): Jump list highlights
-    Long_Highlight_DrawList(app, buffer, text_layout_id, cursor_roundness, mark_thickness);
+    /*Long_Highlight_DrawList*/Long_MC_DrawHighlights(app, view_id, buffer, text_layout_id, cursor_roundness, mark_thickness);
+    
+    Long_Render_HexColor(app, view_id, buffer, text_layout_id);
     
     // NOTE(rjf): Cursor
     switch (fcoder_mode)
     {
-        case FCoderMode_Original:
-        {
-            Long_Render_EmacsCursor(app, view_id, is_active_view, buffer, text_layout_id, cursor_roundness, mark_thickness, frame_info);
-        }break;
-        
-        case FCoderMode_NotepadLike:
-        {
-            Long_Render_NotepadCursor(app, view_id, is_active_view, buffer, text_layout_id, cursor_roundness, mark_thickness, frame_info);
-            break;
-        }
+        case FCoderMode_Original:      Long_Render_EmacsCursor(app, view_id, is_active_view, buffer, text_layout_id,
+                                                               cursor_roundness, mark_thickness, frame_info); break;
+        case FCoderMode_NotepadLike: Long_Render_NotepadCursor(app, view_id, is_active_view, buffer, text_layout_id,
+                                                               cursor_roundness, mark_thickness, frame_info); break;
     }
+    //MC_render_cursors(app, view_id, text_layout_id);
     
 #ifdef FCODER_FLEURY_BRACE_H
     // NOTE(rjf): Brace annotations/lines
     F4_Brace_RenderCloseBraceAnnotation(app, buffer, text_layout_id, cursor_pos);
     F4_Brace_RenderLines(app, buffer, view_id, text_layout_id, cursor_pos);
 #endif
+    
+    // NOTE(allen): Fade ranges
+    paint_fade_ranges(app, text_layout_id, buffer);
     
     // NOTE(allen): put the actual text on the actual screen
     draw_text_layout_default(app, text_layout_id);
@@ -578,6 +580,8 @@ function void Long_Tick(Application_Links* app, Frame_Info frame_info)
     
     // NOTE(rjf): Default tick stuff from the 4th dimension:
     default_tick(app, frame_info);
+    
+    MC_tick_inner(app, frame_info);
 }
 
 //~ NOTE(long): Buffer Hooks
@@ -595,37 +599,105 @@ function i32 Long_EndBuffer(Application_Links* app, Buffer_ID buffer_id)
     return end_buffer_close_jump_list(app, buffer_id);
 }
 
-// @COPYPASTA(long): default_file_save
-function i32 Long_SaveFile(Application_Links *app, Buffer_ID buffer_id)
+function i32 Long_SaveFile(Application_Links* app, Buffer_ID buffer)
 {
     ProfileScope(app, "[Long] Save File");
-    
-    b32 auto_indent = def_get_config_b32(vars_save_string_lit("automatically_indent_text_on_save"));
-    b32 is_virtual = def_get_config_b32(vars_save_string_lit("enable_virtual_whitespace"));
-    History_Record_Index index = buffer_history_get_current_state_index(app, buffer_id);
-    if (auto_indent && is_virtual && index)
-        Long_Index_IndentBuffer(app, buffer_id, buffer_range(app, buffer_id), true);
-    
-    Long_Buffer_History  current = Long_Buffer_GetCurrentHistory (app, buffer_id);
-    Long_Buffer_History* history = Long_Buffer_GetAttachedHistory(app, buffer_id);
-    
     Scratch_Block scratch(app);
-    String8 name = push_buffer_base_name(app, scratch, buffer_id);
-    print_message(app, push_stringf(scratch, "Saving Buffer: \"%.*s\", Current Undo: %.3d, Previous Saved: (%.3d, %.3d)\n",
-                                    string_expand(name), current.index, history->index, history->record.edit_number));
+    String8 name = push_buffer_base_name(app, scratch, buffer);
     
-    *history = current;
-    
-    Managed_Scope scope = buffer_get_managed_scope(app, buffer_id);
-    Line_Ending_Kind *eol = scope_attachment(app, scope, buffer_eol_setting, Line_Ending_Kind);
-    
-    switch (*eol)
+    // @COPYPASTA(long): default_file_save
     {
-        case LineEndingKind_LF:   rewrite_lines_to_lf  (app, buffer_id); break;
-        case LineEndingKind_CRLF: rewrite_lines_to_crlf(app, buffer_id); break;
+        b32 auto_indent = def_get_config_b32(vars_save_string_lit("automatically_indent_text_on_save"));
+        b32  is_virtual = def_get_config_b32(vars_save_string_lit("enable_virtual_whitespace"));
+        //History_Record_Index index = buffer_history_get_current_state_index(app, buffer);
+        if (auto_indent && is_virtual /*&& index*/)
+            Long_Index_IndentBuffer(app, buffer, buffer_range(app, buffer), true);
+        
+        Managed_Scope scope = buffer_get_managed_scope(app, buffer);
+        Line_Ending_Kind* eol = scope_attachment(app, scope, buffer_eol_setting, Line_Ending_Kind);
+        switch (*eol)
+        {
+            case LineEndingKind_LF:   rewrite_lines_to_lf  (app, buffer); break;
+            case LineEndingKind_CRLF: rewrite_lines_to_crlf(app, buffer); break;
+        }
     }
     
-    // no meaning for return
+    {
+        Long_Buffer_History  current = Long_Buffer_GetCurrentHistory (app, buffer);
+        Long_Buffer_History* history = Long_Buffer_GetAttachedHistory(app, buffer);
+        *history = current;
+    }
+    
+    {
+        Date_Time date_time = system_now_date_time_universal();
+        date_time = system_local_date_time_from_universal(&date_time);
+        String8 date = date_time_format(scratch, "dd/mm/yyyy hh24:mimi:ss", &date_time);
+        
+        f32 size = (f32)buffer_get_size(app, buffer) / 1024;
+        Long_Print_Messagef(app, "Saving Buffer: \"%.*s\" (%.*s) %.2fKiB\n",
+                            string_expand(name), string_expand(date), size);
+    }
+    
+    String8 theme_name = {0};
+    {
+        String8 target_prefix = S8Lit("theme-");
+        String8 target_suffix = S8Lit(".4coder");
+        String8 actual_prefix =  string_prefix(name, target_prefix.size);
+        String8 actual_suffix = string_postfix(name, target_suffix.size);
+        if (string_match(actual_prefix, target_prefix) && string_match(actual_suffix, target_suffix))
+            theme_name = string_chop(name, target_suffix.size);
+    }
+    
+    String8 data = push_whole_buffer(app, scratch, buffer);
+    if (theme_name.size)
+    {
+        for (Color_Table_Node* node = global_theme_list.first; node != 0; node = node->next)
+        {
+            if (string_match(node->name, theme_name))
+            {
+                Color_Table color_table = make_color_table(app, scratch);
+                Config* config = theme_parse__buffer(app, scratch, buffer, scratch, &color_table);
+                String8 error_str = config_stringize_errors(app, scratch, config);
+                
+                if (error_str.size)
+                    Long_Print_Error(app, error_str);
+                else for (i64 i = 0; i < color_table.count; i += 1)
+                {
+                    Color_Array* dst_array = &active_color_table.arrays[i];
+                    Color_Array* src_array = &color_table.arrays[i];
+                    dst_array->count = src_array->count;
+                    block_copy(dst_array->vals, src_array->vals, src_array->count*sizeof(ARGB_Color));
+                }
+                
+                break;
+            }
+        }
+    }
+    
+    else if (string_match(name, S8Lit("config.4coder")))
+    {
+        Face_ID face = get_face_id(app, buffer);
+        Face_Description desc = get_face_description(app, face);
+        Long_Config_ApplyFromData(app, data, desc.parameters.pt_size, desc.parameters.hinting);
+    }
+    
+    else if (string_match(name, S8Lit("bindings.4coder")))
+    {
+        String8 path = push_buffer_file_name(app, scratch, buffer);
+        if (Long_Binding_LoadData(app, &framework_mapping, path, data))
+        {
+            String_ID global_map = vars_save_string_lit("keys_global");
+            String_ID file_map = vars_save_string_lit("keys_file");
+            String_ID code_map = vars_save_string_lit("keys_code");
+            Long_Binding_SetupEssential(&framework_mapping, global_map, file_map, code_map);
+        }
+    }
+    
+    else if (string_match(name, S8Lit("project.4coder")))
+    {
+        // @CONSIDER(long): long_load_project(app);
+    }
+    
     return 0;
 }
 
@@ -883,6 +955,8 @@ function BUFFER_EDIT_RANGE_SIG(Long_BufferEditRange)
     // buffer_id, new_range, original_size
     ProfileScope(app, "[Long] Buffer Edit Range");
     
+    MC_buffer_edit_range_inner(app, buffer_id, new_range, old_cursor_range);
+    
     Range_i64 old_range = Ii64(old_cursor_range.min.pos, old_cursor_range.max.pos);
     
     buffer_shift_fade_ranges(buffer_id, old_range.max, (new_range.max - old_range.max));
@@ -931,7 +1005,7 @@ function BUFFER_EDIT_RANGE_SIG(Long_BufferEditRange)
             Range_i64 relex_range = Ii64(token_first->pos, token_resync->pos + token_resync->size + text_shift);
             String_Const_u8 partial_text = push_buffer_range(app, scratch, buffer_id, relex_range);
             
-            //- NOTE(rjf): Lex
+            // NOTE(rjf): Lex
             F4_Language *language = F4_LanguageFromBuffer(app, buffer_id);
             // NOTE(rjf): Fall back to C++ if we don't have a proper language.
             if(language == 0)
@@ -996,12 +1070,9 @@ function BUFFER_EDIT_RANGE_SIG(Long_BufferEditRange)
 // @COPYPASTA(long): F4_DeltaRule
 function DELTA_RULE_SIG(Long_DeltaRule)
 {
-    Vec2_f32 *velocity = (Vec2_f32*)data;
+    Vec2_f32* velocity = (Vec2_f32*)data;
     if (velocity->x == 0.f)
-    {
-        velocity->x = 1.f;
-        velocity->y = 1.f;
-    }
+        *velocity = { 1.f, 1.f };
     
     Smooth_Step step_x = smooth_camera_step(pending.x, velocity->x, 80.f, 1.f/4.f);
     Smooth_Step step_y = smooth_camera_step(pending.y, velocity->y, 80.f, 1.f/4.f);

@@ -60,6 +60,9 @@ function void Long_Render_CursorSymbol(Application_Links* app, Rect_f32 rect, f3
 function void Long_Render_CursorInterpolation(Application_Links* app, Frame_Info frame_info,
                                               Rect_f32* rect, Rect_f32* last_rect, Rect_f32 target)
 {
+    Rect_f32 _rect_;
+    if (!last_rect)
+        last_rect = &_rect_;
     *last_rect = *rect;
     
     float x_change = target.x0 - rect->x0;
@@ -98,7 +101,6 @@ function void Long_Render_CursorInterpolation(Application_Links* app, Frame_Info
         if (rect->y1 > last_rect->y1)
             rect->y1 = last_rect->y1;
     }
-    
 }
 
 function void Long_Render_DrawBlock(Application_Links* app, Text_Layout_ID layout, Range_i64 range, f32 roundness, FColor color)
@@ -114,55 +116,72 @@ function void Long_Render_DrawBlock(Application_Links* app, Text_Layout_ID layou
     draw_character_block(app, layout, range, roundness, color);
 }
 
-function void Long_Render_NotepadCursor(Application_Links* app, View_ID view_id, b32 is_active_view,
-                                        Buffer_ID buffer, Text_Layout_ID text_layout_id,
-                                        f32 roundness, f32 outline_thickness, Frame_Info frame_info)
-{
-    b32 has_highlight_range = Long_Highlight_DrawRange(app, view_id, buffer, text_layout_id, roundness);
-    if (!has_highlight_range)
-    {
-        i64 cursor_pos = view_get_cursor_pos(app, view_id);
-        i64 mark_pos = view_get_mark_pos(app, view_id);
-        Rect_f32 rect = Long_Render_CursorRect(app, view_id, buffer, text_layout_id,
-                                               cursor_pos, mark_pos, roundness, outline_thickness);
-        
-        if (is_active_view)
-            Long_Render_CursorInterpolation(app, frame_info, &global_cursor_rect, &global_last_cursor_rect, rect);
-        ARGB_Color cursor_color = Long_GetColor(app, ColorCtx_Cursor(0, GlobalKeybindingMode));
-        ARGB_Color ghost_color = fcolor_resolve(fcolor_change_alpha(fcolor_argb(cursor_color), 0.5f));
-        draw_rectangle(app, global_cursor_rect, roundness, ghost_color);
-    }
-}
-
 // @COPYPASTA(long): F4_Cursor_RenderNotepadStyle
-function Rect_f32 Long_Render_CursorRect(Application_Links* app, View_ID view_id, Buffer_ID buffer, Text_Layout_ID text_layout_id,
-                                         i64 cursor_pos, i64 mark_pos, f32 roundness, f32 outline_thickness)
+function Rect_f32 Long_Render_CursorRect(Application_Links* app, View_ID view_id, Buffer_ID buffer, Text_Layout_ID layout,
+                                         i64 cursor, i64 mark, f32 roundness, f32 thickness)
 {
     Rect_f32 view_rect = view_get_screen_rect(app, view_id);
     
-    if (cursor_pos != mark_pos)
+    if (cursor != mark)
     {
-        Range_i64 range = Ii64(cursor_pos, mark_pos);
-        Long_Render_DrawBlock(app, text_layout_id, range, roundness, fcolor_id(defcolor_highlight));
-        paint_text_color_fcolor(app, text_layout_id, range, fcolor_id(defcolor_at_highlight));
+        Range_i64 range = Ii64(cursor, mark);
+        Long_Render_DrawBlock(app, layout, range, roundness, fcolor_id(defcolor_highlight));
+        paint_text_color_fcolor(app, layout, range, fcolor_id(defcolor_at_highlight));
     }
     
     // NOTE(rjf): Draw cursor
-    Rect_f32 rect = text_layout_character_on_screen(app, text_layout_id, cursor_pos);
+    Rect_f32 rect = text_layout_character_on_screen(app, layout, cursor);
     {
         ARGB_Color cursor_color = Long_GetColor(app, ColorCtx_Cursor(0, GlobalKeybindingMode));
-        ARGB_Color ghost_color = fcolor_resolve(fcolor_change_alpha(fcolor_argb(cursor_color), 0.5f));
-        rect.x1 = rect.x0 + outline_thickness;
+        rect.x1 = rect.x0 + thickness;
         if(rect.x0 < view_rect.x0)
         {
             rect.x0 = view_rect.x0;
-            rect.x1 = view_rect.x0 + outline_thickness;
+            rect.x1 = view_rect.x0 + thickness;
         }
         
         draw_rectangle(app, rect, roundness, cursor_color);
     }
     
     return rect;
+}
+
+function void Long_Render_NotepadCursor(Application_Links* app, View_ID view, b32 is_active_view,
+                                        Buffer_ID buffer, Text_Layout_ID layout,
+                                        f32 roundness, f32 thickness, Frame_Info frame)
+{
+    //b32 has_highlight_range = Long_Highlight_DrawRange(app, view, buffer, layout, roundness);
+    b32 has_highlight_range = Long_Highlight_HasRange(app, view);
+    if (!has_highlight_range)
+    {
+        i64 cursor_pos = view_get_cursor_pos(app, view);
+        i64 mark_pos = view_get_mark_pos(app, view);
+        Rect_f32 rect = Long_Render_CursorRect(app, view, buffer, layout,
+                                               cursor_pos, mark_pos, roundness, thickness);
+        
+        if (is_active_view)
+            Long_Render_CursorInterpolation(app, frame, &global_cursor_rect, &global_last_cursor_rect, rect);
+        ARGB_Color cursor_color = Long_GetColor(app, ColorCtx_Cursor(0, GlobalKeybindingMode));
+        ARGB_Color  ghost_color = Long_Color_Alpha(cursor_color, 0.5f);
+        draw_rectangle(app, global_cursor_rect, roundness, ghost_color);
+        
+        if (view == mc_context.view)
+        {
+            Range_i64 visible_range = text_layout_get_visible_range(app, layout);
+            for_mc(node, mc_context.cursors)
+            {
+                ARGB_Color mc_color = F4_ARGBFromID(active_color_table, defcolor_cursor, 1);
+                
+                if (range_contains(visible_range, node->cursor_pos) || range_contains(visible_range, node->mark_pos))
+                {
+                    Rect_f32 target_rect = text_layout_character_on_screen(app, layout, node->cursor_pos);
+                    node->nxt_position = target_rect.p0;
+                    // TODO(long): cursor interpolation
+                    Long_Render_CursorRect(app, view, buffer, layout, node->cursor_pos, node->mark_pos, roundness, thickness);
+                }
+            }
+        }
+    }
 }
 
 // @COPYPASTA(long): F4_Cursor_RenderEmacsStyle
@@ -174,102 +193,118 @@ function void Long_Render_EmacsCursor(Application_Links* app, View_ID view_id, b
     Rect_f32 clip = draw_set_clip(app, view_rect);
     Range_i64 visible_range = text_layout_get_visible_range(app, text_layout_id);
     
-    b32 has_highlight_range = Long_Highlight_DrawRange(app, view_id, buffer, text_layout_id, roundness);
-    
-    ColorFlags flags = 0;
-    flags |= !!global_keyboard_macro_is_recording * ColorFlag_Macro;
-    ARGB_Color cursor_color = Long_GetColor(app, ColorCtx_Cursor(flags, GlobalKeybindingMode));
-    ARGB_Color mark_color = cursor_color;
-    ARGB_Color inactive_cursor_color = F4_ARGBFromID(active_color_table, fleury_color_cursor_inactive, 0);
-    
-    if (!F4_ARGBIsValid(inactive_cursor_color))
-        inactive_cursor_color = cursor_color;
-    
-    if (is_active_view == 0)
-    {
-        cursor_color = inactive_cursor_color;
-        mark_color = inactive_cursor_color;
-    }
-    
+    //b32 has_highlight_range = Long_Highlight_DrawRange(app, view_id, buffer, text_layout_id, roundness);
+    b32 has_highlight_range = Long_Highlight_HasRange(app, view_id);
     if (!has_highlight_range)
     {
-        for (i32 i = 0; i < 1; ++i)
+        ColorFlags flags = 0;
+        flags |= !!global_keyboard_macro_is_recording * ColorFlag_Macro;
+        ARGB_Color cursor_color = Long_GetColor(app, ColorCtx_Cursor(flags, GlobalKeybindingMode));
+        ARGB_Color mark_color = cursor_color;
+        ARGB_Color inactive_cursor_color = F4_ARGBFromID(active_color_table, fleury_color_cursor_inactive, 0);
+        
+        if (!F4_ARGBIsValid(inactive_cursor_color))
+            inactive_cursor_color = cursor_color;
+        
+        if (is_active_view == 0)
         {
-            i64 cursor_pos = view_get_cursor_pos(app, view_id);
-            i64 mark_pos = view_get_mark_pos(app, view_id);
-            
-            Cursor_Type cursor_type = cursor_none;
-            Cursor_Type mark_type = cursor_none;
-            
-            if (cursor_pos <= mark_pos)
+            cursor_color = inactive_cursor_color;
+            mark_color = inactive_cursor_color;
+        }
+        
+        i64 cursor_pos = view_get_cursor_pos(app, view_id);
+        i64 mark_pos = view_get_mark_pos(app, view_id);
+        
+        Cursor_Type cursor_type = cursor_none;
+        Cursor_Type mark_type = cursor_none;
+        
+        if (cursor_pos <= mark_pos)
+        {
+            cursor_type = cursor_open_range;
+            mark_type = cursor_close_range;
+        }
+        else
+        {
+            cursor_type = cursor_close_range;
+            mark_type = cursor_open_range;
+        }
+        
+        Rect_f32 target_cursor = text_layout_character_on_screen(app, text_layout_id, cursor_pos);
+        Rect_f32 target_mark = text_layout_character_on_screen(app, text_layout_id, mark_pos);
+        
+        // NOTE(rjf): Draw cursor.
+        if (is_active_view)
+        {
+            if (cursor_pos < visible_range.start || cursor_pos > visible_range.end)
             {
-                cursor_type = cursor_open_range;
-                mark_type = cursor_close_range;
-            }
-            else
-            {
-                cursor_type = cursor_close_range;
-                mark_type = cursor_open_range;
-            }
-            
-            Rect_f32 target_cursor = text_layout_character_on_screen(app, text_layout_id, cursor_pos);
-            Rect_f32 target_mark = text_layout_character_on_screen(app, text_layout_id, mark_pos);
-            
-            // NOTE(rjf): Draw cursor.
-            if (is_active_view)
-            {
-                
-                if (cursor_pos < visible_range.start || cursor_pos > visible_range.end)
-                {
-                    f32 width = target_cursor.x1 - target_cursor.x0;
-                    target_cursor.x0 = view_rect.x0;
-                    target_cursor.x1 = target_cursor.x0 + width;
-                }
-                
-                Long_Render_CursorInterpolation(app, frame_info, &global_cursor_rect, &global_last_cursor_rect, target_cursor);
-                
-                if (mark_pos > visible_range.end)
-                {
-                    target_mark.x0 = 0;
-                    target_mark.y0 = view_rect.y1;
-                    target_mark.y1 = view_rect.y1;
-                }
-                
-                if (mark_pos < visible_range.start || mark_pos > visible_range.end)
-                {
-                    f32 width = target_mark.x1 - target_mark.x0;
-                    target_mark.x0 = view_rect.x0;
-                    target_mark.x1 = target_mark.x0 + width;
-                }
-                
-                Long_Render_CursorInterpolation(app, frame_info, &global_mark_rect, &global_last_mark_rect, target_mark);
+                f32 width = target_cursor.x1 - target_cursor.x0;
+                target_cursor.x0 = view_rect.x0;
+                target_cursor.x1 = target_cursor.x0 + width;
             }
             
-            // NOTE(rjf): Draw main cursor.
-            Long_Render_CursorSymbol(app, global_cursor_rect, roundness, outline_thickness, cursor_color, cursor_type);
-            Long_Render_CursorSymbol(app, target_cursor     , roundness, outline_thickness, cursor_color, cursor_type);
+            Long_Render_CursorInterpolation(app, frame_info, &global_cursor_rect, &global_last_cursor_rect, target_cursor);
             
-            // NOTE(rjf): GLOW IT UP
-            for (i32 glow = 0; glow < 20; ++glow)
+            if (mark_pos > visible_range.end)
             {
-                f32 alpha = 0.1f - glow*0.015f;
-                if (alpha > 0)
-                {
-                    Rect_f32 glow_rect = target_cursor;
-                    glow_rect.x0 -= glow;
-                    glow_rect.y0 -= glow;
-                    glow_rect.x1 += glow;
-                    glow_rect.y1 += glow;
-                    Long_Render_CursorSymbol(app, glow_rect, roundness + glow*0.7f, 2.f,
-                                             fcolor_resolve(fcolor_change_alpha(fcolor_argb(cursor_color), alpha)), cursor_type);
-                }
-                else break;
+                target_mark.x0 = 0;
+                target_mark.y0 = view_rect.y1;
+                target_mark.y1 = view_rect.y1;
             }
             
-            Long_Render_CursorSymbol(app, global_mark_rect, roundness, 2.0f,
-                                     fcolor_resolve(fcolor_change_alpha(fcolor_argb(mark_color), 0.5f)), mark_type);
-            Long_Render_CursorSymbol(app, target_mark, roundness, 2.0f,
-                                     fcolor_resolve(fcolor_change_alpha(fcolor_argb(mark_color), 0.75f)), mark_type);
+            if (mark_pos < visible_range.start || mark_pos > visible_range.end)
+            {
+                f32 width = target_mark.x1 - target_mark.x0;
+                target_mark.x0 = view_rect.x0;
+                target_mark.x1 = target_mark.x0 + width;
+            }
+            
+            Long_Render_CursorInterpolation(app, frame_info, &global_mark_rect, &global_last_mark_rect, target_mark);
+        }
+        
+        // NOTE(rjf): Draw main cursor.
+        Long_Render_CursorSymbol(app, global_cursor_rect, roundness, outline_thickness, cursor_color, cursor_type);
+        Long_Render_CursorSymbol(app, target_cursor     , roundness, outline_thickness, cursor_color, cursor_type);
+        
+        // NOTE(rjf): GLOW IT UP
+        for (i32 glow = 0; glow < 20; ++glow)
+        {
+            Vec4_f32 rgba = unpack_color(cursor_color);
+            rgba.a = 0.1f - glow*0.015f;
+            if (rgba.a > 0)
+            {
+                Rect_f32 glow_rect = target_cursor;
+                glow_rect.x0 -= glow;
+                glow_rect.y0 -= glow;
+                glow_rect.x1 += glow;
+                glow_rect.y1 += glow;
+                Long_Render_CursorSymbol(app, glow_rect, roundness + glow*0.7f, 2.f, pack_color(rgba), cursor_type);
+            }
+            else break;
+        }
+        
+        Long_Render_CursorSymbol(app, global_mark_rect, roundness, 2.0f, Long_Color_Alpha(mark_color, 0.50f), mark_type);
+        Long_Render_CursorSymbol(app,      target_mark, roundness, 2.0f, Long_Color_Alpha(mark_color, 0.75f), mark_type);
+        
+        if (view_id == mc_context.view)
+        {
+            for_mc(node, mc_context.cursors)
+            {
+                ARGB_Color mc_color = F4_ARGBFromID(active_color_table, defcolor_cursor, 1);
+                
+                if (range_contains(visible_range, node->cursor_pos))
+                {
+                    Rect_f32 target_rect = text_layout_character_on_screen(app, text_layout_id, node->cursor_pos);
+                    node->nxt_position = target_rect.p0;
+                    // TODO(long): cursor interpolation
+                    Long_Render_CursorSymbol(app, target_rect, roundness, outline_thickness, Long_Color_Alpha(mc_color, .75f), cursor_type);
+                }
+                
+                if (range_contains(visible_range, node->mark_pos))
+                {
+                    Rect_f32 target_rect = text_layout_character_on_screen(app, text_layout_id, node->mark_pos);
+                    Long_Render_CursorSymbol(app, target_rect, roundness, outline_thickness, Long_Color_Alpha(mc_color, 0.50f), mark_type);
+                }
+            }
         }
     }
     
@@ -290,7 +325,7 @@ function void Long_HighlightCursorMarkRange(Application_Links* app, View_ID view
         f32 upper_bound_y = Max(global_last_cursor_rect.y0, global_last_mark_rect.y0);
         
         draw_rectangle(app, Rf32(x, lower_bound_y, x + width, upper_bound_y), 3.f,
-                       fcolor_resolve(fcolor_change_alpha(fcolor_id(defcolor_comment), 0.5f)));
+                       Long_Color_Alpha(F4_ARGBFromID(active_color_table, defcolor_comment), 0.5f));
         draw_set_clip(app, clip);
     }
 }
@@ -413,20 +448,87 @@ function Rect_f32 Long_Render_DrawString(Application_Links* app, String8 string,
     return draw_rect;
 }
 
-function void Long_Render_LineOffsetNumber(Application_Links* app, View_ID view_id, Buffer_ID buffer,
-                                           Face_ID face_id, Text_Layout_ID text_layout_id, Rect_f32 margin)
+//~ NOTE(long): Render Hook
+
+// @COPYPASTA(long): F4_RenderDividerComments
+function void Long_Render_DividerComments(Application_Links* app, Buffer_ID buffer, Text_Layout_ID layout)
+{
+    if (!def_get_config_b32(vars_save_string_lit("f4_disable_divider_comments")))
+    {
+        ProfileScope(app, "[Long] Divider Comments");
+        
+        Token_Array array = get_token_array_from_buffer(app, buffer);
+        Range_i64 visible_range = text_layout_get_visible_range(app, layout);
+        Scratch_Block scratch(app);
+        
+        if (array.tokens)
+        {
+            i64 first_index = token_index_from_pos(&array, visible_range.first);
+            Token_Iterator_Array it = token_iterator_index(0, &array, first_index);
+            
+            for(;;)
+            {
+                Token* token = token_it_read(&it);
+                
+                if (!token || token->pos >= visible_range.one_past_last || !token_it_inc_non_whitespace(&it))
+                    break;
+                
+                if (token->kind == TokenBaseKind_Comment)
+                {
+                    Rect_f32 comment_first_char_rect = text_layout_character_on_screen(app, layout, token->pos);
+                    Rect_f32 comment_last_char_rect = text_layout_character_on_screen(app, layout, token->pos+token->size-1);
+                    String_Const_u8 token_string = push_buffer_range(app, scratch, buffer, Ii64(token));
+                    String_Const_u8 signifier_substring = string_substring(token_string, Ii64(0, 3));
+                    f32 roundness = 4.f;
+                    
+                    // NOTE(rjf): Strong dividers.
+                    if (string_match(signifier_substring, S8Lit("//~")))
+                    {
+                        Rect_f32 rect =
+                        {
+                            comment_first_char_rect.x0, comment_first_char_rect.y0-2,
+                            10000                     , comment_first_char_rect.y0,
+                        };
+                        draw_rectangle(app, rect, roundness, fcolor_resolve(fcolor_id(defcolor_comment)));
+                    }
+                    
+                    // NOTE(rjf): Weak dividers.
+                    else if (string_match(signifier_substring, S8Lit("//-")))
+                    {
+                        f32 dash_size = 8;
+                        Rect_f32 rect =
+                        {
+                            comment_last_char_rect.x1 +         0, (comment_last_char_rect.y0 + comment_last_char_rect.y1)/2 - 1,
+                            comment_last_char_rect.x1 + dash_size, (comment_last_char_rect.y0 + comment_last_char_rect.y1)/2 + 1,
+                        };
+                        
+                        for (i32 i = 0; i < 1000; i += 1)
+                        {
+                            draw_rectangle(app, rect, roundness, fcolor_resolve(fcolor_id(defcolor_comment)));
+                            rect.x0 += dash_size*1.5f;
+                            rect.x1 += dash_size*1.5f;
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+function void Long_Render_LineOffsetNumber(Application_Links* app, View_ID view, Buffer_ID buffer,
+                                           Face_ID face, Text_Layout_ID layout, Rect_f32 margin)
 {
     FColor line_color = fcolor_id(defcolor_line_numbers_text);
-    Range_i64 visible_range = text_layout_get_visible_range(app, text_layout_id);
+    Range_i64 visible_range = text_layout_get_visible_range(app, layout);
     
     Rect_f32 prev_clip = draw_set_clip(app, margin);
     draw_rectangle_fcolor(app, margin, 0.f, fcolor_id(defcolor_line_numbers_back));
     
-    Buffer_Cursor cursor = view_compute_cursor(app, view_id, seek_pos(visible_range.first));
-    Buffer_Cursor cursor_opl = view_compute_cursor(app, view_id, seek_pos(visible_range.one_past_last));
+    Buffer_Cursor cursor = view_compute_cursor(app, view, seek_pos(visible_range.first));
+    Buffer_Cursor cursor_opl = view_compute_cursor(app, view, seek_pos(visible_range.one_past_last));
     i64 one_past_last_line_number = cursor_opl.line + 1;
     
-    i64 current_line = get_line_number_from_pos(app, buffer, view_get_cursor_pos(app, view_id));
+    i64 current_line = get_line_number_from_pos(app, buffer, view_get_cursor_pos(app, view));
     i64 line_count = buffer_get_line_count(app, buffer);
     i64 digit_count = digit_count_from_integer(line_count, 10);
     
@@ -434,7 +536,7 @@ function void Long_Render_LineOffsetNumber(Application_Links* app, View_ID view_
     {
         Scratch_Block scratch(app);
         
-        Range_f32 line_y = text_layout_line_on_screen(app, text_layout_id, line_number);
+        Range_f32 line_y = text_layout_line_on_screen(app, layout, line_number);
         Vec2_f32 p = V2f32(margin.x0, line_y.min);
         
         Fancy_String fstring = {};
@@ -442,7 +544,7 @@ function void Long_Render_LineOffsetNumber(Application_Links* app, View_ID view_
             fstring.value = push_stringf(scratch, "%*lld", digit_count, 0);
         else
             fstring.value = push_stringf(scratch, "%+*lld", digit_count, line_number - current_line);
-        draw_fancy_string(app, face_id, line_color, &fstring, p);
+        draw_fancy_string(app, face, line_color, &fstring, p);
     }
     
     draw_set_clip(app, prev_clip);
@@ -459,14 +561,14 @@ CUSTOM_DOC("Toggles between line numbers and offsets.")
 //~ NOTE(long): Highlight Rendering
 
 // @COPYPASTA(long): qol_draw_compile_errors and F4_RenderErrorAnnotations
-function void Long_Highlight_DrawErrors(Application_Links* app, Buffer_ID buffer, Text_Layout_ID text_layout_id, Buffer_ID jump_buffer)
+function void Long_Highlight_DrawErrors(Application_Links* app, Buffer_ID buffer, Text_Layout_ID layout, Buffer_ID jump_buffer)
 {
     Marker_List* list = get_or_make_list_for_buffer(app, &global_heap, jump_buffer);
     if (!jump_buffer || !list)
         return;
     
     Scratch_Block scratch(app);
-    Range_i64 visible_range = text_layout_get_visible_range(app, text_layout_id);
+    Range_i64 visible_range = text_layout_get_visible_range(app, layout);
     
     Managed_Scope scopes[2];
     scopes[0] = buffer_get_managed_scope(app, jump_buffer);
@@ -496,17 +598,17 @@ function void Long_Highlight_DrawErrors(Application_Links* app, Buffer_ID buffer
         if (!jump.success)
             continue;
         
-        draw_line_highlight(app, text_layout_id, code_line_number, fcolor_id(defcolor_highlight_junk));
+        draw_line_highlight(app, layout, code_line_number, fcolor_id(defcolor_highlight_junk));
         
         String_Const_u8 error_string = string_skip(comp_line, jump.colon_position + 2);
-        Rect_f32 end_rect = text_layout_character_on_screen(app, text_layout_id,
+        Rect_f32 end_rect = text_layout_character_on_screen(app, layout,
                                                             get_line_end_pos(app, buffer, code_line_number)-1);
         Face_ID face = global_small_code_face;
-        Range_f32 y = text_layout_line_on_screen(app, text_layout_id, code_line_number);
+        Range_f32 y = text_layout_line_on_screen(app, layout, code_line_number);
         
         if (range_size(y) > 0.f)
         {
-            Rect_f32 region = text_layout_region(app, text_layout_id);
+            Rect_f32 region = text_layout_region(app, layout);
             
 #if 1
             Vec2_f32 draw_position = V2f32(end_rect.x1 + 40.f, end_rect.y0);
@@ -529,31 +631,77 @@ function void Long_Highlight_DrawErrors(Application_Links* app, Buffer_ID buffer
     }
 }
 
+function b32 Long_Highlight_HasRange(Application_Links* app, View_ID view)
+{
+    Managed_Scope scope = view_get_managed_scope(app, view);
+    Managed_Object* highlight = scope_attachment(app, scope, view_highlight_range, Managed_Object);
+    return *highlight != 0;
+}
+
 // @COPYPASTA(long): draw_highlight_range
-function b32 Long_Highlight_DrawRange(Application_Links* app, View_ID view_id,
-                                      Buffer_ID buffer, Text_Layout_ID text_layout_id,
-                                      f32 roundness){
-    b32 has_highlight_range = false;
+function b32 Long_Highlight_DrawRange(Application_Links* app, View_ID view_id, Buffer_ID buffer,
+                                      Text_Layout_ID text_layout_id, f32 roundness)
+{
+    b32 has_highlight_range = 0;
     Managed_Scope scope = view_get_managed_scope(app, view_id);
     Buffer_ID* highlight_buffer = scope_attachment(app, scope, view_highlight_buffer, Buffer_ID);
-    if (*highlight_buffer != 0){
-        if (*highlight_buffer != buffer){
+    if (*highlight_buffer != 0)
+    {
+        if (*highlight_buffer != buffer)
             view_disable_highlight_range(app, view_id);
-        }
-        else{
-            has_highlight_range = true;
+        else
+        {
+            has_highlight_range = 1;
             Managed_Object* highlight = scope_attachment(app, scope, view_highlight_range, Managed_Object);
             Marker marker_range[2];
-            if (managed_object_load_data(app, *highlight, 0, 2, marker_range)){
+            if (managed_object_load_data(app, *highlight, 0, 2, marker_range))
+            {
                 Range_i64 range = Ii64(marker_range[0].pos, marker_range[1].pos);
-                Long_Render_DrawBlock(app, text_layout_id, range, roundness,
-                                      fcolor_id(defcolor_highlight));
-                paint_text_color_fcolor(app, text_layout_id, range,
-                                        fcolor_id(defcolor_at_highlight));
+                Long_Render_DrawBlock(app, text_layout_id, range, roundness, fcolor_id(defcolor_highlight));
+                paint_text_color_fcolor(app, text_layout_id, range, fcolor_id(defcolor_at_highlight));
             }
         }
     }
     return(has_highlight_range);
+}
+
+function void Long_MC_DrawHighlights(Application_Links* app, View_ID view, Buffer_ID buffer,
+                                     Text_Layout_ID layout, f32 roundness, f32 thickness)
+{
+    if (def_get_config_b32(vars_save_string_lit("use_jump_highlight")))
+        return;
+    
+    Buffer_ID search_buffer = Long_Buffer_GetSearchBuffer(app);
+    if (search_buffer && string_match(locked_buffer, search_name))
+    {
+        Scratch_Block scratch(app);
+        Managed_Scope scope = buffer_get_managed_scope(app, search_buffer);
+        i32 count;
+        Marker* markers = Long_SearchBuffer_GetMarkers(app, scratch, scope, buffer, &count);
+        
+        i64 cursor = view_get_cursor_pos(app, view);
+        i64 mark = view_get_mark_pos(app, view);
+        i64 size = cursor - mark;
+        Assert(size >= 0);
+        
+        Range_i64 visible_range = text_layout_get_visible_range(app, layout);
+        for (i32 i = 0; i < count; i += 1)
+            if (range_contains(visible_range, markers[i].pos))
+                Long_Render_DrawBlock(app, layout, Ii64_size(markers[i].pos, size), 0.f, fcolor_id(fleury_color_token_minor_highlight));
+        
+        if (view == mc_context.view)
+        {
+            for_mc(node, mc_context.cursors)
+            {
+                Range_i64 range = Ii64(node->cursor_pos, node->mark_pos);
+                Long_Render_DrawBlock(app, layout, range, roundness, fcolor_change_alpha(fcolor_id(defcolor_highlight), .75f));
+                paint_text_color_fcolor(app, layout, range, fcolor_change_alpha(fcolor_id(defcolor_at_highlight), .75f));
+            }
+        }
+        
+        if (buffer != search_buffer)
+            Long_Render_CursorRect(app, view, buffer, layout, cursor, mark, roundness, thickness);
+    }
 }
 
 // @COPYPASTA(long): draw_jump_highlights
@@ -602,8 +750,58 @@ function void Long_Highlight_DrawList(Application_Links* app, Buffer_ID buffer, 
     }
 }
 
-//~ NOTE(long): Fleury Colors
+//~ NOTE(long): Colors
 
+// @COPYPASTA(long): qol_draw_hex_color
+function void Long_Render_HexColor(Application_Links* app, View_ID view, Buffer_ID buffer, Text_Layout_ID layout)
+{
+    Scratch_Block scratch(app);
+    Range_i64 visible_range = text_layout_get_visible_range(app, layout);
+    String_Const_u8 buffer_string = push_buffer_range(app, scratch, buffer, visible_range);
+    
+    for (i64 i = 0; i+9 < range_size(visible_range); ++i)
+    {
+        u8* str = buffer_string.str+i;
+        b32 s0 = str[0] != '0';
+        b32 s1 = str[1] != 'x';
+        if (s0 || s1)
+            continue;
+        
+        b32 all_hex = 1;
+        for (i64 j = 0; j < 8 && all_hex; ++j)
+        {
+            u8 c = str[j+2];
+            b32 is_digit = '0' <= c && c <= '9';
+            b32 is_lower = 'a' <= c && c <= 'f';
+            b32 is_upper = 'A' <= c && c <= 'F';
+            all_hex = is_digit || is_lower || is_upper;
+        }
+        if (!all_hex) continue;
+        
+        i64 pos = visible_range.min + i;
+        Rect_f32 r0 = text_layout_character_on_screen(app, layout, pos+0);
+        Rect_f32 r1 = text_layout_character_on_screen(app, layout, pos+9);
+        Rect_f32 rect = rect_inner(rect_union(r0, r1), -1.f);
+        
+        ARGB_Color color = ARGB_Color(string_to_integer(SCu8(str+2, 8), 16));
+        u32 sum = ((color >> 16) & 0xFF) + ((color >> 8) & 0xFF) + (color & 0xFF);
+        ARGB_Color contrast = ARGB_Color(0xFF000000 | (i32(sum > 330)-1));
+        
+        draw_rectangle_outline(app, rect_inner(rect, -2.f), 10.f, 4.f, contrast);
+        draw_rectangle(app, rect, 8.f, color);
+        paint_text_color(app, layout, Ii64_size(pos, 10), contrast);
+        i += 9;
+    }
+}
+
+function ARGB_Color Long_Color_Alpha(ARGB_Color color, f32 alpha)
+{
+    Vec4_f32 rgba = unpack_color(color);
+    rgba.a = alpha;
+    return pack_color(rgba);
+}
+
+// @COPYPASTA(long): F4_GetColor
 function ARGB_Color Long_GetColor(Application_Links* app, ColorCtx ctx)
 {
     Color_Table table = active_color_table;
@@ -703,6 +901,7 @@ function ARGB_Color Long_GetColor(Application_Links* app, ColorCtx ctx)
     return color_blend(default_color, t, color);
 }
 
+// @COPYPASTA(long): F4_SyntaxHighlight
 function void Long_SyntaxHighlight(Application_Links* app, Text_Layout_ID text_layout_id, Token_Array* array)
 {
     Color_Table table = active_color_table;

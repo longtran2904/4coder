@@ -109,6 +109,7 @@ function void Long_Jump_ToLocation(Application_Links* app, View_ID view, Buffer_
 
 function void Long_Jump_ToBuffer(Application_Links* app, View_ID view, Buffer_ID buffer, b32 push_src, b32 push_dst)
 {
+    Assert(view && buffer);
     if (push_src)
         Long_PointStack_Push(app, view_get_buffer(app, view, Access_Always), view_get_cursor_pos(app, view), view);
     view_set_buffer(app, view, buffer, 0);
@@ -132,7 +133,7 @@ function b32 Long_IsSearchBuffer(Application_Links* app, Buffer_ID buffer)
 function String8 Long_Buffer_PushLine(Application_Links* app, Arena* arena, Buffer_ID buffer, i64 pos)
 {
     Buffer_Cursor cursor = buffer_compute_cursor(app, buffer, seek_pos(pos));
-    String_Const_u8 line = push_buffer_line(app, arena, buffer, cursor.line);
+    String8 line = push_buffer_line(app, arena, buffer, cursor.line);
     return line;
 }
 
@@ -147,6 +148,212 @@ function b32 Long_Buffer_NoSearch(Application_Links* app, Buffer_ID buffer)
         return 1;
     }
     return 0;
+}
+
+//- NOTE(long): Printing
+function void Long_Print_Messagef(Application_Links* app, char* fmt, ...)
+{
+    Scratch_Block scratch(app);
+    va_list args;
+    va_start(args, fmt);
+    String8 message = push_stringfv(scratch, fmt, args);
+    print_message(app, message);
+    va_end(args);
+}
+
+function void Long_Print_Errorf(Application_Links* app, char* fmt, ...)
+{
+    Scratch_Block scratch(app);
+    va_list args;
+    va_start(args, fmt);
+    String8 error_str = push_stringfv(scratch, fmt, args);
+    print_message(app, error_str);
+    va_end(args);
+    
+    Buffer_ID buffer_comp = buffer_identifier_to_id_create_out_buffer(app, buffer_identifier(S8Lit("*compilation*")));
+    buffer_replace_range(app, buffer_comp, buffer_range(app, buffer_comp), error_str);
+    block_zero_struct(&prev_location);
+    lock_jump_buffer(app, buffer_comp);
+    get_or_make_list_for_buffer(app, &global_heap, buffer_comp);
+    print_message(app, error_str);
+}
+
+function void Long_Print_AppendVars(Application_Links* app, Arena* arena, String8List* list, Variable_Handle var, i32 indent)
+{
+    Scratch_Block scratch(app, arena);
+    local_persist char spaces[] =
+        "                                                                "
+        "                                                                "
+        "                                                                "
+        "                                                                ";
+    
+    String8 var_key = vars_key_from_var(scratch, var);
+    String8 var_val = vars_string_from_var(scratch, var);
+    string_list_pushf(arena, list, "%.*s%.*s: \"%.*s\"\n", clamp_top(indent, sizeof(spaces)), spaces,
+                      string_expand(var_key), string_expand(var_val));
+    
+    i32 sub_indent = indent + 1;
+    for (Variable_Handle sub = vars_first_child(var); !vars_is_nil(sub); sub = vars_next_sibling(sub))
+        Long_Print_AppendVars(app, arena, list, sub, sub_indent);
+}
+
+function String8 Long_Print_StrFromVars(Application_Links* app, Arena* arena, Variable_Handle var, i32 indent)
+{
+    Scratch_Block scratch(app, arena);
+    String8List list = {};
+    Long_Print_AppendVars(app, scratch, &list, var, indent);
+    String8 result = string_list_flatten(arena, list);
+    return result;
+}
+
+//- NOTE(long): Query
+function Query_Bar* Long_Query_StartBar(Application_Links* app, Arena* arena, String8 prompt, String8 string, u64 reserve = 0)
+{
+    Query_Bar* bar = push_array_zero(arena, Query_Bar, 1);
+    bar->prompt = prompt;
+    bar->string = string;
+    
+    if (reserve)
+    {
+        String_u8 bar_string = string_u8_push(arena, clamp_bot(reserve, string.size));
+        string_append(&bar_string, string);
+        bar->string = bar_string.string;
+    }
+    
+    if (!start_query_bar(app, bar, 0))
+        bar = 0;
+    return bar;
+}
+
+// @COPYPASTA(long): query_user_general
+function b32 Long_Query_User_String(Application_Links* app, Query_Bar* bar, String_Const_u8 init_string)
+{
+    if (!start_query_bar(app, bar, 0))
+        return false;
+    
+    if (init_string.size > 0)
+    {
+        String_u8 string = Su8(bar->string.str, bar->string.size, bar->string_capacity);
+        string_append(&string, init_string);
+        bar->string.size = string.string.size;
+    }
+    
+    b32 success = true;
+    for (;;)
+    {
+        User_Input in = get_next_input(app, EventPropertyGroup_Any, EventProperty_Escape|EventProperty_MouseButton);
+        if (in.abort)
+        {
+            success = false;
+            break;
+        }
+        
+        Scratch_Block scratch(app);
+        b32 good_insert = false;
+        String8 insert = to_writable(&in);
+        if (insert.size)
+        {
+            insert = string_replace(scratch, insert, S8Lit("\n"), S8Lit(""));
+            insert = string_replace(scratch, insert, S8Lit("\t"), S8Lit(""));
+            good_insert = true;
+        }
+        
+        if (in.event.kind == InputEventKind_KeyStroke && in.event.key.code == KeyCode_Return)
+            break;
+        
+        if (in.event.kind == InputEventKind_KeyStroke && in.event.key.code == KeyCode_Backspace)
+        {
+            if (has_modifier(&in, KeyCode_Control))
+                bar->string.size = 0;
+            else
+                bar->string = backspace_utf8(bar->string);
+        }
+        
+        else if (match_key_code(&in, KeyCode_Tab))
+        {
+            View_ID view = get_active_view(app, 0);
+            Buffer_ID buffer = view_get_buffer(app, view, 0);
+            
+            Range_i64 range = get_view_range(app, view);
+            if (!has_modifier(&in, KeyCode_Control))
+            {
+                i64 pos = view_get_cursor_pos(app, view);
+                range = enclose_pos_alpha_numeric_underscore_utf8(app, buffer, pos);
+                
+                // NOTE(long): The cursor can still be right after
+                if (range.max == range.min)
+                    range = enclose_pos_alpha_numeric_underscore_utf8(app, buffer, pos - 1);
+            }
+            
+            String8 string = push_buffer_range(app, scratch, buffer, range);
+            String_u8 bar_string = Su8(bar->string.str, bar->string.size, bar->string_capacity);
+            string_append(&bar_string, string);
+            bar->string.size = bar_string.size;
+        }
+        
+        else if (match_key_code(&in, KeyCode_V) && has_modifier(&in, KeyCode_Control))
+        {
+            String8 string = push_clipboard_index(scratch, 0, 0);
+            String_u8 bar_string = Su8(bar->string.str, bar->string.size, bar->string_capacity);
+            string_append(&bar_string, string);
+            bar->string.size = bar_string.size;
+        }
+        
+        else if (good_insert)
+        {
+            String_u8 string = Su8(bar->string.str, bar->string.size, bar->string_capacity);
+            string_append(&string, insert);
+            bar->string.size = string.string.size;
+        }
+        
+        else
+        {
+            // NOTE(allen): is the user trying to execute another command?
+            View_ID view = get_this_ctx_view(app, Access_Always);
+            View_Context ctx = view_current_context(app, view);
+            Mapping* mapping = ctx.mapping;
+            Command_Map* map = mapping_get_map(mapping, ctx.map_id);
+            Command_Binding binding = map_get_binding_recursive(mapping, map, &in.event);
+            
+            if (binding.custom)
+            {
+                Command_Metadata* metadata = get_command_metadata(binding.custom);
+                if (metadata && metadata->is_ui)
+                {
+                    view_enqueue_command_function(app, view, binding.custom);
+                    break;
+                }
+                binding.custom(app);
+            }
+            else leave_current_input_unhandled(app);
+        }
+    }
+    
+    return success;
+}
+
+// @COPYPASTA(long): get_query_string
+function String8 Long_Query_FillBar(Application_Links* app, Arena* arena, char* query_prompt,
+                                    u8* string_space, u64 space_size, String8 init_string)
+{
+    Query_Bar* bar = push_array_zero(arena, Query_Bar, 1);
+    bar->prompt = SCu8((u8*)query_prompt);
+    bar->string.str = string_space;
+    bar->string_capacity = space_size;
+    
+    if (!Long_Query_User_String(app, bar, init_string))
+        // NOTE(long): string.size equals 0 doesn't necessarily mean that the query failed, but string.str equals 0 does
+        bar->string = {};
+    return bar->string;
+}
+
+#define LONG_QUERY_STRING_SIZE KB(1)
+
+function String8 Long_Query_String(Application_Links* app, Arena* arena, char* query_prompt, String8 init_string = {})
+{
+    u64 string_size = LONG_QUERY_STRING_SIZE;
+    u8* string_space = push_array(arena, u8, string_size);
+    return Long_Query_FillBar(app, arena, query_prompt, string_space, string_size, init_string);
 }
 
 //~ NOTE(long): Point Stack Commands
@@ -294,11 +501,7 @@ function void Long_PointStack_JumpNext(Application_Links* app, View_ID view, i32
     i64 current_pos = view_get_cursor_pos(app, view);
     
     i32 end = 0;
-    if (advance == 0)
-    {
-        end = stack->bot - 1;
-        //advance = -1;
-    }
+    if (advance == 0) end = stack->bot - 1;
     else if (advance > 0) end = stack->top;
     else if (advance < 0) end = stack->bot - 1;
     
@@ -355,9 +558,9 @@ function void Long_Buffer_OutputBuffer(Application_Links* app, Lister* lister, B
     String8 status = {};
     switch (dirty)
     {
-        case DirtyState_UnsavedChanges:                   status = string_u8_litexpr("*");  break;
-        case DirtyState_UnloadedChanges:                  status = string_u8_litexpr("!");  break;
-        case DirtyState_UnsavedChangesAndUnloadedChanges: status = string_u8_litexpr("*!"); break;
+        case DirtyState_UnsavedChanges:                   status = S8Lit("*");  break;
+        case DirtyState_UnloadedChanges:                  status = S8Lit("!");  break;
+        case DirtyState_UnsavedChangesAndUnloadedChanges: status = S8Lit("*!"); break;
     }
     Scratch_Block scratch(app, lister->arena);
     String8 buffer_name = push_buffer_base_name(app, scratch, buffer);
@@ -513,7 +716,7 @@ CUSTOM_DOC("Interactively switch to an open buffer.")
 {
     // @COPYPASTA(long): interactive_switch_buffer
     Buffer_ID buffer = Long_Buffer_RunLister(app, "Switch:");
-    if (buffer != 0)
+    if (buffer)
     {
         View_ID view = get_this_ctx_view(app, Access_Always);
         Long_Jump_ToBuffer(app, view, buffer);
@@ -694,10 +897,12 @@ CUSTOM_DOC("Advances backwards through the undo history of the current buffer.")
             }
         }
         
-        if (do_immedite_undo){
+        if (do_immedite_undo)
+        {
             buffer_history_set_current_state_index(app, buffer, current - 1);
             Long_Buffer_CheckDirtyHistory(app, buffer);
-            if (record.single_string_backward.size > 0){
+            if (record.single_string_backward.size > 0)
+            {
                 Range_i64 range = Ii64_size(record.single_first, record.single_string_backward.size);
                 ARGB_Color color = fcolor_resolve(fcolor_id(defcolor_undo));
                 buffer_post_fade(app, buffer, undo_fade_time, range, color);
@@ -811,53 +1016,110 @@ CUSTOM_DOC("Auto-indents the range between the cursor and the mark.")
     Long_Indent_CursorRange(app, 0);
 }
 
+global b32 long_re_enable_virtual_ws = 0;
+
+// @COPYPASTA(long): write_text
+function void Long_Write_Text(Application_Links *app, String8 insert)
+{
+    ProfileScope(app, "[Long] Write Character");
+    if (insert.str != 0 && insert.size > 0)
+    {
+        View_ID view = get_active_view(app, Access_ReadWriteVisible);
+        Buffer_ID buffer = view_get_buffer(app, view, Access_ReadWriteVisible);
+        
+        i64 pos = view_get_cursor_pos(app, view);
+        pos = view_get_character_legal_pos_from_pos(app, view, pos);
+        
+        // NOTE(allen): consecutive inserts merge logic
+        History_Record_Index first_index = buffer_history_get_current_state_index(app, buffer);
+        b32 do_merge = 0;
+        if (insert.str[0] != '\n')
+        {
+            Record_Info record = get_single_record(app, buffer, first_index);
+            if (record.error == RecordError_NoError && record.kind == RecordKind_Single)
+            {
+                String8 str = record.single_string_forward;
+                if (record.single_first + (i64)str.size == pos && str.size > 0)
+                {
+                    char c = str.str[str.size - 1];
+                    char c0 = insert.str[0];
+                    if (c != '\n')
+                        if ((character_is_whitespace   (c0) && character_is_whitespace   (c)) ||
+                            (character_is_alpha_numeric(c0) && character_is_alpha_numeric(c)))
+                            do_merge = 1;
+                }
+            }
+        }
+        
+        // NOTE(allen): perform the edit
+        Range_i64 range = view_has_highlighted_range(app, view) ? get_view_range(app, view) : Ii64(pos);
+        b32 edit_success = buffer_replace_range(app, buffer, range, insert);
+        
+        // NOTE(allen): finish merging records if necessary
+        if (do_merge)
+        {
+            History_Record_Index last_index = buffer_history_get_current_state_index(app, buffer);
+            buffer_history_merge_record_range(app, buffer, first_index, last_index, RecordMergeFlag_StateInRange_MoveStateForward);
+        }
+        
+        // NOTE(allen): finish updating the cursor
+        if (edit_success)
+            view_set_cursor_and_preferred_x(app, view, seek_pos(range.min + insert.size));
+    }
+}
+
 // @COPYPASTA(long): write_text_and_auto_indent
 CUSTOM_COMMAND_SIG(long_write_text_and_auto_indent)
 CUSTOM_DOC("Inserts text and auto-indents the line on which the cursor sits if any of the text contains 'layout punctuation' such as ;:{}()[]# and new lines.")
 {
-    ProfileScope(app, "write and auto indent");
+    ProfileScope(app, "[Long] write and auto indent");
+    String_ID key = vars_save_string_lit("enable_virtual_whitespace");
+    b32 enable_virtual_whitespace = long_re_enable_virtual_ws ? 1 : def_get_config_b32(key);
+    long_re_enable_virtual_ws = 0;
+    //def_set_config_b32(key, 0);
+    
     User_Input in = get_current_input(app);
-    String_Const_u8 insert = to_writable(&in);
-    if (insert.str != 0 && insert.size > 0){
+    String8 insert = to_writable(&in);
+    if (insert.str != 0 && insert.size > 0)
+    {
         b32 do_auto_indent = false;
-        for (u64 i = 0; !do_auto_indent && i < insert.size; i += 1){
-            switch (insert.str[i]){
+        for (u64 i = 0; !do_auto_indent && i < insert.size; i += 1)
+        {
+            switch (insert.str[i])
+            {
                 case ';': case ':':
                 case '{': case '}':
                 case '(': case ')':
                 case '[': case ']':
                 case '#':
-                case '\n': case '\t':
-                {
-                    do_auto_indent = true;
-                }break;
+                case '\n': case '\t': do_auto_indent = true; break;
             }
         }
-        if (do_auto_indent){
+        
+        if (do_auto_indent)
+        {
             View_ID view = get_active_view(app, Access_ReadWriteVisible);
             Buffer_ID buffer = view_get_buffer(app, view, Access_ReadWriteVisible);
             
             Range_i64 pos = {};
-            if (view_has_highlighted_range(app, view)){
+            if (view_has_highlighted_range(app, view))
                 pos = get_view_range(app, view);
-            }
-            else{
+            else
                 pos.min = pos.max = view_get_cursor_pos(app, view);
-            }
             
-            write_text_input(app);
+            Long_Write_Text(app, insert);
             
             i64 end_pos = view_get_cursor_pos(app, view);
             pos.min = Min(pos.min, end_pos);
             pos.max = Max(pos.max, end_pos);
-            
             Long_Index_IndentBuffer(app, buffer, pos, true);
             move_past_lead_whitespace(app, view, buffer);
         }
-        else{
-            write_text_input(app);
-        }
+        else
+            Long_Write_Text(app, insert);
     }
+    
+    def_set_config_b32(key, enable_virtual_whitespace);
 }
 
 //- NOTE(long): Special Buffers/Panels
@@ -872,7 +1134,9 @@ CUSTOM_DOC("Kills the current buffer.")
 CUSTOM_COMMAND_SIG(long_switch_to_search_buffer)
 CUSTOM_DOC("Switch to the search buffer.")
 {
-    Long_Jump_ToBuffer(app, get_this_ctx_view(app, Access_Always), Long_Buffer_GetSearchBuffer(app), 1, 0);
+    Buffer_ID search_buffer = Long_Buffer_GetSearchBuffer(app);
+    if (search_buffer)
+        Long_Jump_ToBuffer(app, get_this_ctx_view(app, Access_Always), search_buffer, 1, 0);
 }
 
 CUSTOM_COMMAND_SIG(long_kill_search_buffer)
@@ -982,7 +1246,6 @@ CUSTOM_DOC("If the special build panel is open, makes the build panel the active
 
 //~ NOTE(long): Search/Jump Commands
 
-#define LONG_QUERY_STRING_SIZE KB(1)
 CUSTOM_ID(attachment, long_search_string_size);
 CUSTOM_ID(attachment, long_start_selection_offset);
 CUSTOM_ID(attachment, long_selection_pos_offset);
@@ -1014,7 +1277,7 @@ function Buffer_ID Long_CreateOrSwitchBuffer(Application_Links* app, String_Cons
     // TODO(long): This will overwrite the buffer's history from this point forward
     Long_Jump_ToBuffer(app, default_target_view, search_buffer, jump_to_buffer, 0);
     view_set_active(app, default_target_view);
-    return(search_buffer);
+    return search_buffer;
 }
 
 function String_Match_List Long_FindAllMatches(Application_Links* app, Arena* arena, String_Const_u8_Array match_patterns,
@@ -1084,113 +1347,6 @@ function void Long_PrintMatchedLines(Application_Links* app, Buffer_ID out_buffe
     end_buffer_insertion(&out);
 }
 
-// @COPYPASTA(long): query_user_general
-function b32 Long_Query_User_String(Application_Links* app, Query_Bar* bar, String_Const_u8 init_string){
-    if (start_query_bar(app, bar, 0) == 0){
-        return(false);
-    }
-    
-    if (init_string.size > 0){
-        String_u8 string = Su8(bar->string.str, bar->string.size, bar->string_capacity);
-        string_append(&string, init_string);
-        bar->string.size = string.string.size;
-    }
-    
-    b32 success = true;
-    for (;;){
-        User_Input in = get_next_input(app, EventPropertyGroup_Any,
-                                       EventProperty_Escape|EventProperty_MouseButton);
-        if (in.abort){
-            success = false;
-            break;
-        }
-        
-        Scratch_Block scratch(app);
-        b32 good_insert = false;
-        String_Const_u8 insert_string = to_writable(&in);
-        if (insert_string.str != 0 && insert_string.size > 0){
-            insert_string = string_replace(scratch, insert_string,
-                                           string_u8_litexpr("\n"),
-                                           string_u8_litexpr(""));
-            insert_string = string_replace(scratch, insert_string,
-                                           string_u8_litexpr("\t"),
-                                           string_u8_litexpr(""));
-            good_insert = true;
-        }
-        
-        if (in.event.kind == InputEventKind_KeyStroke && in.event.key.code == KeyCode_Return){
-            break;
-        }
-        else if (in.event.kind == InputEventKind_KeyStroke &&
-                 in.event.key.code == KeyCode_Backspace){
-            if (has_modifier(&in, KeyCode_Control))
-                bar->string.size = 0;
-            else
-                bar->string = backspace_utf8(bar->string);
-        }
-        
-        else if (match_key_code(&in, KeyCode_Tab))
-        {
-            View_ID view = get_active_view(app, 0);
-            Buffer_ID buffer = view_get_buffer(app, view, 0);
-            Range_i64 range;
-            if (has_modifier(&in, KeyCode_Control))
-                range = get_view_range(app, view);
-            else
-            {
-                i64 pos = view_get_cursor_pos(app, view);
-                range = enclose_pos_alpha_numeric_underscore_utf8(app, buffer, pos);
-                
-                // NOTE(long): The cursor can still be right after
-                if (range.max == range.min)
-                    range = enclose_pos_alpha_numeric_underscore_utf8(app, buffer, pos - 1);
-            }
-            
-            String8 string = push_buffer_range(app, scratch, buffer, range);
-            String_u8 bar_string = Su8(bar->string.str, bar->string.size, bar->string_capacity);
-            string_append(&bar_string, string);
-            bar->string.size = bar_string.size;
-        }
-        
-        else if (match_key_code(&in, KeyCode_V) && has_modifier(&in, KeyCode_Control))
-        {
-            String8 string = push_clipboard_index(scratch, 0, 0);
-            String_u8 bar_string = Su8(bar->string.str, bar->string.size, bar->string_capacity);
-            string_append(&bar_string, string);
-            bar->string.size = bar_string.size;
-        }
-        
-        else if (good_insert){
-            String_u8 string = Su8(bar->string.str, bar->string.size, bar->string_capacity);
-            string_append(&string, insert_string);
-            bar->string.size = string.string.size;
-        }
-        else{
-            // NOTE(allen): is the user trying to execute another command?
-            View_ID view = get_this_ctx_view(app, Access_Always);
-            View_Context ctx = view_current_context(app, view);
-            Mapping* mapping = ctx.mapping;
-            Command_Map* map = mapping_get_map(mapping, ctx.map_id);
-            Command_Binding binding = map_get_binding_recursive(mapping, map, &in.event);
-            if (binding.custom != 0){
-                Command_Metadata* metadata = get_command_metadata(binding.custom);
-                if (metadata != 0){
-                    if (metadata->is_ui){
-                        view_enqueue_command_function(app, view, binding.custom);
-                        break;
-                    }
-                }
-                binding.custom(app);
-            }
-            else{
-                leave_current_input_unhandled(app);
-            }
-        }
-    }
-    
-    return(success);
-}
-
 function Range_i32 Long_Highlight_GetRange(Locked_Jump_State state, i32 selection_offset)
 {
     Range_i32 result;
@@ -1224,8 +1380,8 @@ function void Long_SearchBuffer_Jump(Application_Links* app, Locked_Jump_State s
     view_set_cursor_and_preferred_x(app, state.view, seek_line_col(jump.list_line, 1));
 }
 
-function Sticky_Jump Long_SearchBuffer_NearestJump(Application_Links* app, View_ID view, Buffer_ID buffer, i64 pos,
-                                                   Locked_Jump_State state, Managed_Scope scope)
+function Sticky_Jump Long_SearchBuffer_NearestJump(Application_Links* app, Buffer_ID buffer, i64 pos,
+                                                   Locked_Jump_State state, Managed_Scope scope, Sticky_Jump_Stored* out_stored = 0)
 {
     Scratch_Block scratch(app);
     
@@ -1256,6 +1412,9 @@ function Sticky_Jump Long_SearchBuffer_NearestJump(Application_Links* app, View_
         result.is_sub_error     = storage[list_index].is_sub_error;
         result.jump_buffer_id   = storage[list_index].jump_buffer_id;
         result.jump_pos = markers[storage[list_index].index_into_marker_array].pos;
+        
+        if (out_stored)
+            *out_stored = storage[list_index];
     }
     return result;
 }
@@ -1276,16 +1435,379 @@ function void Long_SnapMarkToCursor(Application_Links* app)
     }
 }
 
+function void Long_MC_Apply(Application_Links* app, Managed_Scope scope, Custom_Command_Function* func, MC_Command_Kind kind)
+{
+    View_ID view = mc_context.view;
+	Buffer_ID buffer = view_get_buffer(app, view, Access_Always);
+    
+    // Run standard cursor
+    default_pre_command(app, scope);
+	func(app);
+    default_post_command(app, scope);
+    
+	// Check that `func` should be safe to re-run
+	if (view != get_active_view(app, Access_Always) ||
+        buffer != view_get_buffer(app, view, Access_Always))
+	{
+        MC_end(app);
+        return;
+	}
+    
+	if (kind == MC_Command_CursorCopy){
+        // Since copy doesn't read from MC clipboards, clear it before doing multiple copies
+        // _CopyPaste would require double-buffering arenas, rather not complicate for nothing
+        linalloc_clear(&mc_context.arena_clipboard);
+	}
+    
+	Buffer_Scroll scroll = view_get_buffer_scroll(app, mc_context.view);
+	MC_Node prev = {mc_context.cursors};
+	MC_pull(app, mc_context.view, kind, &prev);
+	mc_context.cursors = &prev;
+    
+	for (MC_Node *n=prev.next; n; n=n->next){
+        MC_push(app, mc_context.view, kind, n);
+        default_pre_command(app, scope);
+        mc_context.active_cursor = n;
+        func(app);
+        default_post_command(app, scope);
+        MC_pull(app, mc_context.view, kind, n);
+	}
+	mc_context.active_cursor = NULL;
+	mc_context.cursors = prev.next;
+    
+	MC_push(app, mc_context.view, kind, &prev);
+	view_set_buffer_scroll(app, mc_context.view, scroll, SetBufferScroll_NoCursorChange);
+}
+
+CUSTOM_COMMAND_SIG(long_view_input_handler)
+CUSTOM_DOC("Input consumption loop for default view behavior")
+{
+    Scratch_Block scratch(app);
+    default_input_handler_init(app, scratch);
+    
+    View_ID view = get_this_ctx_view(app, Access_Always);
+    Managed_Scope scope = view_get_managed_scope(app, view);
+    
+    for (;;)
+    {
+        // NOTE(allen): Get input
+        User_Input input = get_next_input(app, EventPropertyGroup_Any, 0);
+        Input_Event* event = &input.event;
+        if (input.abort)
+            break;
+        
+        // NOTE(allen): Mouse Suppression
+        Event_Property event_properties = get_event_properties(event);
+        if (suppressing_mouse && (event_properties & EventPropertyGroup_AnyMouseEvent) != 0)
+            continue;
+        
+        // NOTE(allen): Get binding
+        if (implicit_map_function == 0)
+            implicit_map_function = default_implicit_map;
+        Implicit_Map_Result map_result = implicit_map_function(app, 0, 0, event);
+        if (map_result.command == 0)
+        {
+            leave_current_input_unhandled(app);
+            continue;
+        }
+        
+        if (mc_context.active && mc_context.view == get_this_ctx_view(app, Access_Always))
+        {
+            if (event->kind == InputEventKind_Core && event->core.code == CoreCode_NewClipboardContents)
+            {
+                linalloc_clear(&mc_context.arena_clipboard);
+                String_Const_u8 string = push_string_copy(&mc_context.arena_clipboard, event->core.string);
+                for_mc(node, mc_context.cursors)
+                    node->clipboard = string;
+            }
+            
+            Table_Lookup lookup = table_lookup(&mc_context.table, HandleAsU64(map_result.command));
+            if (lookup.found_match)
+            {
+                u64 val = mc_context.table.vals[lookup.index];
+                Long_MC_Apply(app, scope, map_result.command, MC_Command_Kind(val));
+            }
+            else
+            {
+                MC_apply(app, MC_error_fade, MC_Command_Cursor);
+                Command_Metadata* meta = get_command_metadata(map_result.command);
+                Long_Print_Messagef(app, "[MC] <%s> not available during multi-cursor mode\n", meta ? meta->name : "Command");
+            }
+        }
+        else
+        {
+            // NOTE(allen): Run the command and pre/post command stuff
+            default_pre_command(app, scope);
+            map_result.command(app);
+            default_post_command(app, scope);
+        }
+    }
+}
+
+function void Long_MC_InsertTrail(Application_Links* app, f32 pixels)
+{
+    View_ID view = get_active_view(app, 0);
+    i64 cursor = view_get_cursor_pos(app, view);
+    i64 marker = mc_context.active ? view_get_mark_pos(app, view) : cursor;
+    
+    if (!mc_context.active_cursor)
+    {
+        MC_insert(app, cursor, marker);
+        if (pixels < 0) move_up(app);
+        else          move_down(app);
+        
+        if (mc_context.active)
+        {
+            // @COPYPASTA(long): move_vertical_pixels
+            i64 line = view_compute_cursor(app, view, seek_pos(marker)).line;
+            Rect_f32 r = view_padded_box_of_pos(app, view, line, marker);
+            Vec2_f32 p = {};
+            p.x = r.x0;
+            p.y = (pixels > 0.f ? r.y1 : r.y0) + pixels;
+            i64 new_pos = view_pos_at_relative_xy(app, view, line, p);
+            view_set_mark(app, view, seek_pos(new_pos));
+        }
+        else
+            MC_begin(app);
+    }
+}
+
+CUSTOM_COMMAND_SIG(long_mc_up_trail)
+CUSTOM_DOC("moves up, leaving a multi-cursor behind it")
+{
+    Long_MC_InsertTrail(app, -1);
+}
+
+CUSTOM_COMMAND_SIG(long_mc_down_trail)
+CUSTOM_DOC("moves down, leaving a multi-cursor behind it")
+{
+    Long_MC_InsertTrail(app, +1);
+}
+
+function void Long_MC_ListAllLocations(Application_Links* app, View_ID view, Buffer_ID search_buffer,
+                                       String8 title, i64 init_size, b32 push_jump = 0)
+{
+    if (get_active_view(app, Access_ReadVisible) != view)
+        view_set_active(app, view); 
+    
+    Scratch_Block scratch(app);
+    Query_Bar_Group group(app);
+    Query_Bar* bar = Long_Query_StartBar(app, scratch, {}, title);;
+    if (!bar)
+        return;
+    
+    Vec2_f32 old_margin = {};
+    Vec2_f32 old_push_in = {};
+    view_get_camera_bounds(app, view, &old_margin, &old_push_in);
+    view_set_camera_bounds(app, view, Vec2_f32{ old_margin.x, clamp_bot(200.f, old_margin.y) }, old_push_in);
+    
+    auto_center_after_jumps = false;
+    Managed_Scope scope = buffer_get_managed_scope(app, search_buffer);
+    
+    i64 curr_pos = 0;
+    i64 cursor_pos = view_get_cursor_pos(app, view), mark_pos = view_get_mark_pos(app, view);
+    Buffer_ID buffer = view_get_buffer(app, view, Access_Always);
+    {
+        lock_jump_buffer(app, search_buffer);
+        Locked_Jump_State jump_state = get_locked_jump_state(app, &global_heap);
+        
+        Sticky_Jump jump = Long_SearchBuffer_NearestJump(app, buffer, cursor_pos, jump_state, scope);
+        if (jump.jump_buffer_id)
+            Long_SearchBuffer_Jump(app, jump_state, jump);
+        else
+            goto_first_jump(app);
+        
+        curr_pos = view_get_cursor_pos(app, view);
+        view_set_mark  (app, view, seek_pos(curr_pos));
+        view_set_cursor(app, view, seek_pos(curr_pos + title.size));
+    }
+    
+    i32 count;
+    Marker* markers = Long_SearchBuffer_GetMarkers(app, scratch, scope, buffer, &count);
+    
+    Mapping* mapping;
+    Command_Map* map;
+    {
+        View_Context ctx = view_current_context(app, view);
+        mapping = ctx.mapping;
+        
+        Managed_Scope buffer_scope = buffer_get_managed_scope(app, buffer);
+        Command_Map_ID* map_id_ptr = scope_attachment(app, buffer_scope, buffer_map_id, Command_Map_ID);
+        map = mapping_get_map(ctx.mapping, map_id_ptr ? (*map_id_ptr) : ctx.map_id);
+    }
+    
+    b32 abort = false, exit_to_jump_highlight = false;
+    def_set_config_b32(vars_save_string_lit("use_jump_highlight"), 0);
+    
+    b32 select_all = 0;
+    for (Temp_Memory temp = begin_temp(scratch); ; end_temp(temp))
+    {
+        Long_SnapMarkToCursor(app);
+        User_Input in = get_next_input(app, EventPropertyGroup_Any, EventProperty_Escape);
+        if (in.abort)
+        {
+            exit_to_jump_highlight = has_modifier(&in, KeyCode_Shift);
+            abort = !exit_to_jump_highlight;
+            break;
+        }
+        
+        Locked_Jump_State jump_state = get_locked_jump_state(app, &global_heap);
+        if (!jump_state.view)
+        {
+            abort = exit_to_jump_highlight = true;
+            break;
+        }
+        
+        i64 selection_count = 0;
+        for_mc(node, mc_context.cursors) ++selection_count;
+        bar->prompt = push_stringf(scratch, "Selection Count: %d, For: ", selection_count);
+        
+        ID_Pos_Jump_Location current_location;
+        get_jump_from_list(app, jump_state.list, jump_state.list_index, &current_location);
+        curr_pos = current_location.pos;
+        
+        // NOTE(long): Rather than disable the highlight, we set it to an empty range so that F4_RenderBuffer doesn't render any cursor
+        view_set_highlight_range(app, view, {});
+        
+        if (match_key_code(&in, KeyCode_Return) || match_key_code(&in, KeyCode_Tab))
+            break;
+        
+        else if (match_key_code(&in, KeyCode_PageUp) || match_key_code(&in, KeyCode_Up))
+        {
+            goto_prev_jump(app);
+            
+            CHANGE_JUMP:
+            i64 new_pos = view_get_cursor_pos(app, view);
+            Buffer_ID new_buffer = view_get_buffer(app, view, 0);
+            if (curr_pos != new_pos || current_location.buffer_id != new_buffer)
+            {
+                if (select_all)
+                {
+                    for (i32 i = 0; i < count; ++i)
+                        MC_remove(app, markers[i].pos + title.size);
+                    select_all = 0;
+                }
+                
+                if (has_modifier(&in, KeyCode_Shift))
+                {
+                    b32 duplicate = 0;
+                    for_mc(node, mc_context.cursors)
+                    {
+                        if (node->mark_pos == curr_pos)
+                        {
+                            duplicate = 1;
+                            break;
+                        }
+                    }
+                    
+                    if (duplicate)
+                        MC_remove(app, curr_pos + title.size);
+                    else
+                        MC_insert(app, curr_pos + title.size, curr_pos);
+                }
+            }
+        }
+        else if (match_key_code(&in, KeyCode_PageDown) || match_key_code(&in, KeyCode_Down))
+        {
+            goto_next_jump(app);
+            goto CHANGE_JUMP;
+        }
+        
+        else if (match_key_code(&in, KeyCode_A) && has_modifier(&in, KeyCode_Control))
+        {
+            for (i32 i = 0; i < count; ++i)
+            {
+                i64 pos = markers[i].pos + title.size;
+                if (select_all)
+                    MC_remove(app, pos);
+                else
+                    MC_insert(app, pos, markers[i].pos);
+            }
+            select_all = !select_all;
+        }
+        
+        else if (match_key_code(&in, KeyCode_E) && has_modifier(&in, KeyCode_Control))
+            center_view(app);
+        
+        else if (in.event.kind == InputEventKind_TextInsert)
+        {
+            String8 str = in.event.text.string;
+            if (str.str && str.size)
+            {
+                view_enqueue_command_function(app, view, long_delete_range);
+                enqueue_virtual_event(app, &in.event);
+                
+                // NOTE(long): This is kind of an icky way to handle virtual whitespace
+                // It also requires that the main cursor run the long_write_text_and_auto_indent command first
+                // Without this, all the other cursors would still work fine, except for the main one
+                // Maybe a better way is to enable notepad mode while in search mode
+                String_ID key = vars_save_string_lit("enable_virtual_whitespace");
+                long_re_enable_virtual_ws = def_get_config_b32(key);
+                def_set_config_b32(key, 0);
+                break;
+            }
+        }
+        else if (in.event.kind == InputEventKind_KeyStroke)
+        {
+            Command_Binding binding = map_get_binding_recursive(mapping, map, &in.event);
+            Custom_Command_Function* custom = binding.custom;
+            Command_Metadata* metadata = custom ? get_command_metadata(custom) : 0;
+            if (metadata)
+            {
+                if (custom == delete_char || custom == backspace_char)
+                    custom = long_delete_range;
+                view_enqueue_command_function(app, view, custom);
+                break;
+            }
+            else
+                leave_current_input_unhandled(app);
+        }
+        
+        view_set_mark  (app, view, seek_pos(curr_pos));
+        view_set_cursor(app, view, seek_pos(curr_pos + title.size));
+    }
+    
+    if (exit_to_jump_highlight)
+        def_set_config_b32(vars_save_string_lit("use_jump_highlight"), 1);
+    else
+        long_kill_search_buffer(app);
+    
+    if (abort)
+    {
+        Long_Jump_ToLocation(app, view, buffer, cursor_pos);
+        view_set_mark(app, view, seek_pos(mark_pos));
+    }
+    
+    if (abort || exit_to_jump_highlight)
+        MC_end(app);
+    else
+    {
+        if (push_jump)
+        {
+            Long_PointStack_Push(app, buffer, cursor_pos, view);
+            i64 cursor = view_get_cursor_pos(app, view);
+            Long_PointStack_Push(app, view_get_buffer(app, view, 0), cursor, view);
+        }
+        
+        MC_begin(app);
+        view_set_mark(app, view, seek_pos(curr_pos)); // MC_begin always reset the mark back to the cursor
+    }
+    
+    auto_center_after_jumps = true;
+    view_disable_highlight_range(app, view); // NOTE(long): Disable the highlight will make F4_RenderBuffer draw the cursor again
+    view_set_camera_bounds(app, view, old_margin, old_push_in);
+}
+
 function void Long_SearchBuffer_MultiSelect(Application_Links* app, View_ID view, Buffer_ID search_buffer,
                                             String8 title, i64 init_size, b32 push_jump = 0)
 {
     if (get_active_view(app, Access_ReadVisible) != view)
         view_set_active(app, view); 
     
+    Scratch_Block scratch(app);
     Query_Bar_Group group(app);
-    Query_Bar bar = {};
-    bar.string = title;
-    if (!start_query_bar(app, &bar, 0))
+    Query_Bar* bar = Long_Query_StartBar(app, scratch, {}, title);;
+    if (!bar)
         return;
     
     Vec2_f32 old_margin = {};
@@ -1313,7 +1835,7 @@ function void Long_SearchBuffer_MultiSelect(Application_Links* app, View_ID view
             Long_PointStack_Push(app, buffer, cursor_pos, view);
 #endif
         
-        Sticky_Jump jump = Long_SearchBuffer_NearestJump(app, view, buffer, cursor_pos, jump_state, scope);
+        Sticky_Jump jump = Long_SearchBuffer_NearestJump(app, buffer, cursor_pos, jump_state, scope);
         if (jump.jump_buffer_id)
             Long_SearchBuffer_Jump(app, jump_state, jump);
         else
@@ -1335,11 +1857,9 @@ function void Long_SearchBuffer_MultiSelect(Application_Links* app, View_ID view
     Long_Buffer_History start_history = {};
     global_history_edit_group_begin(app);
     
-    for (;;)
+    for (Temp_Memory temp = begin_temp(scratch); ; end_temp(temp))
     {
-        Scratch_Block scratch(app);
         Long_SnapMarkToCursor(app);
-        
         User_Input in = get_next_input(app, EventPropertyGroup_Any, EventProperty_Escape);
         if (in.abort)
         {
@@ -1356,7 +1876,7 @@ function void Long_SearchBuffer_MultiSelect(Application_Links* app, View_ID view
         }
         
         i32 selection_count = clamp_top(Long_Abs(*selection_offset) + 1, jump_count);
-        bar.prompt = push_stringf(scratch, "Selection Count: %d, For: ", selection_count);
+        bar->prompt = push_stringf(scratch, "Selection Count: %d, For: ", selection_count);
         
         ID_Pos_Jump_Location current_location;
         get_jump_from_list(app, jump_state.list, jump_state.list_index, &current_location);
@@ -1459,20 +1979,24 @@ function void Long_SearchBuffer_MultiSelect(Application_Links* app, View_ID view
         
         else
         {
-            // NOTE(allen): is the user trying to execute another command?
-            View_Context ctx = view_current_context(app, view);
-            Command_Binding binding = map_get_binding_recursive(ctx.mapping, mapping_get_map(ctx.mapping, ctx.map_id), &in.event);
-            Custom_Command_Function* custom = binding.custom;
-            
-            if (custom)
+            Custom_Command_Function* custom;
             {
-                Command_Metadata* metadata = get_command_metadata(custom);
-                if (metadata && metadata->is_ui)
-                {
-                    view_enqueue_command_function(app, view, custom);
-                    break;
-                }
-                custom(app);
+                View_Context ctx = view_current_context(app, view);
+                Command_Map* map = mapping_get_map(ctx.mapping, ctx.map_id);
+                Managed_Scope buffer_scope = buffer_get_managed_scope(app, buffer);
+                Command_Map_ID* map_id_ptr = scope_attachment(app, buffer_scope, buffer_map_id, Command_Map_ID);
+                if (map_id_ptr)
+                    map = mapping_get_map(ctx.mapping, *map_id_ptr);
+                
+                Command_Binding binding = map_get_binding_recursive(ctx.mapping, map, &in.event);
+                custom = binding.custom;
+            }
+            
+            Command_Metadata* metadata = custom ? get_command_metadata(custom) : 0;
+            if (metadata/* && metadata->is_ui*/)
+            {
+                view_enqueue_command_function(app, view, custom);
+                break;
             }
             else leave_current_input_unhandled(app);
         }
@@ -1603,43 +2127,25 @@ function void Long_ListAllLocations(Application_Links* app, String_Const_u8 need
     String8 no_match = S8Lit("no matches");
     String8 search_result = push_buffer_range(app, scratch, search_buffer, Ii64_size(0, no_match.size));
     if (!string_match(search_result, no_match))
-        Long_SearchBuffer_MultiSelect(app, view, search_buffer, needle, needle.size, 1);
-}
-
-// @COPYPASTA(long): get_query_string
-function String8 Long_Get_Query_String(Application_Links* app, char* query_str, u8* string_space, i32 space_size, u64 init_size = 0)
-{
-    Query_Bar_Group group(app);
-    Query_Bar bar = {};
-    bar.prompt = SCu8((u8*)query_str);
-    bar.string = SCu8(string_space, init_size);
-    bar.string_capacity = space_size;
-    if (!Long_Query_User_String(app, &bar, string_u8_empty)){
-        bar.string.size = 0;
-    }
-    return(bar.string);
+        Long_MC_ListAllLocations(app, view, search_buffer, needle, needle.size, 1);
 }
 
 function void Long_ListAllLocations_Query(Application_Links* app, char* query, List_All_Locations_Flag flags, b32 all_buffer)
 {
     Scratch_Block scratch(app);
-    u8* space = push_array(scratch, u8, LONG_QUERY_STRING_SIZE);
     String8 needle = fcoder_mode == FCoderMode_NotepadLike ? push_view_range_string(app, scratch) : String8{};
-    i64 size = Min(needle.size, LONG_QUERY_STRING_SIZE);
-    block_copy(space, needle.str, size);
-    needle = Long_Get_Query_String(app, "List Locations For: ", space, LONG_QUERY_STRING_SIZE, size);
-    
+    needle = Long_Query_String(app, scratch, "List Locations For: ", needle);
+    clear_all_query_bars(app, get_active_view(app, 0));
     Long_ListAllLocations(app, needle, flags, all_buffer);
 }
 
 function void Long_ListAllLocations_Identifier(Application_Links* app, List_All_Locations_Flag flags, b32 all_buffer)
 {
     Scratch_Block scratch(app);
-    //String_Const_u8 needle = push_token_or_word_under_active_cursor(app, scratch);
     View_ID view = get_active_view(app, 0);
     Buffer_ID buffer = view_get_buffer(app, view, 0);
     i64 pos = view_get_cursor_pos(app, view);
-    String_Const_u8 needle = push_enclose_range_at_pos(app, scratch, buffer, pos, enclose_alpha_numeric_underscore);
+    String8 needle = push_enclose_range_at_pos(app, scratch, buffer, pos, enclose_alpha_numeric_underscore);
     Long_ListAllLocations(app, needle, flags, all_buffer);
 }
 
@@ -1809,17 +2315,15 @@ function void Long_ISearch(Application_Links* app, Scan_Direction start_scan, i6
 {
     View_ID view = get_active_view(app, Access_ReadVisible);
     Buffer_ID buffer = view_get_buffer(app, view, Access_ReadVisible);
-    if (!buffer_exists(app, buffer)){
+    if (!buffer_exists(app, buffer))
         return;
-    }
     
-    i64 buffer_size = buffer_get_size(app, buffer);
-    
+    Scratch_Block scratch(app);
     Query_Bar_Group group(app);
-    Query_Bar bar = {};
-    if (start_query_bar(app, &bar, 0) == 0){
-        return;
-    }
+    
+    u64 bar_size = LONG_QUERY_STRING_SIZE;
+    Query_Bar* bar = Long_Query_StartBar(app, scratch, {}, query_init, bar_size);
+    if (!bar) return;
     
     Vec2_f32 old_margin = {};
     Vec2_f32 old_push_in = {};
@@ -1832,22 +2336,19 @@ function void Long_ISearch(Application_Links* app, Scan_Direction start_scan, i6
     Scan_Direction scan = start_scan;
     i64 pos = first_pos;
     
-    u8 bar_string_space[LONG_QUERY_STRING_SIZE];
-    bar.string = SCu8(bar_string_space, query_init.size);
-    block_copy(bar.string.str, query_init.str, query_init.size);
-    
     String_Const_u8 isearch_str = insensitive ? S8Lit("I-Search: ") : S8Lit("I-Search-Sensitive: ");
     String_Const_u8 rsearch_str = insensitive ? S8Lit("Reverse-I-Search: ") : S8Lit("Reverse-I-Search-Sensitve: ");
     
-    u64 match_size = bar.string.size;
+    u64 match_size = bar->string.size;
+    i64 buffer_size = buffer_get_size(app, buffer);
     
     User_Input in = {};
-    for (;;)
+    for (Temp_Memory temp = begin_temp(scratch); ; end_temp(temp))
     {
         switch (scan)
         {
-            case Scan_Forward:  bar.prompt = isearch_str; break;
-            case Scan_Backward: bar.prompt = rsearch_str; break;
+            case Scan_Forward:  bar->prompt = isearch_str; break;
+            case Scan_Backward: bar->prompt = rsearch_str; break;
         }
         isearch__update_highlight(app, view, Ii64_size(pos, match_size));
         
@@ -1864,14 +2365,14 @@ function void Long_ISearch(Application_Links* app, Scan_Direction start_scan, i6
             Input_Modifier_Set* mods = &in.event.key.modifiers;
             if (has_modifier(mods, KeyCode_Control))
             {
-                bar.string.size = cstring_length(previous_isearch_query);
-                block_copy(bar.string.str, previous_isearch_query, bar.string.size);
+                bar->string.size = cstring_length(previous_isearch_query);
+                block_copy(bar->string.str, previous_isearch_query, bar->string.size);
             }
             else
             {
-                u64 size = bar.string.size;
+                u64 size = bar->string.size;
                 size = clamp_top(size, sizeof(previous_isearch_query) - 1);
-                block_copy(previous_isearch_query, bar.string.str, size);
+                block_copy(previous_isearch_query, bar->string.str, size);
                 previous_isearch_query[size] = 0;
                 break;
             }
@@ -1879,14 +2380,13 @@ function void Long_ISearch(Application_Links* app, Scan_Direction start_scan, i6
         
         else if (match_key_code(&in, KeyCode_Tab))
         {
-            Scratch_Block scratch(app);
             Range_i64 range = get_view_range(app, view);
             String8 select_string = push_buffer_range(app, scratch, buffer, range);
             if (select_string.size)
             {
-                String_u8 bar_string = Su8(bar.string, sizeof(bar_string_space));
+                String_u8 bar_string = Su8(bar->string, bar_size);
                 string_append(&bar_string, select_string);
-                bar.string = bar_string.string;
+                bar->string = bar_string.string;
                 string_change = true;
             }
         }
@@ -1898,13 +2398,12 @@ function void Long_ISearch(Application_Links* app, Scan_Direction start_scan, i6
         
         else if (match_key_code(&in, KeyCode_V) && has_modifier(&in, KeyCode_Control))
         {
-            Scratch_Block scratch(app);
             String8 clipboard = push_clipboard_index(scratch, 0, 0);
             if (clipboard.size)
             {
-                String_u8 bar_string = Su8(bar.string, sizeof(bar_string_space));
+                String_u8 bar_string = Su8(bar->string, bar_size);
                 string_append(&bar_string, clipboard);
-                bar.string = bar_string.string;
+                bar->string = bar_string.string;
                 string_change = true;
             }
         }
@@ -1913,16 +2412,16 @@ function void Long_ISearch(Application_Links* app, Scan_Direction start_scan, i6
         {
             if (is_unmodified_key(&in.event))
             {
-                u64 old_bar_string_size = bar.string.size;
-                bar.string = backspace_utf8(bar.string);
-                string_change = (bar.string.size < old_bar_string_size);
+                u64 old_bar_string_size = bar->string.size;
+                bar->string = backspace_utf8(bar->string);
+                string_change = (bar->string.size < old_bar_string_size);
             }
             else if (has_modifier(&in, KeyCode_Control))
             {
-                if (bar.string.size > 0)
+                if (bar->string.size > 0)
                 {
                     string_change = true;
-                    bar.string.size = 0;
+                    bar->string.size = 0;
                 }
             }
         }
@@ -1932,15 +2431,15 @@ function void Long_ISearch(Application_Links* app, Scan_Direction start_scan, i6
             trigger_command = false;
             if (string.str != 0 && string.size > 0)
             {
-                String_u8 bar_string = Su8(bar.string, sizeof(bar_string_space));
+                String_u8 bar_string = Su8(bar->string, bar_size);
                 string_append(&bar_string, string);
-                bar.string = bar_string.string;
+                bar->string = bar_string.string;
                 string_change = true;
             }
         }
         
         b32 do_scan_action = false;
-        b32 do_scroll_wheel = false;
+        b32 do_scroll_wheel = true;
         Scan_Direction change_scan = scan;
         if (!string_change)
         {
@@ -1973,11 +2472,11 @@ function void Long_ISearch(Application_Links* app, Scan_Direction start_scan, i6
             if (insensitive) flags |= BufferSeekString_CaseInsensitive;
             
             i64 new_pos = 0;
-            seek_string(app, buffer, pos + offset, 0, 0, bar.string, &new_pos, flags);
+            seek_string(app, buffer, pos + offset, 0, 0, bar->string, &new_pos, flags);
             if (new_pos >= 0 && new_pos < buffer_size)
             {
                 pos = new_pos;
-                match_size = bar.string.size;
+                match_size = bar->string.size;
             }
         }
         else if (do_scroll_wheel)
@@ -1988,9 +2487,9 @@ function void Long_ISearch(Application_Links* app, Scan_Direction start_scan, i6
     
     if (in.abort)
     {
-        u64 size = bar.string.size;
+        u64 size = bar->string.size;
         size = clamp_top(size, sizeof(previous_isearch_query) - 1);
-        block_copy(previous_isearch_query, bar.string.str, size);
+        block_copy(previous_isearch_query, bar->string.str, size);
         previous_isearch_query[size] = 0;
         view_set_cursor_and_preferred_x(app, view, seek_pos(first_pos));
     }
@@ -2004,14 +2503,14 @@ function void Long_Search(Application_Links* app, Scan_Direction dir, b32 insens
     Scratch_Block scratch(app);
     View_ID view = get_active_view(app, Access_Read);
     Buffer_ID buffer = view_get_buffer(app, view, Access_Read);
-    if(view && buffer)
+    if (view && buffer)
     {
         i64 cursor = view_get_cursor_pos(app, view);
         i64 mark = view_get_mark_pos(app, view);
         i64 cursor_line = get_line_number_from_pos(app, buffer, cursor);
         i64 mark_line = get_line_number_from_pos(app, buffer, mark);
         String_Const_u8 query_init = string_u8_empty;
-        if (fcoder_mode == FCoderMode_NotepadLike && cursor != mark /*&& cursor_line == mark_line*/)
+        if (fcoder_mode == FCoderMode_NotepadLike && cursor != mark)
         {
             if (cursor > mark)
                 Swap(i64, cursor, mark);
@@ -2075,32 +2574,29 @@ CUSTOM_DOC("Begins an incremental search down through the current buffer for the
     Long_Search_Identifier(app, Scan_Forward, 0);
 }
 
-function void Long_Query_Replace(Application_Links* app, String_Const_u8 replace_str, i64 start_pos, b32 add_replace_query_bar)
+// @COPYPASTA(long): query_replace_parameter
+function void Long_Query_Replace(Application_Links* app, String8 replace_str, i64 start_pos, b32 add_replace_query_bar)
 {
+    if (!replace_str.size)
+        return;
+    
+    Scratch_Block scratch(app);
     Query_Bar_Group group(app);
-    Query_Bar replace = {};
-    replace.prompt = S8Lit("Replace: ");
-    replace.string = replace_str;
     
     if (add_replace_query_bar)
-        start_query_bar(app, &replace, 0);
+        Long_Query_StartBar(app, scratch, S8Lit("Replace: "), replace_str);
     
-    u8 with_space[LONG_QUERY_STRING_SIZE];
-    Query_Bar with = {};
-    with.prompt = S8Lit("With: ");
-    with.string = SCu8(with_space, (u64)0);
-    with.string_capacity = sizeof(with_space);
-    if (!Long_Query_User_String(app, &with, string_u8_empty)) return;
+    String8 with_string = Long_Query_String(app, scratch, "With: ");
+    if (!with_string.str)
+        return;
     
-    String8 w = with.string;
-    String_Const_u8 r = replace.string;
+    Long_Query_StartBar(app, scratch, S8Lit("Replace? (enter), (Page)Up, (Page)Down, (esc)\n"), {});
+    
+    String8 w = with_string;
+    String8 r = replace_str;
     
     View_ID view = get_active_view(app, Access_ReadVisible);
     Buffer_ID buffer = view_get_buffer(app, view, Access_ReadVisible);
-    
-    Query_Bar bar = {};
-    bar.prompt = string_u8_litexpr("Replace? (enter), (Page)Up, (Page)Down, (esc)\n");
-    start_query_bar(app, &bar, 0);
     
     Vec2_f32 old_margin = {};
     Vec2_f32 old_push_in = {};
@@ -2124,7 +2620,7 @@ function void Long_Query_Replace(Application_Links* app, String_Const_u8 replace
         Range_i64 match = Ii64_size(pos, size);
         isearch__update_highlight(app, view, match);
         
-        in = get_next_input(app, EventProperty_AnyKey, EventProperty_Escape);
+        in = get_next_input(app, EventProperty_AnyKey, EventProperty_Escape|EventProperty_MouseButton);
         if (in.abort)
         {
             if (!has_modifier(&in, KeyCode_Shift))
@@ -2189,24 +2685,24 @@ function void Long_Query_Replace(Application_Links* app, String_Const_u8 replace
     view_set_camera_bounds(app, view, old_margin, old_push_in);
 }
 
+function void Long_Query_Replace(Application_Links* app, Buffer_ID buffer, Range_i64 range, b32 add_replace_bar)
+{
+    Scratch_Block scratch(app);
+    String8 replace = push_buffer_range(app, scratch, buffer, range);
+    Long_Query_Replace(app, replace, range.min, true);
+}
+
 CUSTOM_COMMAND_SIG(long_query_replace)
 CUSTOM_DOC("Queries the user for two strings, and incrementally replaces every occurence of the first string with the second string.")
 {
     View_ID view = get_active_view(app, Access_ReadWriteVisible);
     Buffer_ID buffer = view_get_buffer(app, view, Access_ReadWriteVisible);
-    if (buffer != 0)
+    if (buffer)
     {
-        u8 replace_space[LONG_QUERY_STRING_SIZE];
-        Query_Bar_Group group(app);
-        Query_Bar bar = {};
-        bar.prompt = S8Lit("Replace: ");
-        bar.string = SCu8(replace_space, (u64)0);
-        bar.string_capacity = sizeof(replace_space);
-        if (!Long_Query_User_String(app, &bar, string_u8_empty))
-            bar.string.size = 0;
-        String8 replace = bar.string;
-        if (replace.size > 0)
-            Long_Query_Replace(app, replace, view_get_cursor_pos(app, view), false);
+        Scratch_Block scratch(app);
+        String8 replace = Long_Query_String(app, scratch, "Replace: ");
+        Long_Query_Replace(app, replace, view_get_cursor_pos(app, view), false);
+        clear_all_query_bars(app, get_active_view(app, 0));
     }
 }
 
@@ -2215,14 +2711,11 @@ CUSTOM_DOC("Queries the user for a string, and incrementally replace every occur
 {
     View_ID view = get_active_view(app, Access_ReadWriteVisible);
     Buffer_ID buffer = view_get_buffer(app, view, Access_ReadWriteVisible);
-    if (buffer != 0){
-        Scratch_Block scratch(app);
+    if (buffer)
+    {
         i64 pos = view_get_cursor_pos(app, view);
         Range_i64 range = enclose_pos_alpha_numeric_underscore(app, buffer, pos);
-        String_Const_u8 replace = push_buffer_range(app, scratch, buffer, range);
-        if (replace.size != 0){
-            Long_Query_Replace(app, replace, range.min, true);
-        }
+        Long_Query_Replace(app, buffer, range, 1);
     }
 }
 
@@ -2231,14 +2724,54 @@ CUSTOM_DOC("Queries the user for a string, and incrementally replace every occur
 {
     View_ID view = get_active_view(app, Access_ReadWriteVisible);
     Buffer_ID buffer = view_get_buffer(app, view, Access_ReadWriteVisible);
-    if (buffer != 0){
-        Scratch_Block scratch(app);
-        Range_i64 range = get_view_range(app, view);
-        String_Const_u8 replace = push_buffer_range(app, scratch, buffer, range);
-        if (replace.size != 0){
-            Long_Query_Replace(app, replace, range.min, true);
+    if (buffer)
+        Long_Query_Replace(app, buffer, get_view_range(app, view), 1);
+}
+
+function void Long_Query_ReplaceRange(Application_Links* app, Buffer_ID buffer, Range_i64 range)
+{
+    Scratch_Block scratch(app);
+    Query_Bar_Group group(app);
+    
+    String8 replace = Long_Query_String(app, scratch, "Replace: ");
+    if (!replace.size) return; // NOTE(long): Must check for size rather than str 
+    String8 with = Long_Query_String(app, scratch, "With: ");
+    if (!with.str) return;
+    
+    // @COPYPASTA(long): replace_in_range
+    {
+        History_Group history = history_group_begin(app, buffer);
+        
+        i64 pos = range.min - 1;
+        i64 new_pos = 0;
+        seek_string_forward(app, buffer, pos, range.end, replace, &new_pos);
+        
+        i64 shift = replace_range_shift(replace.size, with.size);
+        while (new_pos + (i64)replace.size <= range.end)
+        {
+            buffer_replace_range(app, buffer, Ii64_size(new_pos, replace.size), with);
+            {
+                Range_i64 fade_range = Ii64_size(new_pos, with.size ? with.size : replace.size);
+                ARGB_Color color = fcolor_resolve(fcolor_id(defcolor_highlight));
+                buffer_post_fade(app, buffer, .5f, fade_range, color);
+            }
+            
+            range.end += shift;
+            pos = new_pos + (i32)with.size - 1;
+            seek_string_forward(app, buffer, pos, range.end, replace, &new_pos);
         }
+        
+        history_group_end(history);
     }
+}
+
+CUSTOM_COMMAND_SIG(long_replace_in_range)
+CUSTOM_DOC("Queries the user for a needle and string. Replaces all occurences of needle with string in the range between cursor and the mark in the active buffer.")
+{
+    View_ID view = get_active_view(app, Access_ReadWriteVisible);
+    Buffer_ID buffer = view_get_buffer(app, view, Access_ReadWriteVisible);
+    Range_i64 range = get_view_range(app, view);
+    Long_Query_ReplaceRange(app, buffer, range);
 }
 
 //~ NOTE(long): Index Commands
@@ -2321,7 +2854,11 @@ function void Long_GoToDefinition(Application_Links* app, b32 handle_jump_locati
                     String8 lexeme = push_buffer_range(app, scratch, buffer, range);
                     note = Long_Index_LookupNote(lexeme);
                     if (!note)
-                        Long_Jump_ToBuffer(app, view, get_buffer_by_name(app, lexeme, 0));
+                    {
+                        Buffer_ID dst_buffer = get_buffer_by_name(app, lexeme, 0);
+                        if (dst_buffer)
+                            Long_Jump_ToBuffer(app, view, dst_buffer);
+                    }
                 }
             }
             else if (token->kind != TokenBaseKind_Whitespace)
@@ -2360,13 +2897,14 @@ function void Long_GoToDefinition(Application_Links* app, b32 handle_jump_locati
     }
     
     // @COPYPASTA(long): F4_GoToDefinition
+    // The difference between F4_JumpToLocation and F4_GoToDefinition is:
+    // 1. The first one scroll to the target while the second one snap to the target instantly (scroll.position = scroll.target)
+    // 2. The first one call view_set_preferred_x in set_view_to_location
+    //    Preferred X is typically used for moving up/down from a larger line to a smaller line
+    // For simplicity, I just use Long_PointStack_Jump (which calls F4_JumpToLocation) for all jumping behaviors
+    // And if I want to snap the view directly, I just call Long_SnapView
     if (note)
     {
-        // NOTE(long): The difference between F4_JumpToLocation and F4_GoToDefinition is:
-        // 1. The first one scroll to the target while the second one snap to the target instantly (scroll.position = scroll.target)
-        // 2. The first one call view_set_preferred_x (I don't really know what this function does)
-        // For simplicity, I just use Long_PointStack_Jump (which calls F4_JumpToLocation) for all jumping behaviors
-        // And if I want to snap the view directly, I just call Long_SnapView
         Long_PointStack_Jump(app, goto_view, note->file->buffer, note->range.min);
         if (!same_panel)
             Long_SnapView(app, view);
@@ -2548,7 +3086,6 @@ function void Long_SearchDefinition(Application_Links* app, NoteFilter* filter, 
     lister_set_default_handlers(lister);
     
     F4_Index_Lock();
-    // TODO(long): Split iterating through all notes in project vs file into two paths
     for (Buffer_ID buffer = project_wide ? get_buffer_next(app, 0, Access_Always) : view_get_buffer(app, view, Access_Always);
          buffer; buffer = get_buffer_next(app, buffer, Access_Always))
     {
@@ -2719,6 +3256,27 @@ CUSTOM_DOC("Save all identifiers in the hash table.")
 //~ NOTE(long): Navigate Commands
 
 //- NOTE(long): Cursor/Mark
+CUSTOM_COMMAND_SIG(long_cursor_mark_swap)
+CUSTOM_DOC("Swaps the position of the cursor and the mark.")
+{
+    View_ID view = get_active_view(app, Access_ReadVisible);
+    i64 cursor = view_get_cursor_pos(app, view);
+    i64 mark = view_get_mark_pos(app, view);
+    view_set_cursor_and_preferred_x(app, view, seek_pos(mark));
+    view_set_mark(app, view, seek_pos(cursor));
+    no_mark_snap_to_cursor(app, view);
+}
+
+CUSTOM_COMMAND_SIG(long_copy)
+CUSTOM_DOC("Copy the text in the range from the cursor to the mark onto the clipboard.")
+{
+    View_ID view = get_active_view(app, Access_ReadVisible);
+    Buffer_ID buffer = view_get_buffer(app, view, Access_ReadVisible);
+    Range_i64 range = get_view_range(app, view);
+    clipboard_post_buffer_range(app, 0, buffer, range);
+    no_mark_snap_to_cursor(app, view);
+}
+
 CUSTOM_COMMAND_SIG(long_paste_and_replace_range)
 CUSTOM_DOC("replace the text between the mark and the cursor with the text from the top of the clipboard.")
 {
@@ -2841,6 +3399,29 @@ CUSTOM_COMMAND_SIG(long_select_current_line)
 CUSTOM_DOC("Set the mark to the end of the previous line and cursor to the end of the current line")
 {
     Long_SelectCurrentLine(app, 1);
+}
+
+function void Long_Move_Line(Application_Links* app, Scan_Direction direction)
+{
+    View_ID view = get_active_view(app, Access_ReadWriteVisible);
+    Buffer_ID buffer = view_get_buffer(app, view, Access_ReadWriteVisible);
+    i64 pos = view_get_cursor_pos(app, view);
+    i64 line = get_line_number_from_pos(app, buffer, pos);
+    i64 offset = pos - get_line_side_pos(app, buffer, line, Side_Min);
+    pos = move_line(app, buffer, line, direction) + offset;
+    view_set_cursor_and_preferred_x(app, view, seek_pos(pos));
+}
+
+CUSTOM_COMMAND_SIG(long_move_line_up)
+CUSTOM_DOC("Swaps the line under the cursor with the line above it, and moves the cursor up with it.")
+{
+    Long_Move_Line(app, Scan_Backward);
+}
+
+CUSTOM_COMMAND_SIG(long_move_line_down)
+CUSTOM_DOC("Swaps the line under the cursor with the line below it, and moves the cursor down with it.")
+{
+    Long_Move_Line(app, Scan_Forward);
 }
 
 //- NOTE(long): Token
@@ -3142,14 +3723,12 @@ function i64 Long_Boundary_AlphaNumericCamel(Application_Links* app, Buffer_ID b
 CUSTOM_COMMAND_SIG(long_move_next_alpha_numeric_or_camel_boundary)
 CUSTOM_DOC("Seek right for boundary between alphanumeric characters or camel case word and non-alphanumeric characters.")
 {
-    Scratch_Block scratch(app);
     Long_Scan_Move(app, Scan_Forward, Long_Boundary_AlphaNumericCamel);
 }
 
 CUSTOM_COMMAND_SIG(long_move_prev_alpha_numeric_or_camel_boundary)
 CUSTOM_DOC("Seek left for boundary between alphanumeric characters or camel case word and non-alphanumeric characters.")
 {
-    Scratch_Block scratch(app);
     Long_Scan_Move(app, Scan_Backward, Long_Boundary_AlphaNumericCamel);
 }
 
@@ -3217,7 +3796,6 @@ function i64 Long_Boundary_FunctionAndType(Application_Links* app, Buffer_ID buf
 CUSTOM_COMMAND_SIG(long_move_to_next_function_and_type)
 CUSTOM_DOC("Seek right for the next function or type in the buffer.")
 {
-    Scratch_Block scratch(app);
     Long_Scan_Move(app, Scan_Forward, Long_Boundary_FunctionAndType);
     Long_SnapMarkToCursor(app);
 }
@@ -3225,7 +3803,6 @@ CUSTOM_DOC("Seek right for the next function or type in the buffer.")
 CUSTOM_COMMAND_SIG(long_move_to_prev_function_and_type)
 CUSTOM_DOC("Seek left for the previous function or type in the buffer.")
 {
-    Scratch_Block scratch(app);
     Long_Scan_Move(app, Scan_Backward, Long_Boundary_FunctionAndType);
     Long_SnapMarkToCursor(app);
 }
@@ -3346,15 +3923,64 @@ function i64 Long_Boundary_CursorToken(Application_Links* app, Buffer_ID buffer,
 CUSTOM_COMMAND_SIG(long_move_up_token_occurrence)
 CUSTOM_DOC("Moves the cursor to the previous occurrence of the token that the cursor is over.")
 {
-    Scratch_Block scratch(app);
     Long_Scan_Move(app, Scan_Backward, Long_Boundary_CursorToken);
 }
 
 CUSTOM_COMMAND_SIG(long_move_down_token_occurrence)
 CUSTOM_DOC("Moves the cursor to the next occurrence of the token that the cursor is over.")
 {
-    Scratch_Block scratch(app);
     Long_Scan_Move(app, Scan_Forward, Long_Boundary_CursorToken);
+}
+
+// @COPYPASTA(long): _F4_Boundary_DividerComment
+function i64 Long_Boundary_DividerComment(Application_Links* app, Buffer_ID buffer, Side side, Scan_Direction direction, i64 pos)
+{
+    Scratch_Block scratch(app);
+    i64 result = pos;
+    
+    String8 signifier = S8Lit("//~");
+    b32 (*inc)(Token_Iterator_Array*) = token_it_inc_non_whitespace;
+    if (direction == Scan_Backward)
+        inc = token_it_dec_non_whitespace;
+    
+    Token_Array tokens = get_token_array_from_buffer(app, buffer);
+    
+    if (tokens.tokens != 0)
+    {
+        Token_Iterator_Array it = token_iterator_pos(0, &tokens, pos);
+        while (inc(&it))
+        {
+            Token* token = token_it_read(&it);
+            
+            if (token->kind == TokenBaseKind_Comment)
+            {
+                String8 lexeme = push_buffer_range(app, scratch, buffer, Ii64(token));
+                String8 substr = string_substring(lexeme, Ii64(0, signifier.size));
+                
+                if (lexeme.size >= signifier.size && string_match(substr, signifier))
+                {
+                    result = token->pos;
+                    break;
+                }
+            }
+        }
+    }
+    
+    return result;
+}
+
+CUSTOM_COMMAND_SIG(long_move_to_next_divider_comment)
+CUSTOM_DOC("Seek right for next divider comment in the buffer.")
+{
+    Long_Scan_Move(app, Scan_Forward, Long_Boundary_DividerComment);
+    Long_SnapMarkToCursor(app);
+}
+
+CUSTOM_COMMAND_SIG(long_move_to_prev_divider_comment)
+CUSTOM_DOC("Seek left for previous divider comment in the buffer.")
+{
+    Long_Scan_Move(app, Scan_Backward, Long_Boundary_DividerComment);
+    Long_SnapMarkToCursor(app);
 }
 
 //- NOTE(long): Upper/Lower Case
@@ -3380,6 +4006,8 @@ function void Long_UpperLowerRange(Application_Links* app, b32 upper, b32 lower)
             str.str[i] = c;
         }
         
+        // NOTE(long): The default to_upper/lowercase command reset the cursor and mark position
+        // This remembers which one came first
         i64 c = view_get_cursor_pos(app, view);
         i64 m =   view_get_mark_pos(app, view);
         buffer_replace_range(app, buffer, range, str);
@@ -3731,12 +4359,102 @@ CUSTOM_DOC("Looks for a project.4coder file in the current directory and tries t
             buffer_set_setting(app, buffer, BufferSetting_Unimportant, true);
         }
         
-        else
+        else Long_Print_Messagef(app, "Error: Path \"%.*s\" doesn't exists\n", string_expand(path));
+    }
+}
+
+CUSTOM_COMMAND_SIG(long_reload_all_themes_default_folder)
+CUSTOM_DOC("Clears and reloads all the theme files in the default theme folder.")
+{
+    Scratch_Block scratch(app);
+    String8 current_name = S8Lit("4coder");
+    for (Color_Table_Node* node = global_theme_list.first; node != 0; node = node->next)
+    {
+        if (node->table.arrays == active_color_table.arrays)
         {
-            String8 message = push_stringf(scratch, "Error: Path \"%.*s\" doesn't exists\n", string_expand(path));
-            print_message(app, message);
+            current_name = push_string_copy(scratch, node->name);
+            break;
         }
     }
+    
+    clear_all_themes(app);
+    load_themes_default_folder(app);
+    
+    for (Color_Table_Node* node = global_theme_list.first; node != 0; node = node->next)
+        if (string_match(node->name, current_name))
+            active_color_table = node->table;
+}
+
+// @COPYPASTA(long): load_config_and_apply
+function void Long_Config_ApplyFromData(Application_Links* app, String8 data, i32 override_font_size, b32 override_hinting)
+{
+    Scratch_Block scratch(app);
+    
+    if (data.size)
+    {
+        Config* parsed = def_config_from_text(app, scratch, S8Lit("config.4coder"), data);
+        String8 error_str = config_stringize_errors(app, scratch, parsed);
+        char* fmt = "trying to load config file:\n%.*s";
+        
+        if (!error_str.size)
+        {
+            Variable_Handle cfg_var = def_fill_var_from_config(app, vars_get_root(), vars_save_string_lit("def_config"), parsed);
+            error_str = Long_Print_StrFromVars(app, scratch, cfg_var);
+            fmt = "%.*s\n";
+        }
+        
+        Long_Print_Errorf(app, fmt, string_expand(error_str));
+    }
+    
+    else
+    {
+        Long_Print_Error(app, S8Lit("Invalid config file, using the default config instead\n"));
+        Face_Description description = get_face_description(app, 0);
+        if (description.font.file_name.str != 0)
+            def_set_config_string(vars_save_string_lit("default_font_name"), description.font.file_name);
+    }
+    
+    // Apply config
+    String8 mode = def_get_config_string(scratch, vars_save_string_lit("mode"));
+    change_mode(app, mode);
+    
+    b32 lalt_lctrl_is_altgr = def_get_config_b32(vars_save_string_lit("lalt_lctrl_is_altgr"));
+    global_set_setting(app, GlobalSetting_LAltLCtrlIsAltGr, lalt_lctrl_is_altgr);
+    
+    String8 default_theme_name = def_get_config_string(scratch, vars_save_string_lit("default_theme_name"));
+    Color_Table* colors = get_color_table_by_name(default_theme_name);
+    set_active_color(colors);
+    
+    Face_Description description = {};
+    u32 default_font_size = override_font_size;
+    if (!default_font_size)
+        default_font_size = (u32)def_get_config_u64(app, vars_save_string_lit("default_font_size"));
+    if (!default_font_size)
+        default_font_size = 12;
+    description.parameters.pt_size = default_font_size;
+    
+    b32 default_font_hinting = def_get_config_b32(vars_save_string_lit("default_font_hinting"));
+    description.parameters.hinting = default_font_hinting || override_hinting;
+    
+    String8 aa_mode = def_get_config_string(scratch, vars_save_string_lit("default_font_aa_mode"));
+    description.parameters.aa_mode = FaceAntialiasingMode_8BitMono;
+    if (string_match(aa_mode, str8_lit("1bit")))
+        description.parameters.aa_mode = FaceAntialiasingMode_1BitMono;
+    
+    String8 default_font_name = def_get_config_string(scratch, vars_save_string_lit("default_font_name"));
+    if (!default_font_name.size)
+        default_font_name = S8Lit("liberation-mono.ttf");
+    description.font.file_name = default_font_name;
+    
+    if (!modify_global_face_by_description(app, description))
+    {
+        String8 name_in_fonts_folder = push_u8_stringf(scratch, "fonts/%.*s", string_expand(default_font_name));
+        description.font.file_name = def_search_normal_full_path(scratch, name_in_fonts_folder);
+        modify_global_face_by_description(app, description);
+    }
+    
+    b32 bind_by_physical_key = def_get_config_b32(vars_save_string_lit("bind_by_physical_key"));
+    system_set_key_mode(bind_by_physical_key ? KeyMode_Physical : KeyMode_LanguageArranged);
 }
 
 //~ NOTE(long): Command-related Commands
@@ -3807,75 +4525,23 @@ CUSTOM_DOC("Queries for an output buffer name and system command, runs the syste
     Scratch_Block scratch(app);
     Query_Bar_Group group(app);
     
-    Query_Bar bar_out = {};
-    bar_out.prompt = string_u8_litexpr("Output Buffer: ");
-    bar_out.string = SCu8(out_buffer_space, (u64)0);
-    bar_out.string_capacity = sizeof(out_buffer_space);
-    if (!Long_Query_User_String(app, &bar_out, S8Lit("*run*"))) return;
-    bar_out.string.size = clamp_top(bar_out.string.size, sizeof(out_buffer_space) - 1);
-    out_buffer_space[bar_out.string.size] = 0;
+    Query_Bar _bar = {};
+    String8 out = Long_Query_FillBar(app, scratch, "Output Buffer: ", out_buffer_space,
+                                     sizeof(out_buffer_space)-1, S8Lit("*run*"));
+    if (!out.str) return;
+    out_buffer_space[out.size] = 0;
     
-    Query_Bar bar_cmd = {};
-    bar_cmd.prompt = string_u8_litexpr("Command: ");
-    bar_cmd.string = SCu8(command_space, (u64)0);
-    bar_cmd.string_capacity = sizeof(command_space);
-    if (!Long_Query_User_String(app, &bar_cmd, string_u8_empty)) return;
-    bar_cmd.string.size = clamp_top(bar_cmd.string.size, sizeof(command_space) - 1);
-    command_space[bar_cmd.string.size] = 0;
+    String8 cmd = Long_Query_FillBar(app, scratch, "Command: ", command_space,
+                                     sizeof(command_space)-1, string_u8_empty);
+    if (!cmd.str) return;
+    command_space[cmd.size] = 0;
     
     String_Const_u8 hot = push_hot_directory(app, scratch);
-    {
-        u64 size = clamp_top(hot.size, sizeof(hot_directory_space));
-        block_copy(hot_directory_space, hot.str, size);
-        hot_directory_space[hot.size] = 0;
-    }
+    u64 size = clamp_top(hot.size, sizeof(hot_directory_space));
+    block_copy(hot_directory_space, hot.str, size);
+    hot_directory_space[hot.size] = 0;
     
     execute_previous_cli(app);
-}
-
-//~ NOTE(long): Theme Commands
-
-function void Long_UpdateCurrentTheme(Color_Table* table)
-{
-    for (Color_Table_Node* node = global_theme_list.first; node != 0; node = node->next)
-    {
-        if (&node->table == table)
-        {
-            current_theme_name = node->name;
-            return;
-        }
-    }
-    current_theme_name = DEFAULT_THEME_NAME;
-}
-
-CUSTOM_COMMAND_SIG(long_reload_all_themes_default_folder)
-CUSTOM_DOC("Clears and reloads all the theme files in the default theme folder.")
-{
-    Scratch_Block scratch(app);
-    String8 current_name = push_string_copy(scratch, current_theme_name);
-    clear_all_themes(app);
-    load_themes_default_folder(app);
-    
-    current_theme_name = DEFAULT_THEME_NAME;
-    for (Color_Table_Node* node = global_theme_list.first; node != 0; node = node->next)
-    {
-        if (string_match(node->name, current_name))
-        {
-            current_theme_name = node->name;
-            active_color_table = node->table;
-        }
-    }
-}
-
-CUSTOM_UI_COMMAND_SIG(long_theme_lister)
-CUSTOM_DOC("Opens an interactive list of all registered themes.")
-{
-    Color_Table* color_table = get_color_table_from_user(app);
-    if (color_table != 0)
-    {
-        active_color_table = *color_table;
-        Long_UpdateCurrentTheme(color_table);
-    }
 }
 
 CUSTOM_COMMAND_SIG(long_explorer)
@@ -4044,88 +4710,73 @@ CUSTOM_DOC("Goes to the beginning of the line.")
     }
 }
 
-function void
-F4_ReIndentLine(Application_Links *app, Buffer_ID buffer, i64 line, i64 indent_delta)
+function Range_i64 F4_LineRangeFromPosRange(Application_Links *app, Buffer_ID buffer, Range_i64 pos_range)
 {
-    Scratch_Block scratch(app);
-    String_Const_u8 line_string = push_buffer_line(app, scratch, buffer, line);
-    i64 line_start_pos = get_line_start_pos(app, buffer, line);
-    
-    Range_i64 line_indent_range = Ii64(0, 0);
-    i64 tabs_at_beginning = 0;
-    i64 spaces_at_beginning = 0;
-    for(u64 i = 0; i < line_string.size; i += 1)
-    {
-        if(line_string.str[i] == '\t')
-        {
-            tabs_at_beginning += 1;
-        }
-        else if(character_is_whitespace(line_string.str[i]))
-        {
-            spaces_at_beginning += 1;
-        }
-        else if(!character_is_whitespace(line_string.str[i]))
-        {
-            line_indent_range.max = (i64)i;
-            break;
-        }
-    }
-    
-    // NOTE(rjf): Indent lines.
-    {
-        Range_i64 indent_range =
-        {
-            line_indent_range.min + line_start_pos,
-            line_indent_range.max + line_start_pos,
-        };
-        
-        i64 indent_width = (i64)def_get_config_u64(app, vars_save_string_lit("indent_width"));
-        b32 indent_with_tabs = def_get_config_b32(vars_save_string_lit("indent_with_tabs"));
-        i64 spaces_per_indent_level = indent_width;
-        i64 indent_level = spaces_at_beginning / spaces_per_indent_level + tabs_at_beginning;
-        i64 new_indent_level = indent_level + indent_delta;
-        
-        String_Const_u8 indent_string = indent_with_tabs ? S8Lit("\t") : push_stringf(scratch, "%.*s", Min(indent_width, 16),
-                                                                                      "                ");
-        buffer_replace_range(app, buffer, indent_range, S8Lit(""));
-        for(i64 i = 0; i < new_indent_level; i += 1)
-        {
-            buffer_replace_range(app, buffer, Ii64(line_start_pos), indent_string);
-        }
-    }
-    
-}
-
-internal Range_i64
-F4_LineRangeFromPosRange(Application_Links *app, Buffer_ID buffer, Range_i64 pos_range)
-{
-    Range_i64 lines_range =
-        Ii64(get_line_number_from_pos(app, buffer, pos_range.min),
-             get_line_number_from_pos(app, buffer, pos_range.max));
+    Range_i64 lines_range = Ii64(get_line_number_from_pos(app, buffer, pos_range.min),
+                                 get_line_number_from_pos(app, buffer, pos_range.max));
     return lines_range;
 }
 
-internal void
-F4_ReIndentPosRange(Application_Links *app, Buffer_ID buffer, Range_i64 range, i64 indent_delta)
+function void Long_ReIndentRange(Application_Links* app, View_ID view, Buffer_ID buffer, i64 indent_delta)
 {
-    range = F4_LineRangeFromPosRange(app, buffer, range);
-    for (i64 i = range.min; i <= range.max; i += 1)
-        F4_ReIndentLine(app, buffer, i, indent_delta);
-}
-
-internal void
-F4_AdjustCursorAndMarkForIndentation(Application_Links *app, View_ID view, i64 original_cursor, i64 original_mark, Range_i64 original_line_range)
-{
-    Buffer_ID buffer = view_get_buffer(app, view, Access_Read);
-    Scratch_Block scratch(app);
-    if(original_cursor == original_mark)
+    i64 pos = view_get_cursor_pos(app, view);
+    i64 mark = view_get_mark_pos(app, view);
+    Range_i64 line_range = F4_LineRangeFromPosRange(app, buffer, Ii64(pos, mark));
+    
+    History_Group group = history_group_begin(app, buffer);
+    
+    // @COPYPASTA(long): F4_ReIndentLineRange
+    for (i64 line = line_range.min; line <= line_range.max; line += 1)
     {
-        i64 start_pos = get_line_start_pos(app, buffer, original_line_range.min);
-        i64 new_pos = start_pos;
-        String_Const_u8 line = push_buffer_line(app, scratch, buffer, original_line_range.min);
-        for(u64 i = 0; i < line.size; i += 1)
+        // @COYPPASTA(long): F4_ReIndentLine
+        Scratch_Block scratch(app);
+        String_Const_u8 line_string = push_buffer_line(app, scratch, buffer, line);
+        i64 line_start_pos = get_line_start_pos(app, buffer, line);
+        
+        Range_i64 line_indent_range = Ii64(0, 0);
+        i64 tabs_at_beginning = 0;
+        i64 spaces_at_beginning = 0;
+        for (u64 i = 0; i < line_string.size; i += 1)
         {
-            if(!character_is_whitespace(line.str[i]))
+            char c = line_string.str[i];
+            if (c == '\t')
+                tabs_at_beginning++;
+            else if(character_is_whitespace(c))
+                spaces_at_beginning++;
+            else
+            {
+                line_indent_range.max = (i64)i;
+                break;
+            }
+        }
+        
+        // NOTE(rjf): Indent lines.
+        {
+            i64 indent_width = (i64)def_get_config_u64(app, vars_save_string_lit("indent_width"));
+            b32 indent_with_tabs = def_get_config_b32(vars_save_string_lit("indent_with_tabs"));
+            i64 spaces_per_indent_level = indent_width;
+            i64 indent_level = spaces_at_beginning / spaces_per_indent_level + tabs_at_beginning;
+            i64 new_indent_level = indent_level + indent_delta;
+            
+            Range_i64 indent_range = Ii64(line_indent_range.min + line_start_pos, line_indent_range.max + line_start_pos);
+            buffer_replace_range(app, buffer, indent_range, S8Lit(""));
+            
+            String_Const_u8 indent_string = indent_with_tabs ? S8Lit("\t") : SCu8("                ", clamp_top(indent_width, 16));
+            for (i64 i = 0; i < new_indent_level; i += 1)
+                buffer_replace_range(app, buffer, Ii64(line_start_pos), indent_string);
+        }
+    }
+    
+    // @COPYPASTA(long): F4_AdjustCursorAndMarkForIndentation
+    if (pos == mark)
+    {
+        Scratch_Block scratch(app);
+        i64 start_pos = get_line_start_pos(app, buffer, line_range.min);
+        i64 new_pos = start_pos;
+        String_Const_u8 line = push_buffer_line(app, scratch, buffer, line_range.min);
+        for (u64 i = 0; i < line.size; i += 1)
+        {
+            if (!character_is_whitespace(line.str[i]))
             {
                 new_pos = start_pos + (i64)i;
                 break;
@@ -4133,235 +4784,117 @@ F4_AdjustCursorAndMarkForIndentation(Application_Links *app, View_ID view, i64 o
         }
         
         view_set_cursor(app, view, seek_pos(new_pos));
-        view_set_mark(app, view, seek_pos(new_pos));
+        view_set_mark  (app, view, seek_pos(new_pos));
     }
     else
     {
         Range_i64 range;
         {
-            Range_i64 line_range = original_line_range;
             if (line_range.min > line_range.max)
-            {
-                i64 swap = line_range.max;
-                line_range.max = line_range.min;
-                line_range.min = swap;
-            }
+                Swap(i64, line_range.min, line_range.max);
             range = Ii64(get_line_start_pos(app, buffer, line_range.min), get_line_end_pos(app, buffer, line_range.max));
         }
         
-        view_set_cursor(app, view, seek_pos(original_cursor > original_mark ? range.max : range.min));
-        view_set_mark(app, view, seek_pos(original_cursor > original_mark ? range.min : range.max));
+        view_set_cursor(app, view, seek_pos(pos > mark ? range.max : range.min));
+        view_set_mark  (app, view, seek_pos(pos > mark ? range.min : range.max));
     }
+    
+    history_group_end(group);
+    no_mark_snap_to_cursor(app, view);
 }
 
-CUSTOM_COMMAND_SIG(f4_autocomplete_or_indent)
-CUSTOM_DOC("Tries to autocomplete the word currently being typed, and inserts indentation if such a word is not found.")
+CUSTOM_COMMAND_SIG(long_autocomplete)
+CUSTOM_DOC("When not in multi-cursor mode, tries to autocomplete the word currently being typed if such a word is found.")
 {
-    ProfileScope(app, "[F4] Word Complete");
+    ProfileScope(app, "[Long] Word Complete");
     
     View_ID view = get_active_view(app, Access_ReadWriteVisible);
     Buffer_ID buffer = view_get_buffer(app, view, Access_ReadWriteVisible);
+    Managed_Scope scope = view_get_managed_scope(app, view);
     
-    if(buffer != 0)
+    if (buffer)
     {
-        Managed_Scope scope = view_get_managed_scope(app, view);
-        
         b32 first_completion = false;
         Rewrite_Type *rewrite = scope_attachment(app, scope, view_rewrite_loc, Rewrite_Type);
-        if (*rewrite != Rewrite_WordComplete){
+        if (*rewrite != Rewrite_WordComplete)
             first_completion = true;
-        }
         
         set_next_rewrite(app, view, Rewrite_WordComplete);
         
         Word_Complete_Iterator *it = word_complete_get_shared_iter(app);
-        local_persist b32 initialized = false;
+        local_persist b32 initialized = 0;
         local_persist Range_i64 range = {};
         
-        if(first_completion || !initialized)
+        if (first_completion || !initialized)
         {
-            ProfileScope(app, "[F4] Word Complete State Init");
-            initialized = false;
+            ProfileScope(app, "[Long] Word Complete State Init");
+            initialized = 0;
             i64 pos = view_get_cursor_pos(app, view);
             Range_i64 needle_range = get_word_complete_needle_range(app, buffer, pos);
-            if(range_size(needle_range) > 0)
+            if (range_size(needle_range) > 0)
             {
-                initialized = true;
+                initialized = 1;
                 range = needle_range;
                 word_complete_iter_init(buffer, needle_range, it);
             }
         }
         
-        // NOTE(rjf): Word-Complete
-        if(initialized)
+        b32 is_mc_mode = mc_context.active && mc_context.view == view;
+        if (initialized && !is_mc_mode)
         {
-            ProfileScope(app, "[F4] Word Complete Apply");
+            ProfileScope(app, "[Long] Word Complete Apply");
             
             word_complete_iter_next(it);
             String_Const_u8 str = word_complete_iter_read(it);
-            
             buffer_replace_range(app, buffer, range, str);
             
             range.max = range.min + str.size;
             view_set_cursor_and_preferred_x(app, view, seek_pos(range.max));
         }
-        
-        // NOTE(rjf): Insert indentation if autocomplete failed
-        else if(initialized == 0)
-        {
-            i64 pos = view_get_cursor_pos(app, view);
-            i64 mark = view_get_mark_pos(app, view);
-            Range_i64 pos_range = Ii64(pos, mark);
-            Range_i64 line_range = F4_LineRangeFromPosRange(app, buffer, pos_range);
-            
-            History_Group group = history_group_begin(app, buffer);
-            F4_ReIndentPosRange(app, buffer, Ii64(pos, mark), +1);
-            F4_AdjustCursorAndMarkForIndentation(app, view, pos, mark, line_range);
-            history_group_end(group);
-            no_mark_snap_to_cursor(app, view);
-        }
+        else leave_current_input_unhandled(app);
     }
 }
 
 CUSTOM_COMMAND_SIG(f4_unindent)
 CUSTOM_DOC("Unindent the selected range.")
 {
-    Scratch_Block scratch(app);
-    
     View_ID view = get_active_view(app, Access_ReadWrite);
     Buffer_ID buffer = view_get_buffer(app, view, Access_ReadWrite);
-    i64 pos = view_get_cursor_pos(app, view);
-    i64 mark = view_get_mark_pos(app, view);
-    Range_i64 pos_range = Ii64(pos, mark);
-    Range_i64 line_range = F4_LineRangeFromPosRange(app, buffer, pos_range);
-    History_Group group = history_group_begin(app, buffer);
-    F4_ReIndentPosRange(app, buffer, Ii64(pos, mark), -1);
-    F4_AdjustCursorAndMarkForIndentation(app, view, pos, mark, line_range);
-    history_group_end(group);
-    no_mark_snap_to_cursor(app, view);
+    Long_ReIndentRange(app, view, buffer, -1);
 }
 
-function File_Name_Result
-F4_GetFileNameFromUser_Project(Application_Links *app, Arena *arena, String_Const_u8 query, View_ID view)
-{
-    Lister_Handlers handlers = lister_get_default_handlers();
-    handlers.write_character = lister__write_character__file_path;
-    handlers.backspace = lister__backspace_text_field__file_path;
-    
-    Lister_Result l_result = run_lister_with_refresh_handler(app, arena, query, handlers);
-    
-    File_Name_Result result = {};
-    result.canceled = l_result.canceled;
-    if (!l_result.canceled){
-        result.clicked = l_result.activated_by_click;
-        if (l_result.user_data != 0){
-            String_Const_u8 name = SCu8((u8*)l_result.user_data);
-            result.file_name_activated = name;
-            result.is_folder = character_is_slash(string_get_character(name, name.size - 1));
-        }
-        result.file_name_in_text_field = string_front_of_path(l_result.text_field);
-        
-        String_Const_u8 path = {};
-        if (l_result.user_data == 0 && result.file_name_in_text_field.size == 0 && l_result.text_field.size > 0){
-            result.file_name_in_text_field = string_front_folder_of_path(l_result.text_field);
-            path = string_remove_front_folder_of_path(l_result.text_field);
-        }
-        else{
-            path = string_remove_front_of_path(l_result.text_field);
-        }
-        if (character_is_slash(string_get_character(path, path.size - 1))){
-            path = string_chop(path, 1);
-        }
-        result.path_in_text_field = path;
-    }
-    
-    return(result);
-}
-
-CUSTOM_UI_COMMAND_SIG(f4_interactive_open_or_new_in_project)
-CUSTOM_DOC("Interactively open a file out of the file system, filtered to files only in the project.")
-{
-    for(;;)
-    {
-        Scratch_Block scratch(app);
-        View_ID view = get_this_ctx_view(app, Access_Always);
-        File_Name_Result result = F4_GetFileNameFromUser_Project(app, scratch, S8Lit("Open (File In Project):"), view);
-        if (result.canceled) break;
-        
-        String_Const_u8 file_name = result.file_name_activated;
-        if (file_name.size == 0){
-            file_name = result.file_name_in_text_field;
-        }
-        if (file_name.size == 0) break;
-        
-        String_Const_u8 path = result.path_in_text_field;
-        String_Const_u8 full_file_name = push_u8_stringf(scratch, "%.*s/%.*s",
-                                                         string_expand(path), string_expand(file_name));
-        
-        if(result.is_folder)
-        {
-            set_hot_directory(app, full_file_name);
-            continue;
-        }
-        
-        if(character_is_slash(file_name.str[file_name.size - 1]))
-        {
-            File_Attributes attribs = system_quick_file_attributes(scratch, full_file_name);
-            if(HasFlag(attribs.flags, FileAttribute_IsDirectory))
-            {
-                set_hot_directory(app, full_file_name);
-                continue;
-            }
-            if(string_looks_like_drive_letter(file_name))
-            {
-                set_hot_directory(app, file_name);
-                continue;
-            }
-            if(query_create_folder(app, file_name))
-            {
-                set_hot_directory(app, full_file_name);
-                continue;
-            }
-            break;
-        }
-        
-        Buffer_ID buffer = create_buffer(app, full_file_name, 0);
-        if (buffer != 0){
-            view_set_buffer(app, view, buffer, 0);
-        }
-        break;
-    }
-}
-
-internal void
-F4_SetLineCommentedOnLine(Application_Links *app, Buffer_ID buffer, i64 *cursor_p, i64 *mark_p, b32 commented)
+// @COPYPASTA(long): F4_SetLineCommentedOnLine
+function void Long_Comment_ToggleLine(Application_Links* app, Buffer_ID buffer, i64* cursor_p, i64* mark_p)
 {
     i64 cursor = *cursor_p;
     i64 mark = *mark_p;
     i64 cursor_line = get_line_number_from_pos(app, buffer, cursor);
     i64 mark_line = get_line_number_from_pos(app, buffer, mark);
     
-    if(cursor_line == mark_line)
+    if (cursor_line == mark_line)
     {
-        i64 line = cursor_line;
-        i64 line_start = get_pos_past_lead_whitespace_from_line_number(app, buffer, line);
-        b32 already_has_comment = c_line_comment_starts_at_position(app, buffer, line_start);
+        i64 line_start = get_pos_past_lead_whitespace_from_line_number(app, buffer, cursor_line);
+        i64 line_end = line_start;
         
-        if(commented)
+        b32 is_blank = line_is_blank(app, buffer, cursor_line);;
+        if (!is_blank)
         {
-            if(!already_has_comment)
+            String8 str = string_u8_empty;
+            b32 already_has_comment = c_line_comment_starts_at_position(app, buffer, line_start);
+            
+            if (already_has_comment)
             {
-                buffer_replace_range(app, buffer, Ii64(line_start), string_u8_litexpr("//"));
-                cursor = mark += 2;
+                line_end += 2;
+                mark -= 2;
             }
-        }
-        else
-        {
-            if(already_has_comment)
+            else
             {
-                buffer_replace_range(app, buffer, Ii64(line_start, line_start + 2), string_u8_empty);
-                cursor = mark -= 2;
+                str = S8Lit("//");
+                mark += 2;
             }
+            
+            cursor = mark;
+            buffer_replace_range(app, buffer, Ii64(line_start, line_end), str);
         }
     }
     
@@ -4369,8 +4902,7 @@ F4_SetLineCommentedOnLine(Application_Links *app, Buffer_ID buffer, i64 *cursor_
     *mark_p = mark;
 }
 
-internal void
-F4_SetBlockCommentedOnRange(Application_Links *app, Buffer_ID buffer, i64 *cursor_p, i64 *mark_p, b32 commented)
+function void Long_Comment_SetRange(Application_Links* app, Buffer_ID buffer, i64* cursor_p, i64* mark_p, b32 commented)
 {
     Scratch_Block scratch(app);
     
@@ -4378,24 +4910,25 @@ F4_SetBlockCommentedOnRange(Application_Links *app, Buffer_ID buffer, i64 *curso
     i64 mark = *mark_p;
     Range_i64 range = Ii64(cursor, mark);
     
-    if(commented)
+    if (commented)
     {
         buffer_replace_range(app, buffer, Ii64(range.max, range.max), S8Lit("*/"));
         buffer_replace_range(app, buffer, Ii64(range.min, range.min), S8Lit("/*"));
-        if(cursor > mark) { cursor += 4; }
-        else              { mark   += 4; }
+        
+        if (cursor > mark) cursor += 4;
+        else               mark   += 4;
     }
-    else if(range.max - range.min >= 2)
+    else if (range.max - range.min >= 2)
     {
         String_Const_u8 opener = push_buffer_range(app, scratch, buffer, Ii64(range.min, range.min+2));
         String_Const_u8 closer = push_buffer_range(app, scratch, buffer, Ii64(range.max-2, range.max));
-        if(string_match(opener, S8Lit("/*")) &&
-           string_match(closer, S8Lit("*/")))
+        if (string_match(opener, S8Lit("/*")) && string_match(closer, S8Lit("*/")))
         {
             buffer_replace_range(app, buffer, Ii64(range.max-2, range.max), S8Lit(""));
             buffer_replace_range(app, buffer, Ii64(range.min, range.min+2), S8Lit(""));
-            if(cursor > mark) { cursor -= 4; }
-            if(mark > cursor) { mark -= 4; }
+            
+            if (cursor > mark) cursor -= 4;
+            if (mark > cursor) mark   -= 4;
         }
     }
     
@@ -4403,23 +4936,7 @@ F4_SetBlockCommentedOnRange(Application_Links *app, Buffer_ID buffer, i64 *curso
     *mark_p = mark;
 }
 
-function b32
-F4_CBlockCommentStartsAtPosition(Application_Links *app, Buffer_ID buffer, i64 pos)
-{
-    b32 alread_has_comment = false;
-    u8 check_buffer[2];
-    if(buffer_read_range(app, buffer, Ii64(pos, pos + 2), check_buffer))
-    {
-        if(check_buffer[0] == '/' && check_buffer[1] == '*')
-        {
-            alread_has_comment = true;
-        }
-    }
-    return(alread_has_comment);
-}
-
-internal void
-F4_SetCommentedOnRange(Application_Links *app, Buffer_ID buffer, i64 *cursor_p, i64 *mark_p, b32 commented)
+function void Long_Comment_ToggleRange(Application_Links* app, Buffer_ID buffer, i64* cursor_p, i64* mark_p)
 {
     Scratch_Block scratch(app);
     
@@ -4429,102 +4946,87 @@ F4_SetCommentedOnRange(Application_Links *app, Buffer_ID buffer, i64 *cursor_p, 
     Range_i64 line_range = F4_LineRangeFromPosRange(app, buffer, range);
     Token_Array tokens = get_token_array_from_buffer(app, buffer);
     
-    // NOTE(rjf): No selection
-    if(range.min == range.max)
+    b32 already_has_block_comment = 0;
     {
-        F4_SetLineCommentedOnLine(app, buffer, &cursor, &mark, commented);
+        u8 check_buffer[2];
+        if (buffer_read_range(app, buffer, Ii64(range.min, range.min + 2), check_buffer))
+            if (check_buffer[0] == '/' && check_buffer[1] == '*')
+                already_has_block_comment = 1;
     }
     
+    // NOTE(rjf): No selection
+    if (range.min == range.max)
+        Long_Comment_ToggleLine(app, buffer, &cursor, &mark);
+    
     // NOTE(rjf): Single-Line Selection
-    else if(line_range.min == line_range.max)
+    else if (line_range.min == line_range.max)
     {
-        Token *min_token = get_token_from_pos(app, &tokens, (u64)range.min);
-        Token *max_token = get_token_from_pos(app, &tokens, (u64)range.max);
+        Token* min_token = get_token_from_pos(app, &tokens, (u64)range.min);
+        Token* max_token = get_token_from_pos(app, &tokens, (u64)range.max);
         
         // NOTE(rjf): Selection is inside comment
-        if(min_token == max_token && min_token && min_token->kind == TokenBaseKind_Comment)
-        {
-            (commented ? comment_line : uncomment_line)(app);
-        }
-        
-        // NOTE(rjf): Selection is not inside comment
-        else 
-        {
-            F4_SetBlockCommentedOnRange(app, buffer, &cursor, &mark, commented);
-        }
+        if (min_token == max_token && min_token && min_token->kind == TokenBaseKind_Comment)
+            comment_line_toggle(app);
+        else // NOTE(rjf): Selection is not inside comment
+            Long_Comment_SetRange(app, buffer, &cursor, &mark, !already_has_block_comment);
     }
     
     // NOTE(rjf): Multi-Line Selection
-    else if(line_range.min != line_range.max)
+    else if (line_range.min != line_range.max)
     {
-        if(commented)
+        if (!already_has_block_comment)
         {
             i64 min_pos = Min(cursor, mark);
-            i64 line = get_line_number_from_pos(app, buffer, min_pos);
-            i64 start_of_line = get_line_start_pos(app, buffer, line);
+            i64 start_of_line = get_pos_past_lead_whitespace_from_line_number(app, buffer, line_range.min);
+            
+            // NOTE(long): Use a multi-line block comment if there's at least one line that has a single-line comment
+            b32 has_one_comment_line = 0, has_all_comment_lines = 1;
+            for (i64 i = line_range.min; i <= line_range.max; i += 1)
+            {
+                if (!line_is_blank(app, buffer, i))
+                {
+                    i64 pos = get_pos_past_lead_whitespace_from_line_number(app, buffer, i);
+                    if (c_line_comment_starts_at_position(app, buffer, pos))
+                        has_one_comment_line = 1;
+                    else
+                        has_all_comment_lines = 0;
+                }
+            }
             
             // NOTE(rjf): Selection starts on first column.
-            if(min_pos == start_of_line)
+            if (min_pos == start_of_line && (!has_one_comment_line || has_all_comment_lines))
             {
-                for(i64 i = line_range.min; i <= line_range.max; i += 1)
+                for (i64 i = line_range.min; i <= line_range.max; i += 1)
                 {
                     i64 cursor2 = get_line_start_pos(app, buffer, i);
                     i64 mark2 = get_line_end_pos(app, buffer, i);
-                    F4_SetLineCommentedOnLine(app, buffer, &cursor2, &mark2, commented);
+                    Long_Comment_ToggleLine(app, buffer, &cursor2, &mark2);
                 }
-                if(cursor < mark)
+                
+                if (cursor < mark)
                 {
-                    cursor = get_line_start_pos(app, buffer, line_range.min);
+                    cursor = start_of_line;
                     mark = get_line_end_pos(app, buffer, line_range.max);
                 }
                 else
                 {
-                    mark = get_line_start_pos(app, buffer, line_range.min);
+                    mark = start_of_line;
                     cursor = get_line_end_pos(app, buffer, line_range.max);
                 }
             }
             
             // NOTE(rjf): Selection does not start on first column.
-            else
-            {
-                F4_SetBlockCommentedOnRange(app, buffer, &cursor, &mark, 1);
-            }
+            else Long_Comment_SetRange(app, buffer, &cursor, &mark, 1);
         }
-        else
-        {
-            b32 starts_with_block_comment = F4_CBlockCommentStartsAtPosition(app, buffer, range.min);
-            if(starts_with_block_comment)
-            {
-                F4_SetBlockCommentedOnRange(app, buffer, &cursor, &mark, 0);
-            }
-            else
-            {
-                for(i64 i = line_range.min; i <= line_range.max; i += 1)
-                {
-                    i64 cursor2 = get_line_start_pos(app, buffer, i);
-                    i64 mark2 = get_line_start_pos(app, buffer, i);
-                    F4_SetLineCommentedOnLine(app, buffer, &cursor2, &mark2, 0);
-                }
-                if(cursor < mark)
-                {
-                    cursor = get_line_start_pos(app, buffer, line_range.min);
-                    mark = get_line_end_pos(app, buffer, line_range.max);
-                }
-                else
-                {
-                    mark = get_line_start_pos(app, buffer, line_range.min);
-                    cursor = get_line_end_pos(app, buffer, line_range.max);
-                }
-            }
-        }
+        else Long_Comment_SetRange(app, buffer, &cursor, &mark, 0);
     }
     
     *cursor_p = cursor;
     *mark_p = mark;
 }
 
-CUSTOM_COMMAND_SIG(f4_comment_selection)
-CUSTOM_DOC("Performs VS-style commenting on the selected range.")
+CUSTOM_COMMAND_SIG(long_toggle_comment_selection)
+CUSTOM_DOC("Performs VS-style (un)commenting on the selected range.")
 {
     View_ID view = get_active_view(app, Access_ReadWriteVisible);
     Buffer_ID buffer = view_get_buffer(app, view, Access_ReadWriteVisible);
@@ -4532,202 +5034,9 @@ CUSTOM_DOC("Performs VS-style commenting on the selected range.")
     i64 mark = view_get_mark_pos(app, view);
     
     History_Group group = history_group_begin(app, buffer);
-    F4_SetCommentedOnRange(app, buffer, &cursor, &mark, 1);
+    Long_Comment_ToggleRange(app, buffer, &cursor, &mark);
     view_set_cursor(app, view, seek_pos(cursor));
     view_set_mark(app, view, seek_pos(mark));
     history_group_end(group);
     no_mark_snap_to_cursor(app, view);
-}
-
-CUSTOM_COMMAND_SIG(f4_uncomment_selection)
-CUSTOM_DOC("Performs VS-style uncommenting on the selected range.")
-{
-    View_ID view = get_active_view(app, Access_ReadWriteVisible);
-    Buffer_ID buffer = view_get_buffer(app, view, Access_ReadWriteVisible);
-    i64 cursor = view_get_cursor_pos(app, view);
-    i64 mark = view_get_mark_pos(app, view);
-    History_Group group = history_group_begin(app, buffer);
-    F4_SetCommentedOnRange(app, buffer, &cursor, &mark, 0);
-    view_set_cursor(app, view, seek_pos(cursor));
-    view_set_mark(app, view, seek_pos(mark));
-    history_group_end(group);
-    no_mark_snap_to_cursor(app, view);
-}
-
-struct F4_LOCInfo
-{
-    F4_LOCInfo *next;
-    String_Const_u8 name;
-    i64 lines;
-    i64 whitespace_only_lines;
-    i64 open_brace_only_lines;
-};
-
-function F4_LOCInfo *
-F4_LOCInfoFromBuffer(Application_Links *app, Arena *arena, Buffer_ID buffer)
-{
-    F4_LOCInfo *first = 0;
-    F4_LOCInfo *last = 0;
-    
-    F4_LOCInfo *file_info = push_array_zero(arena, F4_LOCInfo, 1);
-    sll_queue_push(first, last, file_info);
-    file_info->name = str8_lit("all");
-    F4_LOCInfo *active_info = 0;
-    
-    i64 line_count = buffer_get_line_count(app, buffer);
-    for(i64 line_idx = 0; line_idx < line_count; line_idx += 1)
-    {
-        Scratch_Block scratch(app, arena);
-        String_Const_u8 line = push_buffer_line(app, scratch, buffer, line_idx);
-        if(line.size != 0 && line.str[line.size-1] == '\r')
-        {
-            line.size -= 1;
-        }
-        
-        //- rjf: begin a section if we find a root divider comment here
-        if(line.size >= 3 && line.str[0] == '/' && line.str[1] == '/' && line.str[2] == '~')
-        {
-            active_info = push_array_zero(arena, F4_LOCInfo, 1);
-            active_info->name = push_string_copy(arena, string_substring(line, Ii64(3, line.size)));
-            sll_queue_push(first, last, active_info);
-        }
-        
-        //- rjf: find out if this is a line with only whitespace
-        b32 is_only_whitespace = true;
-        {
-            for(u64 i = 0; i < line.size; i += 1)
-            {
-                if(!character_is_whitespace(line.str[i]))
-                {
-                    is_only_whitespace = false;
-                    break;
-                }
-            }
-        }
-        
-        //- rjf: find out if this is a line with only whitespace and an open brace
-        b32 is_only_open_brace = false;
-        if(is_only_whitespace == false)
-        {
-            for(u64 i = 0; i < line.size; i += 1)
-            {
-                if(!character_is_whitespace(line.str[i]))
-                {
-                    is_only_open_brace = line.str[i] == '{';
-                    if(!is_only_open_brace)
-                    {
-                        break;
-                    }
-                }
-            }
-        }
-        
-        //- rjf: increment line counts
-        {
-            file_info->lines += 1;
-            if(active_info != 0)
-            {
-                active_info->lines += 1;
-            }
-            if(is_only_whitespace)
-            {
-                file_info->whitespace_only_lines += 1;
-                if(active_info != 0)
-                {
-                    active_info->whitespace_only_lines += 1;
-                }
-            }
-            if(is_only_open_brace)
-            {
-                file_info->open_brace_only_lines += 1;
-                if(active_info != 0)
-                {
-                    active_info->open_brace_only_lines += 1;
-                }
-            }
-        }
-    }
-    
-    return first;
-}
-
-function int
-F4_LOCInfoCompare(const void *a_void_fuck_cplusplus, const void *b_void_fuck_cplusplus)
-{
-    F4_LOCInfo *a = (F4_LOCInfo *)a_void_fuck_cplusplus;
-    F4_LOCInfo *b = (F4_LOCInfo *)b_void_fuck_cplusplus;
-    return ((a->lines < b->lines) ? +1 :
-            (a->lines > b->lines) ? -1 :
-            0);
-}
-
-CUSTOM_COMMAND_SIG(f4_loc)
-CUSTOM_DOC("Counts the lines of code in the current buffer, breaks it down by section, and outputs to the *loc* buffer.")
-{
-    Scratch_Block scratch(app);
-    View_ID view = get_active_view(app, Access_Read);
-    Buffer_ID buffer = view_get_buffer(app, view, Access_Read);
-    
-    //- rjf: get all sections and counts from buffer
-    F4_LOCInfo *infos_list = F4_LOCInfoFromBuffer(app, scratch, buffer);
-    
-    //- rjf: build unsorted info in array form
-    int info_count = 0;
-    F4_LOCInfo *info_array = 0;
-    {
-        for(F4_LOCInfo *info = infos_list; info; info = info->next, info_count += 1);
-        info_array = push_array_zero(scratch, F4_LOCInfo, info_count);
-        int i = 0;
-        for(F4_LOCInfo *info = infos_list; info; info = info->next, i += 1)
-        {
-            info_array[i] = *info;
-        }
-    }
-    
-    //- rjf: sort array
-    {
-        qsort(info_array, info_count, sizeof(F4_LOCInfo), F4_LOCInfoCompare);
-    }
-    
-    //- rjf: print loc info
-    Buffer_ID loc_buffer = get_buffer_by_name(app, str8_lit("*loc*"), AccessFlag_Write);
-    if(loc_buffer != 0)
-    {
-        clear_buffer(app, loc_buffer);
-        
-        for(int i = 0; i < info_count; i += 1)
-        {
-            F4_LOCInfo *info = info_array + i;
-            
-            Scratch_Block scratch2(app, scratch);
-            int padding = 25;
-            int chrs = (int)info->name.size;
-            int spaces = 0;
-            if(chrs > padding)
-            {
-                chrs = padding;
-                spaces = 0;
-            }
-            else
-            {
-                spaces = padding - chrs;
-            }
-            
-            if(spaces < 0)
-            {
-                spaces = 0;
-            }
-            
-            String_Const_u8 string = push_stringf(scratch2,
-                                                  ">>> %.*s%.*s: %6i lines; %6i whitespace; %6i open braces; %6i significant\n",
-                                                  chrs, info->name.str,
-                                                  spaces, "                                            ",
-                                                  (int)info->lines,
-                                                  (int)info->whitespace_only_lines,
-                                                  (int)info->open_brace_only_lines,
-                                                  (int)(info->lines - (info->whitespace_only_lines+info->open_brace_only_lines)));
-            b32 write_successful = buffer_replace_range(app, loc_buffer, Ii64(buffer_get_size(app, loc_buffer)), string);
-            write_successful = write_successful;
-        }
-    }
 }
