@@ -124,6 +124,7 @@ function void Long_RenderBuffer(Application_Links* app, View_ID view_id, Buffer_
         mark_thickness = (f32)def_get_config_u64(app, vars_save_string_lit("mark_thickness"));
     }
     
+    Long_Highlight_DrawRangeList(app, view_id, buffer, text_layout_id, cursor_roundness);
     Long_Highlight_DrawRange(app, view_id, buffer, text_layout_id, cursor_roundness);
     
     // NOTE(jack): Token Occurance Highlight

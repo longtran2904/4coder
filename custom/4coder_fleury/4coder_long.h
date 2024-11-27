@@ -257,39 +257,14 @@
 //   Each project file can now contain an array of reference paths (set inside the reference_paths variable)
 //   When this command runs, it will recursively load all files in those paths as read-only and unimportant
 
-//~ TODO BINDINGS
-// [X] Essential bindings
-// [X] Default bindings
-
-//~ TODO HOT RELOADING
-// [X] Theme
-// [X] Binding
-// [X] Config
-// [ ] Project
-// [X] Print all errors to *compilation* panel
-// [ ] Custom commands for each reloadable file
-
 //~ TODO LISTER
 // [ ] Replace all the wildcard searching in the query bar and lister with grep or glob
 // [ ] Search for definitions like Hoogle
 // [ ] Has a lister for important but rarely used commands
 // [ ] Hotkeys for inserting and cycling through common tags
 
-//~ TODO NOTEPAD MODE
-// [X] Fix movement commands that bind with shift causes a selection when in notepad mode
-// [X] Replace text while highlighting
-// [X] Swap mark and cursor
-// [X] Copy doesn't delete highlight
-
 //~ TODO MULTI CURSOR
-// [X] Basic system and commands/bindings
-// [X] Block multi-cursor
-// [X] Line multi-cursor
-// [X] Add new cursos while in mc mode
-// [X] list_all_locations multi-cursor
-// [X] New way to add/remove selection in multi-select
-// [X] Notepad mode
-// [ ] MC across buffers
+// [ ] Across buffers
 // [ ] Add/Remove a cursor at the current location while in search mode
 
 //~ TODO TAB
@@ -311,17 +286,16 @@
 // [ ] Render #if block with annotation
 // [ ] Render hex/bin/oct/dec number with thousands/byte separator
 
-//- MISC
-// [X] Render fading effect
-// [X] Post a fade effect when fail to query replace
-// [ ] Highlight selection when replace_in_range
-
 //~ TODO CODE/ARCHITECTURE
 
 //- SEARCH
 // [X] Simplify and cleanup all the query search/replace commands
-// [ ] Merge all the default query bar code into a single function
-// [ ] Merge Long_Isearch and Long_Query_User_String into one function
+// [X] Merge all the default query bar code into a single function
+// [X] Compress all Query functions
+// [X] Highlight selection when replace_in_range
+// [X] Compress the mapping_get_map codepath
+// [X] Fade the entire block when can't replace in range or query replace
+// [X] Fix mouse_wheel_scroll scrolls outside of the camera bounds
 
 //- INDEX
 // [ ] Write a new cpp parser
@@ -329,33 +303,29 @@
 // [ ] Add Index API for customizing the indentation and poscontext
 // [ ] Handle function overloading
 
-//- FLEURY
-// [X] Remove the *peek* buffer
-// [X] Remove the  *loc* buffer
-// [X] Cleanup base commands
-// [X] Implement my own 4coder_fleury_divider_comments
-
-//~ TODO MISC
-// [X] move_line_up/down doesn't change the cursor x position
-// [X] Toggle slection comment rather than comment/uncomment
-
 //~ TODO BUGS
 // [ ] Fix global function macro color for variable
 // [ ] Fix undo/redo_all_buffers right after saving bug
 // [?] Fix undo/redo/indent history bug
 // [ ] Clipboard bug (again)
-// [X] Long_Jump_ToBuffer with an invalid buffer
 // [ ] Fix ListAllLocations highlights the current range in *compilation*
+// [X] (Un)comment bug (again)
+
+//~ @CONSIDER NEW SYSTEM
+// [ ] LOC counter
+// [ ] Virtual column
 
 //~ @CONSIDER Interesting but low-priority stuff that may or may not be useful but deserves a look
+
+//- HOT RELOADING
+// [ ] Hot-reload the project file and print the error message
+// [ ] Custom commands for each reloadable file
+
+//- MISC
 // [ ] Move range selection up and down
 // [ ] Modal auto-complete {} () [] on enter or typing
-// [X] Render hex colors
-// [X] Multi-cursor indenting
 // [ ] Jump to location with relative path
 // [ ] Code peek yank
-// [ ] A new LOC counting system
-// [ ] Virtual column
 
 //~ NOTE(long): @long_macros and default include
 #define LONG_INDEX_INDENT_STATEMENT 1

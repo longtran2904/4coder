@@ -24,7 +24,7 @@ function i64 Long_Abs(i64 num)
     return (num ^ mask) - mask;
 }
 
-//- NOTE(long): Jumping
+//- NOTE(long): Misc
 function b32 Long_IsPosValid(Application_Links* app, View_ID view, Buffer_ID buffer, i64 pos, i64 current_pos)
 {
     b32 result = pos != current_pos;
@@ -52,6 +52,62 @@ function void Long_SnapView(Application_Links* app, View_ID view)
     no_mark_snap_to_cursor(app, view);
 }
 
+function void Long_SnapMarkToCursor(Application_Links* app)
+{
+    if (fcoder_mode == FCoderMode_NotepadLike)
+    {
+        for (View_ID view = get_view_next(app, 0, 0); view; view = get_view_next(app, view, 0))
+        {
+            i64 pos = view_get_cursor_pos(app, view);
+            view_set_mark(app, view, seek_pos(pos));
+            
+            Managed_Scope scope = view_get_managed_scope(app, view);
+            b32* snap_mark_to_cursor = scope_attachment(app, scope, view_snap_mark_to_cursor, b32);
+            *snap_mark_to_cursor = true;
+        }
+    }
+}
+
+// @COPYPASTA(long): mouse_wheel_scroll
+function void Long_Mouse_ScrollWheel(Application_Links* app, View_ID view)
+{
+    Mouse_State mouse = get_mouse_state(app);
+    if (mouse.wheel)
+    {
+        Buffer_Scroll scroll = view_get_buffer_scroll(app, view);
+        scroll.target = view_move_buffer_point(app, view, scroll.target, V2f32(0.f, (f32)mouse.wheel));
+        
+        i64 cursor = view_get_cursor_pos(app, view);
+        view_set_buffer_scroll(app, view, scroll, SetBufferScroll_SnapCursorIntoView);
+        view_set_cursor(app, view, seek_pos(cursor));
+    }
+    
+    if (mouse.l)
+        no_mark_snap_to_cursor(app, view);
+}
+
+function Rect_f32 Long_Camera_PushBounds(Application_Links* app, View_ID view)
+{
+    Rect_f32 result = {0};
+    view_get_camera_bounds(app, view, &result.p0, &result.p1);
+    view_set_camera_bounds(app, view, V2f32(result.x0, clamp_bot(200.f, result.y0)), result.p1);
+    return result;
+}
+
+function void Long_Camera_PopBounds(Application_Links* app, View_ID view, Rect_f32 bounds)
+{
+    view_disable_highlight_range(app, view);
+    view_set_camera_bounds(app, view, bounds.p0, bounds.p1);
+}
+
+function void Long_Block_CopyStr(char* array, u64 size, String8 string)
+{
+    u64 copy_size = clamp_top(string.size, size - 1);
+    block_copy(array, string.str, copy_size);
+    array[copy_size] = 0;
+}
+
+//- NOTE(long): Jumping
 function b32 Long_Jump_ParseLocation(Application_Links* app, View_ID view, Buffer_ID buffer, Buffer_ID* out_buf, i64* out_pos)
 {
     b32 result = 0;
@@ -204,156 +260,6 @@ function String8 Long_Print_StrFromVars(Application_Links* app, Arena* arena, Va
     Long_Print_AppendVars(app, scratch, &list, var, indent);
     String8 result = string_list_flatten(arena, list);
     return result;
-}
-
-//- NOTE(long): Query
-function Query_Bar* Long_Query_StartBar(Application_Links* app, Arena* arena, String8 prompt, String8 string, u64 reserve = 0)
-{
-    Query_Bar* bar = push_array_zero(arena, Query_Bar, 1);
-    bar->prompt = prompt;
-    bar->string = string;
-    
-    if (reserve)
-    {
-        String_u8 bar_string = string_u8_push(arena, clamp_bot(reserve, string.size));
-        string_append(&bar_string, string);
-        bar->string = bar_string.string;
-    }
-    
-    if (!start_query_bar(app, bar, 0))
-        bar = 0;
-    return bar;
-}
-
-// @COPYPASTA(long): query_user_general
-function b32 Long_Query_User_String(Application_Links* app, Query_Bar* bar, String_Const_u8 init_string)
-{
-    if (!start_query_bar(app, bar, 0))
-        return false;
-    
-    if (init_string.size > 0)
-    {
-        String_u8 string = Su8(bar->string.str, bar->string.size, bar->string_capacity);
-        string_append(&string, init_string);
-        bar->string.size = string.string.size;
-    }
-    
-    b32 success = true;
-    for (;;)
-    {
-        User_Input in = get_next_input(app, EventPropertyGroup_Any, EventProperty_Escape|EventProperty_MouseButton);
-        if (in.abort)
-        {
-            success = false;
-            break;
-        }
-        
-        Scratch_Block scratch(app);
-        b32 good_insert = false;
-        String8 insert = to_writable(&in);
-        if (insert.size)
-        {
-            insert = string_replace(scratch, insert, S8Lit("\n"), S8Lit(""));
-            insert = string_replace(scratch, insert, S8Lit("\t"), S8Lit(""));
-            good_insert = true;
-        }
-        
-        if (in.event.kind == InputEventKind_KeyStroke && in.event.key.code == KeyCode_Return)
-            break;
-        
-        if (in.event.kind == InputEventKind_KeyStroke && in.event.key.code == KeyCode_Backspace)
-        {
-            if (has_modifier(&in, KeyCode_Control))
-                bar->string.size = 0;
-            else
-                bar->string = backspace_utf8(bar->string);
-        }
-        
-        else if (match_key_code(&in, KeyCode_Tab))
-        {
-            View_ID view = get_active_view(app, 0);
-            Buffer_ID buffer = view_get_buffer(app, view, 0);
-            
-            Range_i64 range = get_view_range(app, view);
-            if (!has_modifier(&in, KeyCode_Control))
-            {
-                i64 pos = view_get_cursor_pos(app, view);
-                range = enclose_pos_alpha_numeric_underscore_utf8(app, buffer, pos);
-                
-                // NOTE(long): The cursor can still be right after
-                if (range.max == range.min)
-                    range = enclose_pos_alpha_numeric_underscore_utf8(app, buffer, pos - 1);
-            }
-            
-            String8 string = push_buffer_range(app, scratch, buffer, range);
-            String_u8 bar_string = Su8(bar->string.str, bar->string.size, bar->string_capacity);
-            string_append(&bar_string, string);
-            bar->string.size = bar_string.size;
-        }
-        
-        else if (match_key_code(&in, KeyCode_V) && has_modifier(&in, KeyCode_Control))
-        {
-            String8 string = push_clipboard_index(scratch, 0, 0);
-            String_u8 bar_string = Su8(bar->string.str, bar->string.size, bar->string_capacity);
-            string_append(&bar_string, string);
-            bar->string.size = bar_string.size;
-        }
-        
-        else if (good_insert)
-        {
-            String_u8 string = Su8(bar->string.str, bar->string.size, bar->string_capacity);
-            string_append(&string, insert);
-            bar->string.size = string.string.size;
-        }
-        
-        else
-        {
-            // NOTE(allen): is the user trying to execute another command?
-            View_ID view = get_this_ctx_view(app, Access_Always);
-            View_Context ctx = view_current_context(app, view);
-            Mapping* mapping = ctx.mapping;
-            Command_Map* map = mapping_get_map(mapping, ctx.map_id);
-            Command_Binding binding = map_get_binding_recursive(mapping, map, &in.event);
-            
-            if (binding.custom)
-            {
-                Command_Metadata* metadata = get_command_metadata(binding.custom);
-                if (metadata && metadata->is_ui)
-                {
-                    view_enqueue_command_function(app, view, binding.custom);
-                    break;
-                }
-                binding.custom(app);
-            }
-            else leave_current_input_unhandled(app);
-        }
-    }
-    
-    return success;
-}
-
-// @COPYPASTA(long): get_query_string
-function String8 Long_Query_FillBar(Application_Links* app, Arena* arena, char* query_prompt,
-                                    u8* string_space, u64 space_size, String8 init_string)
-{
-    Query_Bar* bar = push_array_zero(arena, Query_Bar, 1);
-    bar->prompt = SCu8((u8*)query_prompt);
-    bar->string.str = string_space;
-    bar->string_capacity = space_size;
-    
-    if (!Long_Query_User_String(app, bar, init_string))
-        // NOTE(long): string.size equals 0 doesn't necessarily mean that the query failed, but string.str equals 0 does
-        bar->string = {};
-    return bar->string;
-}
-
-#define LONG_QUERY_STRING_SIZE KB(1)
-
-function String8 Long_Query_String(Application_Links* app, Arena* arena, char* query_prompt, String8 init_string = {})
-{
-    u64 string_size = LONG_QUERY_STRING_SIZE;
-    u8* string_space = push_array(arena, u8, string_size);
-    return Long_Query_FillBar(app, arena, query_prompt, string_space, string_size, init_string);
 }
 
 //~ NOTE(long): Point Stack Commands
@@ -1244,7 +1150,7 @@ CUSTOM_DOC("If the special build panel is open, makes the build panel the active
     view_set_active(app, view);
 }
 
-//~ NOTE(long): Search/Jump Commands
+//~ NOTE(long): ListAllLocations
 
 CUSTOM_ID(attachment, long_search_string_size);
 CUSTOM_ID(attachment, long_start_selection_offset);
@@ -1419,171 +1325,6 @@ function Sticky_Jump Long_SearchBuffer_NearestJump(Application_Links* app, Buffe
     return result;
 }
 
-function void Long_SnapMarkToCursor(Application_Links* app)
-{
-    if (fcoder_mode == FCoderMode_NotepadLike)
-    {
-        for (View_ID view = get_view_next(app, 0, 0); view; view = get_view_next(app, view, 0))
-        {
-            i64 pos = view_get_cursor_pos(app, view);
-            view_set_mark(app, view, seek_pos(pos));
-            
-            Managed_Scope scope = view_get_managed_scope(app, view);
-            b32* snap_mark_to_cursor = scope_attachment(app, scope, view_snap_mark_to_cursor, b32);
-            *snap_mark_to_cursor = true;
-        }
-    }
-}
-
-function void Long_MC_Apply(Application_Links* app, Managed_Scope scope, Custom_Command_Function* func, MC_Command_Kind kind)
-{
-    View_ID view = mc_context.view;
-	Buffer_ID buffer = view_get_buffer(app, view, Access_Always);
-    
-    // Run standard cursor
-    default_pre_command(app, scope);
-	func(app);
-    default_post_command(app, scope);
-    
-	// Check that `func` should be safe to re-run
-	if (view != get_active_view(app, Access_Always) ||
-        buffer != view_get_buffer(app, view, Access_Always))
-	{
-        MC_end(app);
-        return;
-	}
-    
-	if (kind == MC_Command_CursorCopy){
-        // Since copy doesn't read from MC clipboards, clear it before doing multiple copies
-        // _CopyPaste would require double-buffering arenas, rather not complicate for nothing
-        linalloc_clear(&mc_context.arena_clipboard);
-	}
-    
-	Buffer_Scroll scroll = view_get_buffer_scroll(app, mc_context.view);
-	MC_Node prev = {mc_context.cursors};
-	MC_pull(app, mc_context.view, kind, &prev);
-	mc_context.cursors = &prev;
-    
-	for (MC_Node *n=prev.next; n; n=n->next){
-        MC_push(app, mc_context.view, kind, n);
-        default_pre_command(app, scope);
-        mc_context.active_cursor = n;
-        func(app);
-        default_post_command(app, scope);
-        MC_pull(app, mc_context.view, kind, n);
-	}
-	mc_context.active_cursor = NULL;
-	mc_context.cursors = prev.next;
-    
-	MC_push(app, mc_context.view, kind, &prev);
-	view_set_buffer_scroll(app, mc_context.view, scroll, SetBufferScroll_NoCursorChange);
-}
-
-CUSTOM_COMMAND_SIG(long_view_input_handler)
-CUSTOM_DOC("Input consumption loop for default view behavior")
-{
-    Scratch_Block scratch(app);
-    default_input_handler_init(app, scratch);
-    
-    View_ID view = get_this_ctx_view(app, Access_Always);
-    Managed_Scope scope = view_get_managed_scope(app, view);
-    
-    for (;;)
-    {
-        // NOTE(allen): Get input
-        User_Input input = get_next_input(app, EventPropertyGroup_Any, 0);
-        Input_Event* event = &input.event;
-        if (input.abort)
-            break;
-        
-        // NOTE(allen): Mouse Suppression
-        Event_Property event_properties = get_event_properties(event);
-        if (suppressing_mouse && (event_properties & EventPropertyGroup_AnyMouseEvent) != 0)
-            continue;
-        
-        // NOTE(allen): Get binding
-        if (implicit_map_function == 0)
-            implicit_map_function = default_implicit_map;
-        Implicit_Map_Result map_result = implicit_map_function(app, 0, 0, event);
-        if (map_result.command == 0)
-        {
-            leave_current_input_unhandled(app);
-            continue;
-        }
-        
-        if (mc_context.active && mc_context.view == get_this_ctx_view(app, Access_Always))
-        {
-            if (event->kind == InputEventKind_Core && event->core.code == CoreCode_NewClipboardContents)
-            {
-                linalloc_clear(&mc_context.arena_clipboard);
-                String_Const_u8 string = push_string_copy(&mc_context.arena_clipboard, event->core.string);
-                for_mc(node, mc_context.cursors)
-                    node->clipboard = string;
-            }
-            
-            Table_Lookup lookup = table_lookup(&mc_context.table, HandleAsU64(map_result.command));
-            if (lookup.found_match)
-            {
-                u64 val = mc_context.table.vals[lookup.index];
-                Long_MC_Apply(app, scope, map_result.command, MC_Command_Kind(val));
-            }
-            else
-            {
-                MC_apply(app, MC_error_fade, MC_Command_Cursor);
-                Command_Metadata* meta = get_command_metadata(map_result.command);
-                Long_Print_Messagef(app, "[MC] <%s> not available during multi-cursor mode\n", meta ? meta->name : "Command");
-            }
-        }
-        else
-        {
-            // NOTE(allen): Run the command and pre/post command stuff
-            default_pre_command(app, scope);
-            map_result.command(app);
-            default_post_command(app, scope);
-        }
-    }
-}
-
-function void Long_MC_InsertTrail(Application_Links* app, f32 pixels)
-{
-    View_ID view = get_active_view(app, 0);
-    i64 cursor = view_get_cursor_pos(app, view);
-    i64 marker = mc_context.active ? view_get_mark_pos(app, view) : cursor;
-    
-    if (!mc_context.active_cursor)
-    {
-        MC_insert(app, cursor, marker);
-        if (pixels < 0) move_up(app);
-        else          move_down(app);
-        
-        if (mc_context.active)
-        {
-            // @COPYPASTA(long): move_vertical_pixels
-            i64 line = view_compute_cursor(app, view, seek_pos(marker)).line;
-            Rect_f32 r = view_padded_box_of_pos(app, view, line, marker);
-            Vec2_f32 p = {};
-            p.x = r.x0;
-            p.y = (pixels > 0.f ? r.y1 : r.y0) + pixels;
-            i64 new_pos = view_pos_at_relative_xy(app, view, line, p);
-            view_set_mark(app, view, seek_pos(new_pos));
-        }
-        else
-            MC_begin(app);
-    }
-}
-
-CUSTOM_COMMAND_SIG(long_mc_up_trail)
-CUSTOM_DOC("moves up, leaving a multi-cursor behind it")
-{
-    Long_MC_InsertTrail(app, -1);
-}
-
-CUSTOM_COMMAND_SIG(long_mc_down_trail)
-CUSTOM_DOC("moves down, leaving a multi-cursor behind it")
-{
-    Long_MC_InsertTrail(app, +1);
-}
-
 function void Long_MC_ListAllLocations(Application_Links* app, View_ID view, Buffer_ID search_buffer,
                                        String8 title, i64 init_size, b32 push_jump = 0)
 {
@@ -1592,14 +1333,11 @@ function void Long_MC_ListAllLocations(Application_Links* app, View_ID view, Buf
     
     Scratch_Block scratch(app);
     Query_Bar_Group group(app);
-    Query_Bar* bar = Long_Query_StartBar(app, scratch, {}, title);;
+    Query_Bar* bar = Long_Query_StartBar(app, scratch, 0, title);
     if (!bar)
         return;
     
-    Vec2_f32 old_margin = {};
-    Vec2_f32 old_push_in = {};
-    view_get_camera_bounds(app, view, &old_margin, &old_push_in);
-    view_set_camera_bounds(app, view, Vec2_f32{ old_margin.x, clamp_bot(200.f, old_margin.y) }, old_push_in);
+    Rect_f32 bounds = Long_Camera_PushBounds(app, view);
     
     auto_center_after_jumps = false;
     Managed_Scope scope = buffer_get_managed_scope(app, search_buffer);
@@ -1626,15 +1364,7 @@ function void Long_MC_ListAllLocations(Application_Links* app, View_ID view, Buf
     Marker* markers = Long_SearchBuffer_GetMarkers(app, scratch, scope, buffer, &count);
     
     Mapping* mapping;
-    Command_Map* map;
-    {
-        View_Context ctx = view_current_context(app, view);
-        mapping = ctx.mapping;
-        
-        Managed_Scope buffer_scope = buffer_get_managed_scope(app, buffer);
-        Command_Map_ID* map_id_ptr = scope_attachment(app, buffer_scope, buffer_map_id, Command_Map_ID);
-        map = mapping_get_map(ctx.mapping, map_id_ptr ? (*map_id_ptr) : ctx.map_id);
-    }
+    Command_Map* map = Long_Mapping_GetMap(app, buffer, &mapping);
     
     b32 abort = false, exit_to_jump_highlight = false;
     def_set_config_b32(vars_save_string_lit("use_jump_highlight"), 0);
@@ -1731,8 +1461,7 @@ function void Long_MC_ListAllLocations(Application_Links* app, View_ID view, Buf
         
         else if (in.event.kind == InputEventKind_TextInsert)
         {
-            String8 str = in.event.text.string;
-            if (str.str && str.size)
+            if (in.event.text.string.size)
             {
                 view_enqueue_command_function(app, view, long_delete_range);
                 enqueue_virtual_event(app, &in.event);
@@ -1747,20 +1476,20 @@ function void Long_MC_ListAllLocations(Application_Links* app, View_ID view, Buf
                 break;
             }
         }
+        
         else if (in.event.kind == InputEventKind_KeyStroke)
         {
-            Command_Binding binding = map_get_binding_recursive(mapping, map, &in.event);
-            Custom_Command_Function* custom = binding.custom;
-            Command_Metadata* metadata = custom ? get_command_metadata(custom) : 0;
+            Command_Metadata* metadata = Long_Mapping_GetMetadata(mapping, map, &in);
             if (metadata)
             {
+                Custom_Command_Function* custom = metadata->proc;
                 if (custom == delete_char || custom == backspace_char)
                     custom = long_delete_range;
+                
                 view_enqueue_command_function(app, view, custom);
                 break;
             }
-            else
-                leave_current_input_unhandled(app);
+            else leave_current_input_unhandled(app);
         }
         
         view_set_mark  (app, view, seek_pos(curr_pos));
@@ -1794,8 +1523,8 @@ function void Long_MC_ListAllLocations(Application_Links* app, View_ID view, Buf
     }
     
     auto_center_after_jumps = true;
-    view_disable_highlight_range(app, view); // NOTE(long): Disable the highlight will make F4_RenderBuffer draw the cursor again
-    view_set_camera_bounds(app, view, old_margin, old_push_in);
+    // NOTE(long): This will also disable the highlight and the cursor will be drawn again
+    Long_Camera_PopBounds(app, view, bounds);
 }
 
 function void Long_SearchBuffer_MultiSelect(Application_Links* app, View_ID view, Buffer_ID search_buffer,
@@ -1806,14 +1535,11 @@ function void Long_SearchBuffer_MultiSelect(Application_Links* app, View_ID view
     
     Scratch_Block scratch(app);
     Query_Bar_Group group(app);
-    Query_Bar* bar = Long_Query_StartBar(app, scratch, {}, title);;
+    Query_Bar* bar = Long_Query_StartBar(app, scratch, 0, title);
     if (!bar)
         return;
     
-    Vec2_f32 old_margin = {};
-    Vec2_f32 old_push_in = {};
-    view_get_camera_bounds(app, view, &old_margin, &old_push_in);
-    view_set_camera_bounds(app, view, Vec2_f32{ old_margin.x, clamp_bot(200.f, old_margin.y) }, old_push_in);
+    Rect_f32 bounds = Long_Camera_PushBounds(app, view);
     
     auto_center_after_jumps = false;
     Managed_Scope scope = buffer_get_managed_scope(app, search_buffer);
@@ -1993,7 +1719,7 @@ function void Long_SearchBuffer_MultiSelect(Application_Links* app, View_ID view
             }
             
             Command_Metadata* metadata = custom ? get_command_metadata(custom) : 0;
-            if (metadata/* && metadata->is_ui*/)
+            if (metadata)
             {
                 view_enqueue_command_function(app, view, custom);
                 break;
@@ -2102,11 +1828,10 @@ function void Long_SearchBuffer_MultiSelect(Application_Links* app, View_ID view
     }
     
     auto_center_after_jumps = true;
-    view_disable_highlight_range(app, view); // NOTE(long): Disable the highlight will make F4_RenderBuffer draw the cursor again
-    view_set_camera_bounds(app, view, old_margin, old_push_in);
+    Long_Camera_PopBounds(app, view, bounds);
 }
 
-function void Long_ListAllLocations(Application_Links* app, String_Const_u8 needle, List_All_Locations_Flag flags, b32 all_buffer)
+function void Long_ListAllLocations(Application_Links* app, String8 needle, List_All_Locations_Flag flags, b32 all_buffer)
 {
     if (!needle.size)
         return;
@@ -2310,8 +2035,313 @@ CUSTOM_DOC("Lists all the start-to-absolute-cursor range of all lines in the cur
     Long_ListAllLines_SizeAndOffset(app, 1);
 }
 
-// @COPYPASTA(long): isearch (Add the ability to handle case-sensitive string and paste string using Ctrl+V)
-function void Long_ISearch(Application_Links* app, Scan_Direction start_scan, i64 first_pos, String_Const_u8 query_init, b32 insensitive)
+//~ NOTE(long): MC Commands
+
+function void Long_MC_Apply(Application_Links* app, Managed_Scope scope, Custom_Command_Function* func, MC_Command_Kind kind)
+{
+    View_ID view = mc_context.view;
+    Buffer_ID buffer = view_get_buffer(app, view, Access_Always);
+    
+    // Run standard cursor
+    default_pre_command(app, scope);
+    func(app);
+    default_post_command(app, scope);
+    
+    // Check that `func` should be safe to re-run
+    if (view != get_active_view(app, Access_Always) ||
+        buffer != view_get_buffer(app, view, Access_Always))
+    {
+        MC_end(app);
+        return;
+    }
+    
+    if (kind == MC_Command_CursorCopy){
+        // Since copy doesn't read from MC clipboards, clear it before doing multiple copies
+        // _CopyPaste would require double-buffering arenas, rather not complicate for nothing
+        linalloc_clear(&mc_context.arena_clipboard);
+    }
+    
+    Buffer_Scroll scroll = view_get_buffer_scroll(app, mc_context.view);
+    MC_Node prev = {mc_context.cursors};
+    MC_pull(app, mc_context.view, kind, &prev);
+    mc_context.cursors = &prev;
+    
+    for (MC_Node *n=prev.next; n; n=n->next){
+        MC_push(app, mc_context.view, kind, n);
+        default_pre_command(app, scope);
+        mc_context.active_cursor = n;
+        func(app);
+        default_post_command(app, scope);
+        MC_pull(app, mc_context.view, kind, n);
+    }
+    mc_context.active_cursor = NULL;
+    mc_context.cursors = prev.next;
+    
+    MC_push(app, mc_context.view, kind, &prev);
+    view_set_buffer_scroll(app, mc_context.view, scroll, SetBufferScroll_NoCursorChange);
+}
+
+CUSTOM_COMMAND_SIG(long_view_input_handler)
+CUSTOM_DOC("Input consumption loop for default view behavior")
+{
+    Scratch_Block scratch(app);
+    default_input_handler_init(app, scratch);
+    
+    View_ID view = get_this_ctx_view(app, Access_Always);
+    Managed_Scope scope = view_get_managed_scope(app, view);
+    
+    for (;;)
+    {
+        // NOTE(allen): Get input
+        User_Input input = get_next_input(app, EventPropertyGroup_Any, 0);
+        Input_Event* event = &input.event;
+        if (input.abort)
+            break;
+        
+        // NOTE(allen): Mouse Suppression
+        Event_Property event_properties = get_event_properties(event);
+        if (suppressing_mouse && (event_properties & EventPropertyGroup_AnyMouseEvent) != 0)
+            continue;
+        
+        // NOTE(allen): Get binding
+        if (implicit_map_function == 0)
+            implicit_map_function = default_implicit_map;
+        Implicit_Map_Result map_result = implicit_map_function(app, 0, 0, event);
+        if (map_result.command == 0)
+        {
+            leave_current_input_unhandled(app);
+            continue;
+        }
+        
+        if (mc_context.active && mc_context.view == get_this_ctx_view(app, Access_Always))
+        {
+            if (event->kind == InputEventKind_Core && event->core.code == CoreCode_NewClipboardContents)
+            {
+                linalloc_clear(&mc_context.arena_clipboard);
+                String8 string = push_string_copy(&mc_context.arena_clipboard, event->core.string);
+                for_mc(node, mc_context.cursors)
+                    node->clipboard = string;
+            }
+            
+            Table_Lookup lookup = table_lookup(&mc_context.table, HandleAsU64(map_result.command));
+            if (lookup.found_match)
+            {
+                u64 val = mc_context.table.vals[lookup.index];
+                Long_MC_Apply(app, scope, map_result.command, MC_Command_Kind(val));
+            }
+            else
+            {
+                MC_apply(app, MC_error_fade, MC_Command_Cursor);
+                Command_Metadata* meta = get_command_metadata(map_result.command);
+                Long_Print_Messagef(app, "[MC] <%s> not available during multi-cursor mode\n", meta ? meta->name : "Command");
+            }
+        }
+        else
+        {
+            // NOTE(allen): Run the command and pre/post command stuff
+            default_pre_command(app, scope);
+            map_result.command(app);
+            default_post_command(app, scope);
+        }
+    }
+}
+
+function void Long_MC_InsertTrail(Application_Links* app, f32 pixels)
+{
+    View_ID view = get_active_view(app, 0);
+    i64 cursor = view_get_cursor_pos(app, view);
+    i64 marker = mc_context.active ? view_get_mark_pos(app, view) : cursor;
+    
+    if (!mc_context.active_cursor)
+    {
+        MC_insert(app, cursor, marker);
+        if (pixels < 0) move_up(app);
+        else          move_down(app);
+        
+        if (mc_context.active)
+        {
+            // @COPYPASTA(long): move_vertical_pixels
+            i64 line = view_compute_cursor(app, view, seek_pos(marker)).line;
+            Rect_f32 r = view_padded_box_of_pos(app, view, line, marker);
+            Vec2_f32 p = {};
+            p.x = r.x0;
+            p.y = (pixels > 0.f ? r.y1 : r.y0) + pixels;
+            i64 new_pos = view_pos_at_relative_xy(app, view, line, p);
+            view_set_mark(app, view, seek_pos(new_pos));
+        }
+        else
+            MC_begin(app);
+    }
+}
+
+CUSTOM_COMMAND_SIG(long_mc_up_trail)
+CUSTOM_DOC("moves up, leaving a multi-cursor behind it")
+{
+    Long_MC_InsertTrail(app, -1);
+}
+
+CUSTOM_COMMAND_SIG(long_mc_down_trail)
+CUSTOM_DOC("moves down, leaving a multi-cursor behind it")
+{
+    Long_MC_InsertTrail(app, +1);
+}
+
+//~ NOTE(long): Query Commands
+
+function Query_Bar* Long_Query_StartBar(Application_Links* app, Arena* arena, char* prompt, String8 string)
+{
+    Query_Bar* bar = push_array_zero(arena, Query_Bar, 1);
+    bar->prompt = prompt ? SCu8(prompt) : string_u8_empty;
+    bar->string = string;
+    
+    if (!start_query_bar(app, bar, 0))
+        bar = 0;
+    return bar;
+}
+
+function Query_Bar* Long_Query_ReserveBar(Application_Links* app, Arena* arena, char* prompt, String8 string)
+{
+    u64 reserve = LONG_QUERY_STRING_SIZE;
+    String_u8 bar_string = string_u8_push(arena, clamp_bot(reserve, string.size));
+    string_append(&bar_string, string);
+    
+    Query_Bar* bar = Long_Query_StartBar(app, arena, prompt, bar_string.string);
+    if (bar)
+        bar->string_capacity = reserve;
+    
+    return bar;
+}
+
+function void Long_Query_AppendBar(Query_Bar* bar, String8 string)
+{
+    String_u8 bar_string = Su8(bar->string, bar->string_capacity);
+    string_append(&bar_string, string);
+    bar->string.size = bar_string.size;
+}
+
+function b32 Long_Query_DefaultInput(Application_Links* app, Query_Bar* bar, View_ID view, User_Input* in)
+{
+    Scratch_Block scratch(app);
+    b32 result = 1;
+    
+    if (match_key_code(in, KeyCode_Backspace))
+    {
+        if (has_modifier(in, KeyCode_Control))
+            bar->string.size = 0;
+        else
+            bar->string = backspace_utf8(bar->string);
+    }
+    
+    else if (match_key_code(in, KeyCode_V) && has_modifier(in, KeyCode_Control))
+    {
+        String8 clipboard = push_clipboard_index(scratch, 0, 0);
+        Long_Query_AppendBar(bar, clipboard);
+    }
+    
+    else if (match_key_code(in, KeyCode_Tab))
+    {
+        Buffer_ID buffer = view_get_buffer(app, view, 0);
+        Range_i64 range = get_view_range(app, view);
+        
+        if (!has_modifier(in, KeyCode_Control))
+        {
+            i64 pos = view_get_cursor_pos(app, view);
+            range = enclose_pos_alpha_numeric_underscore_utf8(app, buffer, pos);
+            
+            // NOTE(long): The cursor can still be right after
+            if (range.max == range.min)
+                range = enclose_pos_alpha_numeric_underscore_utf8(app, buffer, pos - 1);
+        }
+        
+        String8 string = push_buffer_range(app, scratch, buffer, range);
+        Long_Query_AppendBar(bar, string);
+    }
+    
+    else if (match_key_code(in, KeyCode_E) && has_modifier(in, KeyCode_Control))
+        center_view(app);
+    
+    else result = 0;
+    
+    return result;
+}
+
+// @COPYPASTA(long): query_user_general
+function b32 Long_Query_TextInput(Application_Links* app, Query_Bar* bar, String_Const_u8 init)
+{
+    if (!start_query_bar(app, bar, 0))
+        return false;
+    
+    if (init.size > 0)
+        Long_Query_AppendBar(bar, init);
+    
+    View_ID view = get_active_view(app, 0);
+    Buffer_ID buffer = view_get_buffer(app, view, 0);
+    Rect_f32 bounds = Long_Camera_PushBounds(app, view);
+    
+    Mapping* mapping = 0;
+    Command_Map* map = 0;
+    
+    b32 success = true;
+    for (;;)
+    {
+        User_Input in = get_next_input(app, EventPropertyGroup_Any, EventProperty_Escape);
+        if (in.abort)
+        {
+            success = false;
+            break;
+        }
+        
+        Scratch_Block scratch(app);
+        String8 insert = to_writable(&in);
+        if (insert.size)
+        {
+            insert = string_replace(scratch, insert, S8Lit("\n"), S8Lit(""));
+            insert = string_replace(scratch, insert, S8Lit("\t"), S8Lit(""));
+        }
+        
+        if (in.event.kind == InputEventKind_KeyStroke && in.event.key.code == KeyCode_Return)
+            break;
+        
+        else if (insert.size)
+            Long_Query_AppendBar(bar, insert);
+        
+        else if (!Long_Query_DefaultInput(app, bar, view, &in))
+        {
+            if (Long_Mapping_HandleCommand(app, view, &mapping, &map, &in))
+                break;
+            else
+                Long_Mouse_ScrollWheel(app, view);
+        }
+    }
+    
+    Long_Camera_PopBounds(app, view, bounds);
+    return success;
+}
+
+// @COPYPASTA(long): get_query_string
+function String8 Long_Query_FillBar(Application_Links* app, Arena* arena, char* prompt,
+                                    u8* string_space, u64 space_size, String8 init)
+{
+    Query_Bar* bar = push_array_zero(arena, Query_Bar, 1);
+    bar->prompt = prompt ? SCu8(prompt) : string_u8_empty;
+    bar->string.str = string_space;
+    bar->string_capacity = space_size;
+    
+    if (!Long_Query_TextInput(app, bar, init))
+        // NOTE(long): string.size equals 0 doesn't necessarily mean that the query failed, but string.str equals 0 does
+        bar->string = {};
+    return bar->string;
+}
+
+function String8 Long_Query_String(Application_Links* app, Arena* arena, char* prompt, String8 init)
+{
+    u64 string_size = LONG_QUERY_STRING_SIZE;
+    u8* string_space = push_array(arena, u8, string_size);
+    return Long_Query_FillBar(app, arena, prompt, string_space, string_size, init);
+}
+
+// @COPYPASTA(long): isearch
+function void Long_ISearch(Application_Links* app, Scan_Direction start_scan, i64 first_pos, String8 query_init, b32 insensitive)
 {
     View_ID view = get_active_view(app, Access_ReadVisible);
     Buffer_ID buffer = view_get_buffer(app, view, Access_ReadVisible);
@@ -2321,29 +2351,24 @@ function void Long_ISearch(Application_Links* app, Scan_Direction start_scan, i6
     Scratch_Block scratch(app);
     Query_Bar_Group group(app);
     
-    u64 bar_size = LONG_QUERY_STRING_SIZE;
-    Query_Bar* bar = Long_Query_StartBar(app, scratch, {}, query_init, bar_size);
+    Query_Bar* bar = Long_Query_ReserveBar(app, scratch, 0, query_init);
     if (!bar) return;
-    
-    Vec2_f32 old_margin = {};
-    Vec2_f32 old_push_in = {};
-    view_get_camera_bounds(app, view, &old_margin, &old_push_in);
-    
-    Vec2_f32 margin = old_margin;
-    margin.y = clamp_bot(200.f, margin.y);
-    view_set_camera_bounds(app, view, margin, old_push_in);
+    Rect_f32 bounds = Long_Camera_PushBounds(app, view);
     
     Scan_Direction scan = start_scan;
     i64 pos = first_pos;
     
-    String_Const_u8 isearch_str = insensitive ? S8Lit("I-Search: ") : S8Lit("I-Search-Sensitive: ");
-    String_Const_u8 rsearch_str = insensitive ? S8Lit("Reverse-I-Search: ") : S8Lit("Reverse-I-Search-Sensitve: ");
+    String8 isearch_str = insensitive ? S8Lit("I-Search: ") : S8Lit("I-Search-Sensitive: ");
+    String8 rsearch_str = insensitive ? S8Lit("Reverse-I-Search: ") : S8Lit("Reverse-I-Search-Sensitve: ");
     
     u64 match_size = bar->string.size;
     i64 buffer_size = buffer_get_size(app, buffer);
     
+    Mapping* mapping = 0;
+    Command_Map* map = 0;
+    
     User_Input in = {};
-    for (Temp_Memory temp = begin_temp(scratch); ; end_temp(temp))
+    for (;;)
     {
         switch (scan)
         {
@@ -2356,90 +2381,30 @@ function void Long_ISearch(Application_Links* app, Scan_Direction start_scan, i6
         if (in.abort)
             break;
         
-        String_Const_u8 string = to_writable(&in);
-        b32 string_change = false;
-        b32 trigger_command = true;
+        u64 old_size = bar->string.size;
+        b32 trigger_command = 0;
         
         if (match_key_code(&in, KeyCode_Return))
         {
-            Input_Modifier_Set* mods = &in.event.key.modifiers;
-            if (has_modifier(mods, KeyCode_Control))
+            if (has_modifier(&in, KeyCode_Control))
             {
-                bar->string.size = cstring_length(previous_isearch_query);
-                block_copy(bar->string.str, previous_isearch_query, bar->string.size);
+                trigger_command = 1;
+                Long_Query_AppendBar(bar, SCu8(previous_isearch_query));
             }
             else
             {
-                u64 size = bar->string.size;
-                size = clamp_top(size, sizeof(previous_isearch_query) - 1);
-                block_copy(previous_isearch_query, bar->string.str, size);
-                previous_isearch_query[size] = 0;
+                Long_Block_CopyStr(ExpandArray(previous_isearch_query), bar->string);
                 break;
             }
         }
         
-        else if (match_key_code(&in, KeyCode_Tab))
-        {
-            Range_i64 range = get_view_range(app, view);
-            String8 select_string = push_buffer_range(app, scratch, buffer, range);
-            if (select_string.size)
-            {
-                String_u8 bar_string = Su8(bar->string, bar_size);
-                string_append(&bar_string, select_string);
-                bar->string = bar_string.string;
-                string_change = true;
-            }
-        }
-        
-        else if (match_key_code(&in, KeyCode_E) && has_modifier(&in, KeyCode_Control))
-        {
-            center_view(app);
-        }
-        
-        else if (match_key_code(&in, KeyCode_V) && has_modifier(&in, KeyCode_Control))
-        {
-            String8 clipboard = push_clipboard_index(scratch, 0, 0);
-            if (clipboard.size)
-            {
-                String_u8 bar_string = Su8(bar->string, bar_size);
-                string_append(&bar_string, clipboard);
-                bar->string = bar_string.string;
-                string_change = true;
-            }
-        }
-        
-        else if (match_key_code(&in, KeyCode_Backspace))
-        {
-            if (is_unmodified_key(&in.event))
-            {
-                u64 old_bar_string_size = bar->string.size;
-                bar->string = backspace_utf8(bar->string);
-                string_change = (bar->string.size < old_bar_string_size);
-            }
-            else if (has_modifier(&in, KeyCode_Control))
-            {
-                if (bar->string.size > 0)
-                {
-                    string_change = true;
-                    bar->string.size = 0;
-                }
-            }
-        }
-        
+        else if (Long_Query_DefaultInput(app, bar, view, &in))
+            trigger_command = 1;
         else
-        {
-            trigger_command = false;
-            if (string.str != 0 && string.size > 0)
-            {
-                String_u8 bar_string = Su8(bar->string, bar_size);
-                string_append(&bar_string, string);
-                bar->string = bar_string.string;
-                string_change = true;
-            }
-        }
+            Long_Query_AppendBar(bar, to_writable(&in));
         
+        b32 string_change = old_size != bar->string.size;
         b32 do_scan_action = false;
-        b32 do_scroll_wheel = true;
         Scan_Direction change_scan = scan;
         if (!string_change)
         {
@@ -2453,8 +2418,6 @@ function void Long_ISearch(Application_Links* app, Scan_Direction start_scan, i6
                 change_scan = Scan_Backward;
                 do_scan_action = true;
             }
-            else if (!trigger_command)
-                leave_current_input_unhandled(app);
         }
         
         if (string_change || do_scan_action)
@@ -2479,99 +2442,85 @@ function void Long_ISearch(Application_Links* app, Scan_Direction start_scan, i6
                 match_size = bar->string.size;
             }
         }
-        else if (do_scroll_wheel)
-            mouse_wheel_scroll(app);
+        
+        else if (!trigger_command && Long_Mapping_HandleCommand(app, view, &mapping, &map, &in))
+            break;
+        else
+            Long_Mouse_ScrollWheel(app, view);
     }
-    
-    view_disable_highlight_range(app, view);
     
     if (in.abort)
     {
-        u64 size = bar->string.size;
-        size = clamp_top(size, sizeof(previous_isearch_query) - 1);
-        block_copy(previous_isearch_query, bar->string.str, size);
-        previous_isearch_query[size] = 0;
+        Long_Block_CopyStr(ExpandArray(previous_isearch_query), bar->string);
         view_set_cursor_and_preferred_x(app, view, seek_pos(first_pos));
     }
     
-    view_set_camera_bounds(app, view, old_margin, old_push_in);
+    Long_Camera_PopBounds(app, view, bounds);
 }
 
 // @COPYPASTA(long): F4_Search
-function void Long_Search(Application_Links* app, Scan_Direction dir, b32 insensitive)
+function void Long_Search(Application_Links* app, Scan_Direction dir, b32 identifier, b32 insensitive)
 {
     Scratch_Block scratch(app);
     View_ID view = get_active_view(app, Access_Read);
     Buffer_ID buffer = view_get_buffer(app, view, Access_Read);
-    if (view && buffer)
+    
+    if (buffer)
     {
         i64 cursor = view_get_cursor_pos(app, view);
         i64 mark = view_get_mark_pos(app, view);
-        i64 cursor_line = get_line_number_from_pos(app, buffer, cursor);
-        i64 mark_line = get_line_number_from_pos(app, buffer, mark);
-        String_Const_u8 query_init = string_u8_empty;
-        if (fcoder_mode == FCoderMode_NotepadLike && cursor != mark)
-        {
-            if (cursor > mark)
-                Swap(i64, cursor, mark);
-            query_init = push_buffer_range(app, scratch, buffer, Ii64(cursor, mark));
-        }
-        Long_ISearch(app, dir, cursor, query_init, insensitive);
+        
+        Range_i64 range = Ii64(cursor);
+        if (identifier)
+            range = enclose_pos_alpha_numeric_underscore(app, buffer, cursor);
+        else if (fcoder_mode == FCoderMode_NotepadLike && cursor != mark)
+            range = Ii64(cursor, mark);
+        
+        String8 query = push_buffer_range(app, scratch, buffer, range);
+        Long_ISearch(app, dir, range.min, query, insensitive);
     }
-}
-
-// @COPYPASTA(long): isearch_identifier
-function void Long_Search_Identifier(Application_Links* app, Scan_Direction scan, b32 insensitive)
-{
-    View_ID view = get_active_view(app, Access_ReadVisible);
-    Buffer_ID buffer_id = view_get_buffer(app, view, Access_ReadVisible);
-    i64 pos = view_get_cursor_pos(app, view);
-    Scratch_Block scratch(app);
-    Range_i64 range = enclose_pos_alpha_numeric_underscore(app, buffer_id, pos);
-    String_Const_u8 query = push_buffer_range(app, scratch, buffer_id, range);
-    Long_ISearch(app, scan, range.first, query, insensitive);
 }
 
 CUSTOM_COMMAND_SIG(long_search)
 CUSTOM_DOC("Begins an incremental search down through the current buffer for a user specified string.")
 {
-    Long_Search(app, Scan_Forward, 1);
+    Long_Search(app, Scan_Forward, 0, 1);
 }
 
 CUSTOM_COMMAND_SIG(long_reverse_search)
 CUSTOM_DOC("Begins an incremental search up through the current buffer for a user specified string.")
 {
-    Long_Search(app, Scan_Backward, 1);
-}
-
-CUSTOM_COMMAND_SIG(long_search_identifier)
-CUSTOM_DOC("Begins an incremental search down through the current buffer for the word or token under the cursor.")
-{
-    Long_Search_Identifier(app, Scan_Forward, 1);
-}
-
-CUSTOM_COMMAND_SIG(long_reverse_search_identifier)
-CUSTOM_DOC("Begins an incremental search up through the current buffer for the word or token under the cursor.")
-{
-    Long_Search_Identifier(app, Scan_Backward, 1);
+    Long_Search(app, Scan_Backward, 0, 1);
 }
 
 CUSTOM_COMMAND_SIG(long_search_case_sensitive)
 CUSTOM_DOC("Searches the current buffer forward for the exact string. If something is highlighted, will fill search query with it.")
 {
-    Long_Search(app, Scan_Forward, 0);
+    Long_Search(app, Scan_Forward, 0, 0);
 }
 
 CUSTOM_COMMAND_SIG(long_reverse_search_case_sensitive)
 CUSTOM_DOC("Searches the current buffer backwards for the exact string. If something is highlighted, will fill search query with it.")
 {
-    Long_Search(app, Scan_Backward, 0);
+    Long_Search(app, Scan_Backward, 0, 0);
+}
+
+CUSTOM_COMMAND_SIG(long_search_identifier)
+CUSTOM_DOC("Begins an incremental search down through the current buffer for the word or token under the cursor.")
+{
+    Long_Search(app, Scan_Forward, 1, 1);
+}
+
+CUSTOM_COMMAND_SIG(long_reverse_search_identifier)
+CUSTOM_DOC("Begins an incremental search up through the current buffer for the word or token under the cursor.")
+{
+    Long_Search(app, Scan_Backward, 1, 1);
 }
 
 CUSTOM_COMMAND_SIG(long_search_identifier_case_sensitive)
 CUSTOM_DOC("Begins an incremental search down through the current buffer for the exact word or token under the cursor.")
 {
-    Long_Search_Identifier(app, Scan_Forward, 0);
+    Long_Search(app, Scan_Forward, 1, 0);
 }
 
 // @COPYPASTA(long): query_replace_parameter
@@ -2584,13 +2533,13 @@ function void Long_Query_Replace(Application_Links* app, String8 replace_str, i6
     Query_Bar_Group group(app);
     
     if (add_replace_query_bar)
-        Long_Query_StartBar(app, scratch, S8Lit("Replace: "), replace_str);
+        Long_Query_StartBar(app, scratch, "Replace: ", replace_str);
     
     String8 with_string = Long_Query_String(app, scratch, "With: ");
     if (!with_string.str)
         return;
     
-    Long_Query_StartBar(app, scratch, S8Lit("Replace? (enter), (Page)Up, (Page)Down, (esc)\n"), {});
+    Long_Query_StartBar(app, scratch, "Replace? (enter), (Page)Up, (Page)Down, (esc)\n", {});
     
     String8 w = with_string;
     String8 r = replace_str;
@@ -2598,29 +2547,37 @@ function void Long_Query_Replace(Application_Links* app, String8 replace_str, i6
     View_ID view = get_active_view(app, Access_ReadVisible);
     Buffer_ID buffer = view_get_buffer(app, view, Access_ReadVisible);
     
-    Vec2_f32 old_margin = {};
-    Vec2_f32 old_push_in = {};
-    view_get_camera_bounds(app, view, &old_margin, &old_push_in);
+    Rect_f32 bounds = Long_Camera_PushBounds(app, view);
     
-    Vec2_f32 margin = old_margin;
-    margin.y = clamp_bot(200.f, margin.y);
-    view_set_camera_bounds(app, view, margin, old_push_in);
+    Scan_Direction dir = Scan_Forward;
+    Range_i64 range = buffer_range(app, buffer);
+    i64 size = r.size;
     
     i64 pos = start_pos;
-    seek_string_forward(app, buffer, pos - 1, 0, r, &pos);
-    if (pos == buffer_get_size(app, buffer))
-        pos = start_pos;
+    {
+        seek_string_forward(app, buffer, pos-1, range.end, r, &pos);
+        
+        if (pos == range.end)
+        {
+            seek_string_backward(app, buffer, pos+1, 0, r, &pos);
+            
+            if (pos == -1)
+            {
+                pos = start_pos;
+                size = 0;
+            }
+        }
+    }
     
-    i64 size = r.size;
-    Scan_Direction scan = Scan_Forward;
+    Mapping* mapping = 0;
+    Command_Map* map = 0;
     
-    User_Input in = {};
     for (;;)
     {
         Range_i64 match = Ii64_size(pos, size);
         isearch__update_highlight(app, view, match);
         
-        in = get_next_input(app, EventProperty_AnyKey, EventProperty_Escape|EventProperty_MouseButton);
+        User_Input in = get_next_input(app, EventPropertyGroup_Any, EventProperty_Escape);
         if (in.abort)
         {
             if (!has_modifier(&in, KeyCode_Shift))
@@ -2628,68 +2585,58 @@ function void Long_Query_Replace(Application_Links* app, String8 replace_str, i6
             break;
         }
         
-        b32 replaced = false;
+        b32 replaced = 0;
+        b32 do_scan_action = 1;
+        
         if (match_key_code(&in, KeyCode_Return) || match_key_code(&in, KeyCode_Tab))
         {
-            if (range_size(match) > 0)
+            if (size)
             {
                 buffer_replace_range(app, buffer, match, w);
                 pos = match.start + w.size;
-                replaced = true;
-                
-                if (scan == Scan_Forward) goto FORWARD;
-                else                      goto BACKWARD;
+                replaced = 1;
             }
-            else break;
+            else
+            {
+                Long_Render_FadeError(app, buffer, Ii64_size(pos, r.size));
+                break;
+            }
         }
         
         else if (match_key_code(&in, KeyCode_PageDown) || match_key_code(&in, KeyCode_Down))
+            dir = Scan_Forward;
+        else if (match_key_code(&in, KeyCode_PageUp) || match_key_code(&in, KeyCode_Up))
+            dir = Scan_Backward;
+        
+        else
         {
-            FORWARD:
-            scan = Scan_Forward;
+            do_scan_action = 0;
+            if (match_key_code(&in, KeyCode_E) && has_modifier(&in, KeyCode_Control))
+                center_view(app);
+            else if (Long_Mapping_HandleCommand(app, view, &mapping, &map, &in))
+                break;
+            else
+                Long_Mouse_ScrollWheel(app, view);
+        }
+        
+        if (do_scan_action)
+        {
             i64 new_pos;
-            seek_string_forward(app, buffer, pos, 0, r, &new_pos);
-            if (new_pos < buffer_get_size(app, buffer))
+            seek_string(app, buffer, pos, range.max, range.min, r, &new_pos,
+                        dir == Scan_Backward ? BufferSeekString_Backward : 0);
+            
+            if (range_contains(range, new_pos))
             {
                 pos = new_pos;
                 size = r.size;
             }
             else if (replaced)
-            {
-                FAILED:
                 size = 0;
-            }
         }
-        
-        else if (match_key_code(&in, KeyCode_PageUp  ) || match_key_code(&in, KeyCode_Up  ))
-        {
-            BACKWARD:
-            scan = Scan_Backward;
-            i64 new_pos;
-            seek_string_backward(app, buffer, pos, 0, r, &new_pos);
-            if (new_pos >= 0)
-            {
-                pos = new_pos;
-                size = r.size;
-            }
-            else if (replaced) goto FAILED;
-        }
-        
-        else if (match_key_code(&in, KeyCode_E) && has_modifier(&in, KeyCode_Control))
-            center_view(app);
     }
     
-    view_disable_highlight_range(app, view);
-    
     view_set_cursor_and_preferred_x(app, view, seek_pos(pos));
-    view_set_camera_bounds(app, view, old_margin, old_push_in);
-}
-
-function void Long_Query_Replace(Application_Links* app, Buffer_ID buffer, Range_i64 range, b32 add_replace_bar)
-{
-    Scratch_Block scratch(app);
-    String8 replace = push_buffer_range(app, scratch, buffer, range);
-    Long_Query_Replace(app, replace, range.min, true);
+    Long_Camera_PopBounds(app, view, bounds);
 }
 
 CUSTOM_COMMAND_SIG(long_query_replace)
@@ -2700,10 +2647,17 @@ CUSTOM_DOC("Queries the user for two strings, and incrementally replaces every o
     if (buffer)
     {
         Scratch_Block scratch(app);
+        Query_Bar_Group group(app);
         String8 replace = Long_Query_String(app, scratch, "Replace: ");
         Long_Query_Replace(app, replace, view_get_cursor_pos(app, view), false);
-        clear_all_query_bars(app, get_active_view(app, 0));
     }
+}
+
+function void Long_Query_Replace(Application_Links* app, Buffer_ID buffer, Range_i64 range, b32 add_replace_bar)
+{
+    Scratch_Block scratch(app);
+    String8 replace = push_buffer_range(app, scratch, buffer, range);
+    Long_Query_Replace(app, replace, range.min, true);
 }
 
 CUSTOM_COMMAND_SIG(long_query_replace_identifier)
@@ -2728,14 +2682,29 @@ CUSTOM_DOC("Queries the user for a string, and incrementally replace every occur
         Long_Query_Replace(app, buffer, get_view_range(app, view), 1);
 }
 
-function void Long_Query_ReplaceRange(Application_Links* app, Buffer_ID buffer, Range_i64 range)
+function void Long_Query_ReplaceRange(Application_Links* app, View_ID view, Buffer_ID buffer, Range_i64 range)
 {
     Scratch_Block scratch(app);
     Query_Bar_Group group(app);
     
     String8 replace = Long_Query_String(app, scratch, "Replace: ");
-    if (!replace.size) return; // NOTE(long): Must check for size rather than str 
+    if (!replace.size) // NOTE(long): Must check for size rather than str 
+        return;
+    
+    // NOTE(long): Highlight all matches
+    {
+        i64 pos = range.min - 1;
+        REPEAT:
+        seek_string_forward(app, buffer, pos, range.end, replace, &pos);
+        if (pos <= range.end)
+        {
+            Long_Highlight_Push(app, view, Ii64_size(pos, replace.size));
+            goto REPEAT;
+        }
+    }
+    
     String8 with = Long_Query_String(app, scratch, "With: ");
+    Long_Highlight_Clear(app, view);
     if (!with.str) return;
     
     // @COPYPASTA(long): replace_in_range
@@ -2745,6 +2714,7 @@ function void Long_Query_ReplaceRange(Application_Links* app, Buffer_ID buffer, 
         i64 pos = range.min - 1;
         i64 new_pos = 0;
         seek_string_forward(app, buffer, pos, range.end, replace, &new_pos);
+        b32 has_match = new_pos + (i64)replace.size <= range.end;
         
         i64 shift = replace_range_shift(replace.size, with.size);
         while (new_pos + (i64)replace.size <= range.end)
@@ -2752,14 +2722,16 @@ function void Long_Query_ReplaceRange(Application_Links* app, Buffer_ID buffer, 
             buffer_replace_range(app, buffer, Ii64_size(new_pos, replace.size), with);
             {
                 Range_i64 fade_range = Ii64_size(new_pos, with.size ? with.size : replace.size);
-                ARGB_Color color = fcolor_resolve(fcolor_id(defcolor_highlight));
-                buffer_post_fade(app, buffer, .5f, fade_range, color);
+                buffer_post_fade(app, buffer, .5f, fade_range, fcolor_resolve(fcolor_id(defcolor_highlight)));
             }
             
             range.end += shift;
             pos = new_pos + (i32)with.size - 1;
             seek_string_forward(app, buffer, pos, range.end, replace, &new_pos);
         }
+        
+        if (!has_match)
+            Long_Render_FadeError(app, buffer, range);
         
         history_group_end(history);
     }
@@ -2771,7 +2743,7 @@ CUSTOM_DOC("Queries the user for a needle and string. Replaces all occurences of
     View_ID view = get_active_view(app, Access_ReadWriteVisible);
     Buffer_ID buffer = view_get_buffer(app, view, Access_ReadWriteVisible);
     Range_i64 range = get_view_range(app, view);
-    Long_Query_ReplaceRange(app, buffer, range);
+    Long_Query_ReplaceRange(app, view, buffer, range);
 }
 
 //~ NOTE(long): Index Commands
@@ -2783,8 +2755,6 @@ CUSTOM_DOC("Toggles code peek.")
     // @COPYPASTA(long): f4_code_peek
     global_code_peek_open ^= 1;
 }
-
-// TODO(long): f4_code_peek_yank/f4_code_peek_clear
 
 //- NOTE(long): Positional Context
 CUSTOM_COMMAND_SIG(long_toggle_pos_context)
@@ -2807,7 +2777,7 @@ CUSTOM_DOC("Switches between drawing the position context at cursor position or 
 }
 
 //- NOTE(long): Jumping
-function i64 Long_Boundary_ANUD(Application_Links *app, Buffer_ID buffer, Side side, Scan_Direction direction, i64 pos)
+function i64 Long_Boundary_ANUD(Application_Links* app, Buffer_ID buffer, Side side, Scan_Direction direction, i64 pos)
 {
     return boundary_predicate(app, buffer, side, direction, pos, &long_predicate_alpha_numeric_underscore_dot);
 }
@@ -3286,28 +3256,26 @@ CUSTOM_DOC("replace the text between the mark and the cursor with the text from 
     {
         View_ID view = get_active_view(app, Access_ReadWriteVisible);
         if_view_has_highlighted_range_delete_range(app, view);
-        
         set_next_rewrite(app, view, Rewrite_Paste);
         
         Managed_Scope scope = view_get_managed_scope(app, view);
         i32* paste_index = scope_attachment(app, scope, view_paste_index_loc, i32);
-        if (paste_index != 0)
+        if (paste_index)
         {
-            *paste_index = 0;
-            
             Scratch_Block scratch(app);
-            
+            *paste_index = 0;
             String_Const_u8 string = push_clipboard_index(scratch, 0, *paste_index);
-            if (string.size > 0){
+            
+            if (string.size > 0)
+            {
                 Buffer_ID buffer = view_get_buffer(app, view, Access_ReadWriteVisible);
-                
                 Range_i64 range = get_view_range(app, view);
+                
                 buffer_replace_range(app, buffer, range, string);
                 range = Ii64_size(range.min, string.size);
-                view_set_cursor_and_preferred_x(app, view, seek_pos(range.max));
                 
-                ARGB_Color argb = fcolor_resolve(fcolor_id(defcolor_paste));
-                buffer_post_fade(app, buffer, 0.667f, range, argb);
+                view_set_cursor_and_preferred_x(app, view, seek_pos(range.max));
+                buffer_post_fade(app, buffer, 0.667f, range, fcolor_resolve(fcolor_id(defcolor_paste)));
             }
         }
     }
@@ -4459,7 +4427,8 @@ function void Long_Config_ApplyFromData(Application_Links* app, String8 data, i3
 
 //~ NOTE(long): Command-related Commands
 
-function Custom_Command_Function* Long_Query_User_Command(Application_Links* app, String8 query, Command_Lister_Status_Rule* rule)
+// @COPYPASTA(long): get_command_from_user
+function Custom_Command_Function* Long_Lister_GetCommand(Application_Links* app, String8 query, Command_Lister_Status_Rule* rule)
 {
     Scratch_Block scratch(app);
     Lister_Block lister(app, scratch);
@@ -4513,7 +4482,7 @@ CUSTOM_DOC("Opens an interactive list of all registered commands.")
         else
             rule = command_lister_status_descriptions();
         
-        Custom_Command_Function* func = Long_Query_User_Command(app, S8Lit("Command:"), &rule);
+        Custom_Command_Function* func = Long_Lister_GetCommand(app, S8Lit("Command:"), &rule);
         if (func)
             view_enqueue_command_function(app, view, func);
     }
@@ -4521,25 +4490,21 @@ CUSTOM_DOC("Opens an interactive list of all registered commands.")
 
 // @COPYPASTA(long): execute_any_cli
 CUSTOM_COMMAND_SIG(long_execute_any_cli)
-CUSTOM_DOC("Queries for an output buffer name and system command, runs the system command as a CLI and prints the output to the specified buffer."){
+CUSTOM_DOC("Queries for an output buffer name and system command, runs the system command as a CLI and prints the output to the specified buffer.")
+{
     Scratch_Block scratch(app);
     Query_Bar_Group group(app);
     
-    Query_Bar _bar = {};
-    String8 out = Long_Query_FillBar(app, scratch, "Output Buffer: ", out_buffer_space,
-                                     sizeof(out_buffer_space)-1, S8Lit("*run*"));
-    if (!out.str) return;
+    String8 out = Long_Query_FillBar(app, scratch, "Output Buffer: ", ExpandArray(out_buffer_space) - 1, S8Lit("*run*"));
+    if (!out.size) return;
     out_buffer_space[out.size] = 0;
     
-    String8 cmd = Long_Query_FillBar(app, scratch, "Command: ", command_space,
-                                     sizeof(command_space)-1, string_u8_empty);
-    if (!cmd.str) return;
+    String8 cmd = Long_Query_FillBar(app, scratch, "Command: ", ExpandArray(command_space) - 1, {});
+    if (!cmd.size) return;
     command_space[cmd.size] = 0;
     
-    String_Const_u8 hot = push_hot_directory(app, scratch);
-    u64 size = clamp_top(hot.size, sizeof(hot_directory_space));
-    block_copy(hot_directory_space, hot.str, size);
-    hot_directory_space[hot.size] = 0;
+    String8 hot = push_hot_directory(app, scratch);
+    Long_Block_CopyStr(ExpandArray(hot_directory_space), hot);
     
     execute_previous_cli(app);
 }
@@ -4863,6 +4828,24 @@ CUSTOM_DOC("Unindent the selected range.")
     Long_ReIndentRange(app, view, buffer, -1);
 }
 
+function i64 Long_Line_FirstNonWhitespace(Application_Links* app, Buffer_ID buffer, i64 line)
+{
+    Scratch_Block scratch(app);
+    Range_i64 range = get_line_pos_range(app, buffer, line);
+    String8 str = push_buffer_range(app, scratch, buffer, range);
+    i64 result = string_find_first_non_whitespace(str) + range.first;
+    return result;
+}
+
+function i64 Long_Line_LastNonWhitespace(Application_Links* app, Buffer_ID buffer, i64 line)
+{
+    Scratch_Block scratch(app);
+    Range_i64 range = get_line_pos_range(app, buffer, line);
+    String8 str = push_buffer_range(app, scratch, buffer, range);
+    i64 result = string_find_last_non_whitespace(str) + range.first;
+    return result;
+}
+
 // @COPYPASTA(long): F4_SetLineCommentedOnLine
 function void Long_Comment_ToggleLine(Application_Links* app, Buffer_ID buffer, i64* cursor_p, i64* mark_p)
 {
@@ -4873,10 +4856,10 @@ function void Long_Comment_ToggleLine(Application_Links* app, Buffer_ID buffer, 
     
     if (cursor_line == mark_line)
     {
-        i64 line_start = get_pos_past_lead_whitespace_from_line_number(app, buffer, cursor_line);
+        i64 line_start = Long_Line_FirstNonWhitespace(app, buffer, cursor_line);
         i64 line_end = line_start;
         
-        b32 is_blank = line_is_blank(app, buffer, cursor_line);;
+        b32 is_blank = line_is_blank(app, buffer, cursor_line);
         if (!is_blank)
         {
             String8 str = string_u8_empty;
@@ -4922,6 +4905,7 @@ function void Long_Comment_SetRange(Application_Links* app, Buffer_ID buffer, i6
     {
         String_Const_u8 opener = push_buffer_range(app, scratch, buffer, Ii64(range.min, range.min+2));
         String_Const_u8 closer = push_buffer_range(app, scratch, buffer, Ii64(range.max-2, range.max));
+        // @CONSIDER(long): Rather than match both the opener and closer, maybe only check the first one but seek the latter instead
         if (string_match(opener, S8Lit("/*")) && string_match(closer, S8Lit("*/")))
         {
             buffer_replace_range(app, buffer, Ii64(range.max-2, range.max), S8Lit(""));
@@ -4946,12 +4930,22 @@ function void Long_Comment_ToggleRange(Application_Links* app, Buffer_ID buffer,
     Range_i64 line_range = F4_LineRangeFromPosRange(app, buffer, range);
     Token_Array tokens = get_token_array_from_buffer(app, buffer);
     
+    i64 beg_of_min_line = Long_Line_FirstNonWhitespace(app, buffer, line_range.min);
+    i64 end_of_max_line =  Long_Line_LastNonWhitespace(app, buffer, line_range.max);
+    
     b32 already_has_block_comment = 0;
     {
         u8 check_buffer[2];
-        if (buffer_read_range(app, buffer, Ii64(range.min, range.min + 2), check_buffer))
+        i64 check_pos = clamp_bot(beg_of_min_line, range.min);
+        if (buffer_read_range(app, buffer, Ii64_size(check_pos, 2), check_buffer))
             if (check_buffer[0] == '/' && check_buffer[1] == '*')
                 already_has_block_comment = 1;
+        
+        if (already_has_block_comment)
+        {
+            if (cursor > mark) mark = check_pos;
+            else             cursor = check_pos;
+        }
     }
     
     // NOTE(rjf): No selection
@@ -4977,7 +4971,7 @@ function void Long_Comment_ToggleRange(Application_Links* app, Buffer_ID buffer,
         if (!already_has_block_comment)
         {
             i64 min_pos = Min(cursor, mark);
-            i64 start_of_line = get_pos_past_lead_whitespace_from_line_number(app, buffer, line_range.min);
+            i64 max_pos = Max(cursor, mark);
             
             // NOTE(long): Use a multi-line block comment if there's at least one line that has a single-line comment
             b32 has_one_comment_line = 0, has_all_comment_lines = 1;
@@ -4985,7 +4979,7 @@ function void Long_Comment_ToggleRange(Application_Links* app, Buffer_ID buffer,
             {
                 if (!line_is_blank(app, buffer, i))
                 {
-                    i64 pos = get_pos_past_lead_whitespace_from_line_number(app, buffer, i);
+                    i64 pos = Long_Line_FirstNonWhitespace(app, buffer, i);
                     if (c_line_comment_starts_at_position(app, buffer, pos))
                         has_one_comment_line = 1;
                     else
@@ -4994,7 +4988,7 @@ function void Long_Comment_ToggleRange(Application_Links* app, Buffer_ID buffer,
             }
             
             // NOTE(rjf): Selection starts on first column.
-            if (min_pos == start_of_line && (!has_one_comment_line || has_all_comment_lines))
+            if (min_pos == beg_of_min_line && max_pos > end_of_max_line && (!has_one_comment_line || has_all_comment_lines))
             {
                 for (i64 i = line_range.min; i <= line_range.max; i += 1)
                 {
@@ -5003,15 +4997,16 @@ function void Long_Comment_ToggleRange(Application_Links* app, Buffer_ID buffer,
                     Long_Comment_ToggleLine(app, buffer, &cursor2, &mark2);
                 }
                 
+                end_of_max_line = Long_Line_LastNonWhitespace(app, buffer, line_range.max) + 1;
                 if (cursor < mark)
                 {
-                    cursor = start_of_line;
-                    mark = get_line_end_pos(app, buffer, line_range.max);
+                    cursor = beg_of_min_line;
+                    mark = end_of_max_line;
                 }
                 else
                 {
-                    mark = start_of_line;
-                    cursor = get_line_end_pos(app, buffer, line_range.max);
+                    mark = beg_of_min_line;
+                    cursor = end_of_max_line;
                 }
             }
             
@@ -5021,6 +5016,7 @@ function void Long_Comment_ToggleRange(Application_Links* app, Buffer_ID buffer,
         else Long_Comment_SetRange(app, buffer, &cursor, &mark, 0);
     }
     
+    buffer_post_fade(app, buffer, .5f, Ii64(cursor, mark), F4_ARGBFromID(active_color_table, defcolor_highlight));
     *cursor_p = cursor;
     *mark_p = mark;
 }

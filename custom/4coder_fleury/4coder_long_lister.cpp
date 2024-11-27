@@ -472,15 +472,15 @@ function void Long_Lister_Refresh(Application_Links *app, Lister *lister){
 // @CONSIDER(long): Rather than hard-coded key, I can match each command's binding.
 function b32 Long_Lister_HandleKeyStroke(Application_Links* app, Lister* lister, User_Input in)
 {
+    Scratch_Block scratch(app, lister->arena);
     b32 result = 0;
     
     switch (in.event.key.code)
     {
         case KeyCode_V:
         {
-            if (result = has_modifier(&in, KeyCode_Control))
+            if (has_modifier(&in, KeyCode_Control))
             {
-                Scratch_Block scratch(app, lister->arena);
                 String8 string = push_clipboard_index(scratch, 0, 0);
                 if (string.size)
                 {
@@ -490,21 +490,30 @@ function b32 Long_Lister_HandleKeyStroke(Application_Links* app, Lister* lister,
                     lister_zero_scroll(lister);
                     Long_Lister_FilterList(app, lister);
                 }
+                
+                result = 1;
             }
         } break;
         
         case KeyCode_C:
         {
-            if (result = has_modifier(&in, KeyCode_Control))
+            if (has_modifier(&in, KeyCode_Control))
+            {
                 clipboard_post(0, lister->text_field.string);
+                result = 1;
+            }
         } break;
         
         case KeyCode_Tick:
         {
-            if (result = has_modifier(&in, KeyCode_Control))
+            result = 1;
+            if (has_modifier(&in, KeyCode_Control))
                 long_lister_tooltip_peek ^= 0x80000000;
-            else if (result = has_modifier(&in, KeyCode_Alt))
+            else if (has_modifier(&in, KeyCode_Alt))
                 long_lister_tooltip_peek ^= 1;
+            else
+                result = 0;
+            
             lister->set_vertical_focus_to_item = result;
         } break;
     }
@@ -626,244 +635,148 @@ function Lister_Result Long_Lister_Run(Application_Links* app, Lister* lister)
     
     View_ID view = get_this_ctx_view(app, Access_Always);
     
-    Mapping* mapping = lister->mapping;
-    Command_Map* map = lister->map;
-    {
-        Buffer_ID buffer = view_get_buffer(app, view, Access_Always);
-        Managed_Scope buffer_scope = buffer_get_managed_scope(app, buffer);
-        Command_Map_ID* map_id_ptr = scope_attachment(app, buffer_scope, buffer_map_id, Command_Map_ID);
-        if (map_id_ptr)
-            map = mapping_get_map(mapping, *map_id_ptr);
-    }
+    Mapping* mapping = 0;
+    Command_Map* map = 0;
     
     View_Context ctx = view_current_context(app, view);
     ctx.render_caller = Long_Lister_Render;
     ctx.hides_buffer = true;
     View_Context_Block ctx_block(app, view, &ctx);
     
-    for (;;){
+    for (;;)
+    {
         User_Input in = get_next_input(app, EventPropertyGroup_Any, EventProperty_Escape);
-        if (in.abort){
+        if (in.abort)
+        {
             block_zero_struct(&lister->out);
             lister->out.canceled = true;
             break;
         }
         
         Lister_Activation_Code result = ListerActivation_Continue;
-        b32 handled = true;
-        switch (in.event.kind){
+        b32 handled = 1;
+        i32 dir = -1;
+        switch (in.event.kind)
+        {
             case InputEventKind_TextInsert:
             {
-                if (lister->handlers.write_character != 0){
+                if (lister->handlers.write_character != 0)
                     result = lister->handlers.write_character(app);
-                }
-            }break;
+            } break;
             
             case InputEventKind_KeyStroke:
             {
-                switch (in.event.key.code){
+                switch (in.event.key.code)
+                {
                     case KeyCode_Return:
                     case KeyCode_Tab:
                     {
-                        void *user_data = 0;
-                        if (0 <= lister->raw_item_index &&
-                            lister->raw_item_index < lister->options.count){
+                        void* user_data = 0;
+                        if (0 <= lister->raw_item_index && lister->raw_item_index < lister->options.count)
                             user_data = lister_get_user_data(lister, lister->raw_item_index);
-                        }
                         lister_activate(app, lister, user_data, false);
                         result = ListerActivation_Finished;
-                    }break;
+                    } break;
                     
                     case KeyCode_Backspace:
                     {
-                        if (lister->handlers.backspace != 0){
+                        if (lister->handlers.backspace)
                             lister->handlers.backspace(app);
-                        }
-                        else if (lister->handlers.key_stroke != 0){
-                            result = lister->handlers.key_stroke(app);
-                        }
-                        else{
+                        else
                             handled = false;
-                        }
-                    }break;
+                    } break;
                     
+                    case KeyCode_Down: dir = 1;
                     case KeyCode_Up:
                     {
-                        if (lister->handlers.navigate != 0){
-                            lister->handlers.navigate(app, view, lister, -1);
-                        }
-                        else if (lister->handlers.key_stroke != 0){
-                            result = lister->handlers.key_stroke(app);
-                        }
-                        else{
+                        if (lister->handlers.navigate)
+                            lister->handlers.navigate(app, view, lister, dir);
+                        else
                             handled = false;
-                        }
-                    }break;
+                    } break;
                     
-                    case KeyCode_Down:
-                    {
-                        if (lister->handlers.navigate != 0){
-                            lister->handlers.navigate(app, view, lister, 1);
-                        }
-                        else if (lister->handlers.key_stroke != 0){
-                            result = lister->handlers.key_stroke(app);
-                        }
-                        else{
-                            handled = false;
-                        }
-                    }break;
-                    
+                    case KeyCode_PageDown: dir = 1;
                     case KeyCode_PageUp:
                     {
-                        if (lister->handlers.navigate != 0){
-                            lister->handlers.navigate(app, view, lister,
-                                                      -lister->visible_count);
-                        }
-                        else if (lister->handlers.key_stroke != 0){
-                            result = lister->handlers.key_stroke(app);
-                        }
-                        else{
+                        if (lister->handlers.navigate)
+                            lister->handlers.navigate(app, view, lister, lister->visible_count * dir);
+                        else
                             handled = false;
-                        }
-                    }break;
+                    } break;
                     
-                    case KeyCode_PageDown:
-                    {
-                        if (lister->handlers.navigate != 0){
-                            lister->handlers.navigate(app, view, lister,
-                                                      lister->visible_count);
-                        }
-                        else if (lister->handlers.key_stroke != 0){
-                            result = lister->handlers.key_stroke(app);
-                        }
-                        else{
-                            handled = false;
-                        }
-                    }break;
-                    
-                    default:
-                    {
-                        if (lister->handlers.key_stroke != 0){
-                            result = lister->handlers.key_stroke(app);
-                        }
-                        else{
-                            handled = Long_Lister_HandleKeyStroke(app, lister, in);
-                        }
-                    }break;
+                    default: handled = 0; break;
                 }
-            }break;
+                
+                if (!handled)
+                {
+                    handled = 1;
+                    if (lister->handlers.key_stroke)
+                        result = lister->handlers.key_stroke(app);
+                    else
+                        handled = Long_Lister_HandleKeyStroke(app, lister, in);
+                }
+            } break;
             
             case InputEventKind_MouseButton:
             {
-                switch (in.event.mouse.code){
-                    case MouseCode_Left:
-                    {
-                        Vec2_f32 p = V2f32(in.event.mouse.p);
-                        void *clicked = lister_user_data_at_p(app, view, lister, p);
-                        lister->hot_user_data = clicked;
-                    }break;
-                    
-                    default:
-                    {
-                        handled = false;
-                    }break;
+                switch (in.event.mouse.code)
+                {
+                    case MouseCode_Left: lister->hot_user_data = lister_user_data_at_p(app, view, lister, V2f32(in.event.mouse.p)); break;
+                    default: handled = false; break;
                 }
-            }break;
+            } break;
             
             case InputEventKind_MouseButtonRelease:
             {
-                switch (in.event.mouse.code){
+                switch (in.event.mouse.code)
+                {
                     case MouseCode_Left:
                     {
-                        if (lister->hot_user_data != 0){
-                            Vec2_f32 p = V2f32(in.event.mouse.p);
-                            void *clicked = lister_user_data_at_p(app, view, lister, p);
-                            if (lister->hot_user_data == clicked){
+                        if (lister->hot_user_data)
+                        {
+                            void* clicked = lister_user_data_at_p(app, view, lister, V2f32(in.event.mouse.p));
+                            
+                            if (lister->hot_user_data == clicked)
+                            {
                                 lister_activate(app, lister, clicked, true);
                                 result = ListerActivation_Finished;
                             }
                         }
+                        
                         lister->hot_user_data = 0;
-                    }break;
+                    } break;
                     
-                    default:
-                    {
-                        handled = false;
-                    }break;
+                    default: handled = false; break;
                 }
-            }break;
+            } break;
             
             case InputEventKind_MouseWheel:
             {
                 Mouse_State mouse = get_mouse_state(app);
                 lister->scroll.target.y += mouse.wheel;
                 Long_Lister_FilterList(app, lister);
-            }break;
+            } break;
             
-            case InputEventKind_MouseMove:
-            {
-                Long_Lister_FilterList(app, lister);
-            }break;
+            case InputEventKind_MouseMove: Long_Lister_FilterList(app, lister); break;
             
             case InputEventKind_Core:
             {
-                switch (in.event.core.code){
-                    case CoreCode_Animate:
-                    {
-                        Long_Lister_FilterList(app, lister);
-                    }break;
-                    
-                    default:
-                    {
-                        handled = false;
-                    }break;
-                }
-            }break;
-            
-            default:
-            {
-                handled = false;
-            }break;
-        }
-        
-        if (result == ListerActivation_Finished){
-            break;
-        }
-        
-        if (!handled){
-            
-            // @COYPASTA(long): fallback_command_dispatch
-            Fallback_Dispatch_Result disp_result = {};
-            {
-                if (mapping && map)
+                switch (in.event.core.code)
                 {
-                    Command_Binding binding = map_get_binding_recursive(mapping, map, &in.event);
-                    if (binding.custom != 0)
-                    {
-                        Command_Metadata* metadata = get_command_metadata(binding.custom);
-                        if (metadata && metadata->is_ui)
-                        {
-                            disp_result.code = FallbackDispatch_DelayedUICall;
-                            disp_result.func = binding.custom;
-                        }
-                        else
-                        {
-                            disp_result.code = FallbackDispatch_DidCall;
-                            disp_result.func = binding.custom;
-                        }
-                    }
+                    case CoreCode_Animate: Long_Lister_FilterList(app, lister); break;
+                    default: handled = false; break;
                 }
-            }
+            } break;
             
-            if (disp_result.code == FallbackDispatch_DelayedUICall || disp_result.code == FallbackDispatch_DidCall)
-            {
-                // NOTE(long): Delay the call for FallbackDispatch_DidCall because it doesn't seem safe to call func here.
-                // For example, view_snap_mark_to_cursor will return a null pointer.
-                call_after_ctx_shutdown(app, view, disp_result.func);
+            default: handled = false; break;
+        }
+        
+        if (result == ListerActivation_Finished) break;
+        
+        if (!handled)
+        {
+            if (Long_Mapping_HandleCommand(app, view, &mapping, &map, &in))
                 break;
-            }
-            
-            leave_current_input_unhandled(app); // disp_result.code == FallbackDispatch_Unhandled
         }
     }
     

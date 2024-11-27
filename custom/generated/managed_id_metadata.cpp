@@ -90,4 +90,5 @@ long_point_stacks = managed_id_declare(app, string_u8_litexpr("attachment"), str
 long_search_string_size = managed_id_declare(app, string_u8_litexpr("attachment"), string_u8_litexpr("long_search_string_size"));
 long_start_selection_offset = managed_id_declare(app, string_u8_litexpr("attachment"), string_u8_litexpr("long_start_selection_offset"));
 long_selection_pos_offset = managed_id_declare(app, string_u8_litexpr("attachment"), string_u8_litexpr("long_selection_pos_offset"));
+long_highlight_list = managed_id_declare(app, string_u8_litexpr("attachment"), string_u8_litexpr("long_highlight_list"));
 }

@@ -1,4 +1,6 @@
 
+//~ NOTE(long): Bindings
+
 // @COPYPASTA(long): setup_essential_mapping
 function void Long_Binding_SetupEssential(Mapping* mapping, i64 global_id, i64 file_id, i64 code_id)
 {
@@ -414,5 +416,43 @@ function b32 Long_Binding_LoadData(Application_Links* app, Mapping* mapping, Str
         }
     }
     
+    return result;
+}
+
+//~ NOTE(long): Mapping
+
+function Command_Map* Long_Mapping_GetMap(Application_Links* app, View_ID view, Mapping** mapping)
+{
+    View_Context ctx = view_current_context(app, view);
+    Buffer_ID buffer = view_get_buffer(app, view, 0);
+    *mapping = ctx.mapping;
+    
+    Command_Map* map = 0;
+    Managed_Scope buffer_scope = buffer_get_managed_scope(app, buffer);
+    Command_Map_ID* map_id = scope_attachment(app, buffer_scope, buffer_map_id, Command_Map_ID);
+    map = mapping_get_map(*mapping, map_id ? *map_id : ctx.map_id);
+    
+    return map;
+}
+
+function Command_Metadata* Long_Mapping_GetMetadata(Mapping* mapping, Command_Map* map, User_Input* in)
+{
+    Command_Binding binding = map_get_binding_recursive(mapping, map, &in->event);
+    Custom_Command_Function* custom = binding.custom;
+    Command_Metadata* metadata = custom ? get_command_metadata(custom) : 0;
+    return metadata;
+}
+
+function b32 Long_Mapping_HandleCommand(Application_Links* app, View_ID view, Mapping** mapping, Command_Map** map, User_Input* in)
+{
+    if (!*mapping || !*map)
+        *map = Long_Mapping_GetMap(app, view, mapping);
+    Command_Metadata* metadata = Long_Mapping_GetMetadata(*mapping, *map, in);
+    
+    b32 result = metadata && metadata->is_ui;
+    if (result)
+        view_enqueue_command_function(app, view, metadata->proc);
+    else
+        leave_current_input_unhandled(app);
     return result;
 }

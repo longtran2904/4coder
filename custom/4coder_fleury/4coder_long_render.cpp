@@ -150,7 +150,6 @@ function void Long_Render_NotepadCursor(Application_Links* app, View_ID view, b3
                                         Buffer_ID buffer, Text_Layout_ID layout,
                                         f32 roundness, f32 thickness, Frame_Info frame)
 {
-    //b32 has_highlight_range = Long_Highlight_DrawRange(app, view, buffer, layout, roundness);
     b32 has_highlight_range = Long_Highlight_HasRange(app, view);
     if (!has_highlight_range)
     {
@@ -193,7 +192,6 @@ function void Long_Render_EmacsCursor(Application_Links* app, View_ID view_id, b
     Rect_f32 clip = draw_set_clip(app, view_rect);
     Range_i64 visible_range = text_layout_get_visible_range(app, text_layout_id);
     
-    //b32 has_highlight_range = Long_Highlight_DrawRange(app, view_id, buffer, text_layout_id, roundness);
     b32 has_highlight_range = Long_Highlight_HasRange(app, view_id);
     if (!has_highlight_range)
     {
@@ -560,6 +558,81 @@ CUSTOM_DOC("Toggles between line numbers and offsets.")
 
 //~ NOTE(long): Highlight Rendering
 
+struct Long_Highlight_Node
+{
+    Long_Highlight_Node* next;
+    Range_i64 range;
+};
+
+struct Long_Highlight_List
+{
+    Arena arena;
+    Buffer_ID buffer;
+    Long_Highlight_Node* first;
+};
+
+CUSTOM_ID(attachment, long_highlight_list);
+
+function Long_Highlight_List* Long_Highlight_GetList(Application_Links* app, View_ID view)
+{
+    Managed_Scope scope = view_get_managed_scope(app, view);
+    Long_Highlight_List* list = scope_attachment(app, scope, long_highlight_list, Long_Highlight_List);
+    if (!list->arena.base_allocator)
+        list->arena = make_arena_system();
+    return list;
+}
+
+function void Long_Highlight_ClearList(Long_Highlight_List* list)
+{
+    linalloc_clear(&list->arena);
+    list->first = 0;
+}
+
+function void Long_Highlight_Push(Application_Links* app, View_ID view, Range_i64 range)
+{
+    Long_Highlight_List* list = Long_Highlight_GetList(app, view);
+    
+    Buffer_ID buffer = view_get_buffer(app, view, Access_Always);
+    if (buffer != list->buffer)
+    {
+        Long_Highlight_ClearList(list);
+        list->buffer = buffer;
+    }
+    
+    b32 overlapped = 0;
+    for (Long_Highlight_Node* node = list->first; node; node = node->next)
+        if (range_overlap(node->range, range))
+            overlapped = 1;
+    
+    if (!overlapped)
+    {
+        Long_Highlight_Node* node = push_array_zero(&list->arena, Long_Highlight_Node, 1);
+        node->range = range;
+        sll_stack_push(list->first, node);
+    }
+}
+
+function void Long_Highlight_Clear(Application_Links* app, View_ID view)
+{
+    Managed_Scope scope = view_get_managed_scope(app, view);
+    Long_Highlight_List* list = scope_attachment(app, scope, long_highlight_list, Long_Highlight_List);
+    Long_Highlight_ClearList(list);
+}
+
+function void Long_Highlight_DrawRangeList(Application_Links* app, View_ID view, Buffer_ID buffer,
+                                           Text_Layout_ID layout, f32 roundness)
+{
+    Long_Highlight_List* list = Long_Highlight_GetList(app, view);
+    if (list->buffer != buffer)
+        Long_Highlight_ClearList(list);
+    
+    for (Long_Highlight_Node* node = list->first; node; node = node->next)
+    {
+        Long_Render_DrawBlock  (app, layout, node->range, roundness, fcolor_id(defcolor_highlight));
+        paint_text_color_fcolor(app, layout, node->range, fcolor_id(defcolor_at_highlight));
+    }
+}
+
 // @COPYPASTA(long): qol_draw_compile_errors and F4_RenderErrorAnnotations
 function void Long_Highlight_DrawErrors(Application_Links* app, Buffer_ID buffer, Text_Layout_ID layout, Buffer_ID jump_buffer)
 {
@@ -752,48 +825,6 @@ function void Long_Highlight_DrawList(Application_Links* app, Buffer_ID buffer, 
 
 //~ NOTE(long): Colors
 
-// @COPYPASTA(long): qol_draw_hex_color
-function void Long_Render_HexColor(Application_Links* app, View_ID view, Buffer_ID buffer, Text_Layout_ID layout)
-{
-    Scratch_Block scratch(app);
-    Range_i64 visible_range = text_layout_get_visible_range(app, layout);
-    String_Const_u8 buffer_string = push_buffer_range(app, scratch, buffer, visible_range);
-    
-    for (i64 i = 0; i+9 < range_size(visible_range); ++i)
-    {
-        u8* str = buffer_string.str+i;
-        b32 s0 = str[0] != '0';
-        b32 s1 = str[1] != 'x';
-        if (s0 || s1)
-            continue;
-        
-        b32 all_hex = 1;
-        for (i64 j = 0; j < 8 && all_hex; ++j)
-        {
-            u8 c = str[j+2];
-            b32 is_digit = '0' <= c && c <= '9';
-            b32 is_lower = 'a' <= c && c <= 'f';
-            b32 is_upper = 'A' <= c && c <= 'F';
-            all_hex = is_digit || is_lower || is_upper;
-        }
-        if (!all_hex) continue;
-        
-        i64 pos = visible_range.min + i;
-        Rect_f32 r0 = text_layout_character_on_screen(app, layout, pos+0);
-        Rect_f32 r1 = text_layout_character_on_screen(app, layout, pos+9);
-        Rect_f32 rect = rect_inner(rect_union(r0, r1), -1.f);
-        
-        ARGB_Color color = ARGB_Color(string_to_integer(SCu8(str+2, 8), 16));
-        u32 sum = ((color >> 16) & 0xFF) + ((color >> 8) & 0xFF) + (color & 0xFF);
-        ARGB_Color contrast = ARGB_Color(0xFF000000 | (i32(sum > 330)-1));
-        
-        draw_rectangle_outline(app, rect_inner(rect, -2.f), 10.f, 4.f, contrast);
-        draw_rectangle(app, rect, 8.f, color);
-        paint_text_color(app, layout, Ii64_size(pos, 10), contrast);
-        i += 9;
-    }
-}
-
 function ARGB_Color Long_Color_Alpha(ARGB_Color color, f32 alpha)
 {
     Vec4_f32 rgba = unpack_color(color);
@@ -949,4 +980,51 @@ function void Long_SyntaxHighlight(Application_Links* app, Text_Layout_ID text_l
     F4_Language* lang = F4_LanguageFromBuffer(app, buffer);
     if (lang != 0 && lang->Highlight != 0)
         lang->Highlight(app, text_layout_id, array, table);
+}
+
+function void Long_Render_FadeError(Application_Links* app, Buffer_ID buffer, Range_i64 range)
+{
+    buffer_post_fade(app, buffer, .5f, range, fcolor_resolve(fcolor_id(defcolor_pop2)));
+}
+
+// @COPYPASTA(long): qol_draw_hex_color
+function void Long_Render_HexColor(Application_Links* app, View_ID view, Buffer_ID buffer, Text_Layout_ID layout)
+{
+    Scratch_Block scratch(app);
+    Range_i64 visible_range = text_layout_get_visible_range(app, layout);
+    String_Const_u8 buffer_string = push_buffer_range(app, scratch, buffer, visible_range);
+    
+    for (i64 i = 0; i+9 < range_size(visible_range); ++i)
+    {
+        u8* str = buffer_string.str+i;
+        b32 s0 = str[0] != '0';
+        b32 s1 = str[1] != 'x';
+        if (s0 || s1)
+            continue;
+        
+        b32 all_hex = 1;
+        for (i64 j = 0; j < 8 && all_hex; ++j)
+        {
+            u8 c = str[j+2];
+            b32 is_digit = '0' <= c && c <= '9';
+            b32 is_lower = 'a' <= c && c <= 'f';
+            b32 is_upper = 'A' <= c && c <= 'F';
+            all_hex = is_digit || is_lower || is_upper;
+        }
+        if (!all_hex) continue;
+        
+        i64 pos = visible_range.min + i;
+        Rect_f32 r0 = text_layout_character_on_screen(app, layout, pos+0);
+        Rect_f32 r1 = text_layout_character_on_screen(app, layout, pos+9);
+        Rect_f32 rect = rect_inner(rect_union(r0, r1), -1.f);
+        
+        ARGB_Color color = ARGB_Color(string_to_integer(SCu8(str+2, 8), 16));
+        u32 sum = ((color >> 16) & 0xFF) + ((color >> 8) & 0xFF) + (color & 0xFF);
+        ARGB_Color contrast = ARGB_Color(0xFF000000 | (i32(sum > 330)-1));
+        
+        draw_rectangle_outline(app, rect_inner(rect, -2.f), 10.f, 4.f, contrast);
+        draw_rectangle(app, rect, 8.f, color);
+        paint_text_color(app, layout, Ii64_size(pos, 10), contrast);
+        i += 9;
+    }
 }
