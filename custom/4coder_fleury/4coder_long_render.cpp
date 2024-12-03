@@ -146,9 +146,8 @@ function Rect_f32 Long_Render_CursorRect(Application_Links* app, View_ID view_id
     return rect;
 }
 
-function void Long_Render_NotepadCursor(Application_Links* app, View_ID view, b32 is_active_view,
-                                        Buffer_ID buffer, Text_Layout_ID layout,
-                                        f32 roundness, f32 thickness, Frame_Info frame)
+function void Long_Render_NotepadCursor(Application_Links* app, View_ID view, Buffer_ID buffer, Text_Layout_ID layout,
+                                        Frame_Info frame, f32 roundness, f32 thickness, b32 is_active_view)
 {
     b32 has_highlight_range = Long_Highlight_HasRange(app, view);
     if (!has_highlight_range)
@@ -184,9 +183,8 @@ function void Long_Render_NotepadCursor(Application_Links* app, View_ID view, b3
 }
 
 // @COPYPASTA(long): F4_Cursor_RenderEmacsStyle
-function void Long_Render_EmacsCursor(Application_Links* app, View_ID view_id, b32 is_active_view,
-                                      Buffer_ID buffer, Text_Layout_ID text_layout_id,
-                                      f32 roundness, f32 outline_thickness, Frame_Info frame_info)
+function void Long_Render_EmacsCursor(Application_Links* app, View_ID view_id, Buffer_ID buffer, Text_Layout_ID text_layout_id,
+                                      Frame_Info frame_info, f32 roundness, f32 outline_thickness, b32 is_active_view)
 {
     Rect_f32 view_rect = view_get_screen_rect(app, view_id);
     Rect_f32 clip = draw_set_clip(app, view_rect);
@@ -364,8 +362,8 @@ function Fancy_Block Long_Render_LayoutString(Application_Links* app, Arena* are
 // @COPYPASTA(long): F4_DrawTooltipRect
 function void Long_Render_TooltipRect(Application_Links* app, Rect_f32 rect, f32 roundness)
 {
-    ARGB_Color background_color = fcolor_resolve(fcolor_id(defcolor_back));
-    ARGB_Color border_color = fcolor_resolve(fcolor_id(defcolor_margin_active));
+    ARGB_Color background_color = Long_ARGBFromID(defcolor_back);
+    ARGB_Color border_color = Long_ARGBFromID(defcolor_margin_active);
     
     background_color &= 0x00ffffff;
     background_color |= 0xd0000000;
@@ -487,7 +485,7 @@ function void Long_Render_DividerComments(Application_Links* app, Buffer_ID buff
                             comment_first_char_rect.x0, comment_first_char_rect.y0-2,
                             10000                     , comment_first_char_rect.y0,
                         };
-                        draw_rectangle(app, rect, roundness, fcolor_resolve(fcolor_id(defcolor_comment)));
+                        draw_rectangle(app, rect, roundness, Long_ARGBFromID(defcolor_comment));
                     }
                     
                     // NOTE(rjf): Weak dividers.
@@ -502,7 +500,7 @@ function void Long_Render_DividerComments(Application_Links* app, Buffer_ID buff
                         
                         for (i32 i = 0; i < 1000; i += 1)
                         {
-                            draw_rectangle(app, rect, roundness, fcolor_resolve(fcolor_id(defcolor_comment)));
+                            draw_rectangle(app, rect, roundness, Long_ARGBFromID(defcolor_comment));
                             rect.x0 += dash_size*1.5f;
                             rect.x1 += dash_size*1.5f;
                         }
@@ -739,9 +737,15 @@ function b32 Long_Highlight_DrawRange(Application_Links* app, View_ID view_id, B
 }
 
 function void Long_MC_DrawHighlights(Application_Links* app, View_ID view, Buffer_ID buffer,
-                                     Text_Layout_ID layout, f32 roundness, f32 thickness)
+                                     Text_Layout_ID layout, f32 roundness, f32 thickness, b32 is_active_view)
 {
     if (def_get_config_b32(vars_save_string_lit("use_jump_highlight")))
+        return;
+    
+    // NOTE(long): Technically speaking only mc cursors and the main cursor must be in the active view
+    // The minor highlighted matches don't need to and can still be drawn on inactive views
+    // But there's currently no way for this function to know the size of each highlight (the search string's length)
+    if (!is_active_view)
         return;
     
     Buffer_ID search_buffer = Long_Buffer_GetSearchBuffer(app);
@@ -762,68 +766,23 @@ function void Long_MC_DrawHighlights(Application_Links* app, View_ID view, Buffe
             if (range_contains(visible_range, markers[i].pos))
                 Long_Render_DrawBlock(app, layout, Ii64_size(markers[i].pos, size), 0.f, fcolor_id(fleury_color_token_minor_highlight));
         
-        if (view == mc_context.view)
+        for_mc(node, mc_context.cursors)
         {
-            for_mc(node, mc_context.cursors)
-            {
-                Range_i64 range = Ii64(node->cursor_pos, node->mark_pos);
-                Long_Render_DrawBlock(app, layout, range, roundness, fcolor_change_alpha(fcolor_id(defcolor_highlight), .75f));
-                paint_text_color_fcolor(app, layout, range, fcolor_change_alpha(fcolor_id(defcolor_at_highlight), .75f));
-            }
+            Range_i64 range = Ii64(node->cursor_pos, node->mark_pos);
+            Long_Render_DrawBlock(app, layout, range, roundness, fcolor_change_alpha(fcolor_id(defcolor_highlight), .75f));
+            paint_text_color_fcolor(app, layout, range, fcolor_change_alpha(fcolor_id(defcolor_at_highlight), .75f));
         }
         
-        if (buffer != search_buffer)
-            Long_Render_CursorRect(app, view, buffer, layout, cursor, mark, roundness, thickness);
-    }
-}
-
-// @COPYPASTA(long): draw_jump_highlights
-function void Long_Highlight_DrawList(Application_Links* app, Buffer_ID buffer, Text_Layout_ID layout, f32 roundness, f32 thickness)
-{
-    if (def_get_config_b32(vars_save_string_lit("use_jump_highlight")))
-        return;
-    
-    Buffer_ID search_buffer = Long_Buffer_GetSearchBuffer(app);
-    if (search_buffer && string_match(locked_buffer, search_name))
-    {
-        Scratch_Block scratch(app);
-        View_ID view = get_active_view(app, Access_Always);
-        
-        Managed_Scope scope = buffer_get_managed_scope(app, search_buffer);
-        i64 size = *scope_attachment(app, scope, long_search_string_size, i64);
-        i32 selection_offset = *scope_attachment(app, scope, long_start_selection_offset, i32);
-        i64 pos_offset = *scope_attachment(app, scope, long_selection_pos_offset, i64);
-        
-        i32 count;
-        Marker* markers = Long_SearchBuffer_GetMarkers(app, scratch, scope, buffer, &count);
-        
-        Range_i32 select_range;
-        {
-            Locked_Jump_State jump_state = get_locked_jump_state(app, &global_heap);
-            select_range = Long_Highlight_GetRange(jump_state, selection_offset);
-            
-            Sticky_Jump_Stored current_jump = {};
-            get_stored_jump_from_list(app, jump_state.list, jump_state.list_index, &current_jump);
-            
-            i32 offset = jump_state.list_index - current_jump.index_into_marker_array;
-            select_range.min -= offset;
-            select_range.max -= offset;
-        }
-        
-        for (i32 i = 0; i < count; i += 1)
-        {
-            i64 marker_pos = markers[i].pos + pos_offset;
-            Range_i64 range = Ii64_size(marker_pos, size);
-            // NOTE(long): If the user only has one selection, the MultiSelect function already handles it
-            if (range_contains_inclusive(select_range, i))
-                Long_Render_CursorRect(app, view, buffer, layout, marker_pos + size, marker_pos, roundness, thickness);
-            else
-                Long_Render_DrawBlock(app, layout, range, 0.f, fcolor_id(fleury_color_token_minor_highlight));
-        }
+        Long_Render_CursorRect(app, view, buffer, layout, cursor, mark, roundness, thickness);
     }
 }
 
 //~ NOTE(long): Colors
+
+function ARGB_Color Long_ARGBFromID(Managed_ID id, i32 subindex)
+{
+    return F4_ARGBFromID(active_color_table, id, subindex);
+}
 
 function ARGB_Color Long_Color_Alpha(ARGB_Color color, f32 alpha)
 {
@@ -984,7 +943,12 @@ function void Long_SyntaxHighlight(Application_Links* app, Text_Layout_ID text_l
 
 function void Long_Render_FadeError(Application_Links* app, Buffer_ID buffer, Range_i64 range)
 {
-    buffer_post_fade(app, buffer, .5f, range, fcolor_resolve(fcolor_id(defcolor_pop2)));
+    buffer_post_fade(app, buffer, .5f, range, Long_ARGBFromID(defcolor_pop2));
+}
+
+function void Long_Render_FadeHighlight(Application_Links* app, Buffer_ID buffer, Range_i64 range)
+{
+    buffer_post_fade(app, buffer, .5f, range, Long_ARGBFromID(defcolor_highlight));
 }
 
 // @COPYPASTA(long): qol_draw_hex_color

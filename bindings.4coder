@@ -2,62 +2,68 @@
 keys_global =
 {
     // NOTE(rjf): Meta
-    { "exit_4coder",                        "F4",     "Alt"              },
+    { "exit_4coder",                           "F4",     "Alt"           },
     { "long_change_active_panel",           "Comma",  "Control"          },
     { "long_change_active_panel_backwards", "Comma",  "Control", "Shift" },
-    { "project_go_to_root_directory",       "H",      "Alt"              },
-    { "long_change_to_build_panel",         "Period", "Control"          },
+    { "project_go_to_root_directory",           "H",      "Alt"          },
+    { "long_change_to_build_panel",        "Period", "Control"           },
     { "close_build_panel",                  "Comma",  "Alt"              },
     { "toggle_virtual_whitespace",          "Equal",  "Control"          },
+    { "theme_lister",                           "H", "Control", "Shift"  },
+    { "MC_end_multi",                      "Escape"                      },
     
-    { "long_macro_toggle_recording",        "U",      "Control"          },
-    { "keyboard_macro_replay",              "U",      "Control", "Shift" },
-    { "long_macro_repeat",                  "U",      "Control", "Alt"   },
-    
-    { "long_toggle_compilation_expand",     "Insert"                     },
-    { "long_toggle_panel_expand",           "Insert", "Control"          },
-    { "long_toggle_panel_expand_big",       "Insert", "Control", "Shift" },
+    // NOTE(long): macro
+    { "long_macro_toggle_recording",    "U", "Control"          },
+    { "keyboard_macro_replay",          "U", "Control", "Shift" },
+    { "long_macro_repeat",              "U", "Control", "Alt"   },
     
     // NOTE(jack): Ryan has these unbound
-    { "toggle_filebar",                           "B", "Alt"              },
-    { "toggle_line_numbers",                  "Equal", "Control", "Shift" },
-    { "toggle_fullscreen",                      "F11", "Control",         },
+    { "toggle_filebar",                 "B", "Alt"              },
+    { "toggle_line_numbers",        "Equal", "Control", "Shift" },
+    { "toggle_fullscreen",            "F11", "Control",         },
     
     // NOTE(rjf): Files
-    { "interactive_new",                         "N", "Control"          },
-    { "long_setup_new_project",                  "N", "Control", "Shift" },
-    { "interactive_open_or_new",                 "O", "Control"          },
-    { "f4_open_project",                         "O", "Control", "Shift" },
-    { "long_interactive_kill_buffer",            "K", "Control"          },
-    { "long_interactive_switch_buffer",          "I", "Control"          },
-    { "save_all_dirty_buffers",                  "S", "Control", "Shift" },
-    { "long_recent_files_menu",                  "V", "Alt"              },
-    { "theme_lister",                            "H", "Control", "Shift" },
-    { "long_kill_search_buffer",                 "K", "Control", "Alt"   },
-    { "long_switch_to_search_buffer",            "I", "Control", "Alt"   },
+    { "interactive_new",                "N", "Control"          },
+    { "long_setup_new_project",         "N", "Control", "Shift" },
+    { "interactive_open_or_new",        "O", "Control"          },
+    { "f4_open_project",                "O", "Control", "Shift" },
+    { "long_interactive_kill_buffer",   "K", "Control"          },
+    { "long_interactive_switch_buffer", "I", "Control"          },
+    { "save_all_dirty_buffers",         "S", "Control", "Shift" },
+    { "long_recent_files_menu",         "V", "Alt"              },
+    { "long_kill_search_buffer",        "K", "Control", "Alt"   },
+    { "long_switch_to_search_buffer",   "I", "Control", "Alt"   },
     
     // NOTE(rjf): Jump Lists
-    { "goto_next_jump",  "N", "Alt"  },
-    { "goto_prev_jump",  "N", "Alt", "Shift" },
-    { "goto_first_jump", "M", "Alt", "Shift" },
+    { "goto_next_jump",     "N", "Alt"          },
+    { "goto_prev_jump",     "N", "Alt", "Shift" },
+    { "goto_first_jump",    "M", "Alt", "Shift" },
+    { "long_undo_jump",     "J", "Alt"          },
+    { "long_redo_jump",     "K", "Alt"          },
+    { "long_push_new_jump", "L", "Alt"          },
+    { "long_point_lister",  "L", "Control"      },
     
-    // NOTE(rjf): Commands
+    // NOTE(long): Search
+    { "long_search_for_definition__project_wide", "J", "Control" },
+    { "long_search_for_definition__current_file", "J", "Control", "Shift" },
+    
+    // NOTE(long): Commands
     { "long_execute_any_cli", "Z", "Alt"              },
     { "execute_previous_cli", "Z", "Alt",   "Shift"   },
     { "long_command_lister",  "X", "Alt"              },
     
     // NOTE(rjf): Project
-    { "build_in_build_panel",   "M", "Alt" },
-    { "project_command_lister", "X", "Alt", "Shift" },
-    { "project_fkey_command",   "F1" },
-    { "project_fkey_command",   "F2" },
-    { "project_fkey_command",   "F3" },
-    { "project_fkey_command",   "F4" },
-    { "project_fkey_command",   "F5" },
-    { "project_fkey_command",   "F6" },
-    { "project_fkey_command",   "F7" },
-    { "project_fkey_command",   "F8" },
-    { "project_fkey_command",   "F9" },
+    { "build_in_build_panel",     "M", "Alt"          },
+    { "project_command_lister",   "X", "Alt", "Shift" },
+    { "project_fkey_command",    "F1" },
+    { "project_fkey_command",    "F2" },
+    { "project_fkey_command",    "F3" },
+    { "project_fkey_command",    "F4" },
+    { "project_fkey_command",    "F5" },
+    { "project_fkey_command",    "F6" },
+    { "project_fkey_command",    "F7" },
+    { "project_fkey_command",    "F8" },
+    { "project_fkey_command",    "F9" },
     { "project_fkey_command",   "F10" },
     { "project_fkey_command",   "F11" },
     { "project_fkey_command",   "F12" },
@@ -67,15 +73,12 @@ keys_global =
     { "project_fkey_command",   "F16" },
     
     // NOTE(rjf): Panels
-    { "open_panel_vsplit", "BackwardSlash", "Control" },
-    { "open_panel_hsplit", "Minus", "Control" },
-    { "close_panel", "P", "Control", "Shift" },
-    { "long_search_for_definition__project_wide", "J", "Control" },
-    { "long_search_for_definition__current_file", "J", "Control", "Shift" },
-    { "long_undo_jump",            "J", "Alt"     },
-    { "long_redo_jump",            "K", "Alt"     },
-    { "long_push_new_jump",        "L", "Alt"     },
-    { "long_point_lister",         "L", "Control" },
+    { "open_panel_vsplit",       "BackwardSlash", "Control"          },
+    { "open_panel_hsplit",               "Minus", "Control"          },
+    { "close_panel",                         "P", "Control", "Shift" },
+    { "long_toggle_compilation_expand", "Insert"                     },
+    { "long_toggle_panel_expand",       "Insert", "Control"          },
+    { "long_toggle_panel_expand_big",   "Insert", "Control", "Shift" },
 };
 
 keys_file =
@@ -97,160 +100,152 @@ keys_file =
     { "move_left",                                      "Left"                  },
     { "long_move_prev_word",                            "Left",  "Control"      },
     { "long_move_prev_alpha_numeric_or_camel_boundary", "Left",  "Alt"          },
-    
     { "move_right",                                     "Right"                 },
     { "long_move_next_word",                            "Right", "Control"     },
     { "long_move_next_alpha_numeric_or_camel_boundary", "Right", "Alt"          },
-    
     { "long_switch_move_side_mode",                     "Minus", "Alt"          },
     
     // NOTE(rjf): Up/Down Arrow Keys
-    { "move_up",                         "Up" },
-    { "move_down",                       "Down" },
-    { "long_move_line_up",               "Up", "Alt" },
-    { "long_move_line_down",             "Down", "Alt" },
-    { "move_up_to_blank_line_end",       "Up", "Control" },
-    { "move_down_to_blank_line_end",     "Down", "Control" },
-    { "long_move_up_token_occurrence",   "Up", "Control", "Alt" },
+    { "move_up",                           "Up"                   },
+    { "move_down",                       "Down"                   },
+    { "long_move_line_up",                 "Up", "Alt"            },
+    { "long_move_line_down",             "Down", "Alt"            },
+    { "move_up_to_blank_line_end",         "Up", "Control"        },
+    { "move_down_to_blank_line_end",     "Down", "Control"        },
+    { "long_move_up_token_occurrence",     "Up", "Control", "Alt" },
     { "long_move_down_token_occurrence", "Down", "Control", "Alt" },
     
     // NOTE(rjf): Alternative Movement Keys
-    { "seek_end_of_line",                    "End"      },
-    { "f4_home_first_non_whitespace",        "Home"     },
-    { "page_up",                             "PageUp"   },
-    { "page_down",                           "PageDown" },
-    { "goto_beginning_of_file",              "PageUp",   "Control" },
-    { "goto_end_of_file",                    "PageDown", "Control" },
-    { "long_move_to_prev_divider_comment",   "PageUp",   "Control", "Shift" },
-    { "long_move_to_next_divider_comment",   "PageDown", "Control", "Shift" },
-    { "long_move_to_prev_function_and_type", "Up",       "Shift"  , "Alt", "Control" },
-    { "long_move_to_next_function_and_type", "Down",     "Shift"  , "Alt", "Control" },
-    
-    // NOTE(rjf): Mark
-    { "set_mark",                        "Space", "Control" },
-    { "long_cursor_mark_swap",           "Space", "Control", "Shift" },
-    { "long_clean_whitespace_at_cursor", "B",     "Control" },
+    { "seek_end_of_line",                    "End"                                   },
+    { "f4_home_first_non_whitespace",        "Home"                                  },
+    { "page_up",                             "PageUp"                                },
+    { "page_down",                           "PageDown"                              },
+    { "goto_beginning_of_file",              "PageUp",   "Control"                   },
+    { "goto_end_of_file",                    "PageDown", "Control"                   },
+    { "long_move_to_prev_divider_comment",   "PageUp",   "Control", "Shift"          },
+    { "long_move_to_next_divider_comment",   "PageDown", "Control", "Shift"          },
+    { "long_move_to_prev_function_and_type", "Up",       "Control", "Shift", "Alt"   },
+    { "long_move_to_next_function_and_type", "Down",     "Control", "Shift", "Alt"   },
     
     // NOTE(long): Ctrl  => Current Buffer vs All Buffers
     //             Alt   => List vs Search/Query
     //             Shift => Sensitive-String vs Insensitive-Substring
     
     // NOTE(rjf): Search
-    { "long_search",                           "F", "Control" },
-    { "long_reverse_search",                   "R", "Control" },
-    { "long_search_identifier",                "T", "Control" },
-    { "goto_line",                             "G", "Control" },
-    { "long_search_case_sensitive",            "F", "Control", "Shift"},
-    { "long_reverse_search_case_sensitive",    "R", "Control", "Shift"},
-    { "long_search_identifier_case_sensitive", "T", "Control", "Shift"},
+    { "long_search",                           "F", "Control"          },
+    { "long_reverse_search",                   "R", "Control"          },
+    { "long_search_identifier",                "T", "Control"          },
+    { "goto_line",                             "G", "Control"          },
+    { "long_search_case_sensitive",            "F", "Control", "Shift" },
+    { "long_reverse_search_case_sensitive",    "R", "Control", "Shift" },
+    { "long_search_identifier_case_sensitive", "T", "Control", "Shift" },
     
-    { "long_list_all_locations",                                                         "F", "Alt", "Shift"            },
+    { "long_list_all_locations",                                                         "F", "Alt",   "Shift"          },
     { "long_list_all_substring_locations_case_insensitive",                              "F", "Alt"                     },
-    { "long_list_all_locations_current_buffer",                                          "F", "Alt", "Shift", "Control" },
+    { "long_list_all_locations_current_buffer",                                          "F", "Alt", "Control", "Shift" },
     { "long_list_all_substring_locations_case_insensitive_current_buffer",               "F", "Alt", "Control"          },
-    { "long_list_all_locations_of_identifier",                                           "T", "Alt", "Shift"            },
+    { "long_list_all_locations_of_identifier",                                           "T", "Alt",   "Shift"          },
     { "long_list_all_substring_locations_of_identifier_case_insensitive",                "T", "Alt"                     },
-    { "long_list_all_locations_of_identifier_current_buffer",                            "T", "Alt", "Shift", "Control" },
+    { "long_list_all_locations_of_identifier_current_buffer",                            "T", "Alt", "Control", "Shift" },
     { "long_list_all_substring_locations_of_identifier_case_insensitive_current_buffer", "T", "Alt", "Control"          },
     
-    // NOTE(long): Shift => More vs Less Lines, Less vs More Filters
-    { "long_list_all_lines_in_range_non_white",            "R", "Alt"          },
-    { "long_list_all_lines_in_range",                      "R", "Alt", "Shift" },
-    { "long_list_all_lines_in_range_seek_end_non_white",   "E", "Alt" },
-    { "long_list_all_lines_in_range_seek_end",             "E", "Alt", "Shift" },
-    { "long_list_all_lines_from_start_to_cursor_absolute", "C", "Alt" },
-    { "long_list_all_lines_from_start_to_cursor_relative", "C", "Alt", "Shift" },
+    // NOTE(rjf): Mark
+    { "set_mark",                    "Space", "Control"          },
+    { "long_cursor_mark_swap",       "Space", "Control", "Shift" },
+    { "long_clean_whitespace_at_cursor", "B", "Control"          },
+    
+    // NOTE(long): Multi cursors
+    { "MC_add_at_pos",      "BackwardSlash", "Control", "Shift" },
+    { "MC_begin_multi",            "Return",     "Alt"          },
+    { "MC_begin_multi_block",           "L", "Control", "Shift" },
+    { "long_mc_up_trail",              "Up",     "Alt", "Shift" },
+    { "long_mc_down_trail",          "Down",     "Alt", "Shift" },
     
     // NOTE(rjf): Replace
-    { "long_replace_in_range",                 "A", "Control" },
-    { "long_query_replace",                    "Q", "Control" },
-    { "long_query_replace_identifier",         "Q", "Control", "Shift" },
-    { "long_query_replace_selection",          "Q", "Alt" },
+    { "long_replace_in_range",          "A", "Control"          },
+    { "long_query_replace",             "Q", "Control"          },
+    { "long_query_replace_identifier",  "Q", "Control", "Shift" },
+    { "long_query_replace_selection",   "Q", "Alt"              },
     
     // NOTE(rjf): Clipboard
-    { "long_copy",                             "C", "Control" },
-    { "long_copy_line",                        "C", "Control", "Shift" },
-    { "cut",                                   "X", "Control" },
-    { "long_cut_line",                         "X", "Control", "Shift" },
-    { "long_paste_and_indent",                 "V", "Control" },
-    { "long_paste_and_replace_range",          "V", "Control", "Shift" },
-    { "long_select_current_line",              "A", "Control", "Shift" },
-    
-    /* NOTE(long): I don't really like these
-    { "long_copy_token",                       "C", "Control", "Alt"   },
-    { "long_cut_token",                        "X", "Control", "Alt"   },
-    { "long_select_current_token",             "A", "Alt" },*/
+    { "long_copy",                      "C", "Control"          },
+    { "cut",                            "X", "Control"          },
+    { "long_copy_line",                 "C", "Control", "Shift" },
+    { "long_cut_line",                  "X", "Control", "Shift" },
+    { "long_paste_and_indent",          "V", "Control"          },
+    { "long_paste_and_replace_range",   "V", "Control", "Shift" },
+    { "long_select_current_line",       "A", "Control", "Shift" },
     
     // NOTE(long): Modify
-    { "duplicate_line",                        "D", "Alt" },
-    { "long_delete_range",                     "D", "Control" },
-    { "delete_line",                           "D", "Control", "Shift" },
-    { "f4_unindent",                           "Tab",          "Shift" },
+    { "duplicate_line",                 "D",     "Alt"          },
+    { "long_delete_range",              "D", "Control"          },
+    { "delete_line",                    "D", "Control", "Shift" },
+    { "f4_unindent",                  "Tab",   "Shift"          },
     
     // NOTE(rjf): View
-    { "center_view",                           "E", "Control" },
-    { "left_adjust_view",                      "E", "Control", "Shift" },
+    { "center_view",                    "E", "Control"          },
+    { "left_adjust_view",               "E", "Control", "Shift" },
     
     // NOTE(rjf): File
-    { "long_kill_buffer",                      "K", "Control", "Shift" },
-    { "reopen",                                "O", "Alt",     "Shift" },
-    { "save",                                  "S", "Control"          },
-    { "long_redo",                             "Y", "Control"          },
-    { "long_undo",                             "Z", "Control"          },
-    { "long_redo_same_pos",                    "Y", "Control", "Shift" },
-    { "long_undo_same_pos",                    "Z", "Control", "Shift" },
-    { "view_buffer_other_panel",               "W", "Control", "Shift" },
+    { "long_kill_buffer",               "K", "Control", "Shift" },
+    { "reopen",                         "O",     "Alt", "Shift" },
+    { "save",                           "S", "Control"          },
+    { "long_redo",                      "Y", "Control"          },
+    { "long_undo",                      "Z", "Control"          },
+    { "long_redo_same_pos",             "Y", "Control", "Shift" },
+    { "long_undo_same_pos",             "Z", "Control", "Shift" },
+    { "view_buffer_other_panel",        "W", "Control", "Shift" },
     
-    // TODO(long): Should I bind undo/redo_all_buffers
+    // @CONSIDER(long): Should I bind undo/redo_all_buffers
     
     // NOTE(rjf): Meta
-    { "swap_panels",                           "W", "Control" },
-    { "if_read_only_goto_position",            "Return" },
-    { "if_read_only_goto_position_same_panel", "Return", "Shift" },
+    { "swap_panels",                                "W", "Control"          },
+    { "if_read_only_goto_position",            "Return"                     },
+    { "if_read_only_goto_position_same_panel", "Return", "Shift"            },
     { "long_jump_lister",                      "Period", "Control", "Shift" },
-    { "long_history_lister",                   "H", "Control" },
+    { "long_history_lister",                        "H", "Control"          },
     
     // NOTE(long): Index
-    { "long_toggle_pos_context",               "Tick" , "Alt" },
-    { "long_switch_pos_context_option",        "Equal", "Alt" },
-    { "long_switch_pos_context_draw_position", "Equal", "Alt", "Shift" },
-    { "long_go_to_definition",            	 "Return", "Control" },
-    { "long_go_to_definition_same_panel", 	 "Return", "Control", "Shift" },
-    { "long_code_peek",                   	 "Tick", "Control" },
-    //{ "f4_code_peek_yank",                	 "Tick", "Control", "Shift" },
+    { "long_toggle_pos_context",                "Tick",     "Alt"          },
+    { "long_switch_pos_context_option",        "Equal",     "Alt"          },
+    { "long_switch_pos_context_draw_position", "Equal",     "Alt", "Shift" },
+    { "long_go_to_definition",            	"Return", "Control"          },
+    { "long_go_to_definition_same_panel",     "Return", "Control", "Shift" },
+    { "long_code_peek",                  	   "Tick", "Control"          },
 };
 
 keys_code =
 {
-    { "long_toggle_comment_selection",        "Semicolon",    "Control"          },
-    { "long_autocomplete",                    "Tab"                              },   
-    { "long_indent_range",                    "Tab",          "Control"          },
-    { "word_complete_drop_down",              "Tab",          "Control", "Shift" },
-    
     // NOTE(long): Scope
-    { "select_prev_scope_absolute",           "LeftBracket",  "Control" },
-    { "select_next_scope_absolute",           "RightBracket", "Control" },
-    { "long_select_upper_scope",              "LeftBracket",  "Control", "Shift" },
+    { "select_prev_scope_absolute",            "LeftBracket", "Control"          },
+    { "select_next_scope_absolute",           "RightBracket", "Control"          },
+    { "long_select_upper_scope",               "LeftBracket", "Control", "Shift" },
     { "long_select_lower_scope",              "RightBracket", "Control", "Shift" },
-    { "long_select_prev_scope_current_level", "LeftBracket",  "Control", "Alt"   },
-    { "long_select_next_scope_current_level", "RightBracket", "Control", "Alt"   },
-    { "long_select_surrounding_scope",        "LeftBracket",  "Alt",     "Shift" },
+    { "long_select_prev_scope_current_level",  "LeftBracket", "Control",   "Alt" },
+    { "long_select_next_scope_current_level", "RightBracket", "Control",   "Alt" },
+    { "long_select_surrounding_scope",         "LeftBracket",     "Alt", "Shift" },
     
-    /* NOTE(long): Will I ever actually use these?
-    { "open_long_braces",                     "LeftBracket",  "Alt" },
-    { "open_long_braces_semicolon",           "LeftBracket",  "Alt", "Shift" },
-    { "open_long_braces_break",               "RightBracket", "Alt", "Shift" },
+    /* @CONSIDER(long): Will I ever actually use these?
+    { "open_long_braces",            "LeftBracket", "Alt"          },
+    { "open_long_braces_semicolon",  "LeftBracket", "Alt", "Shift" },
+    { "open_long_braces_break",     "RightBracket", "Alt", "Shift" },
     
-    { "write_block",                          "1",            "Control" },
-    { "write_todo",                           "2",            "Control" },
-    { "write_note",                           "3",            "Control" },
+    { "write_block",                           "1", "Control"      },
+    { "write_todo",                            "2", "Control"      },
+    { "write_note",                            "3", "Control"      },
     
-    { "place_in_scope",                       "ForwardSlash", "Alt" },
-    { "delete_current_scope",                 "Minus",        "Alt" },
-    { "open_file_in_quotes",                  "1",            "Alt" },
-    { "open_matching_file_cpp",               "2",            "Alt" },
+    { "place_in_scope",             "ForwardSlash", "Alt"          },
+    { "delete_current_scope",              "Minus", "Alt"          },
+    { "open_file_in_quotes",                   "1", "Alt"          },
+    { "open_matching_file_cpp",                "2", "Alt"          },
     */
     
-    { "open_matching_file_cpp",               "W",            "Alt" },
-    { "long_open_matching_file_same_panel",   "W",            "Alt", "Shift" },
+    // NOTE(long): Auto-complete
+    { "long_toggle_comment_selection", "Semicolon", "Control"          },
+    { "long_autocomplete",                   "Tab"                     },   
+    { "long_indent_range",                   "Tab", "Control"          },
+    { "word_complete_drop_down",             "Tab", "Control", "Shift" },
+    
+    { "open_matching_file_cpp",                "W", "Alt"          },
+    { "long_open_matching_file_same_panel",    "W", "Alt", "Shift" },
 };

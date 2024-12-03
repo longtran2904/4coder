@@ -31,40 +31,50 @@ function void Long_RenderBuffer(Application_Links* app, View_ID view_id, Buffer_
     
     View_ID active_view = get_active_view(app, Access_Always);
     b32 is_active_view = (active_view == view_id);
+    
     Rect_f32 prev_clip = draw_set_clip(app, rect);
+    Rect_f32 view_rect = view_get_screen_rect(app, view_id);
+    
+    Range_i64 visible_range = text_layout_get_visible_range(app, text_layout_id);
+    String8 buffer_name = push_buffer_base_name(app, scratch, buffer);
+    
+    i64 cursor_pos = view_correct_cursor(app, view_id);
+    view_correct_mark(app, view_id);
+    
+    f32 cursor_roundness, mark_thickness;
+    {
+        Face_Metrics metrics = get_face_metrics(app, face_id);
+        u64 cursor_roundness_100 = def_get_config_u64(app, vars_save_string_lit("cursor_roundness"));
+        cursor_roundness = metrics.normal_advance*cursor_roundness_100*0.01f;
+        mark_thickness = (f32)def_get_config_u64(app, vars_save_string_lit("mark_thickness"));
+    }
     
     // NOTE(allen): Token colorizing
     Token_Array token_array = get_token_array_from_buffer(app, buffer);
-    if(token_array.tokens != 0)
+    if (token_array.tokens != 0)
     {
         Long_SyntaxHighlight(app, text_layout_id, &token_array);
         
         // NOTE(allen): Scan for TODOs and NOTEs
         b32 use_comment_keywords = def_get_config_b32(vars_save_string_lit("use_comment_keywords"));
-        if(use_comment_keywords)
+        if (use_comment_keywords)
         {
+            String8 user_name = def_get_config_string(scratch, vars_save_string_lit("user_name"));
             Comment_Highlight_Pair pairs[] =
             {
-                {str8_lit("NOTE"), finalize_color(defcolor_comment_pop, 0)},
-                {str8_lit("TODO"), finalize_color(defcolor_comment_pop, 1)},
-                {def_get_config_string(scratch, vars_save_string_lit("user_name")), finalize_color(fleury_color_comment_user_name, 0)},
+                {S8Lit("NOTE"), finalize_color(defcolor_comment_pop, 0)},
+                {S8Lit("TODO"), finalize_color(defcolor_comment_pop, 1)},
+                {    user_name, finalize_color(fleury_color_comment_user_name, 0)},
             };
-            draw_comment_highlights(app, buffer, text_layout_id,
-                                    &token_array, pairs, ArrayCount(pairs));
+            draw_comment_highlights(app, buffer, text_layout_id, &token_array, pairs, ArrayCount(pairs));
         }
     }
     else
-    {
-        Range_i64 visible_range = text_layout_get_visible_range(app, text_layout_id);
         paint_text_color_fcolor(app, text_layout_id, visible_range, fcolor_id(defcolor_text_default));
-    }
-    
-    i64 cursor_pos = view_correct_cursor(app, view_id);
-    view_correct_mark(app, view_id);
     
     // NOTE(allen): Scope highlight
-    b32 use_scope_highlight = def_get_config_b32(vars_save_string_lit("use_scope_highlight"));
-    if (use_scope_highlight){
+    if (def_get_config_b32(vars_save_string_lit("use_scope_highlight")))
+    {
         Color_Array colors = finalize_color_array(defcolor_back_cycle);
         draw_scope_highlight(app, buffer, text_layout_id, cursor_pos, colors.vals, colors.count);
     }
@@ -73,36 +83,31 @@ function void Long_RenderBuffer(Application_Links* app, View_ID view_id, Buffer_
 #ifdef FCODER_FLEURY_BRACE_H
     {
         Color_Array colors = finalize_color_array(fleury_color_brace_highlight);
-        if(colors.count >= 1 && F4_ARGBIsValid(colors.vals[0]))
-        {
-            F4_Brace_RenderHighlight(app, buffer, text_layout_id, cursor_pos,
-                                     colors.vals, colors.count);
-        }
+        if (colors.count >= 1 && F4_ARGBIsValid(colors.vals[0]))
+            F4_Brace_RenderHighlight(app, buffer, text_layout_id, cursor_pos, colors.vals, colors.count);
     }
 #endif
     
     // NOTE(allen): Line highlight
     {
         b32 highlight_line_at_cursor = def_get_config_b32(vars_save_string_lit("highlight_line_at_cursor"));
-        String_Const_u8 name = string_u8_litexpr("*compilation*");
-        Buffer_ID compilation_buffer = get_buffer_by_name(app, name, Access_Always);
-        if(highlight_line_at_cursor && (is_active_view || buffer == compilation_buffer))
+        if (highlight_line_at_cursor && (is_active_view || string_match(buffer_name, S8Lit("*compilation*"))))
         {
-            i64 line_number = get_line_number_from_pos(app, buffer, cursor_pos);
-            draw_line_highlight(app, text_layout_id, line_number,
-                                fcolor_id(defcolor_highlight_cursor_line));
+            i64 line = get_line_number_from_pos(app, buffer, cursor_pos);
+            draw_line_highlight(app, text_layout_id, line, fcolor_id(defcolor_highlight_cursor_line));
         }
     }
     
     // NOTE(rjf): Error/Search Highlight
     {
         b32 use_error_highlight = def_get_config_b32(vars_save_string_lit("use_error_highlight"));
-        b32 use_jump_highlight = def_get_config_b32(vars_save_string_lit("use_jump_highlight"));
+        b32  use_jump_highlight = def_get_config_b32(vars_save_string_lit( "use_jump_highlight"));
+        
         if (use_error_highlight || use_jump_highlight)
         {
+            Buffer_ID compilation_buffer = get_buffer_by_name(app, S8Lit("*compilation*"), Access_Always);
+            
             // NOTE(allen): Error highlight
-            String_Const_u8 name = string_u8_litexpr("*compilation*");
-            Buffer_ID compilation_buffer = get_buffer_by_name(app, name, Access_Always);
             if (use_error_highlight)
                 Long_Highlight_DrawErrors(app, buffer, text_layout_id, compilation_buffer);
             
@@ -116,99 +121,70 @@ function void Long_RenderBuffer(Application_Links* app, View_ID view_id, Buffer_
         }
     }
     
-    f32 cursor_roundness, mark_thickness;
-    {
-        Face_Metrics metrics = get_face_metrics(app, face_id);
-        u64 cursor_roundness_100 = def_get_config_u64(app, vars_save_string_lit("cursor_roundness"));
-        cursor_roundness = metrics.normal_advance*cursor_roundness_100*0.01f;
-        mark_thickness = (f32)def_get_config_u64(app, vars_save_string_lit("mark_thickness"));
-    }
-    
     Long_Highlight_DrawRangeList(app, view_id, buffer, text_layout_id, cursor_roundness);
     Long_Highlight_DrawRange(app, view_id, buffer, text_layout_id, cursor_roundness);
     
-    // NOTE(jack): Token Occurance Highlight
+    // NOTE(jack): Token Occurrence Highlight
     if (!def_get_config_b32(vars_save_string_lit("f4_disable_cursor_token_occurance"))) 
     {
-        ProfileScope(app, "[Long] Token Occurance Highlight");
+        ProfileScope(app, "[Long] Token Occurrence Highlight");
         
         // NOTE(jack): Get the active cursor's token string
-        Buffer_ID active_cursor_buffer = view_get_buffer(app, active_view, Access_Always);
+        Buffer_ID active_buffer = view_get_buffer(app, active_view, Access_Always);
         i64 active_cursor_pos = view_get_cursor_pos(app, active_view);
-        Token_Array active_cursor_buffer_tokens = get_token_array_from_buffer(app, active_cursor_buffer);
-        Token_Iterator_Array active_cursor_it = token_iterator_pos(0, &active_cursor_buffer_tokens, active_cursor_pos);
-        Token* active_cursor_token = token_it_read(&active_cursor_it);
+        Token_Array active_array = get_token_array_from_buffer(app, active_buffer);
+        Token_Iterator_Array cursor_it = token_iterator_pos(0, &active_array, active_cursor_pos);
+        Token* cursor_token = token_it_read(&cursor_it);
         
-        String_Const_u8 active_cursor_string = string_u8_litexpr("");
-        if(active_cursor_token)
+        if (cursor_token)
         {
-            active_cursor_string = push_buffer_range(app, scratch, active_cursor_buffer, Ii64(active_cursor_token));
-            
             // Loop the visible tokens
-            Range_i64 visible_range = text_layout_get_visible_range(app, text_layout_id);
             i64 first_index = token_index_from_pos(&token_array, visible_range.first);
             Token_Iterator_Array it = token_iterator_index(0, &token_array, first_index);
             for (;;)
             {
                 Token* token = token_it_read(&it);
-                if(!token || token->pos >= visible_range.one_past_last)
-                {
+                if (!token || token->pos >= visible_range.one_past_last)
                     break;
-                }
                 
                 if (token->kind == TokenBaseKind_Identifier)
                 {
-                    Range_i64 token_range = Ii64(token);
-                    String_Const_u8 token_string = push_buffer_range(app, scratch, buffer, token_range);
+                    String8 cursor_lexeme = push_token_lexeme(app, scratch, active_buffer, cursor_token);
+                    Range_i64 range = Ii64(token);
+                    String8 lexeme = push_buffer_range(app, scratch, buffer, range);
                     
                     // NOTE(jack) If this is the buffers cursor token, highlight it with an Underline
-                    if (range_contains(token_range, view_get_cursor_pos(app, view_id)))
-                    {
-                        F4_RenderRangeHighlight(app, view_id, text_layout_id,
-                                                token_range, F4_RangeHighlightKind_Underline,
-                                                fcolor_resolve(fcolor_id(fleury_color_token_highlight)));
-                    }
+                    if (range_contains(range, view_get_cursor_pos(app, view_id)))
+                        F4_RenderRangeHighlight(app, view_id, text_layout_id, range, F4_RangeHighlightKind_Underline,
+                                                Long_ARGBFromID(fleury_color_token_highlight));
                     // NOTE(jack): If the token matches the active buffer token. highlight it with a Minor Underline
-                    else if(active_cursor_token->kind == TokenBaseKind_Identifier && 
-                            string_match(token_string, active_cursor_string))
-                    {
-                        F4_RenderRangeHighlight(app, view_id, text_layout_id,
-                                                token_range, F4_RangeHighlightKind_MinorUnderline,
-                                                fcolor_resolve(fcolor_id(fleury_color_token_minor_highlight)));
-                        
-                    } 
+                    else if (cursor_token->kind == TokenBaseKind_Identifier && string_match(lexeme, cursor_lexeme))
+                        F4_RenderRangeHighlight(app, view_id, text_layout_id, range, F4_RangeHighlightKind_MinorUnderline,
+                                                Long_ARGBFromID(fleury_color_token_minor_highlight)); 
                 }
                 
-                if(!token_it_inc_non_whitespace(&it))
-                {
+                if (!token_it_inc_non_whitespace(&it))
                     break;
-                }
             }
         }
     }
+    
     // NOTE(jack): if "f4_disable_cursor_token_occurance" is set, just highlight the cusror 
     else
     {
         ProfileScope(app, "[Long] Token Highlight");
-        
         Token_Iterator_Array it = token_iterator_pos(0, &token_array, cursor_pos);
         Token* token = token_it_read(&it);
-        if(token && token->kind == TokenBaseKind_Identifier)
-        {
-            F4_RenderRangeHighlight(app, view_id, text_layout_id,
-                                    Ii64(token->pos, token->pos + token->size),
-                                    F4_RangeHighlightKind_Underline,
-                                    fcolor_resolve(fcolor_id(fleury_color_token_highlight)));
-        }
+        if (token && token->kind == TokenBaseKind_Identifier)
+            F4_RenderRangeHighlight(app, view_id, text_layout_id, Ii64(token), F4_RangeHighlightKind_Underline,
+                                    Long_ARGBFromID(fleury_color_token_highlight));
     }
     
     // NOTE(rjf): Flashes
-    {
-        F4_RenderFlashes(app, view_id, text_layout_id);
-    }
+    F4_RenderFlashes(app, view_id, text_layout_id);
     
     // NOTE(allen): Color parens
-    if(def_get_config_b32(vars_save_string_lit("use_paren_helper")))
+    if (def_get_config_b32(vars_save_string_lit("use_paren_helper")))
     {
         Color_Array colors = finalize_color_array(defcolor_text_cycle);
         draw_paren_highlight(app, buffer, text_layout_id, cursor_pos, colors.vals, colors.count);
@@ -218,25 +194,21 @@ function void Long_RenderBuffer(Application_Links* app, View_ID view_id, Buffer_
     Long_Render_DividerComments(app, buffer, text_layout_id);
     
     // NOTE(rjf): Cursor Mark Range
-    if(is_active_view && fcoder_mode == FCoderMode_Original)
-    {
+    if (is_active_view && fcoder_mode == FCoderMode_Original)
         Long_HighlightCursorMarkRange(app, view_id);
-    }
     
     // NOTE(long): Jump list highlights
-    /*Long_Highlight_DrawList*/Long_MC_DrawHighlights(app, view_id, buffer, text_layout_id, cursor_roundness, mark_thickness);
-    
+    Long_MC_DrawHighlights(app, view_id, buffer, text_layout_id, cursor_roundness, mark_thickness, is_active_view);
     Long_Render_HexColor(app, view_id, buffer, text_layout_id);
     
     // NOTE(rjf): Cursor
     switch (fcoder_mode)
     {
-        case FCoderMode_Original:      Long_Render_EmacsCursor(app, view_id, is_active_view, buffer, text_layout_id,
-                                                               cursor_roundness, mark_thickness, frame_info); break;
-        case FCoderMode_NotepadLike: Long_Render_NotepadCursor(app, view_id, is_active_view, buffer, text_layout_id,
-                                                               cursor_roundness, mark_thickness, frame_info); break;
+        case FCoderMode_Original:      Long_Render_EmacsCursor(app, view_id, buffer, text_layout_id, frame_info,
+                                                               cursor_roundness, mark_thickness, is_active_view); break;
+        case FCoderMode_NotepadLike: Long_Render_NotepadCursor(app, view_id, buffer, text_layout_id, frame_info,
+                                                               cursor_roundness, mark_thickness, is_active_view); break;
     }
-    //MC_render_cursors(app, view_id, text_layout_id);
     
 #ifdef FCODER_FLEURY_BRACE_H
     // NOTE(rjf): Brace annotations/lines
@@ -251,35 +223,27 @@ function void Long_RenderBuffer(Application_Links* app, View_ID view_id, Buffer_
     draw_text_layout_default(app, text_layout_id);
     
 #ifdef FCODER_FLEURY_CALC_H
-    {
-        // NOTE(rjf): Interpret buffer as calc code, if it's the calc buffer.
-        Buffer_ID calc_buffer_id = get_buffer_by_name(app, string_u8_litexpr("*calc*"), AccessFlag_Read);
-        if (calc_buffer_id == buffer)
-            F4_CLC_RenderBuffer(app, buffer, view_id, text_layout_id, frame_info);
-        
-        // NOTE(rjf): Draw calc comments.
-        F4_CLC_RenderComments(app, buffer, view_id, text_layout_id, frame_info);
-    }
+    // NOTE(rjf): Interpret buffer as calc code, if it's the calc buffer.
+    if (string_match(buffer_name, S8Lit("*calc*")))
+        F4_CLC_RenderBuffer(app, buffer, view_id, text_layout_id, frame_info);
+    
+    // NOTE(rjf): Draw calc comments.
+    F4_CLC_RenderComments(app, buffer, view_id, text_layout_id, frame_info);
 #endif
     
     draw_set_clip(app, prev_clip);
     
     // NOTE(rjf): Draw tooltips and stuff.
-    if(active_view == view_id)
+    if (is_active_view)
     {
         // NOTE(rjf): Position context helper
-        {
-            F4_Language* language = F4_LanguageFromBuffer(app, buffer);
-            if (language)
-                Long_Index_DrawPosContext(app, view_id, language->PosContext(app, scratch, buffer, cursor_pos));
-        }
+        F4_Language* language = F4_LanguageFromBuffer(app, buffer);
+        if (language)
+            Long_Index_DrawPosContext(app, view_id, language->PosContext(app, scratch, buffer, cursor_pos));
         
         // NOTE(rjf): Draw tooltip list.
         {
             Mouse_State mouse = get_mouse_state(app);
-            
-            Rect_f32 view_rect = view_get_screen_rect(app, view_id);
-            
             Face_ID tooltip_face_id = global_small_code_face;
             Face_Metrics tooltip_face_metrics = get_face_metrics(app, tooltip_face_id);
             
@@ -291,17 +255,17 @@ function void Long_RenderBuffer(Application_Links* app, View_ID view_id, Buffer_
                 (f32)mouse.y + 16 + tooltip_face_metrics.line_height + 8,
             };
             
-            for(int i = 0; i < global_tooltip_count; ++i)
+            for (i32 i = 0; i < global_tooltip_count; ++i)
             {
-                String_Const_u8 string = global_tooltips[i].string;
+                String8 string = global_tooltips[i].string;
                 tooltip_rect.x1 = tooltip_rect.x0;
                 tooltip_rect.x1 += get_string_advance(app, tooltip_face_id, string) + 4;
                 
-                if(tooltip_rect.x1 > view_rect.x1)
+                if (tooltip_rect.x1 > view_rect.x1)
                 {
                     f32 difference = tooltip_rect.x1 - view_rect.x1;
-                    tooltip_rect.x1 = (float)(int)(tooltip_rect.x1 - difference);
-                    tooltip_rect.x0 = (float)(int)(tooltip_rect.x0 - difference);
+                    tooltip_rect.x1 = (f32)(i32)(tooltip_rect.x1 - difference);
+                    tooltip_rect.x0 = (f32)(i32)(tooltip_rect.x0 - difference);
                 }
                 
                 Long_Render_TooltipRect(app, tooltip_rect);
@@ -316,11 +280,10 @@ function void Long_RenderBuffer(Application_Links* app, View_ID view_id, Buffer_
     }
     
     // NOTE(rjf): Draw inactive rectangle
-    if (is_active_view == 0)
+    else
     {
-        Rect_f32 view_rect = view_get_screen_rect(app, view_id);
-        ARGB_Color color = fcolor_resolve(fcolor_id(fleury_color_inactive_pane_overlay));
-        if(F4_ARGBIsValid(color))
+        ARGB_Color color = Long_ARGBFromID(fleury_color_inactive_pane_overlay);
+        if (F4_ARGBIsValid(color))
             draw_rectangle(app, view_rect, 0.f, color);
     }
     
@@ -334,13 +297,11 @@ function void Long_DrawFileBar(Application_Links* app, View_ID view_id, Buffer_I
 {
     Scratch_Block scratch(app);
     
-    draw_rectangle_fcolor(app, bar, 0.f, fcolor_id(defcolor_bar));
-    
     FColor base_color = fcolor_id(defcolor_base);
     FColor pop2_color = fcolor_id(defcolor_pop2);
+    Buffer_Cursor cursor = view_compute_cursor(app, view_id, seek_pos(view_get_cursor_pos(app, view_id)));
     
-    i64 cursor_position = view_get_cursor_pos(app, view_id);
-    Buffer_Cursor cursor = view_compute_cursor(app, view_id, seek_pos(cursor_position));
+    draw_rectangle_fcolor(app, bar, 0.f, fcolor_id(defcolor_bar));
     
     Fancy_Line list = {};
     String_Const_u8 unique_name = push_buffer_unique_name(app, scratch, buffer);
@@ -366,36 +327,35 @@ function void Long_DrawFileBar(Application_Links* app, View_ID view_id, Buffer_I
         }
         
         i64 line_count = buffer_get_line_count(app, buffer);
-        push_fancy_stringf(scratch, &list, base_color, " - Line Count: %3llu Row: %3.lld Col: %3.lld - %3u Error(s) %3u Warning(s)",
+        push_fancy_stringf(scratch, &list, base_color,
+                           " - Line Count: %3llu Row: %3.lld Col: %3.lld - %3u Error(s) %3u Warning(s)",
                            line_count, cursor.line, cursor.col, counts[0], counts[1]);
     }
     else
     {
         push_fancy_stringf(scratch, &list, base_color, ": %d", buffer);
-        push_fancy_stringf(scratch, &list, base_color, " - Row: %3.lld Col: %3.lld Pos: %4lld -", cursor.line, cursor.col, cursor.pos);
+        push_fancy_stringf(scratch, &list, base_color, " - Row: %3.lld Col: %3.lld Pos: %4lld -",
+                           cursor.line, cursor.col, cursor.pos);
         
         Managed_Scope scope = buffer_get_managed_scope(app, buffer);
         Line_Ending_Kind* eol_setting = scope_attachment(app, scope, buffer_eol_setting, Line_Ending_Kind);
         switch (*eol_setting)
         {
-            case LineEndingKind_Binary: push_fancy_string(scratch, &list, base_color, string_u8_litexpr( " bin")); break;
-            case LineEndingKind_LF:     push_fancy_string(scratch, &list, base_color, string_u8_litexpr(  " lf")); break;
-            case LineEndingKind_CRLF:   push_fancy_string(scratch, &list, base_color, string_u8_litexpr(" crlf")); break;
+            case LineEndingKind_Binary: push_fancy_string(scratch, &list, base_color, S8Lit( " bin")); break;
+            case LineEndingKind_LF:     push_fancy_string(scratch, &list, base_color, S8Lit(  " lf")); break;
+            case LineEndingKind_CRLF:   push_fancy_string(scratch, &list, base_color, S8Lit(" crlf")); break;
         }
         
         u8 space[3];
         {
             Dirty_State dirty = buffer_get_dirty_state(app, buffer);
             String_u8 str = Su8(space, 0, 3);
-            if (dirty != 0){
-                string_append(&str, string_u8_litexpr(" "));
-            }
-            if (HasFlag(dirty, DirtyState_UnsavedChanges)){
-                string_append(&str, string_u8_litexpr("*"));
-            }
-            if (HasFlag(dirty, DirtyState_UnloadedChanges)){
-                string_append(&str, string_u8_litexpr("!"));
-            }
+            if (dirty != DirtyState_UpToDate)
+                string_append(&str, S8Lit(" "));
+            if (HasFlag(dirty, DirtyState_UnsavedChanges))
+                string_append(&str, S8Lit("*"));
+            if (HasFlag(dirty, DirtyState_UnloadedChanges))
+                string_append(&str, S8Lit("!"));
             push_fancy_string(scratch, &list, pop2_color, str.string);
         }
         
@@ -407,8 +367,7 @@ function void Long_DrawFileBar(Application_Links* app, View_ID view_id, Buffer_I
                            (long_global_move_side>>1) ? "Max" : "Min", (long_global_move_side&1) ? "Max" : "Min");
     }
     
-    Vec2_f32 p = bar.p0 + V2f32(2.f, 2.f);
-    draw_fancy_line(app, face_id, fcolor_zero(), &list, p);
+    draw_fancy_line(app, face_id, fcolor_zero(), &list, bar.p0 + V2f32(2.f, 2.f));
     
     if (!def_get_config_b32(vars_save_string_lit("f4_disable_progress_bar")))
     {
@@ -421,7 +380,7 @@ function void Long_DrawFileBar(Application_Links* app, View_ID view_id, Buffer_I
             bar.y1,
         };
         
-        ARGB_Color progress_bar_color = fcolor_resolve(fcolor_id(fleury_color_file_progress_bar));
+        ARGB_Color progress_bar_color = Long_ARGBFromID(fleury_color_file_progress_bar);
         if (F4_ARGBIsValid(progress_bar_color))
             draw_rectangle(app, progress_bar_rect, 0, progress_bar_color);
     }
@@ -448,66 +407,65 @@ function void Long_Render(Application_Links* app, Frame_Info frame_info, View_ID
     
     //~ NOTE(rjf): Draw background.
     {
-        ARGB_Color color = fcolor_resolve(fcolor_id(defcolor_back));
-        if(string_match(buffer_name, string_u8_litexpr("*compilation*")))
-        {
+        ARGB_Color color = Long_ARGBFromID(defcolor_back);
+        if (string_match(buffer_name, S8Lit("*compilation*")))
             color = color_blend(color, 0.5f, 0xff000000);
-        }
+        
         // NOTE(rjf): Inactive background color.
-        else if(is_active_view == 0)
+        else if (!is_active_view)
         {
-            ARGB_Color inactive_bg_color = fcolor_resolve(fcolor_id(fleury_color_inactive_pane_background));
-            if(F4_ARGBIsValid(inactive_bg_color))
-            {
+            ARGB_Color inactive_bg_color = Long_ARGBFromID(fleury_color_inactive_pane_background);
+            if (F4_ARGBIsValid(inactive_bg_color))
                 color = inactive_bg_color;
-            }
         }
+        
         draw_rectangle(app, region, 0.f, color);
         draw_margin(app, view_rect, region, color);
     }
     
     //~ NOTE(rjf): Draw margin.
     {
-        ARGB_Color color = fcolor_resolve(fcolor_id(defcolor_margin));
-        if(def_get_config_b32(vars_save_string_lit("f4_margin_use_mode_color")) &&
-           is_active_view)
-        {
+        ARGB_Color color = Long_ARGBFromID(defcolor_margin);
+        if (def_get_config_b32(vars_save_string_lit("f4_margin_use_mode_color")) && is_active_view)
             color = Long_GetColor(app, ColorCtx_Cursor(0, GlobalKeybindingMode));
-        }
         draw_margin(app, view_rect, region, color);
     }
     
     Rect_f32 prev_clip = draw_set_clip(app, region);
     
     Face_ID face_id = get_face_id(app, buffer);
-    Face_Metrics face_metrics = get_face_metrics(app, face_id);
-    f32 line_height = face_metrics.line_height;
-    f32 digit_advance = face_metrics.decimal_digit_advance;
+    f32 line_height, digit_advance;
+    {
+        Face_Metrics face_metrics = get_face_metrics(app, face_id);
+        line_height = face_metrics.line_height;
+        digit_advance = face_metrics.decimal_digit_advance;
+    }
     
     // NOTE(allen): file bar
     b64 showing_file_bar = false;
-    if(view_get_setting(app, view_id, ViewSetting_ShowFileBar, &showing_file_bar) && showing_file_bar)
+    if (view_get_setting(app, view_id, ViewSetting_ShowFileBar, &showing_file_bar) && showing_file_bar)
     {
         // NOTE(long): If the buffer is the *compilation* buffer, don't use its font but the global font
         Face_ID global_face = get_face_id(app, 0);
+        Face_Metrics global_metrics = get_face_metrics(app, global_face);
+        
         b32 is_comp = buffer == get_comp_buffer(app);
-        Rect_f32_Pair pair = layout_file_bar_on_top(region, is_comp ? get_face_metrics(app, global_face).line_height : line_height);
+        Rect_f32_Pair pair = layout_file_bar_on_top(region, is_comp ? global_metrics.line_height : line_height);
         Long_DrawFileBar(app, view_id, buffer, is_comp ? global_face : face_id, pair.min);
         region = pair.max;
     }
     
     Buffer_Scroll scroll = view_get_buffer_scroll(app, view_id);
-    Buffer_Point_Delta_Result delta = delta_apply(app, view_id, frame_info.animation_dt, scroll);
-    
-    if(!block_match_struct(&scroll.position, &delta.point))
     {
-        block_copy_struct(&scroll.position, &delta.point);
-        view_set_buffer_scroll(app, view_id, scroll, SetBufferScroll_NoCursorChange);
-    }
-    
-    if(delta.still_animating)
-    {
-        animate_in_n_milliseconds(app, 0);
+        Buffer_Point_Delta_Result delta = delta_apply(app, view_id, frame_info.animation_dt, scroll);
+        if (!block_match_struct(&scroll.position, &delta.point))
+        {
+            block_copy_struct(&scroll.position, &delta.point);
+            view_set_buffer_scroll(app, view_id, scroll, SetBufferScroll_NoCursorChange);
+        }
+        
+        if (delta.still_animating)
+            animate_in_n_milliseconds(app, 0);
     }
     
     // NOTE(allen): query bars
@@ -527,7 +485,7 @@ function void Long_Render(Application_Links* app, Frame_Info frame_info, View_ID
     }
     
     // NOTE(allen): FPS hud
-    if(show_fps_hud)
+    if (show_fps_hud)
     {
         Rect_f32_Pair pair = layout_fps_hud_on_bottom(region, line_height);
         draw_fps_hud(app, frame_info, face_id, pair.max);
@@ -537,7 +495,7 @@ function void Long_Render(Application_Links* app, Frame_Info frame_info, View_ID
     
     // NOTE(allen): layout line numbers
     Rect_f32 line_number_rect = {};
-    if(def_get_config_b32(vars_save_string_lit("show_line_number_margins")))
+    if (def_get_config_b32(vars_save_string_lit("show_line_number_margins")))
     {
         Rect_f32_Pair pair = layout_line_number_margin(app, buffer, region, digit_advance);
         line_number_rect = pair.min;
@@ -546,17 +504,17 @@ function void Long_Render(Application_Links* app, Frame_Info frame_info, View_ID
     }
     
     // NOTE(allen): begin buffer render
-    Buffer_Point buffer_point = scroll.position;
-    Text_Layout_ID text_layout_id = text_layout_create(app, buffer, region, buffer_point);
-    
-    // NOTE(allen): draw line numbers
-    if (def_get_config_b32(vars_save_string_lit("show_line_number_margins")))
-        Long_Render_LineOffsetNumber(app, view_id, buffer, face_id, text_layout_id, line_number_rect);
-    
-    // NOTE(allen): draw the buffer
-    Long_RenderBuffer(app, view_id, buffer, face_id, text_layout_id, region, frame_info);
-    
+    Text_Layout_ID text_layout_id = text_layout_create(app, buffer, region, scroll.position);
+    {
+        // NOTE(allen): draw line numbers
+        if (def_get_config_b32(vars_save_string_lit("show_line_number_margins")))
+            Long_Render_LineOffsetNumber(app, view_id, buffer, face_id, text_layout_id, line_number_rect);
+        
+        // NOTE(allen): draw the buffer
+        Long_RenderBuffer(app, view_id, buffer, face_id, text_layout_id, region, frame_info);
+    }
     text_layout_free(app, text_layout_id);
+    
     draw_set_clip(app, prev_clip);
 }
 
@@ -623,12 +581,14 @@ function i32 Long_SaveFile(Application_Links* app, Buffer_ID buffer)
         }
     }
     
+    //- NOTE(long): Update history
     {
         Long_Buffer_History  current = Long_Buffer_GetCurrentHistory (app, buffer);
         Long_Buffer_History* history = Long_Buffer_GetAttachedHistory(app, buffer);
         *history = current;
     }
     
+    //- NOTE(long): Print saving message
     {
         Date_Time date_time = system_now_date_time_universal();
         date_time = system_local_date_time_from_universal(&date_time);
@@ -649,6 +609,7 @@ function i32 Long_SaveFile(Application_Links* app, Buffer_ID buffer)
             theme_name = string_chop(name, target_suffix.size);
     }
     
+    //- NOTE(long): Hot-reloading
     String8 data = push_whole_buffer(app, scratch, buffer);
     if (theme_name.size)
     {
@@ -703,82 +664,81 @@ function i32 Long_SaveFile(Application_Links* app, Buffer_ID buffer)
 }
 
 // @COPYPASTA(long): F4_LayoutInner
-function Layout_Item_List Long_Layout(Application_Links *app, Arena *arena, Buffer_ID buffer, Range_i64 range, Face_ID face, f32 width)
+function Layout_Item_List Long_Layout(Application_Links* app, Arena* arena, Buffer_ID buffer, Range_i64 range, Face_ID face, f32 width)
 {
-    Layout_Item_List list = get_empty_item_list(range);
-    
     Scratch_Block scratch(app);
+    Layout_Item_List list = get_empty_item_list(range);
     String_Const_u8 text = push_buffer_range(app, scratch, buffer, range);
     
-    Face_Advance_Map advance_map = get_face_advance_map(app, face);
-    Face_Metrics metrics = get_face_metrics(app, face);
-    f32 tab_width = (f32)def_get_config_u64(app, vars_save_string_lit("default_tab_width"));
-    tab_width = clamp_bot(1, tab_width);
-    LefRig_TopBot_Layout_Vars pos_vars = get_lr_tb_layout_vars(&advance_map, &metrics, tab_width, width);
-    
-    if (text.size == 0){
-        lr_tb_write_blank(&pos_vars, face, arena, &list, range.first);
+    LefRig_TopBot_Layout_Vars pos_vars;
+    {
+        Face_Advance_Map advance_map = get_face_advance_map(app, face);
+        Face_Metrics metrics = get_face_metrics(app, face);
+        f32 tab_width = (f32)def_get_config_u64(app, vars_save_string_lit("default_tab_width"));
+        tab_width = clamp_bot(1, tab_width);
+        pos_vars = get_lr_tb_layout_vars(&advance_map, &metrics, tab_width, width);
     }
-    else{
+    
+    if (text.size)
+    {
         b32 skipping_leading_whitespace = 0;
         Newline_Layout_Vars newline_vars = get_newline_layout_vars();
         
-        u8 *ptr = text.str;
-        u8 *end_ptr = ptr + text.size;
-        for (;ptr < end_ptr;){
+        u8* ptr = text.str;
+        u8* end_ptr = ptr + text.size;
+        while (ptr < end_ptr)
+        {
             Character_Consume_Result consume = utf8_consume(ptr, (u64)(end_ptr - ptr));
-            
             i64 index = layout_index_from_ptr(ptr, text.str, range.first);
-            switch (consume.codepoint){
+            
+            switch (consume.codepoint)
+            {
                 case '\t':
                 case ' ':
                 {
                     newline_layout_consume_default(&newline_vars);
                     f32 advance = lr_tb_advance(&pos_vars, face, consume.codepoint);
-                    if (!skipping_leading_whitespace){
+                    if (!skipping_leading_whitespace)
                         lr_tb_write_with_advance(&pos_vars, face, advance, arena, &list, index, consume.codepoint);
-                    }
-                    else{
+                    else
                         lr_tb_advance_x_without_item(&pos_vars, advance);
-                    }
-                }break;
+                } break;
                 
                 default:
                 {
                     newline_layout_consume_default(&newline_vars);
                     lr_tb_write(&pos_vars, face, arena, &list, index, consume.codepoint);
-                }break;
+                } break;
                 
-                case '\r':
-                {
-                    newline_layout_consume_CR(&newline_vars, index);
-                }break;
+                case '\r': newline_layout_consume_CR(&newline_vars, index); break;
                 
                 case '\n':
                 {
                     i64 newline_index = newline_layout_consume_LF(&newline_vars, index);
                     lr_tb_write_blank(&pos_vars, face, arena, &list, newline_index);
                     lr_tb_next_line(&pos_vars);
-                }break;
+                } break;
                 
                 case max_u32:
                 {
                     newline_layout_consume_default(&newline_vars);
                     lr_tb_write_byte(&pos_vars, face, arena, &list, index, *ptr);
-                }break;
+                } break;
             }
             
             ptr += consume.inc;
         }
         
-        if (newline_layout_consume_finish(&newline_vars)){
+        if (newline_layout_consume_finish(&newline_vars))
+        {
             i64 index = layout_index_from_ptr(ptr, text.str, range.first);
             lr_tb_write_blank(&pos_vars, face, arena, &list, index);
         }
     }
+    else
+        lr_tb_write_blank(&pos_vars, face, arena, &list, range.first);
     
     layout_item_list_finish(&list, -pos_vars.line_to_text_shift);
-    
     return list;
 }
 
@@ -789,10 +749,10 @@ function void Long_DoFullLex_ASYNC(Async_Context* actx, String8 data)
 {
     if (data.size == sizeof(Buffer_ID))
     {
-        Buffer_ID buffer = *(Buffer_ID*)data.str;
         Application_Links* app = actx->app;
         ProfileScope(app, "[F4] Async Lex");
         Scratch_Block scratch(app);
+        Buffer_ID buffer = *(Buffer_ID*)data.str;
         
         String8 contents = {};
         {
@@ -803,18 +763,14 @@ function void Long_DoFullLex_ASYNC(Async_Context* actx, String8 data)
             release_global_frame_mutex(app);
         }
         
-        i32 limit_factor = 10000;
-        
         Token_List list = {};
-        b32 canceled = false;
         
         F4_Language* language = F4_LanguageFromBuffer(app, buffer);
-        
-        // NOTE(rjf): Fall back to C++ if we don't have a proper language.
-        if (language == 0)
+        if (!language)
             language = F4_LanguageFromString(S8Lit("cpp"));
         
-        if (language != 0)
+        b32 canceled = false;
+        if (language)
         {
             void* lexing_state = push_array_zero(scratch, u8, language->lex_state_size);
             language->LexInit(lexing_state, contents);
@@ -822,6 +778,7 @@ function void Long_DoFullLex_ASYNC(Async_Context* actx, String8 data)
             for (;;)
             {
                 ProfileBlock(app, "[F4] Async Lex Block");
+                i32 limit_factor = 10000;
                 if (language->LexFullInput(scratch, &list, lexing_state, limit_factor))
                     break;
                 
@@ -838,8 +795,8 @@ function void Long_DoFullLex_ASYNC(Async_Context* actx, String8 data)
             ProfileBlock(app, "[F4] Async Lex Save Results (before mutex)");
             acquire_global_frame_mutex(app);
             ProfileBlock(app, "[F4] Async Lex Save Results (after mutex)");
-            Managed_Scope scope = buffer_get_managed_scope(app, buffer);
             
+            Managed_Scope scope = buffer_get_managed_scope(app, buffer);
             if (scope != 0)
             {
                 Base_Allocator* allocator = managed_scope_allocator(app, scope);
@@ -906,13 +863,13 @@ function BUFFER_HOOK_SIG(Long_BeginBuffer)
     String_ID file_map_id = vars_save_string_lit("keys_file");
     String_ID code_map_id = vars_save_string_lit("keys_code");
     
-    Command_Map_ID map_id = (treat_as_code) ? (code_map_id) : (file_map_id);
+    Command_Map_ID map_id = treat_as_code ? code_map_id : file_map_id;
     Managed_Scope scope = buffer_get_managed_scope(app, buffer_id);
-    Command_Map_ID *map_id_ptr = scope_attachment(app, scope, buffer_map_id, Command_Map_ID);
+    Command_Map_ID* map_id_ptr = scope_attachment(app, scope, buffer_map_id, Command_Map_ID);
     *map_id_ptr = map_id;
     
     Line_Ending_Kind setting = guess_line_ending_kind_from_buffer(app, buffer_id);
-    Line_Ending_Kind *eol_setting = scope_attachment(app, scope, buffer_eol_setting, Line_Ending_Kind);
+    Line_Ending_Kind* eol_setting = scope_attachment(app, scope, buffer_eol_setting, Line_Ending_Kind);
     *eol_setting = setting;
     
     // NOTE(allen): Decide buffer settings
@@ -924,18 +881,18 @@ function BUFFER_HOOK_SIG(Long_BeginBuffer)
         use_lexer = true;
     }
     
-    if(string_match(buffer_name, string_u8_litexpr("*compilation*")))
+    if (string_match(buffer_name, S8Lit("*compilation*")))
         wrap_lines = false;
     
     if (use_lexer)
     {
         ProfileBlock(app, "begin buffer kick off lexer");
-        Async_Task *lex_task_ptr = scope_attachment(app, scope, buffer_lex_task, Async_Task);
+        Async_Task* lex_task_ptr = scope_attachment(app, scope, buffer_lex_task, Async_Task);
         *lex_task_ptr = async_task_no_dep(&global_async_system, Long_DoFullLex_ASYNC, make_data_struct(&buffer_id));
     }
     
     {
-        b32 *wrap_lines_ptr = scope_attachment(app, scope, buffer_wrap_lines, b32);
+        b32* wrap_lines_ptr = scope_attachment(app, scope, buffer_wrap_lines, b32);
         *wrap_lines_ptr = wrap_lines;
     }
     
@@ -955,72 +912,64 @@ function BUFFER_EDIT_RANGE_SIG(Long_BufferEditRange)
 {
     // buffer_id, new_range, original_size
     ProfileScope(app, "[Long] Buffer Edit Range");
+    Scratch_Block scratch(app);
     
     MC_buffer_edit_range_inner(app, buffer_id, new_range, old_cursor_range);
     
     Range_i64 old_range = Ii64(old_cursor_range.min.pos, old_cursor_range.max.pos);
-    
     buffer_shift_fade_ranges(buffer_id, old_range.max, (new_range.max - old_range.max));
     
     {
         code_index_lock();
-        Code_Index_File *file = code_index_get_file(buffer_id);
-        if (file != 0)
+        Code_Index_File* file = code_index_get_file(buffer_id);
+        if (file)
             code_index_shift(file, old_range, range_size(new_range));
         code_index_unlock();
     }
     
-    i64 insert_size = range_size(new_range);
-    i64 text_shift = replace_range_shift(old_range, insert_size);
-    
-    Scratch_Block scratch(app);
-    
     Managed_Scope scope = buffer_get_managed_scope(app, buffer_id);
-    Async_Task *lex_task_ptr = scope_attachment(app, scope, buffer_lex_task, Async_Task);
-    
-    Base_Allocator *allocator = managed_scope_allocator(app, scope);
+    i64 text_shift = replace_range_shift(old_range, range_size(new_range));
     b32 do_full_relex = false;
     
-    if (async_task_is_running_or_pending(&global_async_system, *lex_task_ptr)){
+    Async_Task* lex_task_ptr = scope_attachment(app, scope, buffer_lex_task, Async_Task);
+    if (async_task_is_running_or_pending(&global_async_system, *lex_task_ptr))
+    {
         async_task_cancel(app, &global_async_system, *lex_task_ptr);
         buffer_unmark_as_modified(buffer_id);
         do_full_relex = true;
         *lex_task_ptr = 0;
     }
     
-    Token_Array *ptr = scope_attachment(app, scope, attachment_tokens, Token_Array);
-    if (ptr != 0 && ptr->tokens != 0){
+    Token_Array* ptr = scope_attachment(app, scope, attachment_tokens, Token_Array);
+    if (ptr != 0 && ptr->tokens != 0)
+    {
         ProfileBlockNamed(app, "attempt resync", profile_attempt_resync);
         
         i64 token_index_first = token_relex_first(ptr, old_range.first, 1);
-        i64 token_index_resync_guess =
-            token_relex_resync(ptr, old_range.one_past_last, 16);
+        i64 token_index_resync_guess = token_relex_resync(ptr, old_range.one_past_last, 16);
         
         if (token_index_resync_guess - token_index_first >= 4000)
             do_full_relex = true;
         else
         {
-            Token *token_first = ptr->tokens + token_index_first;
-            Token *token_resync = ptr->tokens + token_index_resync_guess;
+            Token* token_first = ptr->tokens + token_index_first;
+            Token* token_resync = ptr->tokens + token_index_resync_guess;
             
             Range_i64 relex_range = Ii64(token_first->pos, token_resync->pos + token_resync->size + text_shift);
             String_Const_u8 partial_text = push_buffer_range(app, scratch, buffer_id, relex_range);
             
             // NOTE(rjf): Lex
-            F4_Language *language = F4_LanguageFromBuffer(app, buffer_id);
+            F4_Language* language = F4_LanguageFromBuffer(app, buffer_id);
             // NOTE(rjf): Fall back to C++ if we don't have a proper language.
-            if(language == 0)
-            {
+            if (!language)
                 language = F4_LanguageFromString(S8Lit("cpp"));
-            }
-            Token_List relex_list = F4_Language_LexFullInput_NoBreaks(app, language, scratch, partial_text);
             
+            Token_List relex_list = F4_Language_LexFullInput_NoBreaks(app, language, scratch, partial_text);
             if (relex_range.one_past_last < buffer_get_size(app, buffer_id))
                 token_drop_eof(&relex_list);
             
             Token_Relex relex = token_relex(relex_list, relex_range.first - text_shift, ptr->tokens,
                                             token_index_first, token_index_resync_guess);
-            
             ProfileCloseNow(profile_attempt_resync);
             
             if (!relex.successful_resync)
@@ -1028,20 +977,21 @@ function BUFFER_EDIT_RANGE_SIG(Long_BufferEditRange)
             else
             {
                 ProfileBlock(app, "apply resync");
-                
+                Base_Allocator* allocator = managed_scope_allocator(app, scope);
                 i64 token_index_resync = relex.first_resync_index;
                 
                 Range_i64 head = Ii64(0, token_index_first);
                 Range_i64 replaced = Ii64(token_index_first, token_index_resync);
                 Range_i64 tail = Ii64(token_index_resync, ptr->count);
+                
                 i64 resynced_count = (token_index_resync_guess + 1) - token_index_resync;
                 i64 relexed_count = relex_list.total_count - resynced_count;
                 i64 tail_shift = relexed_count - (token_index_resync - token_index_first);
                 
                 i64 new_tokens_count = ptr->count + tail_shift;
-                Token *new_tokens = base_array(allocator, Token, new_tokens_count);
+                Token* new_tokens = base_array(allocator, Token, new_tokens_count);
                 
-                Token *old_tokens = ptr->tokens;
+                Token* old_tokens = ptr->tokens;
                 block_copy_array_shift(new_tokens, old_tokens, head, 0);
                 token_fill_memory_from_list(new_tokens + replaced.first, &relex_list, relexed_count);
                 for (i64 i = 0, index = replaced.first; i < relexed_count; i += 1, index += 1)

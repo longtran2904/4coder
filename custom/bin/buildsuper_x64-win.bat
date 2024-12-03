@@ -46,7 +46,7 @@ set meta_opts=/P /Fi"%preproc_file%" /DMETA_PASS
 set build_dll=/LD /link /INCREMENTAL:NO /OPT:REF /RELEASE /PDBALTPATH:%%%%_PDB%%%%
 set build_dll=%build_dll% /EXPORT:get_version /EXPORT:init_apis
 
-del *.pdb
+del *.pdb 2> NUL
 call cl %opts% %meta_opts% "%target%"
 call cl %opts% "%custom_root%\4coder_metadata_generator.cpp" /Femetadata_generator
 metadata_generator -R "%custom_root%" "%cd%\%preproc_file%"

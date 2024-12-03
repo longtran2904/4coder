@@ -15,12 +15,10 @@ enum Cursor_Type
 function void Long_Render_DrawBlock(Application_Links* app, Text_Layout_ID layout, Range_i64 range, f32 roundness, FColor color);
 function Rect_f32 Long_Render_CursorRect(Application_Links *app, View_ID view, Buffer_ID buffer, Text_Layout_ID layout,
                                          i64 cursor, i64 mark, f32 roundness, f32 thickness);
-function void Long_Render_NotepadCursor(Application_Links *app, View_ID view_id, b32 is_active_view,
-                                        Buffer_ID buffer, Text_Layout_ID text_layout_id,
-                                        f32 roundness, f32 outline_thickness, Frame_Info frame_info);
-function void Long_Render_EmacsCursor(Application_Links* app, View_ID view_id, b32 is_active_view,
-                                      Buffer_ID buffer, Text_Layout_ID text_layout_id,
-                                      f32 roundness, f32 outline_thickness, Frame_Info frame_info);
+function void Long_Render_NotepadCursor(Application_Links *app, View_ID view_id, Buffer_ID buffer, Text_Layout_ID text_layout_id,
+                                        Frame_Info frame_info, f32 roundness, f32 outline_thickness, b32 is_active_view);
+function void Long_Render_EmacsCursor(Application_Links* app, View_ID view_id, Buffer_ID buffer, Text_Layout_ID text_layout_id,
+                                      Frame_Info frame_info, f32 roundness, f32 outline_thickness, b32 is_active_view);
 function void Long_HighlightCursorMarkRange(Application_Links* app, View_ID view_id);
 
 //~ NOTE(long): Tooltip Rendering
@@ -50,7 +48,8 @@ function void Long_Highlight_DrawRangeList(Application_Links* app, View_ID view,
 
 function void Long_Highlight_DrawErrors(Application_Links* app, Buffer_ID buffer, Text_Layout_ID layout, Buffer_ID jump_buffer);
 function void Long_Highlight_DrawList  (Application_Links* app, Buffer_ID buffer, Text_Layout_ID layout, f32 roundness, f32 thickness);
-function void Long_MC_DrawHighlights   (Application_Links* app, View_ID view, Buffer_ID buffer, Text_Layout_ID layout, f32 roundness, f32 thickness);
+function void Long_MC_DrawHighlights   (Application_Links* app, View_ID view, Buffer_ID buffer,
+                                        Text_Layout_ID layout, f32 roundness, f32 thickness, b32 is_active_view);
 function b32  Long_Highlight_DrawRange (Application_Links* app, View_ID view, Buffer_ID buffer, Text_Layout_ID layout, f32 roundness);
 function b32  Long_Highlight_HasRange  (Application_Links* app, View_ID view);
 
@@ -62,10 +61,14 @@ function ColorCtx ColorCtx_Token(Token token, Buffer_ID buffer);
 function b32 F4_ARGBIsValid(ARGB_Color color);
 
 //- NOTE(long): Actual Functions
+function ARGB_Color Long_ARGBFromID(Managed_ID id, i32 subindex = 0);
 function ARGB_Color Long_Color_Alpha(ARGB_Color color, f32 alpha);
 function ARGB_Color Long_GetColor(Application_Links* app, ColorCtx ctx);
-function void  Long_SyntaxHighlight(Application_Links* app, Text_Layout_ID text_layout_id, Token_Array* array);
-function void  Long_Render_HexColor(Application_Links* app, View_ID view, Buffer_ID buffer, Text_Layout_ID layout);
-function void Long_Render_FadeError(Application_Links* app, Buffer_ID buffer, Range_i64 range);
+
+function void Long_SyntaxHighlight(Application_Links* app, Text_Layout_ID text_layout_id, Token_Array* array);
+function void Long_Render_HexColor(Application_Links* app, View_ID view, Buffer_ID buffer, Text_Layout_ID layout);
+
+function void     Long_Render_FadeError(Application_Links* app, Buffer_ID buffer, Range_i64 range);
+function void Long_Render_FadeHighlight(Application_Links* app, Buffer_ID buffer, Range_i64 range);
 
 #endif //FCODER_LONG_RENDER_H

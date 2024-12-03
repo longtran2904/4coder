@@ -257,71 +257,92 @@
 //   Each project file can now contain an array of reference paths (set inside the reference_paths variable)
 //   When this command runs, it will recursively load all files in those paths as read-only and unimportant
 
-//~ TODO LISTER
-// [ ] Replace all the wildcard searching in the query bar and lister with grep or glob
-// [ ] Search for definitions like Hoogle
-// [ ] Has a lister for important but rarely used commands
-// [ ] Hotkeys for inserting and cycling through common tags
-
 //~ TODO MULTI CURSOR
 // [ ] Across buffers
-// [ ] Add/Remove a cursor at the current location while in search mode
+// [X] Add/Remove a cursor at the current location while in search mode
+// [ ] Begin multi-cursor block that ignore comment lines
+// [X] Remove all the old MultiSelect code
+// [ ] Correct MC cursors while enabling virtual whitespace
+
+//~ TODO QUERY/REPLACE
+// [X] Compress the input code
+// [X] Refactor isearch and query replace
+// [X] Ctrl+Enter will append previous search query
+// [X] Handle number input
+// [X] Fade the replaced range when query replace
+// [X] Fix error fading after replace the last match
+// [X] Finish query replace after the final match
+// [X] Interactively update the query highlights while typing when replace_in_range
+// [X] Seamlessly switch between isearch and query replace
+// [X] Fix incorrect starting position when Shift+Esc
 
 //~ TODO TAB
 // [ ] Basic system and commands/bindings
 // [ ] Put *message* buffer to a separate tab
-// [ ] Put *search*  buffer to a separate tab
+// [ ] Put  *search* buffer to a separate tab
 
-//~ TODO RENDER
+//~ TODO INDEX
 
-//- LISTER
-// [ ] Put ... after a large item and scroll its content horizontally over time
-// [ ] Has syntax highlight inside each item's contents
-// [ ] Improve relative path display in the file lister
-// [ ] Render multi-column grid like byp_qol
-
-//- INDEX
-// [ ] Autocompletion using PosContext or casey/jack's system
-// [ ] String/Comment indenting as code
-// [ ] Render #if block with annotation
-// [ ] Render hex/bin/oct/dec number with thousands/byte separator
-
-//~ TODO CODE/ARCHITECTURE
-
-//- SEARCH
-// [X] Simplify and cleanup all the query search/replace commands
-// [X] Merge all the default query bar code into a single function
-// [X] Compress all Query functions
-// [X] Highlight selection when replace_in_range
-// [X] Compress the mapping_get_map codepath
-// [X] Fade the entire block when can't replace in range or query replace
-// [X] Fix mouse_wheel_scroll scrolls outside of the camera bounds
-
-//- INDEX
+//- CODE
 // [ ] Write a new cpp parser
 // [ ] Rewrite the Index system into a simple drop-in file
 // [ ] Add Index API for customizing the indentation and poscontext
 // [ ] Handle function overloading
 
-//~ TODO BUGS
+//- RENDER
+// [ ] Autocompletion using PosContext or casey/jack's system
+// [ ] String/Comment indenting as code
+// [ ] Render #if block with annotation
+// [ ] Render hex/bin/oct/dec number with thousands/byte separator
+
+//- BUGS
 // [ ] Fix global function macro color for variable
+// [ ] `MyStruct arg = {}` in the argument list cause prototype function to be parsed incorectly
+
+//~ TODO BUGS
 // [ ] Fix undo/redo_all_buffers right after saving bug
-// [?] Fix undo/redo/indent history bug
+// [ ] The current saved history gets overwritten by merging with the next modification
 // [ ] Clipboard bug (again)
-// [ ] Fix ListAllLocations highlights the current range in *compilation*
-// [X] (Un)comment bug (again)
+// [X] Fix hot-reload mc bindings bug
+// [X] Fix ListAllLocations highlights the current range in *compilation*
+// [X] Pass buffer id rather than the view id to Long_Mapping_GetMap in MC_ListAllLocations
+// [X] Off-by-one selection count in MC_ListAllLocations
 
 //~ @CONSIDER NEW SYSTEM
 // [ ] LOC counter
 // [ ] Virtual column
 
+//~ @CONSIDER LISTER
+
+//- SEARCH
+// [ ] Replace all the wildcard searching in the query bar and lister with grep or glob
+// [ ] Search for definitions like Hoogle
+// [ ] Has a lister for important but rarely used commands
+// [ ] Hotkeys for inserting and cycling through common tags
+
+//- RENDER
+// [ ] Put ... after a large item and scroll its content horizontally over time
+// [ ] Has syntax highlight inside each item's contents
+// [ ] Improve relative path display in the file lister
+// [ ] Render multi-column grid like byp_qol
+
 //~ @CONSIDER Interesting but low-priority stuff that may or may not be useful but deserves a look
+
+//- IDENTIFIER (when the cursor is at then end of the identifier token)
+// [ ] Search
+// [ ] Replace
+// [ ] List
+// [ ] Peek
+// [ ] Long_Boundary_CursorToken
+// [ ] Token Occurrence Highlight
 
 //- HOT RELOADING
 // [ ] Hot-reload the project file and print the error message
+// [ ] Hot-reload multi-cursor bindings
 // [ ] Custom commands for each reloadable file
 
 //- MISC
+// [ ] Toggle comments ignore blank lines
 // [ ] Move range selection up and down
 // [ ] Modal auto-complete {} () [] on enter or typing
 // [ ] Jump to location with relative path
@@ -450,7 +471,7 @@ void custom_layer_init(Application_Links* app)
         if (!dynamic_binding_load_from_file(app, &framework_mapping, bindings_file))
             Long_Binding_SetupDefault(&framework_mapping, global_id, file_id, code_id);
         Long_Binding_SetupEssential(&framework_mapping, global_id, file_id, code_id);
-        Long_Binding_MultiCursor(&framework_mapping, global_id, file_id, code_id);
+        Long_Binding_MultiCursor();
     }
     
     // TODO(long): Improve the index and language layers.

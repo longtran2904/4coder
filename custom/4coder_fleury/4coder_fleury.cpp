@@ -378,10 +378,6 @@
 // [ ] Project switcher
 // [ ] Plan + do modal input scheme... Identifier-mode, text-mode, semantics mode, search mode...?
 
-#if 1
-#include "4coder_long.h"
-#else
-
 //~ NOTE(rjf): For DION team docs server stuff.
 // {
 #if OS_WINDOWS
@@ -506,7 +502,6 @@ void custom_layer_init(Application_Links *app)
         F4_RegisterLanguages();
     }
 }
-#endif
 
 //~ NOTE(rjf): @f4_startup Whenever 4coder's core is ready for the custom layer to start up,
 // this is called.

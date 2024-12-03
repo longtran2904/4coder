@@ -162,12 +162,6 @@ function void Long_Binding_SetupDefault(Mapping* mapping, i64 global_id, i64 fil
         Bind(long_list_all_substring_locations_of_identifier_case_insensitive, KeyCode_T, KeyCode_Alt);
         Bind(long_list_all_locations_of_identifier_current_buffer,             KeyCode_T, KeyCode_Alt,     KeyCode_Shift, KeyCode_Control);
         Bind(long_list_all_substring_locations_of_identifier_case_insensitive_current_buffer, KeyCode_T,   KeyCode_Alt,   KeyCode_Control);
-        Bind(long_list_all_lines_in_range_non_white,                           KeyCode_R, KeyCode_Alt);
-        Bind(long_list_all_lines_in_range,                                     KeyCode_R, KeyCode_Alt,     KeyCode_Shift);
-        Bind(long_list_all_lines_in_range_seek_end_non_white,                  KeyCode_E, KeyCode_Alt);
-        Bind(long_list_all_lines_in_range_seek_end,                            KeyCode_E, KeyCode_Alt,     KeyCode_Shift);
-        Bind(long_list_all_lines_from_start_to_cursor_absolute,                KeyCode_C, KeyCode_Alt);
-        Bind(long_list_all_lines_from_start_to_cursor_relative,                KeyCode_C, KeyCode_Alt,     KeyCode_Shift);
         
         Bind(replace_in_range,                             KeyCode_A,      KeyCode_Control);
         Bind(long_query_replace,                           KeyCode_Q,      KeyCode_Control);
@@ -226,72 +220,71 @@ function void Long_Binding_SetupDefault(Mapping* mapping, i64 global_id, i64 fil
     }
 }
 
-function void Long_Binding_MultiCursor(Mapping* mapping, i64 global_id, i64 file_id, i64 code_id)
+function void Long_Binding_MultiCursor()
 {
-    MC_register(exit_4coder,                     MC_Command_Global);
-    MC_register(default_try_exit,                MC_Command_Global);
-    MC_register(mouse_wheel_change_face_size,    MC_Command_Global);
-    MC_register(swap_panels,                     MC_Command_Global);
+    //- NOTE(long): MC-related
+    MC_register(MC_end_multi,                                   MC_Command_Global);
     
-    MC_register(copy,                            MC_Command_CursorCopy);
-    MC_register(cut,                             MC_Command_CursorCopy);
-    MC_register(long_paste_and_indent,           MC_Command_CursorPaste);
-    MC_register(long_copy_line,                  MC_Command_CursorCopy);
-    MC_register(long_cut_line,                   MC_Command_CursorCopy);
-    MC_register(long_paste_and_replace_range,    MC_Command_CursorPaste);
+    MC_register(long_mc_up_trail,                               MC_Command_Cursor);
+    MC_register(long_mc_down_trail,                             MC_Command_Cursor);
     
-    MC_register(write_text_input,                MC_Command_Cursor);
-    MC_register(long_write_text_and_auto_indent, MC_Command_Cursor);
+    //- NOTE(long): Essential
+    MC_register(exit_4coder,                                    MC_Command_Global);
+    MC_register(default_try_exit,                               MC_Command_Global);
+    MC_register(mouse_wheel_change_face_size,                   MC_Command_Global);
+    MC_register(swap_panels,                                    MC_Command_Global);
     
+    MC_register(write_text_input,                               MC_Command_Cursor);
+    MC_register(long_write_text_and_auto_indent,                MC_Command_Cursor);
+    
+    //- NOTE(long): Copy-Paste
+    MC_register(copy,                                           MC_Command_CursorCopy);
+    MC_register(cut,                                            MC_Command_CursorCopy);
+    MC_register(long_copy_line,                                 MC_Command_CursorCopy);
+    MC_register(long_cut_line,                                  MC_Command_CursorCopy);
+    
+    MC_register(long_paste_and_indent,                          MC_Command_CursorPaste);
+    MC_register(long_paste_and_replace_range,                   MC_Command_CursorPaste);
+    
+    //- NOTE(long): Delete
     MC_register(delete_char,                                    MC_Command_Cursor);
     MC_register(backspace_char,                                 MC_Command_Cursor);
+    MC_register(long_delete_range,                              MC_Command_Cursor);
+    MC_register(delete_line,                                    MC_Command_Cursor);
+    
+    MC_register(long_delete_token_boundary,                     MC_Command_Cursor);
+    MC_register(long_backspace_token_boundary,                  MC_Command_Cursor);
+    MC_register(long_delete_alpha_numeric_or_camel_boundary,    MC_Command_Cursor);
+    MC_register(long_backspace_alpha_numeric_or_camel_boundary, MC_Command_Cursor);
+    
+    //- NOTE(long): Navigation
     MC_register(move_up,                                        MC_Command_Cursor);
     MC_register(move_down,                                      MC_Command_Cursor);
     MC_register(move_left,                                      MC_Command_Cursor);
     MC_register(move_right,                                     MC_Command_Cursor);
-    MC_register(long_delete_token_boundary,                     MC_Command_Cursor);
-    MC_register(long_backspace_token_boundary,                  MC_Command_Cursor);
+    
     MC_register(long_move_up_token_occurrence,                  MC_Command_Cursor);
     MC_register(long_move_down_token_occurrence,                MC_Command_Cursor);
     MC_register(long_move_prev_word,                            MC_Command_Cursor);
     MC_register(long_move_next_word,                            MC_Command_Cursor);
-    MC_register(long_delete_alpha_numeric_or_camel_boundary,    MC_Command_Cursor);
-    MC_register(long_backspace_alpha_numeric_or_camel_boundary, MC_Command_Cursor);
+    
     MC_register(move_up_to_blank_line_end,                      MC_Command_Cursor);
     MC_register(move_down_to_blank_line_end,                    MC_Command_Cursor);
     MC_register(long_move_prev_alpha_numeric_or_camel_boundary, MC_Command_Cursor);
     MC_register(long_move_next_alpha_numeric_or_camel_boundary, MC_Command_Cursor);
     
-    MC_register(if_read_only_goto_position,      MC_Command_Cursor);
-    MC_register(seek_end_of_line,                MC_Command_Cursor);
-    MC_register(f4_home_first_non_whitespace,    MC_Command_Cursor);
-    MC_register(move_line_up,                    MC_Command_Cursor);
-    MC_register(move_line_down,                  MC_Command_Cursor);
-    MC_register(long_delete_range,               MC_Command_Cursor);
-    MC_register(delete_line,                     MC_Command_Cursor);
-    MC_register(long_cursor_mark_swap,           MC_Command_Cursor);
-    MC_register(set_mark,                        MC_Command_Cursor);
-    MC_register(long_toggle_comment_selection,   MC_Command_Cursor);
-    MC_register(long_autocomplete,               MC_Command_Cursor);
-    MC_register(f4_unindent,                     MC_Command_Cursor);
-    MC_register(duplicate_line,                  MC_Command_Cursor);
-    
-    {
-        MappingScope();
-        SelectMapping(&framework_mapping);
-        
-        SelectMap(global_id);
-        MC_Bind(MC_end_multi, KeyCode_Escape);
-        
-        SelectMap(file_id);
-        ParentMap(global_id);
-        Bind(MC_add_at_pos,         KeyCode_BackwardSlash, KeyCode_Control, KeyCode_Shift);
-        Bind(MC_begin_multi,        KeyCode_Return,        KeyCode_Alt);
-        Bind(MC_begin_multi_block,  KeyCode_L,             KeyCode_Control, KeyCode_Shift);
-        
-        MC_Bind(long_mc_up_trail,   KeyCode_Up,            KeyCode_Alt,     KeyCode_Shift);
-        MC_Bind(long_mc_down_trail, KeyCode_Down,          KeyCode_Alt,     KeyCode_Shift);
-    }
+    //- NOTE(long): Misc
+    MC_register(if_read_only_goto_position,                     MC_Command_Cursor);
+    MC_register(seek_end_of_line,                               MC_Command_Cursor);
+    MC_register(f4_home_first_non_whitespace,                   MC_Command_Cursor);
+    MC_register(move_line_up,                                   MC_Command_Cursor);
+    MC_register(move_line_down,                                 MC_Command_Cursor);
+    MC_register(long_cursor_mark_swap,                          MC_Command_Cursor);
+    MC_register(set_mark,                                       MC_Command_Cursor);
+    MC_register(long_toggle_comment_selection,                  MC_Command_Cursor);
+    MC_register(long_autocomplete,                              MC_Command_Cursor);
+    MC_register(f4_unindent,                                    MC_Command_Cursor);
+    MC_register(duplicate_line,                                 MC_Command_Cursor);
 }
 
 // @COPYPASTA(long): dynamic_binding_load_from_file
