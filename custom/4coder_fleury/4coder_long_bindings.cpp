@@ -39,10 +39,9 @@ function void Long_Binding_SetupDefault(Mapping* mapping, i64 global_id, i64 fil
     SelectMap(global_id);
     {
         Bind(long_change_active_panel,              KeyCode_Comma,  KeyCode_Control);
-        Bind(long_change_active_panel_backwards,    KeyCode_Comma,  KeyCode_Control, KeyCode_Shift);
+        Bind(change_active_panel_backwards,         KeyCode_Comma,  KeyCode_Control, KeyCode_Shift);
+        Bind(long_change_passive_panel,            KeyCode_Period, KeyCode_Control);
         Bind(project_go_to_root_directory,          KeyCode_H,      KeyCode_Alt);
-        Bind(long_change_to_build_panel,            KeyCode_Period, KeyCode_Control);
-        Bind(close_build_panel,                     KeyCode_Comma,  KeyCode_Alt);
         Bind(toggle_virtual_whitespace,             KeyCode_Equal,  KeyCode_Control);
         Bind(long_macro_toggle_recording,           KeyCode_U,      KeyCode_Control);
         Bind(keyboard_macro_replay,                 KeyCode_U,      KeyCode_Control, KeyCode_Shift);
@@ -207,7 +206,6 @@ function void Long_Binding_SetupDefault(Mapping* mapping, i64 global_id, i64 fil
         Bind(long_toggle_comment_selection,        KeyCode_Semicolon,    KeyCode_Control);
         Bind(long_autocomplete,                    KeyCode_Tab);
         Bind(long_indent_range,                    KeyCode_Tab,          KeyCode_Control);
-        Bind(word_complete_drop_down,              KeyCode_Tab,          KeyCode_Control, KeyCode_Shift);
         Bind(select_prev_scope_absolute,           KeyCode_LeftBracket,  KeyCode_Control);
         Bind(select_next_scope_absolute,           KeyCode_RightBracket, KeyCode_Control);
         Bind(long_select_upper_scope,              KeyCode_LeftBracket,  KeyCode_Control, KeyCode_Shift);
@@ -295,17 +293,18 @@ function b32 Long_Binding_LoadData(Application_Links* app, Mapping* mapping, Str
     if (data.size)
     {
         Scratch_Block scratch(app);
-        Long_Print_Errorf(app, "loading bindings: %.*s\n", string_expand(filename));
+        Config* parsed = def_config_from_text(app, scratch, filename, data);
+        b32 has_error = parsed == 0;
         
-        Config* parsed = 0;
+        if (!has_error)
         {
-            parsed = def_config_from_text(app, scratch, filename, data);
             String8 error_str = config_stringize_errors(app, scratch, parsed);
-            if (error_str.size)
+            has_error = error_str.size != 0;
+            if (has_error)
                 Long_Print_Error(app, error_str);
         }
         
-        if (parsed)
+        if (!has_error)
         {
             result = 1;
             
@@ -323,7 +322,7 @@ function b32 Long_Binding_LoadData(Application_Links* app, Mapping* mapping, Str
                     Config_Get_Result rvalue = config_evaluate_rvalue(parsed, assignment, assignment->r);
                     if (rvalue.type == ConfigRValueType_Compound)
                     {
-                        String_Const_u8 map_name = l->identifier;
+                        String8 map_name = l->identifier;
                         String_ID map_name_id = vars_save_string(map_name);
                         
                         SelectMap(map_name_id);
@@ -334,9 +333,9 @@ function b32 Long_Binding_LoadData(Application_Links* app, Mapping* mapping, Str
                         for (Config_Get_Result_Node *node = list.first; node != 0; node = node->next)
                         {
                             Config_Compound *src = node->result.compound;
-                            String_Const_u8 cmd_string = {0};
-                            String_Const_u8 key_string = {0};
-                            String_Const_u8 mod_string[9] = {0};
+                            String8 cmd_string = {0};
+                            String8 key_string = {0};
+                            String8 mod_string[9] = {0};
                             
                             if (!config_compound_string_member(parsed, src, "cmd", 0, &cmd_string))
                             {
@@ -352,7 +351,7 @@ function b32 Long_Binding_LoadData(Application_Links* app, Mapping* mapping, Str
                             
                             for (i32 mod_idx = 0; mod_idx < ArrayCount(mod_string); mod_idx += 1)
                             {
-                                String_Const_u8 str = push_stringf(scratch, "mod_%i", mod_idx);
+                                String8 str = push_stringf(scratch, "mod_%i", mod_idx);
                                 if (config_compound_string_member(parsed, src, str, 2 + mod_idx, &mod_string[mod_idx]))
                                 {
                                     // NOTE(rjf): No-Op
@@ -399,14 +398,18 @@ function b32 Long_Binding_LoadData(Application_Links* app, Mapping* mapping, Str
                         
                         if (parsed->errors.first != 0)
                         {
-                            String_Const_u8 error_str = config_stringize_errors(app, scratch, parsed);
-                            if (error_str.size)
+                            String8 error_str = config_stringize_errors(app, scratch, parsed);
+                            has_error = error_str.size != 0;
+                            if (has_error)
                                 Long_Print_Error(app, error_str);
                         }
                     }
                 }
             }
         }
+        
+        if (!has_error)
+            Long_Print_Errorf(app, "loading bindings: %.*s\n", string_expand(filename));
     }
     
     return result;
@@ -440,9 +443,11 @@ function b32 Long_Mapping_HandleCommand(Application_Links* app, View_ID view, Ma
 {
     if (!*mapping || !*map)
         *map = Long_Mapping_GetMap(app, view, mapping);
-    Command_Metadata* metadata = Long_Mapping_GetMetadata(*mapping, *map, in);
+    Command_Metadata* metadata = 0;
+    if (in->event.kind == InputEventKind_KeyStroke || in->event.kind == InputEventKind_KeyRelease)
+        metadata = Long_Mapping_GetMetadata(*mapping, *map, in);
     
-    b32 result = metadata && metadata->is_ui;
+    b32 result = metadata != 0/* && metadata->is_ui*/;
     if (result)
         view_enqueue_command_function(app, view, metadata->proc);
     else

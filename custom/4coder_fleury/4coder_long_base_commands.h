@@ -5,7 +5,7 @@
 
 //~ NOTE(long): Globals/Macros
 
-global View_ID long_global_active_view;
+global View_ID long_global_active_view = 0;
 
 global b32 global_code_peek_open = 0;
 
@@ -34,9 +34,11 @@ function b32 Long_Rf32_Invalid(Rect_f32 r);
 function i32 Long_Abs(i32 num);
 function i64 Long_Abs(i64 num);
 
-function void          Long_SnapView(Application_Links* app, View_ID view = 0);
-function void Long_Mouse_ScrollWheel(Application_Links* app, View_ID view);
+function View_ID Long_View_NextPassive(Application_Links* app, View_ID view, Access_Flag access);
+function View_ID Long_View_Open(Application_Links* app, View_ID view, Buffer_ID buffer, View_Split_Position position, b32 passive);
+function void    Long_View_Snap(Application_Links* app, View_ID view);
 
+function void       Long_Mouse_ScrollWheel(Application_Links* app, View_ID view);
 function void        Long_SnapMarkToCursor(Application_Links* app);
 function void Long_ConfirmMarkSnapToCursor(Application_Links* app);
 
@@ -48,8 +50,25 @@ function void Long_Print_Messagef(Application_Links* app, char* fmt, ...);
 function void   Long_Print_Errorf(Application_Links* app, char* fmt, ...);
 #define Long_Print_Error(app, err) Long_Print_Errorf((app), "%.*s", string_expand(err))
 
-function void     Long_Print_AppendVars(Application_Links* app, Arena* arena, String8List* list, Variable_Handle var, i32 indent);
-function String8 Long_Print_StrFromVars(Application_Links* app, Arena* arena, Variable_Handle var, i32 indent = 0);
+//~ NOTE(long): Vars/Config Functions
+
+#define vars_read_key_lit(var, key) vars_read_key((var), vars_save_string_lit(key))
+#define vars_read_root_key_lit(key) vars_read_key(vars_get_root(), vars_save_string_lit(key))
+
+#define vars_str_from_key(arena, var, key) vars_string_from_var(arena, vars_read_key(var, key))
+#define vars_str_from_key_lit(arena, var, key) vars_string_from_var(arena, vars_read_key_lit(var, key))
+#define vars_b32_from_key(var, key) vars_b32_from_var(vars_read_key(var, key))
+#define vars_b32_from_key_lit(var, key) vars_b32_from_var(vars_read_key_lit(var, key))
+
+#define def_get_config_b32_lit(key) def_get_config_b32(vars_save_string_lit(key))
+#define def_toggle_config_b32_lit(key) Stmnt(String_ID __id__ = vars_save_string_lit(key); \
+                                             def_set_config_b32(__id__, def_get_config_b32(__id__));)
+#define def_get_config_u64_lit(app, key) def_get_config_u64(app, vars_save_string_lit(key))
+#define def_get_config_str_lit(arena, key) def_get_config_string(arena, vars_save_string_lit(key))
+
+function void    Long_Vars_Append(Application_Links* app, Arena* arena, String8List*  list, Variable_Handle var, i32 indent);
+function String8 Long_Vars_StrFromArray(Application_Links* app, Arena* arena, Variable_Handle var, i32 indent, String8List ignore = {});
+function String8 Long_Vars_SingleStrArray(Application_Links* app, Arena* arena, Variable_Handle var);
 
 //~ NOTE(long): Search Buffer Functions
 
@@ -90,11 +109,16 @@ function void  Long_Search(Application_Links* app, Scan_Direction dir, b32 ident
 
 function void Long_Query_Replace(Application_Links* app, String8 replace_str, i64 start_pos);
 function void Long_Query_Replace(Application_Links* app, Buffer_ID buffer, Range_i64 range);
-function void Long_Query_ReplaceRange(Application_Links* app, View_ID view, Buffer_ID buffer, Range_i64 range);
+function void Long_Query_ReplaceRange(Application_Links* app, View_ID view, Range_i64 range);
 
 //~ NOTE(long): Project Functions
 
 function String8 Long_Prj_RelBufferName(Application_Links* app, Arena* arena, Buffer_ID buffer);
+function void Long_Prj_Print(Application_Links* app, Variable_Handle prj_var);
+function Variable_Handle Long_Prj_Parse(Application_Links* app, String8 filename, String8 data);
+function void Long_Prj_Load(Application_Links* app, Variable_Handle prj_var);
+
+function void Long_Config_Print(Application_Links* app);
 function void Long_Config_ApplyFromData(Application_Links* app, String8 data, i32 override_font_size, b32 override_hinting);
 
 //~ NOTE(long): Point Stack Functions

@@ -257,29 +257,25 @@
 //   Each project file can now contain an array of reference paths (set inside the reference_paths variable)
 //   When this command runs, it will recursively load all files in those paths as read-only and unimportant
 
-//~ TODO MULTI CURSOR
-// [ ] Across buffers
-// [X] Add/Remove a cursor at the current location while in search mode
-// [ ] Begin multi-cursor block that ignore comment lines
-// [X] Remove all the old MultiSelect code
-// [ ] Correct MC cursors while enabling virtual whitespace
+//~ TODO FOOTER PANEL
+// [X] Add a second panel
+// [X] Redesgin the config message
+// [X] Put the *search* buffer there when searching
+// [X] Redesign the project message
+// [X] Toggle panel expansion while searching
+// [X] Highlight line at cursor in the *search* buffer
 
-//~ TODO QUERY/REPLACE
-// [X] Compress the input code
-// [X] Refactor isearch and query replace
-// [X] Ctrl+Enter will append previous search query
-// [X] Handle number input
-// [X] Fade the replaced range when query replace
-// [X] Fix error fading after replace the last match
-// [X] Finish query replace after the final match
-// [X] Interactively update the query highlights while typing when replace_in_range
-// [X] Seamlessly switch between isearch and query replace
-// [X] Fix incorrect starting position when Shift+Esc
-
-//~ TODO TAB
-// [ ] Basic system and commands/bindings
-// [ ] Put *message* buffer to a separate tab
-// [ ] Put  *search* buffer to a separate tab
+//~ TODO VARIABLES
+// [X] def_get_config_xxx_lit
+// [X] vars_read_key_lit
+// [X] vars_xxx_from_key
+// [X] Refactor the print vars code
+// [X] 4coder_long
+// [X] 4coder_long_base_commands
+// [X] 4coder_long_hooks
+// [X] 4coder_long_index
+// [X] 4coder_long_lister
+// [X] 4coder_long_render
 
 //~ TODO INDEX
 
@@ -288,6 +284,7 @@
 // [ ] Rewrite the Index system into a simple drop-in file
 // [ ] Add Index API for customizing the indentation and poscontext
 // [ ] Handle function overloading
+// [ ] Rewrite and optimize the lookup function
 
 //- RENDER
 // [ ] Autocompletion using PosContext or casey/jack's system
@@ -302,15 +299,24 @@
 //~ TODO BUGS
 // [ ] Fix undo/redo_all_buffers right after saving bug
 // [ ] The current saved history gets overwritten by merging with the next modification
-// [ ] Clipboard bug (again)
-// [X] Fix hot-reload mc bindings bug
-// [X] Fix ListAllLocations highlights the current range in *compilation*
-// [X] Pass buffer id rather than the view id to Long_Mapping_GetMap in MC_ListAllLocations
-// [X] Off-by-one selection count in MC_ListAllLocations
+// [X] Clipboard bug (again)
+// [X] Fix the calc system thinking /*c...*/ as a calc comment
+// [X] Fix null bug when the current buffer is readonly
+// [X] Fade error when trying to replace inside a readonly buffer
+// [X] Stop treating 4coder files as recent modified files
+// [X] Hot-reload project file cause the wrong file lister tag
+// [X] Mouse movement causes ListAllLocations to exit
+// [X] Changing the active view with mouse while in query mode
 
 //~ @CONSIDER NEW SYSTEM
 // [ ] LOC counter
 // [ ] Virtual column
+// [ ] Jump system
+
+//~ @CONSIDER MULTI CURSOR
+// [ ] Across buffers
+// [ ] Begin multi-cursor block that ignore comment lines
+// [ ] Correct MC cursors while enabling virtual whitespace
 
 //~ @CONSIDER LISTER
 
@@ -337,16 +343,21 @@
 // [ ] Token Occurrence Highlight
 
 //- HOT RELOADING
-// [ ] Hot-reload the project file and print the error message
+// [X] Hot-reload the project file
 // [ ] Hot-reload multi-cursor bindings
 // [ ] Custom commands for each reloadable file
 
+//- COMMENT
+// [ ] Toggle multi-line comment ignore blank lines
+// [ ] Toggle comment ignore end of line
+
 //- MISC
-// [ ] Toggle comments ignore blank lines
 // [ ] Move range selection up and down
 // [ ] Modal auto-complete {} () [] on enter or typing
 // [ ] Jump to location with relative path
 // [ ] Code peek yank
+// [X] Swap the cursor and mark position when MC_ListAllLocations
+// [X] Run any custom command while in query mode
 
 //~ NOTE(long): @long_macros and default include
 #define LONG_INDEX_INDENT_STATEMENT 1
@@ -432,13 +443,29 @@
 
 //~ NOTE(long): @long_custom_layer_initialization
 
+function Face_ID Long_Font_TryCreate(Application_Links* app, String8 filename, Face_ID fallback, u32 size, b8 bold, b8 italic)
+{
+    Face_Description desc = {0};
+    desc.font.file_name = filename;
+    desc.parameters.pt_size = size;
+    desc.parameters.bold = bold;
+    desc.parameters.italic = italic;
+    
+    Face_ID result = try_create_new_face(app, &desc);
+    if (!result)
+        result = fallback;
+    return result;
+}
+
 void custom_layer_init(Application_Links* app)
 {
     default_framework_init(app);
-    MC_init(app);
-    implicit_map_function = 0;
     global_frame_arena = make_arena(get_base_allocator_system());
     permanent_arena = make_arena(get_base_allocator_system());
+    
+    // NOTE(long): Initialize BYP's MC
+    MC_init(app);
+    implicit_map_function = 0;
     
     // NOTE(long): Set up hooks.
     {
@@ -462,7 +489,7 @@ void custom_layer_init(Application_Links* app)
     {
         Thread_Context* tctx = get_thread_context(app);
         mapping_init(tctx, &framework_mapping);
-        String_Const_u8 bindings_file = S8Lit("bindings.4coder");
+        String8 bindings_file = S8Lit("bindings.4coder");
         
         String_ID global_id = vars_save_string_lit("keys_global");
         String_ID   file_id = vars_save_string_lit("keys_file");
@@ -489,39 +516,22 @@ CUSTOM_DOC("Long startup event")
     if (!match_core_code(&input, CoreCode_Startup))
         return;
     
-    // NOTE(long): default font.
-    Face_ID default_font = get_face_id(app, 0);
-    
     //- @COPYPASTA(long): default_4coder_initialize
     {
         load_themes_default_folder(app);
         
-        // TODO(long): Better default message
-#define M \
-    "Welcome to " VERSION "\n" \
-    "If you're new to 4coder there is a built in tutorial\n" \
-    "Use the key combination [ X Alt ] (on mac [ X Control ])\n" \
-    "Type in 'hms_demo_tutorial' and press enter\n" \
-    "\n" \
-    "Direct bug reports and feature requests to https://github.com/4coder-editor/4coder/issues\n" \
-    "\n" \
-    "Other questions and discussion can be directed to editor@4coder.net or 4coder.handmade.network\n" \
-    "\n" \
-    "The change log can be found in CHANGES.txt\n" \
-    "\n"
-        print_message(app, S8Lit(M));
-#undef M
-        
         // config loading
+        String8 data = {};
+        FILE* file = def_search_normal_fopen(scratch, "config.4coder", "rb");
+        if (file)
         {
-            Face_Description description = get_face_description(app, 0);
-            load_config_and_apply(app, &global_config_arena, description.parameters.pt_size, description.parameters.hinting);
-            String8 font_name = get_global_face_description(app).font.file_name;
-            Long_Print_Messagef(app, "Default Font: %.*s\n\n", string_expand(font_name));
-        }
+            data = dump_file_handle(scratch, file);
+            fclose(file);
+        } 
+        Long_Config_ApplyFromData(app, data, 0, 0);
         
         // open command line files
-        String_Const_u8 hot = push_hot_directory(app, scratch);
+        String8 hot = push_hot_directory(app, scratch);
         String8Array files = input.event.core.file_names;
         
         for (i32 i = 0; i < files.count; i += 1)
@@ -537,7 +547,7 @@ CUSTOM_DOC("Long startup event")
     }
     
     //- NOTE(rjf): Open special buffers.
-    Buffer_ID comp_buffer, left_buffer, right_buffer;
+    Buffer_ID comp_buffer, msg_buffer, left_buffer, right_buffer;
     {
         Buffer_Create_Flag special_flags = BufferCreate_NeverAttachToFile|BufferCreate_AlwaysNew;
         
@@ -546,61 +556,53 @@ CUSTOM_DOC("Long startup event")
         buffer_set_setting(app, comp_buffer, BufferSetting_ReadOnly, true);
         buffer_set_setting(app, comp_buffer, BufferSetting_Unkillable, true);
         
-        Buffer_ID lego_buffer = create_buffer(app, S8Lit("*lego*"), special_flags);
-        buffer_set_setting(app, lego_buffer, BufferSetting_Unimportant, true);
-        buffer_set_setting(app, lego_buffer, BufferSetting_ReadOnly, true);
-        
         Buffer_ID calc_buffer = create_buffer(app, S8Lit("*calc*"), special_flags);
         buffer_set_setting(app, calc_buffer, BufferSetting_Unimportant, true);
         
-        left_buffer  = get_buffer_by_name(app, S8Lit( "*scratch*"), 0);
-        right_buffer = get_buffer_by_name(app, S8Lit("*messages*"), 0);
+        msg_buffer  = get_buffer_by_name(app, S8Lit("*messages*"), 0);
+        left_buffer = get_buffer_by_name(app, S8Lit( "*scratch*"), 0);
+        right_buffer = calc_buffer;
     }
     
     //- NOTE(rjf): Initialize panels
     {
-        // NOTE(rjf): Left Panel
+        // NOTE(long): Left Panel
         View_ID view = get_active_view(app, Access_Always);
         new_view_settings(app, view);
         view_set_buffer(app, view, left_buffer, 0);
         
-        // NOTE(rjf): Bottom panel
-        View_ID compilation_view = 0;
-        {
-            compilation_view = open_view(app, view, ViewSplit_Bottom);
-            new_view_settings(app, compilation_view);
-            Buffer_ID buffer = view_get_buffer(app, compilation_view, Access_Always);
-            Face_Metrics metrics = get_face_metrics(app, default_font);
-            view_set_split_pixel_size(app, compilation_view, (i32)(metrics.line_height*4.f));
-            view_set_passive(app, compilation_view, true);
-            global_compilation_view = compilation_view;
-            view_set_buffer(app, compilation_view, comp_buffer, 0);
-        }
+        // NOTE(long): Left Bottom Panel
+        View_ID compilation_view = Long_View_Open(app, view, comp_buffer, ViewSplit_Bottom, 1);
+        Font_Load_Location font = { def_search_normal_full_path(scratch, S8Lit("fonts/Inconsolata-Regular.ttf")) };
+        set_buffer_face_by_font_load_location(app, comp_buffer, &font);
         
-        view_set_active(app, view);
+        // NOTE(long): Right Bottom Panel
+        Long_View_Open(app, compilation_view, msg_buffer, ViewSplit_Right, 1);
+        set_buffer_face_by_font_load_location(app, msg_buffer, &font);
         
-        // NOTE(rjf): Right Panel
-        open_panel_vsplit(app);
-        View_ID right_view = get_active_view(app, Access_Always);
-        view_set_buffer(app, right_view, right_buffer, 0);
+        // NOTE(long): Compilation Panel Split
+        global_compilation_view = compilation_view;
+        long_toggle_compilation_expand(app);
+        long_toggle_compilation_expand(app);
         
-        // NOTE(rjf): Restore Active to Left
+        // NOTE(long): Right Panel
+        Long_View_Open(app, view, right_buffer, ViewSplit_Right, 0);
+        
+        // NOTE(long): Restore Active to Left
         view_set_active(app, view);
     }
     
     //- NOTE(rjf): Auto-Load Project.
-    {
-        b32 auto_load = def_get_config_b32(vars_save_string_lit("automatically_load_project"));
-        if (auto_load)
-            long_load_project(app);
-    }
+    b32 auto_load = def_get_config_b32_lit("automatically_load_project");
+    if (auto_load)
+        long_load_project(app);
     
     //- NOTE(long): Open most recent modified files on startup
     {
         u64 last_write[2] = {};
         Buffer_ID recent_buffers[2];
         
-        String8 treat_as_code_string = def_get_config_string(scratch, vars_save_string_lit("treat_as_code"));
+        String8 treat_as_code_string = def_get_config_str_lit(scratch, "treat_as_code");
         String8Array extensions = parse_extension_line_to_extension_list(app, scratch, treat_as_code_string);
         
         for (Buffer_ID buffer = get_buffer_next(app, 0, 0); buffer; buffer = get_buffer_next(app, buffer, 0))
@@ -608,10 +610,13 @@ CUSTOM_DOC("Long startup event")
             Temp_Memory_Block temp(scratch);
             String8 filename = push_buffer_file_name(app, scratch, buffer);
             
-            i64 unimportant = 0, readonly = 0, is_code_file = 0;
+            i64 unimportant = 0, readonly = 0;
             buffer_get_setting(app, buffer, BufferSetting_Unimportant, &unimportant);
             buffer_get_setting(app, buffer, BufferSetting_ReadOnly, &readonly);
-            is_code_file = Long_Index_IsMatch(string_file_extension(filename), extensions.strings, extensions.count);
+            
+            String8 ext = string_file_extension(filename);
+            b32 is_code_file = Long_Index_IsMatch(ext, extensions.strings, extensions.count) &&
+                !string_match(ext, S8Lit("4coder"));
             
             if (filename.size && !unimportant && !readonly && is_code_file)
             {
@@ -633,16 +638,19 @@ CUSTOM_DOC("Long startup event")
             }
         }
         
-        String8 left  = push_buffer_unique_name(app, scratch, recent_buffers[0]);
-        String8 right = push_buffer_unique_name(app, scratch, recent_buffers[1]);
-        Long_Print_Messagef(app, "Recent Files:\n  Left:  %.*s\n  Right: %.*s", string_expand(left), string_expand(right));
-        
         u64 max_days_older = 7;
         u64 days_older = (last_write[0] - last_write[1]) / (24*60*60*10000000ULL);
+        
+#if 0
+        String8 left  = push_buffer_unique_name(app, scratch, recent_buffers[0]);
+        String8 right = push_buffer_unique_name(app, scratch, recent_buffers[1]);
+        Long_Print_Messagef(app, "Recent Files:\n  Left:  %.*s\n  Right: %.*s",
+                            string_expand(left), string_expand(right));
         
         if (days_older >= max_days_older)
             Long_Print_Messagef(app, " (%llu days older than left)", days_older);
         print_message(app, S8Lit("\n\n"));
+#endif
         
         View_ID view = get_active_view(app, 0);
         view_set_buffer(app, view, recent_buffers[0], 0);
@@ -658,68 +666,24 @@ CUSTOM_DOC("Long startup event")
     
     //- NOTE(rjf): Initialize stylish fonts.
     {
-        String8 bin_path = system_get_path(scratch, SystemPath_Binary);
+        Face_ID default_font = get_face_id(app, 0);
+        Face_Description default_desc = get_face_description(app, default_font);
         
-        // NOTE(rjf): Title font.
-        {
-            Face_Description desc = {0};
-            {
-                desc.font.file_name =  push_u8_stringf(scratch, "%.*sfonts/RobotoCondensed-Regular.ttf", string_expand(bin_path));
-                desc.parameters.pt_size = 18;
-                desc.parameters.bold = 0;
-                desc.parameters.italic = 0;
-                desc.parameters.hinting = 0;
-            }
-            
-            global_styled_title_face = try_create_new_face(app, &desc);
-            if (!global_styled_title_face)
-                global_styled_title_face = default_font;
-        }
+        String8 binpath = system_get_path(scratch, SystemPath_Binary);
+        String8 roboto  = push_u8_stringf(scratch, "%.*sfonts/RobotoCondensed-Regular.ttf", string_expand(binpath));
+        String8 inconsolata = push_u8_stringf(scratch, "%.*sfonts/Inconsolata-Regular.ttf", string_expand(binpath));
         
-        // NOTE(rjf): Label font.
-        {
-            Face_Description desc = {0};
-            {
-                desc.font.file_name =  push_u8_stringf(scratch, "%.*sfonts/RobotoCondensed-Regular.ttf", string_expand(bin_path));
-                desc.parameters.pt_size = 10;
-                desc.parameters.bold = 1;
-                desc.parameters.italic = 1;
-                desc.parameters.hinting = 0;
-            }
-            
-            global_styled_label_face = try_create_new_face(app, &desc);
-            if (!global_styled_label_face)
-                global_styled_label_face = default_font;
-        }
+        // NOTE(long): calc/plot faces
+        global_styled_title_face = Long_Font_TryCreate(app, roboto, default_font, 18, 0, 0);
+        global_styled_label_face = Long_Font_TryCreate(app, roboto, default_font, 10, 1, 1);
         
-        // NOTE(rjf): Small code font.
-        {
-            Face_Description normal_code_desc = get_face_description(app, default_font);
-            Face_Description desc = {0};
-            {
-                desc.font.file_name =  push_u8_stringf(scratch, "%.*sfonts/Inconsolata-Regular.ttf", string_expand(bin_path));
-                desc.parameters.pt_size = normal_code_desc.parameters.pt_size - 1;
-                desc.parameters.bold = 1;
-                desc.parameters.italic = 1;
-                desc.parameters.hinting = 0;
-            }
-            
-            global_small_code_face = try_create_new_face(app, &desc);
-            if (!global_small_code_face)
-                global_small_code_face = default_font;
-        }
-        
-        // NOTE(long): Set the *compilation* buffer font
-        {
-            set_fancy_compilation_buffer_font(app);
-            long_toggle_compilation_expand(app);
-            long_toggle_compilation_expand(app);
-        }
+        u32 size = default_desc.parameters.pt_size - 1;
+        global_small_code_face = Long_Font_TryCreate(app, inconsolata, default_font, size, 1, 1);
     }
     
     //- NOTE(rjf): Prep virtual whitespace.
     {
-        def_enable_virtual_whitespace = def_get_config_b32(vars_save_string_lit("enable_virtual_whitespace"));
+        def_enable_virtual_whitespace = def_get_config_b32_lit("enable_virtual_whitespace");
         clear_all_layouts(app);
     }
 }

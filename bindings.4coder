@@ -2,15 +2,14 @@
 keys_global =
 {
     // NOTE(rjf): Meta
-    { "exit_4coder",                           "F4",     "Alt"           },
-    { "long_change_active_panel",           "Comma",  "Control"          },
-    { "long_change_active_panel_backwards", "Comma",  "Control", "Shift" },
-    { "project_go_to_root_directory",           "H",      "Alt"          },
-    { "long_change_to_build_panel",        "Period", "Control"           },
-    { "close_build_panel",                  "Comma",  "Alt"              },
-    { "toggle_virtual_whitespace",          "Equal",  "Control"          },
-    { "theme_lister",                           "H", "Control", "Shift"  },
-    { "MC_end_multi",                      "Escape"                      },
+    { "exit_4coder",                           "F4", "Alt"              },
+    { "long_change_active_panel",           "Comma", "Control"          },
+    { "change_active_panel_backwards",      "Comma", "Control", "Shift" },
+    { "project_go_to_root_directory",           "H", "Alt"              },
+    { "long_change_passive_panel",         "Period", "Control"          },
+    { "toggle_virtual_whitespace",          "Equal", "Control"          },
+    { "theme_lister",                           "H", "Control", "Shift" },
+    { "MC_end_multi",                      "Escape"                     },
     
     // NOTE(long): macro
     { "long_macro_toggle_recording",    "U", "Control"          },
@@ -244,7 +243,6 @@ keys_code =
     { "long_toggle_comment_selection", "Semicolon", "Control"          },
     { "long_autocomplete",                   "Tab"                     },   
     { "long_indent_range",                   "Tab", "Control"          },
-    { "word_complete_drop_down",             "Tab", "Control", "Shift" },
     
     { "open_matching_file_cpp",                "W", "Alt"          },
     { "long_open_matching_file_same_panel",    "W", "Alt", "Shift" },

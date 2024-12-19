@@ -120,7 +120,7 @@ function void Long_Lister_Render(Application_Links* app, Frame_Info frame_info, 
     // NOTE(allen): file bar
     // TODO(allen): What's going on with 'showing_file_bar'? I found it like this.
     b64 showing_file_bar = false;
-    b32 hide_file_bar_in_ui = def_get_config_b32(vars_save_string_lit("hide_file_bar_in_ui"));
+    b32 hide_file_bar_in_ui = def_get_config_b32_lit("hide_file_bar_in_ui");
     if (view_get_setting(app, view, ViewSetting_ShowFileBar, &showing_file_bar) &&
         showing_file_bar && !hide_file_bar_in_ui)
     {
@@ -264,7 +264,7 @@ function void Long_Lister_Render(Application_Links* app, Frame_Info frame_info, 
         else if (hovered)
             highlight = UIHighlight_Hover;
         
-        u64 lister_roundness_100 = def_get_config_u64(app, vars_save_string_lit("lister_roundness"));
+        u64 lister_roundness_100 = def_get_config_u64_lit(app, "lister_roundness");
         f32 roundness = block_height*lister_roundness_100*0.01f;
         draw_rectangle_fcolor(app, item_rect , roundness, get_item_margin_color(highlight));
         draw_rectangle_fcolor(app, item_inner, roundness, get_item_margin_color(highlight, 1));
@@ -587,7 +587,7 @@ function void Long_Lister_Backspace_Path(Application_Links* app)
             {
                 User_Input input = get_current_input(app);
                 b32 has_mod = has_modifier(&input, KeyCode_Control);
-                b32 whole_word_when_mod = def_get_config_b32(vars_save_string_lit("lister_whole_word_backspace_when_modified"));
+                b32 whole_word_when_mod = def_get_config_b32_lit("lister_whole_word_backspace_when_modified");
                 whole_word_backspace = (has_mod == whole_word_when_mod);
             }
             
@@ -634,9 +634,8 @@ function Lister_Result Long_Lister_Run(Application_Links* app, Lister* lister)
     long_lister_tooltip_peek &= 0x7FFFFFFF;
     
     View_ID view = get_this_ctx_view(app, Access_Always);
-    
     Mapping* mapping = 0;
-    Command_Map* map = 0;
+    Command_Map* map = Long_Mapping_GetMap(app, view, &mapping);
     
     View_Context ctx = view_current_context(app, view);
     ctx.render_caller = Long_Lister_Render;
@@ -775,8 +774,13 @@ function Lister_Result Long_Lister_Run(Application_Links* app, Lister* lister)
         
         if (!handled)
         {
-            if (Long_Mapping_HandleCommand(app, view, &mapping, &map, &in))
+            Command_Metadata* metadata = Long_Mapping_GetMetadata(mapping, map, &in);
+            if (metadata && metadata->is_ui)
+            {
+                view_enqueue_command_function(app, view, metadata->proc);
                 break;
+            }
+            leave_current_input_unhandled(app);
         }
     }
     

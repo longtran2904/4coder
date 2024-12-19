@@ -44,9 +44,9 @@ function void Long_RenderBuffer(Application_Links* app, View_ID view_id, Buffer_
     f32 cursor_roundness, mark_thickness;
     {
         Face_Metrics metrics = get_face_metrics(app, face_id);
-        u64 cursor_roundness_100 = def_get_config_u64(app, vars_save_string_lit("cursor_roundness"));
+        u64 cursor_roundness_100 = def_get_config_u64_lit(app, "cursor_roundness");
         cursor_roundness = metrics.normal_advance*cursor_roundness_100*0.01f;
-        mark_thickness = (f32)def_get_config_u64(app, vars_save_string_lit("mark_thickness"));
+        mark_thickness = (f32)def_get_config_u64_lit(app, "mark_thickness");
     }
     
     // NOTE(allen): Token colorizing
@@ -56,10 +56,10 @@ function void Long_RenderBuffer(Application_Links* app, View_ID view_id, Buffer_
         Long_SyntaxHighlight(app, text_layout_id, &token_array);
         
         // NOTE(allen): Scan for TODOs and NOTEs
-        b32 use_comment_keywords = def_get_config_b32(vars_save_string_lit("use_comment_keywords"));
+        b32 use_comment_keywords = def_get_config_b32_lit("use_comment_keywords");
         if (use_comment_keywords)
         {
-            String8 user_name = def_get_config_string(scratch, vars_save_string_lit("user_name"));
+            String8 user_name = def_get_config_str_lit(scratch, "user_name");
             Comment_Highlight_Pair pairs[] =
             {
                 {S8Lit("NOTE"), finalize_color(defcolor_comment_pop, 0)},
@@ -73,7 +73,7 @@ function void Long_RenderBuffer(Application_Links* app, View_ID view_id, Buffer_
         paint_text_color_fcolor(app, text_layout_id, visible_range, fcolor_id(defcolor_text_default));
     
     // NOTE(allen): Scope highlight
-    if (def_get_config_b32(vars_save_string_lit("use_scope_highlight")))
+    if (def_get_config_b32_lit("use_scope_highlight"))
     {
         Color_Array colors = finalize_color_array(defcolor_back_cycle);
         draw_scope_highlight(app, buffer, text_layout_id, cursor_pos, colors.vals, colors.count);
@@ -90,8 +90,9 @@ function void Long_RenderBuffer(Application_Links* app, View_ID view_id, Buffer_
     
     // NOTE(allen): Line highlight
     {
-        b32 highlight_line_at_cursor = def_get_config_b32(vars_save_string_lit("highlight_line_at_cursor"));
-        if (highlight_line_at_cursor && (is_active_view || string_match(buffer_name, S8Lit("*compilation*"))))
+        b32 highlight_line_at_cursor = def_get_config_b32_lit("highlight_line_at_cursor");
+        b32 special_buffer = string_match(buffer_name, S8Lit("*compilation*")) || string_match(buffer_name, S8Lit("*search*"));
+        if (highlight_line_at_cursor && (is_active_view || special_buffer))
         {
             i64 line = get_line_number_from_pos(app, buffer, cursor_pos);
             draw_line_highlight(app, text_layout_id, line, fcolor_id(defcolor_highlight_cursor_line));
@@ -100,8 +101,8 @@ function void Long_RenderBuffer(Application_Links* app, View_ID view_id, Buffer_
     
     // NOTE(rjf): Error/Search Highlight
     {
-        b32 use_error_highlight = def_get_config_b32(vars_save_string_lit("use_error_highlight"));
-        b32  use_jump_highlight = def_get_config_b32(vars_save_string_lit( "use_jump_highlight"));
+        b32 use_error_highlight = def_get_config_b32_lit("use_error_highlight");
+        b32  use_jump_highlight = def_get_config_b32_lit( "use_jump_highlight");
         
         if (use_error_highlight || use_jump_highlight)
         {
@@ -125,7 +126,7 @@ function void Long_RenderBuffer(Application_Links* app, View_ID view_id, Buffer_
     Long_Highlight_DrawRange(app, view_id, buffer, text_layout_id, cursor_roundness);
     
     // NOTE(jack): Token Occurrence Highlight
-    if (!def_get_config_b32(vars_save_string_lit("f4_disable_cursor_token_occurance"))) 
+    if (!def_get_config_b32_lit("f4_disable_cursor_token_occurance")) 
     {
         ProfileScope(app, "[Long] Token Occurrence Highlight");
         
@@ -184,7 +185,7 @@ function void Long_RenderBuffer(Application_Links* app, View_ID view_id, Buffer_
     F4_RenderFlashes(app, view_id, text_layout_id);
     
     // NOTE(allen): Color parens
-    if (def_get_config_b32(vars_save_string_lit("use_paren_helper")))
+    if (def_get_config_b32_lit("use_paren_helper"))
     {
         Color_Array colors = finalize_color_array(defcolor_text_cycle);
         draw_paren_highlight(app, buffer, text_layout_id, cursor_pos, colors.vals, colors.count);
@@ -228,7 +229,7 @@ function void Long_RenderBuffer(Application_Links* app, View_ID view_id, Buffer_
         F4_CLC_RenderBuffer(app, buffer, view_id, text_layout_id, frame_info);
     
     // NOTE(rjf): Draw calc comments.
-    F4_CLC_RenderComments(app, buffer, view_id, text_layout_id, frame_info);
+    Long_Render_CalcComments(app, view_id, buffer, text_layout_id, frame_info);
 #endif
     
     draw_set_clip(app, prev_clip);
@@ -359,7 +360,7 @@ function void Long_DrawFileBar(Application_Links* app, View_ID view_id, Buffer_I
             push_fancy_string(scratch, &list, pop2_color, str.string);
         }
         
-        b32 enable_virtual_whitespace = def_get_config_b32(vars_save_string_lit("enable_virtual_whitespace"));
+        b32 enable_virtual_whitespace = def_get_config_b32_lit("enable_virtual_whitespace");
         push_fancy_stringf(scratch, &list, base_color, " Virtual Whitespace: %s",
                            enable_virtual_whitespace ? "On" : "Off");
         
@@ -369,7 +370,7 @@ function void Long_DrawFileBar(Application_Links* app, View_ID view_id, Buffer_I
     
     draw_fancy_line(app, face_id, fcolor_zero(), &list, bar.p0 + V2f32(2.f, 2.f));
     
-    if (!def_get_config_b32(vars_save_string_lit("f4_disable_progress_bar")))
+    if (!def_get_config_b32_lit("f4_disable_progress_bar"))
     {
         f32 progress = (f32)cursor.line / (f32)buffer_get_line_count(app, buffer);
         Rect_f32 progress_bar_rect =
@@ -398,7 +399,7 @@ function void Long_Render(Application_Links* app, Frame_Info frame_info, View_ID
     View_ID active_view = get_active_view(app, Access_Always);
     b32 is_active_view = (active_view == view_id);
     
-    f32 margin_size = (f32)def_get_config_u64(app, vars_save_string_lit("f4_margin_size"));
+    f32 margin_size = (f32)def_get_config_u64_lit(app, "f4_margin_size");
     Rect_f32 view_rect = view_get_screen_rect(app, view_id);
     Rect_f32 region = rect_inner(view_rect, margin_size);
     
@@ -426,7 +427,7 @@ function void Long_Render(Application_Links* app, Frame_Info frame_info, View_ID
     //~ NOTE(rjf): Draw margin.
     {
         ARGB_Color color = Long_ARGBFromID(defcolor_margin);
-        if (def_get_config_b32(vars_save_string_lit("f4_margin_use_mode_color")) && is_active_view)
+        if (def_get_config_b32_lit("f4_margin_use_mode_color") && is_active_view)
             color = Long_GetColor(app, ColorCtx_Cursor(0, GlobalKeybindingMode));
         draw_margin(app, view_rect, region, color);
     }
@@ -445,13 +446,11 @@ function void Long_Render(Application_Links* app, Frame_Info frame_info, View_ID
     b64 showing_file_bar = false;
     if (view_get_setting(app, view_id, ViewSetting_ShowFileBar, &showing_file_bar) && showing_file_bar)
     {
-        // NOTE(long): If the buffer is the *compilation* buffer, don't use its font but the global font
         Face_ID global_face = get_face_id(app, 0);
         Face_Metrics global_metrics = get_face_metrics(app, global_face);
         
-        b32 is_comp = buffer == get_comp_buffer(app);
-        Rect_f32_Pair pair = layout_file_bar_on_top(region, is_comp ? global_metrics.line_height : line_height);
-        Long_DrawFileBar(app, view_id, buffer, is_comp ? global_face : face_id, pair.min);
+        Rect_f32_Pair pair = layout_file_bar_on_top(region, global_metrics.line_height);
+        Long_DrawFileBar(app, view_id, buffer, global_face, pair.min);
         region = pair.max;
     }
     
@@ -495,7 +494,7 @@ function void Long_Render(Application_Links* app, Frame_Info frame_info, View_ID
     
     // NOTE(allen): layout line numbers
     Rect_f32 line_number_rect = {};
-    if (def_get_config_b32(vars_save_string_lit("show_line_number_margins")))
+    if (def_get_config_b32_lit("show_line_number_margins"))
     {
         Rect_f32_Pair pair = layout_line_number_margin(app, buffer, region, digit_advance);
         line_number_rect = pair.min;
@@ -507,7 +506,7 @@ function void Long_Render(Application_Links* app, Frame_Info frame_info, View_ID
     Text_Layout_ID text_layout_id = text_layout_create(app, buffer, region, scroll.position);
     {
         // NOTE(allen): draw line numbers
-        if (def_get_config_b32(vars_save_string_lit("show_line_number_margins")))
+        if (def_get_config_b32_lit("show_line_number_margins"))
             Long_Render_LineOffsetNumber(app, view_id, buffer, face_id, text_layout_id, line_number_rect);
         
         // NOTE(allen): draw the buffer
@@ -527,7 +526,7 @@ function void Long_Tick(Application_Links* app, Frame_Info frame_info)
     global_tooltip_count = 0;
     
     View_ID view = get_active_view(app, 0);
-    if (view != global_compilation_view)
+    if (!view_get_is_passive(app, view))
         long_global_active_view = view;
     
     F4_TickColors(app, frame_info);
@@ -563,11 +562,12 @@ function i32 Long_SaveFile(Application_Links* app, Buffer_ID buffer)
     ProfileScope(app, "[Long] Save File");
     Scratch_Block scratch(app);
     String8 name = push_buffer_base_name(app, scratch, buffer);
+    String8 path = push_buffer_file_name(app, scratch, buffer);
     
     // @COPYPASTA(long): default_file_save
     {
-        b32 auto_indent = def_get_config_b32(vars_save_string_lit("automatically_indent_text_on_save"));
-        b32  is_virtual = def_get_config_b32(vars_save_string_lit("enable_virtual_whitespace"));
+        b32 auto_indent = def_get_config_b32_lit("automatically_indent_text_on_save");
+        b32  is_virtual = def_get_config_b32_lit("enable_virtual_whitespace");
         //History_Record_Index index = buffer_history_get_current_state_index(app, buffer);
         if (auto_indent && is_virtual /*&& index*/)
             Long_Index_IndentBuffer(app, buffer, buffer_range(app, buffer), true);
@@ -589,6 +589,7 @@ function i32 Long_SaveFile(Application_Links* app, Buffer_ID buffer)
     }
     
     //- NOTE(long): Print saving message
+#if 0
     {
         Date_Time date_time = system_now_date_time_universal();
         date_time = system_local_date_time_from_universal(&date_time);
@@ -598,6 +599,7 @@ function i32 Long_SaveFile(Application_Links* app, Buffer_ID buffer)
         Long_Print_Messagef(app, "Saving Buffer: \"%.*s\" (%.*s) %.2fKiB\n",
                             string_expand(name), string_expand(date), size);
     }
+#endif
     
     String8 theme_name = {0};
     {
@@ -645,7 +647,6 @@ function i32 Long_SaveFile(Application_Links* app, Buffer_ID buffer)
     
     else if (string_match(name, S8Lit("bindings.4coder")))
     {
-        String8 path = push_buffer_file_name(app, scratch, buffer);
         if (Long_Binding_LoadData(app, &framework_mapping, path, data))
         {
             String_ID global_map = vars_save_string_lit("keys_global");
@@ -656,9 +657,7 @@ function i32 Long_SaveFile(Application_Links* app, Buffer_ID buffer)
     }
     
     else if (string_match(name, S8Lit("project.4coder")))
-    {
-        // @CONSIDER(long): long_load_project(app);
-    }
+        Long_Prj_Parse(app, path, data);
     
     return 0;
 }
@@ -674,7 +673,7 @@ function Layout_Item_List Long_Layout(Application_Links* app, Arena* arena, Buff
     {
         Face_Advance_Map advance_map = get_face_advance_map(app, face);
         Face_Metrics metrics = get_face_metrics(app, face);
-        f32 tab_width = (f32)def_get_config_u64(app, vars_save_string_lit("default_tab_width"));
+        f32 tab_width = (f32)def_get_config_u64_lit(app, "default_tab_width");
         tab_width = clamp_bot(1, tab_width);
         pos_vars = get_lr_tb_layout_vars(&advance_map, &metrics, tab_width, width);
     }
@@ -833,7 +832,7 @@ function BUFFER_HOOK_SIG(Long_BeginBuffer)
     {
         if (file_name.size > 0)
         {
-            String_Const_u8 treat_as_code_string = def_get_config_string(scratch, vars_save_string_lit("treat_as_code"));
+            String_Const_u8 treat_as_code_string = def_get_config_str_lit(scratch, "treat_as_code");
             String_Const_u8_Array extensions = parse_extension_line_to_extension_list(app, scratch, treat_as_code_string);
             String_Const_u8 ext = string_file_extension(file_name);
             for (i32 i = 0; i < extensions.count; ++i)
@@ -877,7 +876,7 @@ function BUFFER_HOOK_SIG(Long_BeginBuffer)
     b32 use_lexer = false;
     if (treat_as_code)
     {
-        wrap_lines = def_get_config_b32(vars_save_string_lit("enable_code_wrapping"));
+        wrap_lines = def_get_config_b32_lit("enable_code_wrapping");
         use_lexer = true;
     }
     

@@ -71,7 +71,7 @@ function void Long_Render_CursorInterpolation(Application_Links* app, Frame_Info
     float cursor_size_x = (target.x1 - target.x0);
     float cursor_size_y = (target.y1 - target.y0) * (1 + fabsf(y_change) / 60.f);
     
-    b32 should_animate_cursor = !def_get_config_b32(vars_save_string_lit("f4_disable_cursor_trails"));
+    b32 should_animate_cursor = !def_get_config_b32_lit("f4_disable_cursor_trails");
     if (should_animate_cursor)
     {
         if (fabs(x_change) > 1.f || fabs(y_change) > 1.f)
@@ -446,10 +446,56 @@ function Rect_f32 Long_Render_DrawString(Application_Links* app, String8 string,
 
 //~ NOTE(long): Render Hook
 
+// @COPYPASTA(long): F4_CLC_RenderComments
+function void Long_Render_CalcComments(Application_Links* app, View_ID view, Buffer_ID buffer, Text_Layout_ID layout, Frame_Info frame)
+{
+#ifdef FCODER_FLEURY_CALC_H
+    if (def_get_config_b32_lit("f4_disable_calc_comments"))
+        return;
+    
+    ProfileScope(app, "[Fleury] Calc Comments");
+    Scratch_Block scratch(app);
+    Token_Array token_array = get_token_array_from_buffer(app, buffer);
+    
+    if (token_array.tokens != 0)
+    {
+        Range_i64 visible_range = text_layout_get_visible_range(app, layout);
+        Token_Iterator_Array it = token_iterator_pos(0, &token_array, visible_range.first);
+        
+        Token *token = 0;
+        for(;;)
+        {
+            token = token_it_read(&it);
+            if (!token || token->pos >= visible_range.one_past_last || !token_it_inc_non_whitespace(&it))
+                break;
+            
+            if (token->kind == TokenBaseKind_Comment)
+            {
+                Range_i64 token_range = { token->pos, token->pos + (token->size > 1024 ? 1024 : token->size) };
+                u32 token_buffer_size = clamp_bot((u32)(token_range.end - token_range.start), 4);
+                u8* token_buffer = push_array(scratch, u8, token_buffer_size + 1);
+                buffer_read_range(app, buffer, token_range, token_buffer);
+                token_buffer[token_buffer_size] = 0;
+                
+                if (token_buffer[0] == '/' && (token_buffer[1] == '/' || token_buffer[1] == '*') &&
+                    token_buffer[2] == 'c' && character_is_whitespace(token_buffer[3]))
+                {
+                    if (token_buffer[1] == '*' && token_buffer[token_buffer_size-1] == '/' &&
+                        token_buffer[token_buffer_size-2] == '*')
+                        token_buffer[token_buffer_size-2] = 0;
+                    
+                    F4_CLC_RenderCode(app, buffer, view, layout, frame, scratch, (char *)token_buffer + 3, token_range.start + 3);
+                }
+            }
+        }
+    }
+#endif
+}
+
 // @COPYPASTA(long): F4_RenderDividerComments
 function void Long_Render_DividerComments(Application_Links* app, Buffer_ID buffer, Text_Layout_ID layout)
 {
-    if (!def_get_config_b32(vars_save_string_lit("f4_disable_divider_comments")))
+    if (!def_get_config_b32_lit("f4_disable_divider_comments"))
     {
         ProfileScope(app, "[Long] Divider Comments");
         
@@ -549,27 +595,10 @@ function void Long_Render_LineOffsetNumber(Application_Links* app, View_ID view,
 CUSTOM_COMMAND_SIG(long_toggle_line_offset)
 CUSTOM_DOC("Toggles between line numbers and offsets.")
 {
-    String_ID key = vars_save_string_lit("long_show_line_number_offset");
-    b32 val = def_get_config_b32(key);
-    def_set_config_b32(key, !val);
+    def_toggle_config_b32_lit("long_show_line_number_offset");
 }
 
 //~ NOTE(long): Highlight Rendering
-
-struct Long_Highlight_Node
-{
-    Long_Highlight_Node* next;
-    Range_i64 range;
-};
-
-struct Long_Highlight_List
-{
-    Arena arena;
-    Buffer_ID buffer;
-    Long_Highlight_Node* first;
-};
-
-CUSTOM_ID(attachment, long_highlight_list);
 
 function Long_Highlight_List* Long_Highlight_GetList(Application_Links* app, View_ID view)
 {
@@ -612,8 +641,7 @@ function void Long_Highlight_Push(Application_Links* app, View_ID view, Range_i6
 
 function void Long_Highlight_Clear(Application_Links* app, View_ID view)
 {
-    Managed_Scope scope = view_get_managed_scope(app, view);
-    Long_Highlight_List* list = scope_attachment(app, scope, long_highlight_list, Long_Highlight_List);
+    Long_Highlight_List* list = Long_Highlight_GetList(app, view);
     Long_Highlight_ClearList(list);
 }
 
@@ -739,10 +767,10 @@ function b32 Long_Highlight_DrawRange(Application_Links* app, View_ID view_id, B
 function void Long_MC_DrawHighlights(Application_Links* app, View_ID view, Buffer_ID buffer,
                                      Text_Layout_ID layout, f32 roundness, f32 thickness, b32 is_active_view)
 {
-    if (def_get_config_b32(vars_save_string_lit("use_jump_highlight")))
+    if (def_get_config_b32_lit("use_jump_highlight"))
         return;
     
-    // NOTE(long): Technically speaking only mc cursors and the main cursor must be in the active view
+    // TODO(long): Technically speaking only mc cursors and the main cursor must be in the active view
     // The minor highlighted matches don't need to and can still be drawn on inactive views
     // But there's currently no way for this function to know the size of each highlight (the search string's length)
     if (!is_active_view)
@@ -758,7 +786,7 @@ function void Long_MC_DrawHighlights(Application_Links* app, View_ID view, Buffe
         
         i64 cursor = view_get_cursor_pos(app, view);
         i64 mark = view_get_mark_pos(app, view);
-        i64 size = cursor - mark;
+        i64 size = /*cursor - mark*/mark-cursor;
         Assert(size >= 0);
         
         Range_i64 visible_range = text_layout_get_visible_range(app, layout);

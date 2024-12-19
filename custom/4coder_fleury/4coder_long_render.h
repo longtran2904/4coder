@@ -35,12 +35,30 @@ function Rect_f32 Long_Render_DrawString(Application_Links* app, String8 string,
 
 //~ NOTE(long): Misc
 
+function void     Long_Render_CalcComments(Application_Links* app, View_ID view, Buffer_ID buffer,
+                                           Text_Layout_ID layout, Frame_Info frame);
 function void  Long_Render_DividerComments(Application_Links* app, Buffer_ID buffer, Text_Layout_ID layout);
 function void Long_Render_LineOffsetNumber(Application_Links* app, View_ID view, Buffer_ID buffer,
                                            Face_ID face, Text_Layout_ID layout, Rect_f32 margin);
 
 //~ NOTE(long): Highlight Rendering
 
+struct Long_Highlight_Node
+{
+    Long_Highlight_Node* next;
+    Range_i64 range;
+};
+
+struct Long_Highlight_List
+{
+    Arena arena;
+    Buffer_ID buffer;
+    Long_Highlight_Node* first;
+};
+
+CUSTOM_ID(attachment, long_highlight_list);
+
+function Long_Highlight_List* Long_Highlight_GetList(Application_Links* app, View_ID view);
 function void Long_Highlight_Push(Application_Links* app, View_ID view, Range_i64 range);
 function void Long_Highlight_Clear(Application_Links* app, View_ID view);
 function void Long_Highlight_DrawRangeList(Application_Links* app, View_ID view, Buffer_ID buffer,

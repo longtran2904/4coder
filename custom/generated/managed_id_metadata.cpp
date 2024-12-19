@@ -86,6 +86,6 @@ long_color_index_local = managed_id_declare(app, string_u8_litexpr("colors"), st
 long_color_index_param = managed_id_declare(app, string_u8_litexpr("colors"), string_u8_litexpr("long_color_index_param"));
 long_point_stacks = managed_id_declare(app, string_u8_litexpr("attachment"), string_u8_litexpr("long_point_stacks"));
 long_buffer_history = managed_id_declare(app, string_u8_litexpr("attachment"), string_u8_litexpr("long_buffer_history"));
-f4_recentfiles_viewstate = managed_id_declare(app, string_u8_litexpr("attachment"), string_u8_litexpr("f4_recentfiles_viewstate"));
 long_highlight_list = managed_id_declare(app, string_u8_litexpr("attachment"), string_u8_litexpr("long_highlight_list"));
+f4_recentfiles_viewstate = managed_id_declare(app, string_u8_litexpr("attachment"), string_u8_litexpr("f4_recentfiles_viewstate"));
 }

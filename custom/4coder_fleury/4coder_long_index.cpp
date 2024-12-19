@@ -1436,7 +1436,7 @@ function void Long_Index_DrawPosContext(Application_Links* app, View_ID view, F4
         global_cursor_rect.y1,
     };
     
-    b32 render_at_cursor = !def_get_config_b32(vars_save_string_lit("f4_poscontext_draw_at_bottom_of_buffer"));
+    b32 render_at_cursor = !def_get_config_b32_lit("f4_poscontext_draw_at_bottom_of_buffer");
     if (!render_at_cursor)
     {
         f32 height = padding * 2;
@@ -1866,13 +1866,13 @@ function void Long_Index_IndentBuffer(Application_Links* app, Buffer_ID buffer, 
 // TODO(long): Actually indent only the range pass in rather than the whole buffer
 function void Long_Index_IndentBuffer(Application_Links* app, Buffer_ID buffer, Range_i64 range, b32 merge_history)
 {
-    i32 tab_width = clamp_bot((i32)def_get_config_u64(app, vars_save_string_lit("default_tab_width")), 1);
-    i32 indent_width = (i32)def_get_config_u64(app, vars_save_string_lit("indent_width"));
+    i32 tab_width = clamp_bot((i32)def_get_config_u64_lit(app, "default_tab_width"), 1);
+    i32 indent_width = (i32)def_get_config_u64_lit(app, "indent_width");
     
     Indent_Flag flags = 0;
     //AddFlag(flags, Indent_ClearLine);
     AddFlag(flags, Indent_FullTokens);
-    if (def_get_config_b32(vars_save_string_lit("indent_with_tabs")))
+    if (def_get_config_b32_lit("indent_with_tabs"))
         AddFlag(flags, Indent_UseTab);
     
     History_Record_Index first = buffer_history_get_current_state_index(app, buffer);

@@ -24,8 +24,31 @@ function i64 Long_Abs(i64 num)
     return (num ^ mask) - mask;
 }
 
-//- NOTE(long): Misc
-function void Long_SnapView(Application_Links* app, View_ID view)
+//- NOTE(long): View
+function View_ID Long_View_NextPassive(Application_Links* app, View_ID view, Access_Flag access)
+{
+    View_ID start_view = view;
+    do
+    {
+        view = get_next_view_looped_all_panels(app, view, 0);
+        if (view_get_is_passive(app, view))
+            break;
+    } while (view != start_view);
+    return view;
+}
+
+function View_ID Long_View_Open(Application_Links* app, View_ID view, Buffer_ID buffer, View_Split_Position position, b32 passive)
+{
+    View_ID result = open_view(app, view, position);
+    new_view_settings(app, result);
+    view_set_buffer(app, result, buffer, 0);
+    
+    if (passive)
+        view_set_passive(app, result, true);
+    return result;
+}
+
+function void Long_View_Snap(Application_Links* app, View_ID view)
 {
     // @COPYPASTA(long): center_view. This will snap the view to the target position instantly.
     // If you want to snap the current view to the center, call center_view first, then call this function.
@@ -38,24 +61,7 @@ function void Long_SnapView(Application_Links* app, View_ID view)
     no_mark_snap_to_cursor(app, view);
 }
 
-// @COPYPASTA(long): mouse_wheel_scroll
-function void Long_Mouse_ScrollWheel(Application_Links* app, View_ID view)
-{
-    Mouse_State mouse = get_mouse_state(app);
-    if (mouse.wheel)
-    {
-        Buffer_Scroll scroll = view_get_buffer_scroll(app, view);
-        scroll.target = view_move_buffer_point(app, view, scroll.target, V2f32(0.f, (f32)mouse.wheel));
-        
-        i64 cursor = view_get_cursor_pos(app, view);
-        view_set_buffer_scroll(app, view, scroll, SetBufferScroll_SnapCursorIntoView);
-        view_set_cursor(app, view, seek_pos(cursor));
-    }
-    
-    if (mouse.l)
-        no_mark_snap_to_cursor(app, view);
-}
-
+//- NOTE(long): Misc
 function Rect_f32 Long_Camera_PushBounds(Application_Links* app, View_ID view)
 {
     Rect_f32 result = {0};
@@ -109,6 +115,24 @@ function void Long_ConfirmMarkSnapToCursor(Application_Links* app)
             }
         }
     }
+}
+
+// @COPYPASTA(long): mouse_wheel_scroll
+function void Long_Mouse_ScrollWheel(Application_Links* app, View_ID view)
+{
+    Mouse_State mouse = get_mouse_state(app);
+    if (mouse.wheel)
+    {
+        Buffer_Scroll scroll = view_get_buffer_scroll(app, view);
+        scroll.target = view_move_buffer_point(app, view, scroll.target, V2f32(0.f, (f32)mouse.wheel));
+        
+        i64 cursor = view_get_cursor_pos(app, view);
+        view_set_buffer_scroll(app, view, scroll, SetBufferScroll_SnapCursorIntoView);
+        view_set_cursor(app, view, seek_pos(cursor));
+    }
+    
+    if (mouse.l)
+        no_mark_snap_to_cursor(app, view);
 }
 
 //- NOTE(long): Jumping
@@ -226,6 +250,30 @@ function b32 Long_Buffer_NoSearch(Application_Links* app, Buffer_ID buffer)
 }
 
 //- NOTE(long): Printing
+function String8 StrListJoin(Arena* arena, String8List list, String8 separator, String_Separator_Flag flags)
+{
+    b32 before_first = HasFlag(flags, StringSeparator_BeforeFirst);
+    b32 after_last = HasFlag(flags, StringSeparator_AfterLast);
+    u64 separator_size = separator.size * clamp_bot(list.node_count + before_first + after_last - 1, 0);
+    String_u8 string = string_u8_push(arena, list.total_size + separator_size + 1);
+    
+    if (before_first)
+        string_append(&string, separator);
+    
+    for (String8Node* node = list.first; node; node = node->next)
+    {
+        string_append(&string, node->string);
+        if (node->next)
+            string_append(&string, separator);
+    }
+    
+    if (after_last)
+        string_append(&string, separator);
+    
+    string.str[string.size] = 0;
+    return string.string;
+}
+
 function void Long_Print_Messagef(Application_Links* app, char* fmt, ...)
 {
     Scratch_Block scratch(app);
@@ -242,10 +290,9 @@ function void Long_Print_Errorf(Application_Links* app, char* fmt, ...)
     va_list args;
     va_start(args, fmt);
     String8 error_str = push_stringfv(scratch, fmt, args);
-    print_message(app, error_str);
     va_end(args);
     
-    Buffer_ID buffer_comp = buffer_identifier_to_id_create_out_buffer(app, buffer_identifier(S8Lit("*compilation*")));
+    Buffer_ID buffer_comp = get_comp_buffer(app);
     buffer_replace_range(app, buffer_comp, buffer_range(app, buffer_comp), error_str);
     block_zero_struct(&prev_location);
     lock_jump_buffer(app, buffer_comp);
@@ -253,7 +300,11 @@ function void Long_Print_Errorf(Application_Links* app, char* fmt, ...)
     print_message(app, error_str);
 }
 
-function void Long_Print_AppendVars(Application_Links* app, Arena* arena, String8List* list, Variable_Handle var, i32 indent)
+//~ NOTE(long): Vars/Config Functions
+
+// @COPYPASTA(long): vars_print_indented
+function void Long_Vars_Append(Application_Links* app, Arena* arena, String8List* list, String8List* ignore,
+                               Variable_Handle var, i32 indent)
 {
     Scratch_Block scratch(app, arena);
     local_persist char spaces[] =
@@ -263,21 +314,41 @@ function void Long_Print_AppendVars(Application_Links* app, Arena* arena, String
         "                                                                ";
     
     String8 var_key = vars_key_from_var(scratch, var);
-    String8 var_val = vars_string_from_var(scratch, var);
-    string_list_pushf(arena, list, "%.*s%.*s: \"%.*s\"\n", clamp_top(indent, sizeof(spaces)), spaces,
-                      string_expand(var_key), string_expand(var_val));
+    for (String8Node* node = ignore->first; node; node = node->next)
+        if (string_match(node->string, var_key))
+            return;
     
-    i32 sub_indent = indent + 1;
-    for (Variable_Handle sub = vars_first_child(var); !vars_is_nil(sub); sub = vars_next_sibling(sub))
-        Long_Print_AppendVars(app, arena, list, sub, sub_indent);
+    if (string_is_integer(var_key, 10)) // Each element of an array has its index as its name
+        var_key = {};
+    
+    String8 var_val = vars_string_from_var(scratch, var);
+    string_list_pushf(arena, list, "%.*s%.*s%s%.*s", clamp_top(indent, sizeof(spaces)), spaces,
+                      string_expand(var_key), var_key.size ? ": " : "", string_expand(var_val));
+    
+    for (Vars_Children(sub, var))
+        Long_Vars_Append(app, arena, list, ignore, sub, indent + 1);
 }
 
-function String8 Long_Print_StrFromVars(Application_Links* app, Arena* arena, Variable_Handle var, i32 indent)
+function String8 Long_Vars_StrFromArray(Application_Links* app, Arena* arena, Variable_Handle var, i32 indent, String8List ignore)
 {
     Scratch_Block scratch(app, arena);
     String8List list = {};
-    Long_Print_AppendVars(app, scratch, &list, var, indent);
-    String8 result = string_list_flatten(arena, list);
+    for (Vars_Children(sub, var))
+        Long_Vars_Append(app, scratch, &list, &ignore, sub, indent);
+    String8 result = StrListJoin(arena, list, S8Lit("\n"), 0);
+    return result;
+}
+
+function String8 Long_Vars_SingleStrArray(Application_Links* app, Arena* arena, Variable_Handle var)
+{
+    Scratch_Block scratch(app, arena);
+    String8List list = {};
+    for (Vars_Children(sub, var))
+    {
+        String8 val = vars_string_from_var(scratch, sub);
+        string_list_pushf(scratch, &list, "\"%.*s\"", string_expand(val));
+    }
+    String8 result = StrListJoin(arena, list, S8Lit(", "), 0);
     return result;
 }
 
@@ -655,12 +726,12 @@ function void Long_KillBuffer(Application_Links* app, Buffer_ID buffer, View_ID 
     // killing the search buffer is always possible because it's never dirty and always killable
     b32 killed = try_buffer_kill(app, buffer, view, 0) == BufferKillResult_Killed;
     
-    if (is_search_buffer && killed && buffer_view)
-    {
-        Long_PointStack_JumpNext(app, buffer_view, 0);
-        Long_SnapView(app, view);
-        view_set_active(app, view);
-    }
+    //if (is_search_buffer && killed && buffer_view)
+    //{
+    //Long_PointStack_JumpNext(app, buffer_view, 0);
+    //Long_View_Snap(app, view);
+    //view_set_active(app, view);
+    //}
 }
 
 CUSTOM_UI_COMMAND_SIG(long_interactive_kill_buffer)
@@ -795,7 +866,7 @@ CUSTOM_DOC("Advances backwards through the undo history of the current buffer.")
         
         b32 do_immedite_undo = true;
         f32 undo_fade_time = 0.33f;
-        b32 enable_undo_fade_out = def_get_config_b32(vars_save_string_lit("enable_undo_fade_out"));
+        b32 enable_undo_fade_out = def_get_config_b32_lit("enable_undo_fade_out");
         if (enable_undo_fade_out &&
             undo_fade_time > 0.f &&
             record.kind == RecordKind_Single &&
@@ -937,14 +1008,11 @@ CUSTOM_DOC("Auto-indents the range between the cursor and the mark.")
 }
 
 // @COPYPASTA(long): write_text
-function void Long_Write_Text(Application_Links *app, String8 insert)
+function void Long_Write_Text(Application_Links* app, View_ID view, Buffer_ID buffer, String8 insert)
 {
     ProfileScope(app, "[Long] Write Character");
-    if (insert.str != 0 && insert.size > 0)
+    if (insert.size && buffer)
     {
-        View_ID view = get_active_view(app, Access_ReadWriteVisible);
-        Buffer_ID buffer = view_get_buffer(app, view, Access_ReadWriteVisible);
-        
         i64 pos = view_get_cursor_pos(app, view);
         pos = view_get_character_legal_pos_from_pos(app, view, pos);
         
@@ -1000,7 +1068,10 @@ CUSTOM_DOC("Inserts text and auto-indents the line on which the cursor sits if a
     
     User_Input in = get_current_input(app);
     String8 insert = to_writable(&in);
-    if (insert.size)
+    View_ID view = get_active_view(app, Access_ReadWriteVisible);
+    Buffer_ID buffer = view_get_buffer(app, view, Access_ReadWriteVisible);
+    
+    if (insert.size && buffer)
     {
         b32 do_auto_indent = false;
         for (u64 i = 0; !do_auto_indent && i < insert.size; i += 1)
@@ -1018,16 +1089,13 @@ CUSTOM_DOC("Inserts text and auto-indents the line on which the cursor sits if a
         
         if (do_auto_indent)
         {
-            View_ID view = get_active_view(app, Access_ReadWriteVisible);
-            Buffer_ID buffer = view_get_buffer(app, view, Access_ReadWriteVisible);
-            
             Range_i64 pos = {};
             if (view_has_highlighted_range(app, view))
                 pos = get_view_range(app, view);
             else
-                pos.min = pos.max = view_get_cursor_pos(app, view);
+                pos = Ii64(view_get_cursor_pos(app, view));
             
-            Long_Write_Text(app, insert);
+            Long_Write_Text(app, view, buffer, insert);
             
             i64 end_pos = view_get_cursor_pos(app, view);
             pos.min = Min(pos.min, end_pos);
@@ -1035,8 +1103,7 @@ CUSTOM_DOC("Inserts text and auto-indents the line on which the cursor sits if a
             Long_Index_IndentBuffer(app, buffer, pos, true);
             move_past_lead_whitespace(app, view, buffer);
         }
-        else
-            Long_Write_Text(app, insert);
+        else Long_Write_Text(app, view, buffer, insert);
     }
 }
 
@@ -1076,13 +1143,33 @@ CUSTOM_DOC("If the current file is a *.cpp or *.h, attempts to open the correspo
 CUSTOM_COMMAND_SIG(long_toggle_compilation_expand)
 CUSTOM_DOC("Expand the compilation window.")
 {
-    f32 line_height = get_face_metrics(app, get_face_id(app, view_get_buffer(app, global_compilation_view, Access_Always))).line_height;
-    i32 line_count = (global_compilation_view_expanded ^= 1) ? 31 : 8;
-    f32 bar_height = get_face_metrics(app, get_face_id(app, 0)).line_height + 2.f;
-    f32 margin_size = (f32)def_get_config_u64(app, vars_save_string_lit("f4_margin_size"));
-    f32 padding = 3.f;
+    if (!global_compilation_view)
+        return;
     
-    view_set_split_pixel_size(app, global_compilation_view, (i32)(line_height * line_count + bar_height + margin_size * 2.f + padding));
+    u32 line_count = (global_compilation_view_expanded ^= 1) ? 31 : 8;
+    f32 padding = 3.f;
+    f32 split_height;
+    {
+        Buffer_ID buffer = view_get_buffer(app, global_compilation_view, Access_Always);
+        f32 line_height = get_face_metrics(app, get_face_id(app, buffer)).line_height;
+        f32 bar_height = get_face_metrics(app, get_face_id(app, 0)).line_height + 2.f;
+        f32 margin_size = (f32)def_get_config_u64_lit(app, "f4_margin_size");
+        split_height = line_height * line_count + bar_height + margin_size * 2 + padding;
+    }
+    
+    // @COPYPASTA(long): view_set_split
+    {
+        Panel_ID comp_panel = view_get_panel(app, global_compilation_view);;
+        Panel_ID footer_panel = panel_get_parent(app, comp_panel);
+        Panel_ID parent_panel = panel_get_parent(app, footer_panel);
+        Panel_ID min_panel = panel_get_child(app, parent_panel, Side_Min);
+        if (min_panel)
+        {
+            Panel_Split_Kind panel_kind = (min_panel == footer_panel ?
+                                           PanelSplitKind_FixedPixels_Min : PanelSplitKind_FixedPixels_Max);
+            panel_set_split(app, parent_panel, panel_kind, split_height);
+        }
+    }
     
     //if (global_compilation_view_expanded)
     {
@@ -1126,39 +1213,31 @@ CUSTOM_COMMAND_SIG(long_change_active_panel)
 CUSTOM_DOC("Change the currently active panel, moving to the panel with the next highest view_id.")
 {
     View_ID view = get_active_view(app, Access_Always);
-    if (view == global_compilation_view)
+    if (view_get_is_passive(app, view))
         view = long_global_active_view;
-    
-    view = get_next_view_looped_primary_panels(app, view, Access_Always);
-    if (view)
-    {
-        view_set_active(app, view);
-        long_global_active_view = view;
-    }
+    else
+        view = get_next_view_looped_primary_panels(app, view, Access_Always);
+    view_set_active(app, view);
 }
 
-CUSTOM_COMMAND_SIG(long_change_active_panel_backwards)
-CUSTOM_DOC("Change the currently active panel, moving to the panel with the next lowest view_id.")
+CUSTOM_COMMAND_SIG(long_change_passive_panel)
+CUSTOM_DOC("Change the currently active panel, moving to the panel with the next highest view_id.")
 {
     View_ID view = get_active_view(app, Access_Always);
-    if (view == global_compilation_view)
-        view = long_global_active_view;
     
-    view = get_prev_view_looped_primary_panels(app, view, Access_Always);
-    if (view)
+    if (!view_get_is_passive(app, view))
+        view = global_compilation_view;
+    else
     {
-        view_set_active(app, view);
-        long_global_active_view = view;
+        View_ID start_view = view;
+        do
+        {
+            view = get_next_view_looped_all_panels(app, view, 0);
+            if (view_get_is_passive(app, view))
+                break;
+        } while (view != start_view);
     }
-}
-
-CUSTOM_COMMAND_SIG(long_change_to_build_panel)
-CUSTOM_DOC("If the special build panel is open, makes the build panel the active panel.")
-{
-    View_ID view = get_or_open_build_panel(app);
-    View_ID active_view = get_active_view(app, 0);
-    if (view == active_view)
-        view = long_global_active_view;
+    
     view_set_active(app, view);
 }
 
@@ -1167,31 +1246,33 @@ CUSTOM_DOC("If the special build panel is open, makes the build panel the active
 // @COPYPASTA(long): create_or_switch_to_buffer_and_clear_by_name
 function Buffer_ID Long_CreateOrSwitchBuffer(Application_Links* app, String8 name_string, View_ID default_target_view)
 {
-    Buffer_ID search_buffer = get_buffer_by_name(app, name_string, Access_Always);
+    Buffer_ID buffer = get_buffer_by_name(app, name_string, Access_Always);
     b32 jump_to_buffer = 1;
-    if (search_buffer)
+    
+    if (buffer)
     {
-        View_ID target_view = get_first_view_with_buffer(app, search_buffer);
+        View_ID target_view = get_first_view_with_buffer(app, buffer);
         if (target_view)
         {
             default_target_view = target_view;
             jump_to_buffer = 0;
         }
-        buffer_set_setting(app, search_buffer, BufferSetting_ReadOnly, true);
-        clear_buffer(app, search_buffer);
-        buffer_send_end_signal(app, search_buffer);
+        
+        buffer_set_setting(app, buffer, BufferSetting_ReadOnly, true);
+        clear_buffer(app, buffer);
+        buffer_send_end_signal(app, buffer);
     }
+    
     else
     {
-        search_buffer = create_buffer(app, name_string, BufferCreate_AlwaysNew);
-        buffer_set_setting(app, search_buffer, BufferSetting_Unimportant, true);
-        buffer_set_setting(app, search_buffer, BufferSetting_ReadOnly, true);
+        buffer = create_buffer(app, name_string, BufferCreate_AlwaysNew);
+        buffer_set_setting(app, buffer, BufferSetting_Unimportant, true);
+        buffer_set_setting(app, buffer, BufferSetting_ReadOnly, true);
     }
     
     // TODO(long): This will overwrite the buffer's history from this point forward
-    Long_Jump_ToBuffer(app, default_target_view, search_buffer, jump_to_buffer, 0);
-    view_set_active(app, default_target_view);
-    return search_buffer;
+    Long_Jump_ToBuffer(app, default_target_view, buffer, 0, 0);
+    return buffer;
 }
 
 // @COPYPASTA(long): find_all_matches_all_buffers
@@ -1294,7 +1375,7 @@ function Sticky_Jump Long_SearchBuffer_NearestJump(Application_Links* app, Buffe
 }
 
 function void Long_MC_ListAllLocations(Application_Links* app, View_ID view, Buffer_ID search_buffer,
-                                       String8 title, i64 init_size, b32 push_jump = 0)
+                                       String8 title, i64 init_size)
 {
     if (get_active_view(app, Access_ReadVisible) != view)
         view_set_active(app, view); 
@@ -1324,8 +1405,8 @@ function void Long_MC_ListAllLocations(Application_Links* app, View_ID view, Buf
             goto_first_jump(app);
         
         curr_pos = view_get_cursor_pos(app, view);
-        view_set_mark  (app, view, seek_pos(curr_pos));
-        view_set_cursor(app, view, seek_pos(curr_pos + title.size));
+        view_set_mark  (app, view, seek_pos(curr_pos + title.size));
+        view_set_cursor(app, view, seek_pos(curr_pos));
     }
     
     i32 count;
@@ -1335,7 +1416,8 @@ function void Long_MC_ListAllLocations(Application_Links* app, View_ID view, Buf
     Command_Map* map = Long_Mapping_GetMap(app, view, &mapping);
     
     b32 abort = false, exit_to_jump_highlight = false;
-    def_set_config_b32(vars_save_string_lit("use_jump_highlight"), 0);
+    String_ID jump_highlight_id = vars_save_string_lit("use_jump_highlight");
+    def_set_config_b32(jump_highlight_id, 0);
     
     b32 select_all = 0;
     for (Temp_Memory temp = begin_temp(scratch); ; end_temp(temp))
@@ -1379,10 +1461,13 @@ function void Long_MC_ListAllLocations(Application_Links* app, View_ID view, Buf
             Buffer_ID new_buffer = view_get_buffer(app, view, 0);
             if (curr_pos != new_pos || current_location.buffer_id != new_buffer)
             {
+                i64 cursor = curr_pos;
+                i64 mark = curr_pos + title.size;
+                
                 if (select_all)
                 {
                     for (i32 i = 0; i < count; ++i)
-                        MC_remove(app, markers[i].pos + title.size);
+                        MC_remove(app, cursor);
                     select_all = 0;
                 }
                 
@@ -1391,7 +1476,7 @@ function void Long_MC_ListAllLocations(Application_Links* app, View_ID view, Buf
                     b32 duplicate = 0;
                     for_mc(node, mc_context.cursors)
                     {
-                        if (node->mark_pos == curr_pos)
+                        if (node->cursor_pos == cursor)
                         {
                             duplicate = 1;
                             break;
@@ -1399,9 +1484,9 @@ function void Long_MC_ListAllLocations(Application_Links* app, View_ID view, Buf
                     }
                     
                     if (duplicate)
-                        MC_remove(app, curr_pos + title.size);
+                        MC_remove(app, cursor);
                     else
-                        MC_insert(app, curr_pos + title.size, curr_pos);
+                        MC_insert(app, cursor, mark);
                 }
             }
         }
@@ -1416,11 +1501,12 @@ function void Long_MC_ListAllLocations(Application_Links* app, View_ID view, Buf
         {
             for (i32 i = 0; i < count; ++i)
             {
-                i64 pos = markers[i].pos + title.size;
+                i64 cursor = markers[i].pos;
+                i64 mark = markers[i].pos + title.size;
                 if (select_all)
-                    MC_remove(app, pos);
+                    MC_remove(app, cursor);
                 else
-                    MC_insert(app, pos, markers[i].pos);
+                    MC_insert(app, cursor, mark);
             }
             select_all = !select_all;
         }
@@ -1438,15 +1524,21 @@ function void Long_MC_ListAllLocations(Application_Links* app, View_ID view, Buf
                 break;
             }
             
-            else
+            else if (in.event.kind == InputEventKind_KeyStroke || in.event.kind == InputEventKind_KeyRelease)
             {
                 Command_Metadata* metadata = Long_Mapping_GetMetadata(mapping, map, &in);
-                if (metadata)
+                Custom_Command_Function* custom = metadata ? metadata->proc : 0;
+                
+                if (custom == long_toggle_compilation_expand || custom == mouse_wheel_scroll)
                 {
-                    Custom_Command_Function* custom = metadata->proc;
-                    if (custom == delete_char || custom == backspace_char)
-                        custom = long_delete_range;
-                    
+                    custom(app);
+                    custom = 0;
+                }
+                else if (custom == delete_char || custom == backspace_char)
+                    custom = long_delete_range;
+                
+                if (custom)
+                {
                     view_enqueue_command_function(app, view, custom);
                     break;
                 }
@@ -1454,12 +1546,12 @@ function void Long_MC_ListAllLocations(Application_Links* app, View_ID view, Buf
             }
         }
         
-        view_set_mark  (app, view, seek_pos(curr_pos));
-        view_set_cursor(app, view, seek_pos(curr_pos + title.size));
+        view_set_mark  (app, view, seek_pos(curr_pos + title.size));
+        view_set_cursor(app, view, seek_pos(curr_pos));
     }
     
     if (exit_to_jump_highlight)
-        def_set_config_b32(vars_save_string_lit("use_jump_highlight"), 1);
+        def_set_config_b32(jump_highlight_id, 1);
     else
         long_kill_search_buffer(app);
     
@@ -1473,15 +1565,13 @@ function void Long_MC_ListAllLocations(Application_Links* app, View_ID view, Buf
         MC_end(app);
     else
     {
-        if (push_jump)
-        {
-            Long_PointStack_Push(app, buffer, cursor_pos, view);
-            i64 cursor = view_get_cursor_pos(app, view);
-            Long_PointStack_Push(app, view_get_buffer(app, view, 0), cursor, view);
-        }
+        Long_PointStack_Push(app, buffer, cursor_pos, view);
+        i64 cursor = view_get_cursor_pos(app, view);
+        Long_PointStack_Push(app, view_get_buffer(app, view, 0), cursor, view);
         
         MC_begin(app);
-        view_set_mark(app, view, seek_pos(curr_pos)); // MC_begin always reset the mark back to the cursor
+        // MC_begin always reset the mark back to the cursor
+        view_set_mark(app, view, seek_pos(curr_pos + title.size));
     }
     
     auto_center_after_jumps = true;
@@ -1493,6 +1583,7 @@ function void Long_ListAllLocations(Application_Links* app, String8 needle, List
 {
     if (!needle.size)
         return;
+    
     String_Match_Flag must_have_flags = 0;
     if (HasFlag(flags, ListAllLocationsFlag_CaseSensitive))
         AddFlag(must_have_flags, StringMatch_CaseSensitive);
@@ -1501,16 +1592,52 @@ function void Long_ListAllLocations(Application_Links* app, String8 needle, List
     if (!HasFlag(flags, ListAllLocationsFlag_MatchSubstring))
         AddFlag(must_not_have_flags, StringMatch_LeftSideSloppy|StringMatch_RightSideSloppy);
     
+    View_ID search_view = Long_View_NextPassive(app, global_compilation_view, 0);
+    if (search_view == global_compilation_view)
+        search_view = get_next_view_after_active(app, Access_Always);
+    
+    i64 before_search_cursor = view_get_cursor_pos(app, search_view);
+    i64 before_search_mark = view_get_mark_pos(app, search_view);
+    Buffer_ID before_search_buffer = view_get_buffer(app, search_view, 0);
+    
+    Buffer_ID search_buffer = Long_CreateOrSwitchBuffer(app, search_name, search_view);
+    Face_ID search_face = get_face_id(app, 0);
+    b32 is_passive = view_get_is_passive(app, search_view);
+    if (is_passive)
+        search_face = get_face_id(app, view_get_buffer(app, global_compilation_view, 0));
+    buffer_set_face(app, search_buffer, search_face);
+    
     View_ID view = get_active_view(app, Access_Always);
     Buffer_ID current_buffer = view_get_buffer(app, view, Access_Always);
-    Buffer_ID search_buffer = Long_CreateOrSwitchBuffer(app, search_name, get_next_view_after_active(app, Access_Always));
-    Long_Matches_Print(app, { &needle, 1 }, must_have_flags, must_not_have_flags, search_buffer, all_buffer ? 0 : current_buffer);
+    String8Array patterns = { &needle, 1 };
+    Long_Matches_Print(app, patterns, must_have_flags, must_not_have_flags,
+                       search_buffer, all_buffer ? 0 : current_buffer);
     
     Scratch_Block scratch(app);
     String8 no_match = S8Lit("no matches");
     String8 search_result = push_buffer_range(app, scratch, search_buffer, Ii64_size(0, no_match.size));
     if (!string_match(search_result, no_match))
-        Long_MC_ListAllLocations(app, view, search_buffer, needle, needle.size, 1);
+    {
+        if (is_passive)
+        {
+            global_compilation_view_expanded = 0;
+            long_toggle_compilation_expand(app);
+        }
+        Long_MC_ListAllLocations(app, view, search_buffer, needle, needle.size);
+        
+        if (!buffer_exists(app, search_buffer))
+        {
+            view_set_buffer(app, search_view, before_search_buffer, 0);
+            view_set_cursor(app, search_view, seek_pos(before_search_cursor));
+            view_set_mark(app, search_view, seek_pos(before_search_mark));
+            
+            if (is_passive)
+            {
+                global_compilation_view_expanded = 1;
+                long_toggle_compilation_expand(app);
+            }
+        }
+    }
 }
 
 function void Long_ListAllLocations_Query(Application_Links* app, char* query, List_All_Locations_Flag flags, b32 all_buffer)
@@ -1813,16 +1940,16 @@ function b32 Long_Query_DefaultInput(Application_Links* app, Query_Bar* bar, Vie
     
     else if (match_key_code(in, KeyCode_V) && has_modifier(in, KeyCode_Control))
         string = push_clipboard_index(scratch, 0, 0);
-    
-    else if (in->event.kind == InputEventKind_TextInsert)
-        string = in->event.text.string;
-    
     else if (match_key_code(in, KeyCode_E) && has_modifier(in, KeyCode_Control))
         center_view(app);
     
+    else if (in->event.kind == InputEventKind_TextInsert)
+        string = in->event.text.string;
+    else if (in->event.kind == InputEventKind_MouseWheel)
+        Long_Mouse_ScrollWheel(app, view);
+    
     else result = 0;
     
-    Long_Mouse_ScrollWheel(app, view);
     if (string.size)
         Long_Query_AppendBar(bar, string);
     
@@ -1842,13 +1969,13 @@ function b32 Long_Query_General(Application_Links* app, Query_Bar* bar, String8 
     Mapping* mapping = 0;
     Command_Map* map = 0;
     
-    b32 success = true;
+    b32 success = 1;
     for (;;)
     {
         User_Input in = get_next_input(app, EventPropertyGroup_Any, EventProperty_Escape);
         if (in.abort)
         {
-            success = false;
+            success = 0;
             break;
         }
         
@@ -1867,7 +1994,10 @@ function b32 Long_Query_General(Application_Links* app, Query_Bar* bar, String8 
         }
         
         else if (Long_Mapping_HandleCommand(app, view, &mapping, &map, &in))
+        {
+            success = 0;
             break;
+        }
     }
     
     Long_Camera_PopBounds(app, view, bounds);
@@ -1999,7 +2129,8 @@ function void Long_ISearch(Application_Links* app, Scan_Direction start_scan, i6
             Command_Metadata* metadata = Long_Mapping_GetMetadata(mapping, map, &in);
             Custom_Command_Function* custom = 0;
             
-            if (metadata)
+            if (metadata && (in.event.kind == InputEventKind_KeyStroke ||
+                             in.event.kind == InputEventKind_KeyRelease))
             {
                 custom = metadata->proc;
                 if (custom == MC_add_at_pos)
@@ -2034,8 +2165,7 @@ function void Long_ISearch(Application_Links* app, Scan_Direction start_scan, i6
                 else if (custom == long_query_replace || custom == query_replace ||
                          custom == long_query_replace_identifier || custom == query_replace_identifier)
                     custom = Long_ISearch_Replace;
-                
-                else if (!metadata->is_ui)
+                else
                     custom = 0;
             }
             
@@ -2215,10 +2345,10 @@ function void Long_Query_Replace(Application_Links* app, String8 replace_str, i6
             do_scan_action = 0;
             if (match_key_code(&in, KeyCode_E) && has_modifier(&in, KeyCode_Control))
                 center_view(app);
+            else if (in.event.kind == InputEventKind_MouseWheel)
+                Long_Mouse_ScrollWheel(app, view);
             else if (Long_Mapping_HandleCommand(app, view, &mapping, &map, &in))
                 break;
-            else
-                Long_Mouse_ScrollWheel(app, view);
         }
         
         if (do_scan_action || first_time)
@@ -2302,28 +2432,30 @@ CUSTOM_DOC("Queries the user for a string, and incrementally replace every occur
         Long_Query_Replace(app, buffer, get_view_range(app, view));
 }
 
-function void Long_Query_ReplaceRange(Application_Links* app, View_ID view, Buffer_ID buffer, Range_i64 range)
+function void Long_Query_ReplaceRange(Application_Links* app, View_ID view, Range_i64 range)
 {
     Scratch_Block scratch(app);
     Query_Bar_Group group(app);
+    
+    Buffer_ID buffer = view_get_buffer(app, view, Access_ReadWriteVisible);
+    b32 readonly_buffer = buffer == 0;
+    if (readonly_buffer)
+        buffer = view_get_buffer(app, view, 0);
     
     String8 replace = {};
     Query_Bar* bar = Long_Query_ReserveBar(app, scratch, "Replace: ", {});
     if (bar)
     {
         Rect_f32 bounds = Long_Camera_PushBounds(app, view);
-        
         Mapping* mapping = 0;
         Command_Map* map = 0;
-        
         User_Input in = {};
+        
         for (;;)
         {
             in = get_next_input(app, EventPropertyGroup_Any, EventProperty_Escape);
             if (in.abort)
-            {
                 break;
-            }
             
             u64 old_size = bar->string.size;
             
@@ -2365,11 +2497,18 @@ function void Long_Query_ReplaceRange(Application_Links* app, View_ID view, Buff
         }
     }
     
-    String8 with = Long_Query_String(app, scratch, "With: ");
+    String8 with = {};
+    if (readonly_buffer)
+    {
+        Long_Highlight_List* list = Long_Highlight_GetList(app, view);
+        for (Long_Highlight_Node* node = list->first; node; node = node->next)
+            Long_Render_FadeError(app, buffer, node->range);
+    }
+    else with = Long_Query_String(app, scratch, "With: ");
     Long_Highlight_Clear(app, view);
-    if (!with.str) return;
     
     // @COPYPASTA(long): replace_in_range
+    if (with.str)
     {
         History_Group history = history_group_begin(app, buffer);
         
@@ -2399,10 +2538,9 @@ function void Long_Query_ReplaceRange(Application_Links* app, View_ID view, Buff
 CUSTOM_COMMAND_SIG(long_replace_in_range)
 CUSTOM_DOC("Queries the user for a needle and string. Replaces all occurences of needle with string in the range between cursor and the mark in the active buffer.")
 {
-    View_ID view = get_active_view(app, Access_ReadWriteVisible);
-    Buffer_ID buffer = view_get_buffer(app, view, Access_ReadWriteVisible);
+    View_ID view = get_active_view(app, 0);
     Range_i64 range = get_view_range(app, view);
-    Long_Query_ReplaceRange(app, view, buffer, range);
+    Long_Query_ReplaceRange(app, view, range);
 }
 
 //~ NOTE(long): Index Commands
@@ -2431,8 +2569,7 @@ CUSTOM_DOC("Switches the position context mode.")
 CUSTOM_COMMAND_SIG(long_switch_pos_context_draw_position)
 CUSTOM_DOC("Switches between drawing the position context at cursor position or at bottom of buffer.")
 {
-    String_ID id = vars_save_string_lit("f4_poscontext_draw_at_bottom_of_buffer");
-    def_set_config_b32(id, !def_get_config_b32(id));
+    def_toggle_config_b32_lit("f4_poscontext_draw_at_bottom_of_buffer");
 }
 
 //- NOTE(long): Jumping
@@ -2531,12 +2668,12 @@ function void Long_GoToDefinition(Application_Links* app, b32 handle_jump_locati
     // 2. The first one call view_set_preferred_x in set_view_to_location
     //    Preferred X is typically used for moving up/down from a larger line to a smaller line
     // For simplicity, I just use Long_PointStack_Jump (which calls F4_JumpToLocation) for all jumping behaviors
-    // And if I want to snap the view directly, I just call Long_SnapView
+    // And if I want to snap the view directly, I just call Long_View_Snap
     if (note)
     {
         Long_PointStack_Jump(app, goto_view, note->file->buffer, note->range.min);
         if (!same_panel)
-            Long_SnapView(app, view);
+            Long_View_Snap(app, view);
     }
 }
 
@@ -2736,7 +2873,7 @@ function void Long_SearchDefinition(Application_Links* app, NoteFilter* filter, 
     if (result.buffer != 0)
     {
         Long_PointStack_Jump(app, view, result.buffer, result.pos);
-        Long_SnapView(app, view);
+        Long_View_Snap(app, view);
     }
 }
 
@@ -2877,7 +3014,7 @@ CUSTOM_DOC("Save all identifiers in the hash table.")
             break;
     }
     
-    string_list_push(scratch, &list, push_stringf(scratch, "Note count: %d", list.node_count));
+    string_list_pushf(scratch, &list, "Note count: %d", list.node_count);
     String8 string = string_list_flatten(scratch, list, 0, S8Lit("\n"), 0, 0);
     Long_Buffer_Write(app, scratch, S8Lit("identifiers.txt"), string);
 }
@@ -3497,7 +3634,7 @@ function i64 Long_Boundary_CursorToken(Application_Links* app, Buffer_ID buffer,
     Token_Array tokens = get_token_array_from_buffer(app, buffer);
     Token_Iterator_Array active_cursor_it = token_iterator_pos(0, &tokens, active_cursor_pos);
     Token* active_cursor_token = token_it_read(&active_cursor_it);
-    String_Const_u8 cursor_string = push_buffer_range(app, scratch, buffer, Ii64(active_cursor_token));
+    String8 cursor_string = push_buffer_range(app, scratch, buffer, Ii64(active_cursor_token));
     i64 cursor_offset = pos - active_cursor_token->pos;
     
     // NOTE(jack): Loop to find the next cursor token occurance in the search_bounds. 
@@ -3534,7 +3671,7 @@ function i64 Long_Boundary_CursorToken(Application_Links* app, Buffer_ID buffer,
                 // NOTE(jack): Only push the token string and compare if the token is an identifier.
                 if (token->kind == TokenBaseKind_Identifier) 
                 {
-                    String_Const_u8 token_string = push_buffer_range(app, scratch, buffer, Ii64(token));
+                    String8 token_string = push_buffer_range(app, scratch, buffer, Ii64(token));
                     if (string_match(cursor_string, token_string))
                     {
                         result = token->pos + cursor_offset;
@@ -3834,34 +3971,23 @@ CUSTOM_DOC("Select the surrounding scope.")
 function String8 Long_Prj_RelBufferName(Application_Links* app, Arena* arena, Buffer_ID buffer)
 {
     Scratch_Block scratch(app, arena);
+    String8 result = {};
+    Variable_Handle prj_var = vars_read_root_key_lit("prj_config");
+    
     String8 filepath = push_buffer_file_name(app, scratch, buffer);
     {
         String8 buffer_name = push_buffer_base_name(app, scratch, buffer);
         filepath = string_chop(filepath, buffer_name.size);
+        if (string_get_character(filepath, filepath.size - 1) == '\\')
+            filepath.size--;
     }
     
-    Variable_Handle prj_var = vars_read_key(vars_get_root(), vars_save_string_lit("prj_config"));
-    b32 has_prj_path = false;
     if (filepath.size)
     {
-        String8 prj_dir = prj_path_from_project(scratch, prj_var);
-        if (prj_dir.size)
-        {
-            // NOTE(long): prj_dir always has a slash at the end
-            prj_dir = string_mod_replace_character(prj_dir, '/', '\\');
-            if (string_match(string_prefix(filepath, prj_dir.size), prj_dir))
-            {
-                filepath = string_skip(filepath, prj_dir.size);
-                has_prj_path = true;
-            }
-        }
-    }
-    
-    if (filepath.size && !has_prj_path)
-    {
-        Variable_Handle reference_path_var = vars_read_key(prj_var, vars_save_string_lit("reference_paths"));
+        Variable_Handle reference_path_var = vars_read_key_lit(prj_var, "reference_paths");
         i32 i = 0;
         b32 multi_paths = !vars_is_nil(vars_next_sibling(vars_first_child(reference_path_var)));
+        
         for (Vars_Children(path_var, reference_path_var), ++i)
         {
             String8 ref_dir = vars_string_from_var(scratch, path_var);
@@ -3869,50 +3995,127 @@ function String8 Long_Prj_RelBufferName(Application_Links* app, Arena* arena, Bu
             {
                 ref_dir = string_mod_replace_character(ref_dir, '/', '\\');
                 if (ref_dir.str[ref_dir.size - 1] == '\\')
-                    ref_dir.size--;
+                    ref_dir = push_stringf(scratch, "%.*s\\", string_expand(ref_dir));
+                
                 if (string_match(string_prefix(filepath, ref_dir.size), ref_dir))
                 {
-                    filepath = string_skip(filepath, ref_dir.size);
+                    String8 relpath = string_skip(filepath, ref_dir.size);
                     String8 path_index = multi_paths ? push_stringf(scratch, ":%d", i) : String8{};
-                    filepath = push_stringf(scratch, "REFPATH%.*s%.*s", string_expand(path_index), string_expand(filepath));
+                    result = push_stringf(arena, "REFPATH%.*s%.*s", string_expand(path_index), string_expand(relpath));
                     break;
                 }
             }
         }
+        
+        if (!result.size)
+        {
+            String8 prj_dir = prj_path_from_project(scratch, prj_var);
+            // NOTE(long): prj_dir always has a slash at the end
+            prj_dir = string_mod_replace_character(prj_dir, '/', '\\');
+            
+            if (string_match(string_prefix(filepath, prj_dir.size), prj_dir))
+            {
+                String8 relpath = string_skip(filepath, prj_dir.size);
+                result = push_string_copy(arena, relpath);
+            }
+        }
     }
     
-    if (filepath.size)
-    {
-        if (filepath.str[filepath.size - 1] == '\\')
-            filepath.size--;
-    }
-    
-    String8 result = {};
-    if (filepath.size)
-        result = push_string_copy(arena, filepath);
     return result;
 }
 
-// @COPYPASTA(long): f4_setup_new_project
-CUSTOM_COMMAND_SIG(long_setup_new_project)
-CUSTOM_DOC("Queries the user for several configuration options and initializes a new 4coder project with build scripts for every OS.")
+function void Long_Prj_Print(Application_Links* app, Variable_Handle prj_var)
 {
-    prj_setup_scripts(app, PrjSetupScriptFlag_Project|PrjSetupScriptFlag_Bat|PrjSetupScriptFlag_Sh);
+    Scratch_Block scratch(app);
     
+    String8 filename = prj_full_file_path_from_project(scratch, prj_var);
+    String8 prj_name = vars_str_from_key_lit(scratch, prj_var, "project_name");
+    Long_Print_Messagef(app, "\nProject: %.*s, Name: %.*s\n", string_expand(filename), string_expand(prj_name));
+    
+    Variable_Handle whitelist = vars_read_key_lit(prj_var, "patterns");
+    String8 whitelist_msg = Long_Vars_SingleStrArray(app, scratch, whitelist);
+    Long_Print_Messagef(app, "  Whitelist: %.*s\n", string_expand(whitelist_msg));
+    
+    Variable_Handle blacklist = vars_read_key_lit(prj_var, "blacklist_patterns");
+    String8 blacklist_msg = Long_Vars_SingleStrArray(app, scratch, blacklist);
+    Long_Print_Messagef(app, "  Blacklist: %.*s\n", string_expand(blacklist_msg));
+    
+    Long_Print_Messagef(app, "  Commands:\n");
+    Variable_Handle commands = vars_read_key_lit(prj_var, "commands");
+    String_ID out_id = vars_save_string_lit("out");
+    String_ID footer_id = vars_save_string_lit("footer_panel");
+    String_ID save_id = vars_save_string_lit("save_dirty_files");
+    
+    for (Vars_Children(command_var, commands))
     {
-        Scratch_Block scratch(app);
-        String8 project_path = push_hot_directory(app, scratch);
-        String8 filename = push_file_search_up_path(app, scratch, project_path, S8Lit("project.4coder"));
-        Buffer_ID buffer = create_buffer(app, filename, 0);
+        String8 name = vars_key_from_var(scratch, command_var);
+        String8 out = vars_str_from_key(scratch, command_var, out_id);
+        b32 footer = vars_b32_from_key(command_var, footer_id);
+        b32 save = vars_b32_from_key(command_var, save_id);
+        Long_Print_Messagef(app, "    %.*s: \"%.*s\"%s%s\n", string_expand(name), string_expand(out),
+                            footer ? ", footer panel" : "", save ? ", save dirty files" : "");
         
-        i64 pos = 0;
-        seek_string_forward(app, buffer, 0, 0, S8Lit("F1"), &pos);
-        if (pos)
-            buffer_replace_range(app, buffer, Ii64_size(pos, sizeof("F1 = \"run\";\n.F2 = \"run\";") - 1),
-                                 S8Lit("F1 = \"build\",\n.F2 = \"run\","));
+        String8List ignore = {};
+        string_list_push_u8_lit(scratch, &ignore, "footer_panel");
+        string_list_push_u8_lit(scratch, &ignore, "save_dirty_files");
+        string_list_push_u8_lit(scratch, &ignore, "out");
+        String8 os_commands = Long_Vars_StrFromArray(app, scratch, command_var, 6, ignore);
+        print_message(app, os_commands);
+        print_message(app, S8Lit("\n"));
     }
     
-    load_project(app);
+    Variable_Handle fkeys = vars_read_key_lit(prj_var, "fkey_command");
+    String8 fkey_msg = Long_Vars_StrFromArray(app, scratch, fkeys, 4);
+    Long_Print_Messagef(app, "  Fkeys:\n%.*s\n", string_expand(fkey_msg));
+    
+    Variable_Handle refpaths = vars_read_key_lit(prj_var, "reference_paths");
+    String8 refpath_msg = Long_Vars_StrFromArray(app, scratch, refpaths, 4);
+    if (refpath_msg.size)
+        Long_Print_Messagef(app, "  Reference:\n%.*s\n", string_expand(refpath_msg));
+    else
+        Long_Print_Messagef(app, "  Referece: None\n");
+}
+
+// @COPYPASTA(long): load_project
+function Variable_Handle Long_Prj_Parse(Application_Links* app, String8 filename, String8 data)
+{
+    Scratch_Block scratch(app);
+    Variable_Handle prj_var = vars_get_nil();
+    
+    if (!data.size)
+    {
+        print_message(app, S8Lit("Did not find project.4coder.\n"));
+        return prj_var;
+    }
+    
+    Config* config_parse = def_config_from_text(app, scratch, filename, data);
+    if (config_parse)
+    {
+        i32 version = config_parse->version ? *config_parse->version : 0;
+        switch (version)
+        {
+            case 0:
+            case 1:
+            {
+                String8 project_root = string_remove_last_folder(filename);
+                prj_var = prj_v1_to_v2(app, project_root, config_parse);
+            } break;
+            
+            default:
+            {
+                prj_var = def_fill_var_from_config(app, vars_get_root(),
+                                                   vars_save_string_lit("prj_config"), config_parse);
+            } break;
+        }
+        
+        String8 error_text = config_stringize_errors(app, scratch, config_parse);
+        if (error_text.size > 0)
+            Long_Print_Error(app, error_text);
+        else if (!vars_is_nil(prj_var))
+            Long_Prj_Print(app, prj_var);
+    }
+    
+    return prj_var;
 }
 
 function void Long_Prj_OpenFiles_Recursive_Readonly(Application_Links* app, String8 path,
@@ -3952,22 +4155,48 @@ function void Long_Prj_OpenFiles_Recursive_Readonly(Application_Links* app, Stri
     }
 }
 
-CUSTOM_COMMAND_SIG(long_load_project)
-CUSTOM_DOC("Looks for a project.4coder file in the current directory and tries to load it.  Looks in parent directories until a project file is found or there are no more parents.")
+function void Long_Prj_Load(Application_Links* app, Variable_Handle prj_var)
 {
-    load_project(app);
     Scratch_Block scratch(app);
     
-    // NOTE(long): This must use the v2 project file format
-    Variable_Handle prj_var = vars_read_key(vars_get_root(), vars_save_string_lit("prj_config"));
-    Variable_Handle reference_path_var = vars_read_key(prj_var, vars_save_string_lit("reference_paths"));
+    // NOTE(allen): Open All Project Files
+    Variable_Handle load_paths_var = vars_read_key_lit(prj_var, "load_paths");
+    Variable_Handle load_paths_os_var = vars_read_key_lit(load_paths_var, OS_NAME);
     
-    Variable_Handle whitelist_var = vars_read_key(prj_var, vars_save_string_lit("patterns"));
-    Variable_Handle blacklist_var = vars_read_key(prj_var, vars_save_string_lit("blacklist_patterns"));
+    Variable_Handle whitelist_var = vars_read_key_lit(prj_var, "patterns");
+    Variable_Handle blacklist_var = vars_read_key_lit(prj_var, "blacklist_patterns");
     
     Prj_Pattern_List whitelist = prj_pattern_list_from_var(scratch, whitelist_var);
     Prj_Pattern_List blacklist = prj_pattern_list_from_var(scratch, blacklist_var);
     
+    String_ID path_id = vars_save_string_lit("path");
+    String_ID recursive_id = vars_save_string_lit("recursive");
+    String_ID relative_id = vars_save_string_lit("relative");
+    
+    for (Vars_Children(load_path_var, load_paths_os_var))
+    {
+        String8 path = vars_str_from_key(scratch, load_path_var, path_id);
+        b32 recursive = vars_b32_from_key(load_path_var, recursive_id);
+        b32  relative = vars_b32_from_key(load_path_var, relative_id);
+        
+        String8 file_dir = path;
+        if (relative)
+        {
+            String8List file_dir_list = {};
+            String8 prj_dir = prj_path_from_project(scratch, prj_var);
+            string_list_push(scratch, &file_dir_list, prj_dir);
+            
+            string_list_push_overlap(scratch, &file_dir_list, '/', path);
+            string_list_push_overlap(scratch, &file_dir_list, '/', SCu8());
+            file_dir = string_list_flatten(scratch, file_dir_list, StringFill_NullTerminate);
+        }
+        
+        Prj_Open_File_Flags flags = recursive ? PrjOpenFileFlag_Recursive : 0;
+        prj_open_files_pattern_filter(app, file_dir, whitelist, blacklist, flags);
+    }
+    
+    // NOTE(long): Open All Reference Files (This must use the v2 project file format)
+    Variable_Handle reference_path_var = vars_read_key_lit(prj_var, "reference_paths");
     for (Vars_Children(path_var, reference_path_var))
     {
         String8 path = vars_string_from_var(scratch, path_var);
@@ -3988,6 +4217,49 @@ CUSTOM_DOC("Looks for a project.4coder file in the current directory and tries t
         
         else Long_Print_Messagef(app, "Error: Path \"%.*s\" doesn't exists\n", string_expand(path));
     }
+    
+    // NOTE(allen): Set Window Title
+    String8 proj_name = vars_str_from_key_lit(scratch, prj_var, "project_name");
+    String8 title = push_u8_stringf(scratch, "4coder project: %.*s", string_expand(proj_name));
+    set_window_title(app, title);
+}
+
+CUSTOM_COMMAND_SIG(long_load_project)
+CUSTOM_DOC("Looks for a project.4coder file in the current directory and tries to load it.  Looks in parent directories until a project file is found or there are no more parents.")
+{
+    ProfileScope(app, "[Long] Load Project");
+    save_all_dirty_buffers(app);
+    Scratch_Block scratch(app);
+    
+    String8 project_path = push_hot_directory(app, scratch);
+    File_Name_Data dump = dump_file_search_up_path(app, scratch, project_path, S8Lit("project.4coder"));
+    Variable_Handle prj_var = Long_Prj_Parse(app, dump.file_name, dump.data);
+    Long_Prj_Load(app, prj_var);
+}
+
+// @COPYPASTA(long): f4_setup_new_project
+CUSTOM_COMMAND_SIG(long_setup_new_project)
+CUSTOM_DOC("Queries the user for several configuration options and initializes a new 4coder project with build scripts for every OS.")
+{
+    prj_setup_scripts(app, PrjSetupScriptFlag_Project|PrjSetupScriptFlag_Bat|PrjSetupScriptFlag_Sh);
+    
+    {
+        Scratch_Block scratch(app);
+        String8 project_path = push_hot_directory(app, scratch);
+        String8 filename = push_file_search_up_path(app, scratch, project_path, S8Lit("project.4coder"));
+        Buffer_ID buffer = create_buffer(app, filename, 0);
+        
+        i64 pos = 0;
+        seek_string_forward(app, buffer, 0, 0, S8Lit("F1"), &pos);
+        if (pos)
+        {
+            String8 replace = S8Lit("F1 = \"run\";\n.F2 = \"run\";");
+            String8 with = S8Lit("F1 = \"build\",\n.F2 = \"run\",");
+            buffer_replace_range(app, buffer, Ii64_size(pos, replace.size), with);
+        }
+    }
+    
+    load_project(app);
 }
 
 CUSTOM_COMMAND_SIG(long_reload_all_themes_default_folder)
@@ -4012,76 +4284,270 @@ CUSTOM_DOC("Clears and reloads all the theme files in the default theme folder."
             active_color_table = node->table;
 }
 
+function String8 Long_Config_StrFromB32Vars(Application_Links* app, Arena* arena, String8List* list)
+{
+    Scratch_Block scratch(app, arena);
+    String8List true_list = {};
+    
+    for (String8Node* node = list->first; node; node = node->next)
+    {
+        b32 var = def_get_config_b32(vars_save_string(node->string));
+        if (var)
+            string_list_push(scratch, &true_list, node->string);
+    }
+    
+    String8 result = StrListJoin(arena, true_list, S8Lit(", "), 0);
+    return result;
+}
+
+function void Long_Config_Print(Application_Links* app)
+{
+    Scratch_Block scratch(app);
+    String8List var_list = {};
+    Long_Print_Messagef(app, "\nDefault Config: config.4coder\n");
+    
+    //- NOTE(long): User
+    b32 bind_by_physical_key = def_get_config_b32_lit("bind_by_physical_key");
+    b32 lalt_lctrl_is_altgr = def_get_config_b32_lit("lalt_lctrl_is_altgr");
+    
+    String8 user_name = def_get_config_str_lit(scratch, "user_name");
+    String8 mode = def_get_config_str_lit(scratch, "mode");
+    
+    String8 mapping = def_get_config_str_lit(scratch, "mapping");
+    if (!mapping.size)
+        mapping = OS_MAC ? S8Lit("mac-bindings.4coder") : S8Lit("bindings.4coder");
+    
+    Long_Print_Messagef(app, "  User: %.*s, Mode: %.*s, Mapping: %.*s, Keymode: %s%s\n",
+                        string_expand(user_name), string_expand(mode), string_expand(mapping),
+                        bind_by_physical_key ? "Physical" : "Language",
+                        lalt_lctrl_is_altgr ? ", LAlt+LCtrl is AltGr" : "");
+    string_list_push_u8_lit(scratch, &var_list, "user_name");
+    string_list_push_u8_lit(scratch, &var_list, "mode");
+    string_list_push_u8_lit(scratch, &var_list, "mapping");
+    string_list_push_u8_lit(scratch, &var_list, "bind_by_physical_key");
+    string_list_push_u8_lit(scratch, &var_list, "lalt_lctrl_is_altgr");
+    
+    Long_Print_Messagef(app, "  UI:\n");
+    
+    //- NOTE(long): UI Flags
+    String8List allow_list = {};
+    string_list_push_u8_lit(scratch, &allow_list, "use_scroll_bars");
+    string_list_push_u8_lit(scratch, &allow_list, "use_file_bars");
+    string_list_push_u8_lit(scratch, &allow_list, "use_comment_keywords");
+    string_list_push_u8_lit(scratch, &allow_list, "use_paren_helper");
+    string_list_push_u8_lit(scratch, &allow_list, "use_error_highlight");
+    string_list_push_u8_lit(scratch, &allow_list, "use_jump_highlight");
+    string_list_push_u8_lit(scratch, &allow_list, "use_scope_highlight");
+    string_list_push_u8_lit(scratch, &allow_list, "highlight_line_at_cursor");
+    string_list_push_u8_lit(scratch, &allow_list, "enable_undo_fade_out");
+    
+    String8 allow_str = Long_Config_StrFromB32Vars(app, scratch, &allow_list);
+    Long_Print_Messagef(app, "    Allow: %s\n", !allow_str.size ? "none" : (char*)allow_str.str);
+    string_list_push(&var_list, &allow_list);
+    
+    //- NOTE(long): UI Layout
+    String8List layout_list = {};
+    string_list_push_u8_lit(scratch, &layout_list, "show_line_number_margins");
+    string_list_push_u8_lit(scratch, &layout_list, "long_show_line_number_offset");
+    string_list_push_u8_lit(scratch, &layout_list, "enable_output_wrapping");
+    
+    String8 layout_str = Long_Config_StrFromB32Vars(app, scratch, &layout_list);
+    Long_Print_Messagef(app, "    Layout: %s\n", !layout_str.size ? "none" : (char*)layout_str.str);
+    string_list_push(&var_list, &layout_list);
+    
+    //- NOTE(long): Cursor/Mark
+    u64 cursor_roundness = def_get_config_u64_lit(app, "cursor_roundness");
+    u64 mark_thickness = def_get_config_u64_lit(app, "mark_thickness");
+    u64 lister_roundness = def_get_config_u64_lit(app, "lister_roundness");
+    Long_Print_Messagef(app, "  Cursor Roundness: %llu, Mark Thickness: %llu, Lister Roundness: %llu\n",
+                        cursor_roundness, mark_thickness, lister_roundness);
+    
+    string_list_push_u8_lit(scratch, &var_list, "cursor_roundness");
+    string_list_push_u8_lit(scratch, &var_list, "mark_thickness");
+    string_list_push_u8_lit(scratch, &var_list, "lister_roundness");
+    
+    Long_Print_Messagef(app, "  Code:\n");
+    
+    //- NOTE(long): Extensions
+    String8 treat_as_code = def_get_config_str_lit(scratch, "treat_as_code");
+    Long_Print_Messagef(app, "    Extensions: \"%.*s\"\n", string_expand(treat_as_code));
+    string_list_push_u8_lit(scratch, &var_list, "treat_as_code");
+    
+    //- NOTE(long): Virtual Whitespace
+    b32 enable_vw = def_get_config_b32_lit("enable_virtual_whitespace");
+    u64 vw_indent = def_get_config_u64_lit(app, "virtual_whitespace_regular_indent");
+    b32 wrap_lines = def_get_config_b32_lit("enable_code_wrapping");
+    Long_Print_Messagef(app, "    Virtual Whitespace: %s, Indent: %llu%s\n",
+                        enable_vw ? "Enable" : "Disable", vw_indent, wrap_lines ? ", Code Wrapping" : "");
+    
+    string_list_push_u8_lit(scratch, &var_list, "enable_virtual_whitespace");
+    string_list_push_u8_lit(scratch, &var_list, "virtual_whitespace_regular_indent");
+    string_list_push_u8_lit(scratch, &var_list, "enable_code_wrapping");
+    
+    //- NOTE(long): Indent
+    b32 tab_indent = def_get_config_b32_lit("indent_with_tabs");
+    u64 indent_width = def_get_config_u64_lit(app, "indent_width");
+    u64 tab_width = def_get_config_u64_lit(app, "default_tab_width");
+    Long_Print_Messagef(app, "    Indent with: %s, Indent Width: %llu, Tab Width: %llu\n",
+                        tab_indent ? "tabs" : "spaces", indent_width, tab_width);
+    
+    string_list_push_u8_lit(scratch, &var_list, "indent_with_tabs");
+    string_list_push_u8_lit(scratch, &var_list, "indent_width");
+    string_list_push_u8_lit(scratch, &var_list, "default_tab_width");
+    
+    //- NOTE(long): Automatic
+    String8List auto_list = {};
+    string_list_push_u8_lit(scratch, &auto_list, "automatically_indent_text_on_save");
+    string_list_push_u8_lit(scratch, &auto_list, "automatically_save_changes_on_build");
+    string_list_push_u8_lit(scratch, &auto_list, "automatically_load_project");
+    
+    String8 auto_str = Long_Config_StrFromB32Vars(app, scratch, &auto_list);
+    Long_Print_Messagef(app, "  Auto: %s\n", !auto_str.size ? "none" : (char*)auto_str.str);
+    string_list_push(&var_list, &auto_list);
+    
+    //- NOTE(long): Theme
+    String8 theme = def_get_config_str_lit(scratch, "default_theme_name");
+    Long_Print_Messagef(app, "  Default Theme: %.*s\n", string_expand(theme));
+    string_list_push_u8_lit(scratch, &var_list, "default_theme_name");
+    
+    //- NOTE(long): Font
+    u32 default_font_size = (u32)def_get_config_u64_lit(app, "default_font_size");
+    b32 default_font_hinting = def_get_config_b32_lit("default_font_hinting");
+    String8 default_font_name = def_get_config_str_lit(scratch, "default_font_name");
+    String8 aa_mode = def_get_config_str_lit(scratch, "default_font_aa_mode");
+    if (!string_match(aa_mode, S8Lit("1bit")))
+        aa_mode = S8Lit("8bit");
+    
+    Long_Print_Messagef(app, "  Default Font: \"%.*s\", Size: %u, %sMode: %.*s\n",
+                        string_expand(default_font_name), default_font_size,
+                        default_font_hinting ? "Hinting, " : "", string_expand(aa_mode));
+    
+    string_list_push_u8_lit(scratch, &var_list, "default_font_name");
+    string_list_push_u8_lit(scratch, &var_list, "default_font_size");
+    string_list_push_u8_lit(scratch, &var_list, "default_font_hinting");
+    string_list_push_u8_lit(scratch, &var_list, "default_font_aa_mode");
+    
+    //- NOTE(long): Compilers
+    Long_Print_Messagef(app, "  Default Compilers:\n");
+    
+    String8 flags_bat = def_get_config_str_lit(scratch, "default_flags_bat");
+    String8 compiler_bat = def_get_config_str_lit(scratch, "default_compiler_bat");
+    Long_Print_Messagef(app, "    bat: \"%.*s\", flags: \"%.*s\"\n",
+                        string_expand(compiler_bat), string_expand(flags_bat));
+    
+    String8 flags_sh = def_get_config_str_lit(scratch, "default_flags_sh");
+    String8 compiler_sh = def_get_config_str_lit(scratch, "default_compiler_sh");
+    Long_Print_Messagef(app, "    sh: \"%.*s\", flags: \"%.*s\"\n",
+                        string_expand(compiler_sh), string_expand(flags_sh));
+    
+    string_list_push_u8_lit(scratch, &var_list, "default_flags_bat");
+    string_list_push_u8_lit(scratch, &var_list, "default_compiler_bat");
+    string_list_push_u8_lit(scratch, &var_list, "default_flags_sh");
+    string_list_push_u8_lit(scratch, &var_list, "default_compiler_sh");
+    
+    //- NOTE(long): Misc
+    Long_Print_Messagef(app, "  Misc:\n");
+    Variable_Handle def_cfg = vars_read_root_key_lit("def_config");
+    String8 str = Long_Vars_StrFromArray(app, scratch, def_cfg, 4, var_list);
+    Long_Print_Messagef(app, "%.*s\n", string_expand(str));
+}
+
 // @COPYPASTA(long): load_config_and_apply
 function void Long_Config_ApplyFromData(Application_Links* app, String8 data, i32 override_font_size, b32 override_hinting)
 {
     Scratch_Block scratch(app);
     
+    Variable_Handle cfg_var = {};
     if (data.size)
     {
         Config* parsed = def_config_from_text(app, scratch, S8Lit("config.4coder"), data);
         String8 error_str = config_stringize_errors(app, scratch, parsed);
-        char* fmt = "trying to load config file:\n%.*s";
         
         if (!error_str.size)
-        {
-            Variable_Handle cfg_var = def_fill_var_from_config(app, vars_get_root(), vars_save_string_lit("def_config"), parsed);
-            error_str = Long_Print_StrFromVars(app, scratch, cfg_var);
-            fmt = "%.*s\n";
-        }
-        
-        Long_Print_Errorf(app, fmt, string_expand(error_str));
+            cfg_var = def_fill_var_from_config(app, vars_get_root(), vars_save_string_lit("def_config"), parsed);
+        else
+            Long_Print_Errorf(app, "trying to load config file:\n%.*s", string_expand(error_str));
     }
     
     else
     {
-        Long_Print_Error(app, S8Lit("Invalid config file, using the default config instead\n"));
-        Face_Description description = get_face_description(app, 0);
-        if (description.font.file_name.str != 0)
-            def_set_config_string(vars_save_string_lit("default_font_name"), description.font.file_name);
+        Long_Print_Errorf(app, "Invalid config file, using the default config instead\n");
+        Face_Description description = get_global_face_description(app);
+        String8 filename = description.font.file_name;
+        if (filename.size)
+            def_set_config_string(vars_save_string_lit("default_font_name"), filename);
     }
     
     // Apply config
-    String8 mode = def_get_config_string(scratch, vars_save_string_lit("mode"));
+    String8 mode = def_get_config_str_lit(scratch, "mode");
     change_mode(app, mode);
     
-    b32 lalt_lctrl_is_altgr = def_get_config_b32(vars_save_string_lit("lalt_lctrl_is_altgr"));
+    b32 lalt_lctrl_is_altgr = def_get_config_b32_lit("lalt_lctrl_is_altgr");
     global_set_setting(app, GlobalSetting_LAltLCtrlIsAltGr, lalt_lctrl_is_altgr);
     
-    String8 default_theme_name = def_get_config_string(scratch, vars_save_string_lit("default_theme_name"));
-    Color_Table* colors = get_color_table_by_name(default_theme_name);
+    String8 theme = def_get_config_str_lit(scratch, "default_theme_name");
+    Color_Table* colors = get_color_table_by_name(theme);
     set_active_color(colors);
     
     Face_Description description = {};
     u32 default_font_size = override_font_size;
     if (!default_font_size)
-        default_font_size = (u32)def_get_config_u64(app, vars_save_string_lit("default_font_size"));
+        default_font_size = (u32)def_get_config_u64_lit(app, "default_font_size");
     if (!default_font_size)
         default_font_size = 12;
     description.parameters.pt_size = default_font_size;
     
-    b32 default_font_hinting = def_get_config_b32(vars_save_string_lit("default_font_hinting"));
+    b32 default_font_hinting = def_get_config_b32_lit("default_font_hinting");
     description.parameters.hinting = default_font_hinting || override_hinting;
     
-    String8 aa_mode = def_get_config_string(scratch, vars_save_string_lit("default_font_aa_mode"));
+    String8 aa_mode = def_get_config_str_lit(scratch, "default_font_aa_mode");
     description.parameters.aa_mode = FaceAntialiasingMode_8BitMono;
-    if (string_match(aa_mode, str8_lit("1bit")))
+    if (string_match(aa_mode, S8Lit("1bit")))
         description.parameters.aa_mode = FaceAntialiasingMode_1BitMono;
+    else
+        aa_mode = S8Lit("8bit");
     
-    String8 default_font_name = def_get_config_string(scratch, vars_save_string_lit("default_font_name"));
+    String8 fallback_font_name = S8Lit("liberation-mono.ttf");
+    String8  default_font_name = def_get_config_str_lit(scratch, "default_font_name");
     if (!default_font_name.size)
-        default_font_name = S8Lit("liberation-mono.ttf");
-    description.font.file_name = default_font_name;
+        default_font_name = fallback_font_name;
     
+    REPEAT:
+    description.font.file_name = default_font_name;
     if (!modify_global_face_by_description(app, description))
     {
-        String8 name_in_fonts_folder = push_u8_stringf(scratch, "fonts/%.*s", string_expand(default_font_name));
-        description.font.file_name = def_search_normal_full_path(scratch, name_in_fonts_folder);
-        modify_global_face_by_description(app, description);
+        // @COPYPASTA(long): def_search_normal_full_path
+        String8List list = {};
+        def_search_normal_load_list(scratch, &list);
+        for (String8Node* node = list.first; node; node = node->next)
+        {
+            if (node->string.size)
+            {
+                string_mod_replace_character(node->string, '\\', '/');
+                if (node->string.str[node->string.size-1] == '/')
+                    node->string.size -= 1;
+            }
+        }
+        
+        String8 filepath = push_u8_stringf(scratch, "fonts/%.*s", string_expand(default_font_name));
+        String8 filename = def_search_get_full_path(scratch, &list, filepath);
+        
+        description.font.file_name = filename;
+        if (!modify_global_face_by_description(app, description))
+        {
+            if (!string_match(default_font_name, fallback_font_name))
+            {
+                Long_Print_Errorf(app, "Failed to load the font: %.*s\n\n", string_expand(default_font_name));
+                default_font_name = fallback_font_name;
+                goto REPEAT;
+            }
+        }
     }
     
-    b32 bind_by_physical_key = def_get_config_b32(vars_save_string_lit("bind_by_physical_key"));
+    b32 bind_by_physical_key = def_get_config_b32_lit("bind_by_physical_key");
     system_set_key_mode(bind_by_physical_key ? KeyMode_Physical : KeyMode_LanguageArranged);
+    
+    Long_Config_Print(app);
 }
 
 //~ NOTE(long): Command-related Commands
@@ -4107,7 +4573,7 @@ function Custom_Command_Function* Long_Lister_GetCommand(Application_Links* app,
         {
             command_trigger_stringize(scratch, &list, node);
             if (node->next != 0)
-                string_list_push(scratch, &list, S8Lit(" "));
+                string_list_push_u8_lit(scratch, &list, " ");
         }
         
         String8 name = SCu8(fcoder_metacmd_table[j].name, fcoder_metacmd_table[j].name_len);
@@ -4228,16 +4694,16 @@ CUSTOM_DOC("Open a project by navigating to the project file.")
         File_Name_Result result = get_file_name_from_user(app, scratch, "Open Project:", view);
         if (result.canceled) break;
         
-        String_Const_u8 file_name = result.file_name_activated;
+        String8 file_name = result.file_name_activated;
         if (file_name.size == 0)
         {
             file_name = result.file_name_in_text_field;
         }
         if (file_name.size == 0) break;
         
-        String_Const_u8 path = result.path_in_text_field;
-        String_Const_u8 full_file_name = push_u8_stringf(scratch, "%.*s/%.*s",
-                                                         string_expand(path), string_expand(file_name));
+        String8 path = result.path_in_text_field;
+        String8 full_file_name = push_u8_stringf(scratch, "%.*s/%.*s",
+                                                 string_expand(path), string_expand(file_name));
         
         if (result.is_folder)
         {
@@ -4286,7 +4752,7 @@ CUSTOM_DOC("Goes to the beginning of the line.")
         if(start_pos == end_pos && start_pos == get_line_start_pos(app, buffer, line))
         {
             Scratch_Block scratch(app);
-            String_Const_u8 string = push_buffer_line(app, scratch, buffer, line);
+            String8 string = push_buffer_line(app, scratch, buffer, line);
             for(u64 i = 0; i < string.size; i += 1)
             {
                 if(!character_is_whitespace(string.str[i]))
@@ -4302,7 +4768,7 @@ CUSTOM_DOC("Goes to the beginning of the line.")
         else 
         {
             Scratch_Block scratch(app);
-            String_Const_u8 string = push_buffer_range(app, scratch, buffer, Ii64(start_pos, end_pos));
+            String8 string = push_buffer_range(app, scratch, buffer, Ii64(start_pos, end_pos));
             
             b32 skipped_non_whitespace = 0;
             {
@@ -4358,7 +4824,7 @@ function void Long_ReIndentRange(Application_Links* app, View_ID view, Buffer_ID
     {
         // @COYPPASTA(long): F4_ReIndentLine
         Scratch_Block scratch(app);
-        String_Const_u8 line_string = push_buffer_line(app, scratch, buffer, line);
+        String8 line_string = push_buffer_line(app, scratch, buffer, line);
         i64 line_start_pos = get_line_start_pos(app, buffer, line);
         
         Range_i64 line_indent_range = Ii64(0, 0);
@@ -4380,8 +4846,8 @@ function void Long_ReIndentRange(Application_Links* app, View_ID view, Buffer_ID
         
         // NOTE(rjf): Indent lines.
         {
-            i64 indent_width = (i64)def_get_config_u64(app, vars_save_string_lit("indent_width"));
-            b32 indent_with_tabs = def_get_config_b32(vars_save_string_lit("indent_with_tabs"));
+            i64 indent_width = (i64)def_get_config_u64_lit(app, "indent_width");
+            b32 indent_with_tabs = def_get_config_b32_lit("indent_with_tabs");
             i64 spaces_per_indent_level = indent_width;
             i64 indent_level = spaces_at_beginning / spaces_per_indent_level + tabs_at_beginning;
             i64 new_indent_level = indent_level + indent_delta;
@@ -4389,7 +4855,7 @@ function void Long_ReIndentRange(Application_Links* app, View_ID view, Buffer_ID
             Range_i64 indent_range = Ii64(line_indent_range.min + line_start_pos, line_indent_range.max + line_start_pos);
             buffer_replace_range(app, buffer, indent_range, S8Lit(""));
             
-            String_Const_u8 indent_string = indent_with_tabs ? S8Lit("\t") : SCu8("                ", clamp_top(indent_width, 16));
+            String8 indent_string = indent_with_tabs ? S8Lit("\t") : SCu8("                ", clamp_top(indent_width, 16));
             for (i64 i = 0; i < new_indent_level; i += 1)
                 buffer_replace_range(app, buffer, Ii64(line_start_pos), indent_string);
         }
@@ -4401,7 +4867,7 @@ function void Long_ReIndentRange(Application_Links* app, View_ID view, Buffer_ID
         Scratch_Block scratch(app);
         i64 start_pos = get_line_start_pos(app, buffer, line_range.min);
         i64 new_pos = start_pos;
-        String_Const_u8 line = push_buffer_line(app, scratch, buffer, line_range.min);
+        String8 line = push_buffer_line(app, scratch, buffer, line_range.min);
         for (u64 i = 0; i < line.size; i += 1)
         {
             if (!character_is_whitespace(line.str[i]))
@@ -4473,7 +4939,7 @@ CUSTOM_DOC("When not in multi-cursor mode, tries to autocomplete the word curren
             ProfileScope(app, "[Long] Word Complete Apply");
             
             word_complete_iter_next(it);
-            String_Const_u8 str = word_complete_iter_read(it);
+            String8 str = word_complete_iter_read(it);
             buffer_replace_range(app, buffer, range, str);
             
             range.max = range.min + str.size;

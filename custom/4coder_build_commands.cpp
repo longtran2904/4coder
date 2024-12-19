@@ -87,7 +87,6 @@ standard_search_and_build_from_dir(Application_Links *app, View_ID view, String_
                                                   string_expand(cmd_string));
         b32 auto_save = def_get_config_b32(vars_save_string_lit("automatically_save_changes_on_build"));
         if (auto_save){
-            print_message(app, string_u8_litexpr("\n"));
             save_all_dirty_buffers(app);
         }
         standard_build_exec_command(app, view, path, command);
