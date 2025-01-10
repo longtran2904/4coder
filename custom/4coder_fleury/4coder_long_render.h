@@ -61,6 +61,7 @@ CUSTOM_ID(attachment, long_highlight_list);
 function Long_Highlight_List* Long_Highlight_GetList(Application_Links* app, View_ID view);
 function void Long_Highlight_Push(Application_Links* app, View_ID view, Range_i64 range);
 function void Long_Highlight_Clear(Application_Links* app, View_ID view);
+function void Long_Highlight_ClearList(Long_Highlight_List* list);
 function void Long_Highlight_DrawRangeList(Application_Links* app, View_ID view, Buffer_ID buffer,
                                            Text_Layout_ID layout, f32 roundness);
 

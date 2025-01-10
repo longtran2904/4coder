@@ -257,26 +257,6 @@
 //   Each project file can now contain an array of reference paths (set inside the reference_paths variable)
 //   When this command runs, it will recursively load all files in those paths as read-only and unimportant
 
-//~ TODO FOOTER PANEL
-// [X] Add a second panel
-// [X] Redesgin the config message
-// [X] Put the *search* buffer there when searching
-// [X] Redesign the project message
-// [X] Toggle panel expansion while searching
-// [X] Highlight line at cursor in the *search* buffer
-
-//~ TODO VARIABLES
-// [X] def_get_config_xxx_lit
-// [X] vars_read_key_lit
-// [X] vars_xxx_from_key
-// [X] Refactor the print vars code
-// [X] 4coder_long
-// [X] 4coder_long_base_commands
-// [X] 4coder_long_hooks
-// [X] 4coder_long_index
-// [X] 4coder_long_lister
-// [X] 4coder_long_render
-
 //~ TODO INDEX
 
 //- CODE
@@ -296,27 +276,16 @@
 // [ ] Fix global function macro color for variable
 // [ ] `MyStruct arg = {}` in the argument list cause prototype function to be parsed incorectly
 
-//~ TODO BUGS
-// [ ] Fix undo/redo_all_buffers right after saving bug
-// [ ] The current saved history gets overwritten by merging with the next modification
-// [X] Clipboard bug (again)
-// [X] Fix the calc system thinking /*c...*/ as a calc comment
-// [X] Fix null bug when the current buffer is readonly
-// [X] Fade error when trying to replace inside a readonly buffer
-// [X] Stop treating 4coder files as recent modified files
-// [X] Hot-reload project file cause the wrong file lister tag
-// [X] Mouse movement causes ListAllLocations to exit
-// [X] Changing the active view with mouse while in query mode
-
-//~ @CONSIDER NEW SYSTEM
-// [ ] LOC counter
-// [ ] Virtual column
-// [ ] Jump system
-
-//~ @CONSIDER MULTI CURSOR
+//~ TODO MULTI CURSOR
 // [ ] Across buffers
 // [ ] Begin multi-cursor block that ignore comment lines
 // [ ] Correct MC cursors while enabling virtual whitespace
+// [X] Add cursor for each match when replace_in_range
+// [X] Improve multi-select while in isearch
+
+//~ TODO BUGS
+// [ ] Fix undo/redo_all_buffers right after saving bug
+// [ ] The current saved history gets overwritten by merging with the next modification
 
 //~ @CONSIDER LISTER
 
@@ -332,6 +301,11 @@
 // [ ] Improve relative path display in the file lister
 // [ ] Render multi-column grid like byp_qol
 
+//~ @CONSIDER NEW SYSTEM
+// [ ] LOC counter
+// [ ] Virtual column
+// [ ] Jump system
+
 //~ @CONSIDER Interesting but low-priority stuff that may or may not be useful but deserves a look
 
 //- IDENTIFIER (when the cursor is at then end of the identifier token)
@@ -343,7 +317,6 @@
 // [ ] Token Occurrence Highlight
 
 //- HOT RELOADING
-// [X] Hot-reload the project file
 // [ ] Hot-reload multi-cursor bindings
 // [ ] Custom commands for each reloadable file
 
@@ -356,8 +329,6 @@
 // [ ] Modal auto-complete {} () [] on enter or typing
 // [ ] Jump to location with relative path
 // [ ] Code peek yank
-// [X] Swap the cursor and mark position when MC_ListAllLocations
-// [X] Run any custom command while in query mode
 
 //~ NOTE(long): @long_macros and default include
 #define LONG_INDEX_INDENT_STATEMENT 1

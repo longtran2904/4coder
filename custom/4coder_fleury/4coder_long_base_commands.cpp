@@ -2083,26 +2083,90 @@ function void Long_ISearch(Application_Links* app, Scan_Direction start_scan, i6
     Mapping* mapping = 0;
     Command_Map* map = Long_Mapping_GetMap(app, view, &mapping);
     
-    Scan_Direction scan = start_scan;
+    Scan_Direction scan = 0;
     i64 pos = first_pos;
     i64 buffer_size = buffer_get_size(app, buffer);
     i64 match_size = 0;
-    b32 string_change = 1;
-    goto SCAN;
     
+    u64 old_size = bar->string.size + 1;
+    Scan_Direction change_scan = start_scan;
+    User_Input in = {};
     for (;;)
     {
+        b32 string_change = old_size != bar->string.size;
+        b32 do_scan_action = change_scan != 0; // Scan_Backward != 0 && Scan_Forward != 0
+        
+        if (string_change || do_scan_action)
+        {
+            if (do_scan_action)
+                scan = change_scan;
+            
+            b32 backward = scan == Scan_Backward;
+            i64 offset = string_change ? (backward ? +1 : -1) : 0;
+            i64 new_pos = 0;
+            seek_string(app, buffer, pos + offset, 0, 0, bar->string, &new_pos,
+                        (backward ? BufferSeekString_Backward : 0) |
+                        (insensitive ? BufferSeekString_CaseInsensitive : 0));
+            
+            if (new_pos >= 0 && new_pos < buffer_size)
+            {
+                if (do_scan_action && has_modifier(&in, KeyCode_Shift))
+                {
+                    b32 remove = 0;
+                    for_mc(node, mc_context.cursors)
+                    {
+                        if (range_contains(Ii64(node->cursor_pos, node->mark_pos), pos))
+                        {
+                            remove = 1;
+                            break;
+                        }
+                    }
+                    
+                    if (remove)
+                    {
+                        // @COPYPASTA(long): MC_remove
+                        MC_Node** ptr = &mc_context.cursors;
+                        while (*ptr)
+                        {
+                            if (range_contains(Ii64((*ptr)->cursor_pos, (*ptr)->mark_pos), pos))
+                            {
+                                MC_Node* node = *ptr;
+                                *ptr = node->next;
+                                sll_stack_push(mc_context.free_list, node);
+                                break;
+                            }
+                            ptr = &(*ptr)->next;
+                        }
+                        
+                        // TODO(long): This is very dumb. REWRITE THIS PLEASE!!!
+                        Long_Highlight_Clear(app, view);
+                        for_mc(node, mc_context.cursors)
+                            Long_Highlight_Push(app, view, Ii64(node->cursor_pos, node->mark_pos));
+                    }
+                    else
+                    {
+                        MC_insert(app, pos, pos + match_size);
+                        Long_Highlight_Push(app, view, Ii64_size(pos, match_size));
+                    }
+                }
+                
+                pos = new_pos;
+                isearch__update_highlight(app, view, Ii64_size(pos, bar->string.size));
+                match_size = bar->string.size;
+            }
+        }
+        
+        old_size = bar->string.size;
+        change_scan = 0;
         bar->prompt = scan == Scan_Forward ? isearch_str : rsearch_str;
-        User_Input in = get_next_input(app, EventPropertyGroup_Any, EventProperty_Escape);
+        
+        in = get_next_input(app, EventPropertyGroup_Any, EventProperty_Escape);
         if (in.abort)
         {
             view_set_cursor_and_preferred_x(app, view, seek_pos(first_pos));
             MC_end(app);
             break;
         }
-        
-        u64 old_size = bar->string.size;
-        Scan_Direction change_scan = 0; // Scan_Backward != 0 && Scan_Forward != 0
         
         if (match_key_code(&in, KeyCode_Return))
         {
@@ -2129,41 +2193,11 @@ function void Long_ISearch(Application_Links* app, Scan_Direction start_scan, i6
             Command_Metadata* metadata = Long_Mapping_GetMetadata(mapping, map, &in);
             Custom_Command_Function* custom = 0;
             
-            if (metadata && (in.event.kind == InputEventKind_KeyStroke ||
-                             in.event.kind == InputEventKind_KeyRelease))
+            if (metadata && (in.event.kind == InputEventKind_KeyStroke || in.event.kind == InputEventKind_KeyRelease))
             {
                 custom = metadata->proc;
-                if (custom == MC_add_at_pos)
-                {
-                    b32 remove = 0;
-                    for_mc(node, mc_context.cursors)
-                    {
-                        if (node->cursor_pos == pos)
-                        {
-                            remove = 1;
-                            break;
-                        }
-                    }
-                    
-                    if (remove)
-                    {
-                        MC_remove(app, pos);
-                        // TODO(long): This is very dumb. REWRITE THIS PLEASE!!!
-                        Long_Highlight_Clear(app, view);
-                        for_mc(node, mc_context.cursors)
-                            Long_Highlight_Push(app, view, Ii64(node->cursor_pos, node->mark_pos));
-                    }
-                    
-                    else
-                    {
-                        MC_insert(app, pos, pos + match_size);
-                        Long_Highlight_Push(app, view, Ii64_size(pos, match_size));
-                    }
-                    continue;
-                }
-                
-                else if (custom == long_query_replace || custom == query_replace ||
-                         custom == long_query_replace_identifier || custom == query_replace_identifier)
+                if (custom == long_query_replace || custom == query_replace ||
+                    custom == long_query_replace_identifier || custom == query_replace_identifier)
                     custom = Long_ISearch_Replace;
                 else
                     custom = 0;
@@ -2175,29 +2209,6 @@ function void Long_ISearch(Application_Links* app, Scan_Direction start_scan, i6
                 break;
             }
             leave_current_input_unhandled(app);
-        }
-        
-        string_change = old_size != bar->string.size;
-        b32 do_scan_action = change_scan != 0;
-        if (string_change || do_scan_action)
-        {
-            if (do_scan_action)
-                scan = change_scan;
-            
-            SCAN:
-            b32 backward = scan == Scan_Backward;
-            i64 offset = string_change ? (backward ? +1 : -1) : 0;
-            i64 new_pos = 0;
-            seek_string(app, buffer, pos + offset, 0, 0, bar->string, &new_pos,
-                        (backward ? BufferSeekString_Backward : 0) |
-                        (insensitive ? BufferSeekString_CaseInsensitive : 0));
-            
-            if (new_pos >= 0 && new_pos < buffer_size)
-            {
-                pos = new_pos;
-                isearch__update_highlight(app, view, Ii64_size(pos, bar->string.size));
-                match_size = bar->string.size;
-            }
         }
     }
     
@@ -2442,7 +2453,9 @@ function void Long_Query_ReplaceRange(Application_Links* app, View_ID view, Rang
     if (readonly_buffer)
         buffer = view_get_buffer(app, view, 0);
     
+    b32 select_all = 0;
     String8 replace = {};
+    
     Query_Bar* bar = Long_Query_ReserveBar(app, scratch, "Replace: ", {});
     if (bar)
     {
@@ -2461,11 +2474,19 @@ function void Long_Query_ReplaceRange(Application_Links* app, View_ID view, Rang
             
             if (match_key_code(&in, KeyCode_Return))
             {
+                if (has_modifier(&in, KeyCode_Shift))
+                {
+                    select_all = 1;
+                    goto DONE;
+                }
+                
                 if (!has_modifier(&in, KeyCode_Control))
                 {
+                    DONE:
                     replace = bar->string;
                     break;
                 }
+                
                 Long_Query_AppendBar(bar, SCu8(previous_isearch_query));
             }
             
@@ -2498,14 +2519,30 @@ function void Long_Query_ReplaceRange(Application_Links* app, View_ID view, Rang
     }
     
     String8 with = {};
-    if (readonly_buffer)
+    Long_Highlight_List* list = Long_Highlight_GetList(app, view);
+    if (list->first)
     {
-        Long_Highlight_List* list = Long_Highlight_GetList(app, view);
-        for (Long_Highlight_Node* node = list->first; node; node = node->next)
-            Long_Render_FadeError(app, buffer, node->range);
+        if (readonly_buffer)
+        {
+            for (Long_Highlight_Node* node = list->first; node; node = node->next)
+                Long_Render_FadeError(app, buffer, node->range);
+        }
+        
+        else if (select_all)
+        {
+            for (Long_Highlight_Node* node = list->first->next; node; node = node->next)
+                MC_insert(app, node->range.min, node->range.max);
+            
+            view_set_cursor_and_preferred_x(app, view, seek_pos(list->first->range.min));
+            MC_begin(app);
+            view_set_mark(app, view, seek_pos(list->first->range.max));
+        }
+        
+        else with = Long_Query_String(app, scratch, "With: ");
+        
+        Long_Highlight_ClearList(list);
     }
-    else with = Long_Query_String(app, scratch, "With: ");
-    Long_Highlight_Clear(app, view);
+    else Long_Render_FadeError(app, buffer, range);
     
     // @COPYPASTA(long): replace_in_range
     if (with.str)
@@ -2515,7 +2552,6 @@ function void Long_Query_ReplaceRange(Application_Links* app, View_ID view, Rang
         i64 pos = range.min - 1;
         i64 new_pos = 0;
         seek_string_forward(app, buffer, pos, range.end, replace, &new_pos);
-        b32 has_match = new_pos + (i64)replace.size <= range.end;
         
         i64 shift = replace_range_shift(replace.size, with.size);
         while (new_pos + (i64)replace.size <= range.end)
@@ -2527,9 +2563,6 @@ function void Long_Query_ReplaceRange(Application_Links* app, View_ID view, Rang
             pos = new_pos + (i32)with.size - 1;
             seek_string_forward(app, buffer, pos, range.end, replace, &new_pos);
         }
-        
-        if (!has_match)
-            Long_Render_FadeError(app, buffer, range);
         
         history_group_end(history);
     }
