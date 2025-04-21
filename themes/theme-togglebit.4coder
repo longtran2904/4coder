@@ -37,6 +37,7 @@ defcolor_text_cycle            = { defcolor_text_default };
 defcolor_line_numbers_back     = 0xFFc6c5c7;
 defcolor_line_numbers_text     = defcolor_base;
 
+fleury_color_comment_user_name     = 0xFFFFDD23;
 fleury_color_syntax_crap           = defcolor_text_default;
 fleury_color_operators             = defcolor_keyword;
 fleury_color_inactive_pane_overlay = 0x2A000000;

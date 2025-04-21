@@ -2,7 +2,7 @@
 #define command_id(c) (fcoder_metacmd_ID_##c)
 #define command_metadata(c) (&fcoder_metacmd_table[command_id(c)])
 #define command_metadata_by_id(id) (&fcoder_metacmd_table[id])
-#define command_one_past_last_id 393
+#define command_one_past_last_id 395
 #if defined(CUSTOM_COMMAND_SIG)
 #define PROC_LINKS(x,y) x
 #else
@@ -168,6 +168,7 @@ CUSTOM_COMMAND_SIG(long_load_project);
 CUSTOM_COMMAND_SIG(long_lower_case);
 CUSTOM_COMMAND_SIG(long_macro_repeat);
 CUSTOM_COMMAND_SIG(long_macro_toggle_recording);
+CUSTOM_COMMAND_SIG(long_mc_begin_multi_block);
 CUSTOM_COMMAND_SIG(long_mc_down_trail);
 CUSTOM_COMMAND_SIG(long_mc_up_trail);
 CUSTOM_COMMAND_SIG(long_move_down_token_occurrence);
@@ -227,6 +228,7 @@ CUSTOM_COMMAND_SIG(long_toggle_line_offset);
 CUSTOM_COMMAND_SIG(long_toggle_panel_expand);
 CUSTOM_COMMAND_SIG(long_toggle_panel_expand_big);
 CUSTOM_COMMAND_SIG(long_toggle_pos_context);
+CUSTOM_COMMAND_SIG(long_try_exit);
 CUSTOM_COMMAND_SIG(long_undo);
 CUSTOM_COMMAND_SIG(long_undo_all_buffers);
 CUSTOM_COMMAND_SIG(long_undo_jump);
@@ -414,7 +416,7 @@ char *source_name;
 i32 source_name_len;
 i32 line_number;
 };
-static Command_Metadata fcoder_metacmd_table[393] = {
+static Command_Metadata fcoder_metacmd_table[395] = {
 { PROC_LINKS(MC_add_at_pos, 0), false, "MC_add_at_pos", 13, "[MC] adds multi-cursor at current pos", 37, "D:\\Programs\\4coder\\custom\\4coder_fleury\\plugins\\4coder_multi_cursor.cpp", 71, 361 },
 { PROC_LINKS(MC_begin_multi, 0), false, "MC_begin_multi", 14, "[MC] begins multi-cursors", 25, "D:\\Programs\\4coder\\custom\\4coder_fleury\\plugins\\4coder_multi_cursor.cpp", 71, 374 },
 { PROC_LINKS(MC_begin_multi_block, 0), false, "MC_begin_multi_block", 20, "[MC] begins multi-cursor using cursor-mark block-rect", 53, "D:\\Programs\\4coder\\custom\\4coder_fleury\\plugins\\4coder_multi_cursor.cpp", 71, 400 },
@@ -475,11 +477,11 @@ static Command_Metadata fcoder_metacmd_table[393] = {
 { PROC_LINKS(execute_any_cli, 0), false, "execute_any_cli", 15, "Queries for an output buffer name and system command, runs the system command as a CLI and prints the output to the specified buffer.", 133, "D:\\Programs\\4coder\\custom\\4coder_cli_command.cpp", 48, 22 },
 { PROC_LINKS(execute_previous_cli, 0), false, "execute_previous_cli", 20, "If the command execute_any_cli has already been used, this will execute a CLI reusing the most recent buffer name and command.", 126, "D:\\Programs\\4coder\\custom\\4coder_cli_command.cpp", 48, 7 },
 { PROC_LINKS(exit_4coder, 0), false, "exit_4coder", 11, "Attempts to close 4coder.", 25, "D:\\Programs\\4coder\\custom\\4coder_base_commands.cpp", 50, 848 },
-{ PROC_LINKS(f4_home_first_non_whitespace, 0), false, "f4_home_first_non_whitespace", 28, "Goes to the beginning of the line.", 34, "D:\\Programs\\4coder\\custom\\4coder_fleury\\4coder_long_base_commands.cpp", 69, 4771 },
-{ PROC_LINKS(f4_open_project, 0), true, "f4_open_project", 15, "Open a project by navigating to the project file.", 49, "D:\\Programs\\4coder\\custom\\4coder_fleury\\4coder_long_base_commands.cpp", 69, 4720 },
+{ PROC_LINKS(f4_home_first_non_whitespace, 0), false, "f4_home_first_non_whitespace", 28, "Goes to the beginning of the line.", 34, "D:\\Programs\\4coder\\custom\\4coder_fleury\\4coder_long_base_commands.cpp", 69, 4657 },
+{ PROC_LINKS(f4_open_project, 0), true, "f4_open_project", 15, "Open a project by navigating to the project file.", 49, "D:\\Programs\\4coder\\custom\\4coder_fleury\\4coder_long_base_commands.cpp", 69, 4606 },
 { PROC_LINKS(f4_recent_files_menu, 0), true, "f4_recent_files_menu", 20, "Lists the recent files used in the current panel.", 49, "D:\\Programs\\4coder\\custom\\4coder_fleury\\4coder_fleury_recent_files.cpp", 70, 77 },
 { PROC_LINKS(f4_switch_syntax_option, 0), false, "f4_switch_syntax_option", 23, "Switches the syntax highlighting mode.", 38, "D:\\Programs\\4coder\\custom\\4coder_fleury\\4coder_fleury_colors.cpp", 64, 57 },
-{ PROC_LINKS(f4_unindent, 0), false, "f4_unindent", 11, "Unindent the selected range.", 28, "D:\\Programs\\4coder\\custom\\4coder_fleury\\4coder_long_base_commands.cpp", 69, 4985 },
+{ PROC_LINKS(f4_unindent, 0), false, "f4_unindent", 11, "Unindent the selected range.", 28, "D:\\Programs\\4coder\\custom\\4coder_fleury\\4coder_long_base_commands.cpp", 69, 4871 },
 { PROC_LINKS(go_to_user_directory, 0), false, "go_to_user_directory", 20, "Go to the 4coder user directory", 31, "D:\\Programs\\4coder\\custom\\4coder_config.cpp", 43, 1655 },
 { PROC_LINKS(goto_beginning_of_file, 0), false, "goto_beginning_of_file", 22, "Sets the cursor to the beginning of the file.", 45, "D:\\Programs\\4coder\\custom\\4coder_helper.cpp", 43, 2258 },
 { PROC_LINKS(goto_end_of_file, 0), false, "goto_end_of_file", 16, "Sets the cursor to the end of the file.", 39, "D:\\Programs\\4coder\\custom\\4coder_helper.cpp", 43, 2266 },
@@ -532,33 +534,33 @@ static Command_Metadata fcoder_metacmd_table[393] = {
 { PROC_LINKS(load_theme_current_buffer, 0), false, "load_theme_current_buffer", 25, "Parse the current buffer as a theme file and add the theme to the theme list. If the buffer has a .4coder postfix in it's name, it is removed when the name is saved.", 165, "D:\\Programs\\4coder\\custom\\4coder_config.cpp", 43, 1611 },
 { PROC_LINKS(load_themes_default_folder, 0), false, "load_themes_default_folder", 26, "Loads all the theme files in the default theme folder.", 54, "D:\\Programs\\4coder\\custom\\4coder_default_framework.cpp", 54, 535 },
 { PROC_LINKS(load_themes_hot_directory, 0), false, "load_themes_hot_directory", 25, "Loads all the theme files in the current hot directory.", 55, "D:\\Programs\\4coder\\custom\\4coder_default_framework.cpp", 54, 554 },
-{ PROC_LINKS(long_autocomplete, 0), false, "long_autocomplete", 17, "When not in multi-cursor mode, tries to autocomplete the word currently being typed if such a word is found.", 108, "D:\\Programs\\4coder\\custom\\4coder_fleury\\4coder_long_base_commands.cpp", 69, 4933 },
-{ PROC_LINKS(long_backspace_alpha_numeric_or_camel_boundary, 0), false, "long_backspace_alpha_numeric_or_camel_boundary", 46, "Deletes left to a alphanumeric or camel boundary.", 49, "D:\\Programs\\4coder\\custom\\4coder_fleury\\4coder_long_base_commands.cpp", 69, 3532 },
-{ PROC_LINKS(long_backspace_token_boundary, 0), false, "long_backspace_token_boundary", 29, "Deletes left to a token boundary.", 33, "D:\\Programs\\4coder\\custom\\4coder_fleury\\4coder_long_base_commands.cpp", 69, 3473 },
+{ PROC_LINKS(long_autocomplete, 0), false, "long_autocomplete", 17, "When not in multi-cursor mode, tries to autocomplete the word currently being typed if such a word is found.", 108, "D:\\Programs\\4coder\\custom\\4coder_fleury\\4coder_long_base_commands.cpp", 69, 4819 },
+{ PROC_LINKS(long_backspace_alpha_numeric_or_camel_boundary, 0), false, "long_backspace_alpha_numeric_or_camel_boundary", 46, "Deletes left to a alphanumeric or camel boundary.", 49, "D:\\Programs\\4coder\\custom\\4coder_fleury\\4coder_long_base_commands.cpp", 69, 3436 },
+{ PROC_LINKS(long_backspace_token_boundary, 0), false, "long_backspace_token_boundary", 29, "Deletes left to a token boundary.", 33, "D:\\Programs\\4coder\\custom\\4coder_fleury\\4coder_long_base_commands.cpp", 69, 3377 },
 { PROC_LINKS(long_change_active_panel, 0), false, "long_change_active_panel", 24, "Change the currently active panel, moving to the panel with the next highest view_id.", 85, "D:\\Programs\\4coder\\custom\\4coder_fleury\\4coder_long_base_commands.cpp", 69, 1212 },
 { PROC_LINKS(long_change_passive_panel, 0), false, "long_change_passive_panel", 25, "Change the currently active panel, moving to the panel with the next highest view_id.", 85, "D:\\Programs\\4coder\\custom\\4coder_fleury\\4coder_long_base_commands.cpp", 69, 1223 },
-{ PROC_LINKS(long_clean_whitespace_at_cursor, 0), false, "long_clean_whitespace_at_cursor", 31, "Removes all trailing and leading whitespace at the cursor", 57, "D:\\Programs\\4coder\\custom\\4coder_fleury\\4coder_long_base_commands.cpp", 69, 3133 },
-{ PROC_LINKS(long_code_peek, 0), false, "long_code_peek", 14, "Toggles code peek.", 18, "D:\\Programs\\4coder\\custom\\4coder_fleury\\4coder_long_base_commands.cpp", 69, 2582 },
-{ PROC_LINKS(long_command_lister, 0), true, "long_command_lister", 19, "Opens an interactive list of all registered commands.", 53, "D:\\Programs\\4coder\\custom\\4coder_fleury\\4coder_long_base_commands.cpp", 69, 4627 },
-{ PROC_LINKS(long_copy, 0), false, "long_copy", 9, "Copy the text in the range from the cursor to the mark onto the clipboard.", 74, "D:\\Programs\\4coder\\custom\\4coder_fleury\\4coder_long_base_commands.cpp", 69, 3069 },
-{ PROC_LINKS(long_copy_line, 0), false, "long_copy_line", 14, "Copy the text in the current line onto the clipboard.", 53, "D:\\Programs\\4coder\\custom\\4coder_fleury\\4coder_long_base_commands.cpp", 69, 3181 },
-{ PROC_LINKS(long_copy_token, 0), false, "long_copy_token", 15, "Copy the token that the cursor is currently on onto the clipboard.", 66, "D:\\Programs\\4coder\\custom\\4coder_fleury\\4coder_long_base_commands.cpp", 69, 3225 },
-{ PROC_LINKS(long_cursor_mark_swap, 0), false, "long_cursor_mark_swap", 21, "Swaps the position of the cursor and the mark.", 46, "D:\\Programs\\4coder\\custom\\4coder_fleury\\4coder_long_base_commands.cpp", 69, 3058 },
-{ PROC_LINKS(long_cut_line, 0), false, "long_cut_line", 13, "Cut the text in the current line onto the clipboard.", 52, "D:\\Programs\\4coder\\custom\\4coder_fleury\\4coder_long_base_commands.cpp", 69, 3188 },
-{ PROC_LINKS(long_cut_token, 0), false, "long_cut_token", 14, "Cut the token that the cursor is currently on onto the clipboard.", 65, "D:\\Programs\\4coder\\custom\\4coder_fleury\\4coder_long_base_commands.cpp", 69, 3232 },
-{ PROC_LINKS(long_delete_alpha_numeric_or_camel_boundary, 0), false, "long_delete_alpha_numeric_or_camel_boundary", 43, "Deletes right to an alphanumeric or camel boundary.", 51, "D:\\Programs\\4coder\\custom\\4coder_fleury\\4coder_long_base_commands.cpp", 69, 3539 },
-{ PROC_LINKS(long_delete_range, 0), false, "long_delete_range", 17, "Deletes the text in the range between the cursor and the mark.", 62, "D:\\Programs\\4coder\\custom\\4coder_fleury\\4coder_long_base_commands.cpp", 69, 3116 },
-{ PROC_LINKS(long_delete_token_boundary, 0), false, "long_delete_token_boundary", 26, "Deletes right to a token boundary.", 34, "D:\\Programs\\4coder\\custom\\4coder_fleury\\4coder_long_base_commands.cpp", 69, 3480 },
-{ PROC_LINKS(long_execute_any_cli, 0), false, "long_execute_any_cli", 20, "Queries for an output buffer name and system command, runs the system command as a CLI and prints the output to the specified buffer.", 133, "D:\\Programs\\4coder\\custom\\4coder_fleury\\4coder_long_base_commands.cpp", 69, 4650 },
-{ PROC_LINKS(long_explorer, 0), false, "long_explorer", 13, "Opens file explorer in cmd", 26, "D:\\Programs\\4coder\\custom\\4coder_fleury\\4coder_long_base_commands.cpp", 69, 4670 },
-{ PROC_LINKS(long_go_to_definition, 0), false, "long_go_to_definition", 21, "Goes to the jump location at the cursor or the definition of the identifier under the cursor.", 93, "D:\\Programs\\4coder\\custom\\4coder_fleury\\4coder_long_base_commands.cpp", 69, 2713 },
-{ PROC_LINKS(long_go_to_definition_same_panel, 0), false, "long_go_to_definition_same_panel", 32, "Goes to the jump location at the cursor or the definition of the identifier under the cursor in the same panel.", 111, "D:\\Programs\\4coder\\custom\\4coder_fleury\\4coder_long_base_commands.cpp", 69, 2719 },
+{ PROC_LINKS(long_clean_whitespace_at_cursor, 0), false, "long_clean_whitespace_at_cursor", 31, "Removes all trailing and leading whitespace at the cursor", 57, "D:\\Programs\\4coder\\custom\\4coder_fleury\\4coder_long_base_commands.cpp", 69, 3037 },
+{ PROC_LINKS(long_code_peek, 0), false, "long_code_peek", 14, "Toggles code peek.", 18, "D:\\Programs\\4coder\\custom\\4coder_fleury\\4coder_long_base_commands.cpp", 69, 2486 },
+{ PROC_LINKS(long_command_lister, 0), true, "long_command_lister", 19, "Opens an interactive list of all registered commands.", 53, "D:\\Programs\\4coder\\custom\\4coder_fleury\\4coder_long_base_commands.cpp", 69, 4531 },
+{ PROC_LINKS(long_copy, 0), false, "long_copy", 9, "Copy the text in the range from the cursor to the mark onto the clipboard.", 74, "D:\\Programs\\4coder\\custom\\4coder_fleury\\4coder_long_base_commands.cpp", 69, 2973 },
+{ PROC_LINKS(long_copy_line, 0), false, "long_copy_line", 14, "Copy the text in the current line onto the clipboard.", 53, "D:\\Programs\\4coder\\custom\\4coder_fleury\\4coder_long_base_commands.cpp", 69, 3085 },
+{ PROC_LINKS(long_copy_token, 0), false, "long_copy_token", 15, "Copy the token that the cursor is currently on onto the clipboard.", 66, "D:\\Programs\\4coder\\custom\\4coder_fleury\\4coder_long_base_commands.cpp", 69, 3129 },
+{ PROC_LINKS(long_cursor_mark_swap, 0), false, "long_cursor_mark_swap", 21, "Swaps the position of the cursor and the mark.", 46, "D:\\Programs\\4coder\\custom\\4coder_fleury\\4coder_long_base_commands.cpp", 69, 2962 },
+{ PROC_LINKS(long_cut_line, 0), false, "long_cut_line", 13, "Cut the text in the current line onto the clipboard.", 52, "D:\\Programs\\4coder\\custom\\4coder_fleury\\4coder_long_base_commands.cpp", 69, 3092 },
+{ PROC_LINKS(long_cut_token, 0), false, "long_cut_token", 14, "Cut the token that the cursor is currently on onto the clipboard.", 65, "D:\\Programs\\4coder\\custom\\4coder_fleury\\4coder_long_base_commands.cpp", 69, 3136 },
+{ PROC_LINKS(long_delete_alpha_numeric_or_camel_boundary, 0), false, "long_delete_alpha_numeric_or_camel_boundary", 43, "Deletes right to an alphanumeric or camel boundary.", 51, "D:\\Programs\\4coder\\custom\\4coder_fleury\\4coder_long_base_commands.cpp", 69, 3443 },
+{ PROC_LINKS(long_delete_range, 0), false, "long_delete_range", 17, "Deletes the text in the range between the cursor and the mark.", 62, "D:\\Programs\\4coder\\custom\\4coder_fleury\\4coder_long_base_commands.cpp", 69, 3020 },
+{ PROC_LINKS(long_delete_token_boundary, 0), false, "long_delete_token_boundary", 26, "Deletes right to a token boundary.", 34, "D:\\Programs\\4coder\\custom\\4coder_fleury\\4coder_long_base_commands.cpp", 69, 3384 },
+{ PROC_LINKS(long_execute_any_cli, 0), false, "long_execute_any_cli", 20, "Queries for an output buffer name and system command, runs the system command as a CLI and prints the output to the specified buffer.", 133, "D:\\Programs\\4coder\\custom\\4coder_fleury\\4coder_long_base_commands.cpp", 69, 4554 },
+{ PROC_LINKS(long_explorer, 0), false, "long_explorer", 13, "Opens file explorer in cmd", 26, "D:\\Programs\\4coder\\custom\\4coder_fleury\\4coder_long_base_commands.cpp", 69, 4574 },
+{ PROC_LINKS(long_go_to_definition, 0), false, "long_go_to_definition", 21, "Goes to the jump location at the cursor or the definition of the identifier under the cursor.", 93, "D:\\Programs\\4coder\\custom\\4coder_fleury\\4coder_long_base_commands.cpp", 69, 2617 },
+{ PROC_LINKS(long_go_to_definition_same_panel, 0), false, "long_go_to_definition_same_panel", 32, "Goes to the jump location at the cursor or the definition of the identifier under the cursor in the same panel.", 111, "D:\\Programs\\4coder\\custom\\4coder_fleury\\4coder_long_base_commands.cpp", 69, 2623 },
 { PROC_LINKS(long_history_lister, 0), true, "long_history_lister", 19, "Opens an interactive list of the current buffer history.", 56, "D:\\Programs\\4coder\\custom\\4coder_fleury\\4coder_long_base_commands.cpp", 69, 781 },
 { PROC_LINKS(long_indent_range, 0), false, "long_indent_range", 17, "Auto-indents the range between the cursor and the mark.", 55, "D:\\Programs\\4coder\\custom\\4coder_fleury\\4coder_long_base_commands.cpp", 69, 1004 },
 { PROC_LINKS(long_indent_whole_file, 0), false, "long_indent_whole_file", 22, "Audo-indents the entire current buffer.", 39, "D:\\Programs\\4coder\\custom\\4coder_fleury\\4coder_long_base_commands.cpp", 69, 984 },
 { PROC_LINKS(long_interactive_kill_buffer, 0), true, "long_interactive_kill_buffer", 28, "Interactively kill an open buffer.", 34, "D:\\Programs\\4coder\\custom\\4coder_fleury\\4coder_long_base_commands.cpp", 69, 737 },
 { PROC_LINKS(long_interactive_switch_buffer, 0), true, "long_interactive_switch_buffer", 30, "Interactively switch to an open buffer.", 39, "D:\\Programs\\4coder\\custom\\4coder_fleury\\4coder_long_base_commands.cpp", 69, 708 },
-{ PROC_LINKS(long_inverse_case, 0), false, "long_inverse_case", 17, "Turn all the upper-case characaters to lower-case and vice versa in the range between the cursor and the mark.", 110, "D:\\Programs\\4coder\\custom\\4coder_fleury\\4coder_long_base_commands.cpp", 69, 3818 },
+{ PROC_LINKS(long_inverse_case, 0), false, "long_inverse_case", 17, "Turn all the upper-case characaters to lower-case and vice versa in the range between the cursor and the mark.", 110, "D:\\Programs\\4coder\\custom\\4coder_fleury\\4coder_long_base_commands.cpp", 69, 3722 },
 { PROC_LINKS(long_jump_lister, 0), true, "long_jump_lister", 16, "When executed on a buffer with jumps, creates a persistent lister for all the jumps", 83, "D:\\Programs\\4coder\\custom\\4coder_fleury\\4coder_long_base_commands.cpp", 69, 634 },
 { PROC_LINKS(long_kill_buffer, 0), false, "long_kill_buffer", 16, "Kills the current buffer.", 25, "D:\\Programs\\4coder\\custom\\4coder_fleury\\4coder_long_base_commands.cpp", 69, 1111 },
 { PROC_LINKS(long_kill_search_buffer, 0), false, "long_kill_search_buffer", 23, "Kills the current search jump buffer.", 37, "D:\\Programs\\4coder\\custom\\4coder_fleury\\4coder_long_base_commands.cpp", 69, 1127 },
@@ -570,80 +572,82 @@ static Command_Metadata fcoder_metacmd_table[393] = {
 { PROC_LINKS(long_list_all_substring_locations_case_insensitive_current_buffer, 0), false, "long_list_all_substring_locations_case_insensitive_current_buffer", 65, "Queries the user for a string and lists all case-insensitive substring matches found in the current buffer.", 107, "D:\\Programs\\4coder\\custom\\4coder_fleury\\4coder_long_base_commands.cpp", 69, 1680 },
 { PROC_LINKS(long_list_all_substring_locations_of_identifier_case_insensitive, 0), false, "long_list_all_substring_locations_of_identifier_case_insensitive", 64, "Reads a token or word under the cursor and lists all exact case-insensitive mathces in all open buffers.", 104, "D:\\Programs\\4coder\\custom\\4coder_fleury\\4coder_long_base_commands.cpp", 69, 1692 },
 { PROC_LINKS(long_list_all_substring_locations_of_identifier_case_insensitive_current_buffer, 0), false, "long_list_all_substring_locations_of_identifier_case_insensitive_current_buffer", 79, "Reads a token or word under the cursor and lists all exact case-insensitive mathces in the current buffer.", 106, "D:\\Programs\\4coder\\custom\\4coder_fleury\\4coder_long_base_commands.cpp", 69, 1704 },
-{ PROC_LINKS(long_load_project, 0), false, "long_load_project", 17, "Looks for a project.4coder file in the current directory and tries to load it.  Looks in parent directories until a project file is found or there are no more parents.", 167, "D:\\Programs\\4coder\\custom\\4coder_fleury\\4coder_long_base_commands.cpp", 69, 4260 },
-{ PROC_LINKS(long_lower_case, 0), false, "long_lower_case", 15, "Turn all the upper-case characaters to lower-case in the range between the cursor and the mark.", 95, "D:\\Programs\\4coder\\custom\\4coder_fleury\\4coder_long_base_commands.cpp", 69, 3824 },
-{ PROC_LINKS(long_macro_repeat, 0), false, "long_macro_repeat", 17, "Repeat most recently recorded keyboard macro n times.", 53, "D:\\Programs\\4coder\\custom\\4coder_fleury\\4coder_long_base_commands.cpp", 69, 4689 },
-{ PROC_LINKS(long_macro_toggle_recording, 0), false, "long_macro_toggle_recording", 27, "Toggle macro recording", 22, "D:\\Programs\\4coder\\custom\\4coder_fleury\\4coder_long_base_commands.cpp", 69, 4680 },
-{ PROC_LINKS(long_mc_down_trail, 0), false, "long_mc_down_trail", 18, "moves down, leaving a multi-cursor behind it", 44, "D:\\Programs\\4coder\\custom\\4coder_fleury\\4coder_long_base_commands.cpp", 69, 1866 },
-{ PROC_LINKS(long_mc_up_trail, 0), false, "long_mc_up_trail", 16, "moves up, leaving a multi-cursor behind it", 42, "D:\\Programs\\4coder\\custom\\4coder_fleury\\4coder_long_base_commands.cpp", 69, 1860 },
-{ PROC_LINKS(long_move_down_token_occurrence, 0), false, "long_move_down_token_occurrence", 31, "Moves the cursor to the next occurrence of the token that the cursor is over.", 77, "D:\\Programs\\4coder\\custom\\4coder_fleury\\4coder_long_base_commands.cpp", 69, 3726 },
-{ PROC_LINKS(long_move_line_down, 0), false, "long_move_line_down", 19, "Swaps the line under the cursor with the line below it, and moves the cursor down with it.", 90, "D:\\Programs\\4coder\\custom\\4coder_fleury\\4coder_long_base_commands.cpp", 69, 3218 },
-{ PROC_LINKS(long_move_line_up, 0), false, "long_move_line_up", 17, "Swaps the line under the cursor with the line above it, and moves the cursor up with it.", 88, "D:\\Programs\\4coder\\custom\\4coder_fleury\\4coder_long_base_commands.cpp", 69, 3212 },
-{ PROC_LINKS(long_move_next_alpha_numeric_or_camel_boundary, 0), false, "long_move_next_alpha_numeric_or_camel_boundary", 46, "Seek right for boundary between alphanumeric characters or camel case word and non-alphanumeric characters.", 107, "D:\\Programs\\4coder\\custom\\4coder_fleury\\4coder_long_base_commands.cpp", 69, 3520 },
-{ PROC_LINKS(long_move_next_word, 0), false, "long_move_next_word", 19, "Seek left for the next token.", 29, "D:\\Programs\\4coder\\custom\\4coder_fleury\\4coder_long_base_commands.cpp", 69, 3461 },
-{ PROC_LINKS(long_move_prev_alpha_numeric_or_camel_boundary, 0), false, "long_move_prev_alpha_numeric_or_camel_boundary", 46, "Seek left for boundary between alphanumeric characters or camel case word and non-alphanumeric characters.", 106, "D:\\Programs\\4coder\\custom\\4coder_fleury\\4coder_long_base_commands.cpp", 69, 3526 },
-{ PROC_LINKS(long_move_prev_word, 0), false, "long_move_prev_word", 19, "Seek left for the prev token.", 29, "D:\\Programs\\4coder\\custom\\4coder_fleury\\4coder_long_base_commands.cpp", 69, 3467 },
-{ PROC_LINKS(long_move_to_next_divider_comment, 0), false, "long_move_to_next_divider_comment", 33, "Seek right for next divider comment in the buffer.", 50, "D:\\Programs\\4coder\\custom\\4coder_fleury\\4coder_long_base_commands.cpp", 69, 3769 },
-{ PROC_LINKS(long_move_to_next_function_and_type, 0), false, "long_move_to_next_function_and_type", 35, "Seek right for the next function or type in the buffer.", 55, "D:\\Programs\\4coder\\custom\\4coder_fleury\\4coder_long_base_commands.cpp", 69, 3593 },
-{ PROC_LINKS(long_move_to_prev_divider_comment, 0), false, "long_move_to_prev_divider_comment", 33, "Seek left for previous divider comment in the buffer.", 53, "D:\\Programs\\4coder\\custom\\4coder_fleury\\4coder_long_base_commands.cpp", 69, 3776 },
-{ PROC_LINKS(long_move_to_prev_function_and_type, 0), false, "long_move_to_prev_function_and_type", 35, "Seek left for the previous function or type in the buffer.", 58, "D:\\Programs\\4coder\\custom\\4coder_fleury\\4coder_long_base_commands.cpp", 69, 3600 },
-{ PROC_LINKS(long_move_up_token_occurrence, 0), false, "long_move_up_token_occurrence", 29, "Moves the cursor to the previous occurrence of the token that the cursor is over.", 81, "D:\\Programs\\4coder\\custom\\4coder_fleury\\4coder_long_base_commands.cpp", 69, 3720 },
+{ PROC_LINKS(long_load_project, 0), false, "long_load_project", 17, "Looks for a project.4coder file in the current directory and tries to load it.  Looks in parent directories until a project file is found or there are no more parents.", 167, "D:\\Programs\\4coder\\custom\\4coder_fleury\\4coder_long_base_commands.cpp", 69, 4164 },
+{ PROC_LINKS(long_lower_case, 0), false, "long_lower_case", 15, "Turn all the upper-case characaters to lower-case in the range between the cursor and the mark.", 95, "D:\\Programs\\4coder\\custom\\4coder_fleury\\4coder_long_base_commands.cpp", 69, 3728 },
+{ PROC_LINKS(long_macro_repeat, 0), false, "long_macro_repeat", 17, "Repeat most recently recorded keyboard macro n times.", 53, "D:\\Programs\\4coder\\custom\\4coder_fleury\\4coder_long_base_commands.cpp", 69, 4593 },
+{ PROC_LINKS(long_macro_toggle_recording, 0), false, "long_macro_toggle_recording", 27, "Toggle macro recording", 22, "D:\\Programs\\4coder\\custom\\4coder_fleury\\4coder_long_base_commands.cpp", 69, 4584 },
+{ PROC_LINKS(long_mc_begin_multi_block, 0), false, "long_mc_begin_multi_block", 25, "[MC] begins multi-cursor using cursor-mark block-rect", 53, "D:\\Programs\\4coder\\custom\\4coder_fleury\\4coder_long_base_commands.cpp", 69, 1752 },
+{ PROC_LINKS(long_mc_down_trail, 0), false, "long_mc_down_trail", 18, "moves down, leaving a multi-cursor behind it", 44, "D:\\Programs\\4coder\\custom\\4coder_fleury\\4coder_long_base_commands.cpp", 69, 1746 },
+{ PROC_LINKS(long_mc_up_trail, 0), false, "long_mc_up_trail", 16, "moves up, leaving a multi-cursor behind it", 42, "D:\\Programs\\4coder\\custom\\4coder_fleury\\4coder_long_base_commands.cpp", 69, 1740 },
+{ PROC_LINKS(long_move_down_token_occurrence, 0), false, "long_move_down_token_occurrence", 31, "Moves the cursor to the next occurrence of the token that the cursor is over.", 77, "D:\\Programs\\4coder\\custom\\4coder_fleury\\4coder_long_base_commands.cpp", 69, 3630 },
+{ PROC_LINKS(long_move_line_down, 0), false, "long_move_line_down", 19, "Swaps the line under the cursor with the line below it, and moves the cursor down with it.", 90, "D:\\Programs\\4coder\\custom\\4coder_fleury\\4coder_long_base_commands.cpp", 69, 3122 },
+{ PROC_LINKS(long_move_line_up, 0), false, "long_move_line_up", 17, "Swaps the line under the cursor with the line above it, and moves the cursor up with it.", 88, "D:\\Programs\\4coder\\custom\\4coder_fleury\\4coder_long_base_commands.cpp", 69, 3116 },
+{ PROC_LINKS(long_move_next_alpha_numeric_or_camel_boundary, 0), false, "long_move_next_alpha_numeric_or_camel_boundary", 46, "Seek right for boundary between alphanumeric characters or camel case word and non-alphanumeric characters.", 107, "D:\\Programs\\4coder\\custom\\4coder_fleury\\4coder_long_base_commands.cpp", 69, 3424 },
+{ PROC_LINKS(long_move_next_word, 0), false, "long_move_next_word", 19, "Seek left for the next token.", 29, "D:\\Programs\\4coder\\custom\\4coder_fleury\\4coder_long_base_commands.cpp", 69, 3365 },
+{ PROC_LINKS(long_move_prev_alpha_numeric_or_camel_boundary, 0), false, "long_move_prev_alpha_numeric_or_camel_boundary", 46, "Seek left for boundary between alphanumeric characters or camel case word and non-alphanumeric characters.", 106, "D:\\Programs\\4coder\\custom\\4coder_fleury\\4coder_long_base_commands.cpp", 69, 3430 },
+{ PROC_LINKS(long_move_prev_word, 0), false, "long_move_prev_word", 19, "Seek left for the prev token.", 29, "D:\\Programs\\4coder\\custom\\4coder_fleury\\4coder_long_base_commands.cpp", 69, 3371 },
+{ PROC_LINKS(long_move_to_next_divider_comment, 0), false, "long_move_to_next_divider_comment", 33, "Seek right for next divider comment in the buffer.", 50, "D:\\Programs\\4coder\\custom\\4coder_fleury\\4coder_long_base_commands.cpp", 69, 3673 },
+{ PROC_LINKS(long_move_to_next_function_and_type, 0), false, "long_move_to_next_function_and_type", 35, "Seek right for the next function or type in the buffer.", 55, "D:\\Programs\\4coder\\custom\\4coder_fleury\\4coder_long_base_commands.cpp", 69, 3497 },
+{ PROC_LINKS(long_move_to_prev_divider_comment, 0), false, "long_move_to_prev_divider_comment", 33, "Seek left for previous divider comment in the buffer.", 53, "D:\\Programs\\4coder\\custom\\4coder_fleury\\4coder_long_base_commands.cpp", 69, 3680 },
+{ PROC_LINKS(long_move_to_prev_function_and_type, 0), false, "long_move_to_prev_function_and_type", 35, "Seek left for the previous function or type in the buffer.", 58, "D:\\Programs\\4coder\\custom\\4coder_fleury\\4coder_long_base_commands.cpp", 69, 3504 },
+{ PROC_LINKS(long_move_up_token_occurrence, 0), false, "long_move_up_token_occurrence", 29, "Moves the cursor to the previous occurrence of the token that the cursor is over.", 81, "D:\\Programs\\4coder\\custom\\4coder_fleury\\4coder_long_base_commands.cpp", 69, 3624 },
 { PROC_LINKS(long_open_matching_file_same_panel, 0), false, "long_open_matching_file_same_panel", 34, "If the current file is a *.cpp or *.h, attempts to open the corresponding *.h or *.cpp file in the same view.", 109, "D:\\Programs\\4coder\\custom\\4coder_fleury\\4coder_long_base_commands.cpp", 69, 1133 },
-{ PROC_LINKS(long_paste_and_indent, 0), false, "long_paste_and_indent", 21, "Paste from the top of clipboard and run auto-indent on the newly pasted text.", 77, "D:\\Programs\\4coder\\custom\\4coder_fleury\\4coder_long_base_commands.cpp", 69, 3126 },
-{ PROC_LINKS(long_paste_and_replace_range, 0), false, "long_paste_and_replace_range", 28, "replace the text between the mark and the cursor with the text from the top of the clipboard.", 93, "D:\\Programs\\4coder\\custom\\4coder_fleury\\4coder_long_base_commands.cpp", 69, 3079 },
+{ PROC_LINKS(long_paste_and_indent, 0), false, "long_paste_and_indent", 21, "Paste from the top of clipboard and run auto-indent on the newly pasted text.", 77, "D:\\Programs\\4coder\\custom\\4coder_fleury\\4coder_long_base_commands.cpp", 69, 3030 },
+{ PROC_LINKS(long_paste_and_replace_range, 0), false, "long_paste_and_replace_range", 28, "replace the text between the mark and the cursor with the text from the top of the clipboard.", 93, "D:\\Programs\\4coder\\custom\\4coder_fleury\\4coder_long_base_commands.cpp", 69, 2983 },
 { PROC_LINKS(long_point_lister, 0), true, "long_point_lister", 17, "List jump history", 17, "D:\\Programs\\4coder\\custom\\4coder_fleury\\4coder_long_base_commands.cpp", 69, 438 },
 { PROC_LINKS(long_push_new_jump, 0), false, "long_push_new_jump", 18, "Push the current position to the point stack; if the stack's current is the position then ignore it", 99, "D:\\Programs\\4coder\\custom\\4coder_fleury\\4coder_long_base_commands.cpp", 69, 537 },
-{ PROC_LINKS(long_query_replace, 0), false, "long_query_replace", 18, "Queries the user for two strings, and incrementally replaces every occurence of the first string with the second string.", 120, "D:\\Programs\\4coder\\custom\\4coder_fleury\\4coder_long_base_commands.cpp", 69, 2401 },
-{ PROC_LINKS(long_query_replace_identifier, 0), false, "long_query_replace_identifier", 29, "Queries the user for a string, and incrementally replace every occurence of the word or token found at the cursor with the specified string.", 140, "D:\\Programs\\4coder\\custom\\4coder_fleury\\4coder_long_base_commands.cpp", 69, 2424 },
-{ PROC_LINKS(long_query_replace_selection, 0), false, "long_query_replace_selection", 28, "Queries the user for a string, and incrementally replace every occurence of the string found in the selected range with the specified string.", 141, "D:\\Programs\\4coder\\custom\\4coder_fleury\\4coder_long_base_commands.cpp", 69, 2437 },
+{ PROC_LINKS(long_query_replace, 0), false, "long_query_replace", 18, "Queries the user for two strings, and incrementally replaces every occurence of the first string with the second string.", 120, "D:\\Programs\\4coder\\custom\\4coder_fleury\\4coder_long_base_commands.cpp", 69, 2305 },
+{ PROC_LINKS(long_query_replace_identifier, 0), false, "long_query_replace_identifier", 29, "Queries the user for a string, and incrementally replace every occurence of the word or token found at the cursor with the specified string.", 140, "D:\\Programs\\4coder\\custom\\4coder_fleury\\4coder_long_base_commands.cpp", 69, 2328 },
+{ PROC_LINKS(long_query_replace_selection, 0), false, "long_query_replace_selection", 28, "Queries the user for a string, and incrementally replace every occurence of the string found in the selected range with the specified string.", 141, "D:\\Programs\\4coder\\custom\\4coder_fleury\\4coder_long_base_commands.cpp", 69, 2341 },
 { PROC_LINKS(long_recent_files_menu, 0), true, "long_recent_files_menu", 22, "Lists the recent files used in the current panel.", 49, "D:\\Programs\\4coder\\custom\\4coder_fleury\\4coder_long_base_commands.cpp", 69, 677 },
 { PROC_LINKS(long_redo, 0), false, "long_redo", 9, "Advances forwards through the undo history of the current buffer.", 65, "D:\\Programs\\4coder\\custom\\4coder_fleury\\4coder_long_base_commands.cpp", 69, 909 },
 { PROC_LINKS(long_redo_all_buffers, 0), false, "long_redo_all_buffers", 21, "Advances forward through the undo history in the buffer containing the most recent regular edit.", 96, "D:\\Programs\\4coder\\custom\\4coder_fleury\\4coder_long_base_commands.cpp", 69, 943 },
 { PROC_LINKS(long_redo_jump, 0), false, "long_redo_jump", 14, "Read from the current point stack and jump there; if already there go to the next option", 88, "D:\\Programs\\4coder\\custom\\4coder_fleury\\4coder_long_base_commands.cpp", 69, 531 },
 { PROC_LINKS(long_redo_same_pos, 0), false, "long_redo_same_pos", 18, "Advances forwards through the undo history of the current buffer but doesn't move the cursor.", 93, "D:\\Programs\\4coder\\custom\\4coder_fleury\\4coder_long_base_commands.cpp", 69, 977 },
-{ PROC_LINKS(long_reload_all_themes_default_folder, 0), false, "long_reload_all_themes_default_folder", 37, "Clears and reloads all the theme files in the default theme folder.", 67, "D:\\Programs\\4coder\\custom\\4coder_fleury\\4coder_long_base_commands.cpp", 69, 4298 },
-{ PROC_LINKS(long_replace_in_range, 0), false, "long_replace_in_range", 21, "Queries the user for a needle and string. Replaces all occurences of needle with string in the range between cursor and the mark in the active buffer.", 150, "D:\\Programs\\4coder\\custom\\4coder_fleury\\4coder_long_base_commands.cpp", 69, 2571 },
-{ PROC_LINKS(long_reverse_search, 0), false, "long_reverse_search", 19, "Begins an incremental search up through the current buffer for a user specified string.", 87, "D:\\Programs\\4coder\\custom\\4coder_fleury\\4coder_long_base_commands.cpp", 69, 2250 },
-{ PROC_LINKS(long_reverse_search_case_sensitive, 0), false, "long_reverse_search_case_sensitive", 34, "Searches the current buffer backwards for the exact string. If something is highlighted, will fill search query with it.", 120, "D:\\Programs\\4coder\\custom\\4coder_fleury\\4coder_long_base_commands.cpp", 69, 2262 },
-{ PROC_LINKS(long_reverse_search_identifier, 0), false, "long_reverse_search_identifier", 30, "Begins an incremental search up through the current buffer for the word or token under the cursor.", 98, "D:\\Programs\\4coder\\custom\\4coder_fleury\\4coder_long_base_commands.cpp", 69, 2274 },
-{ PROC_LINKS(long_search, 0), false, "long_search", 11, "Begins an incremental search down through the current buffer for a user specified string.", 89, "D:\\Programs\\4coder\\custom\\4coder_fleury\\4coder_long_base_commands.cpp", 69, 2244 },
-{ PROC_LINKS(long_search_case_sensitive, 0), false, "long_search_case_sensitive", 26, "Searches the current buffer forward for the exact string. If something is highlighted, will fill search query with it.", 118, "D:\\Programs\\4coder\\custom\\4coder_fleury\\4coder_long_base_commands.cpp", 69, 2256 },
-{ PROC_LINKS(long_search_for_definition__current_file, 0), true, "long_search_for_definition__current_file", 40, "List all definitions in the current file and jump to the one selected by the user.", 82, "D:\\Programs\\4coder\\custom\\4coder_fleury\\4coder_long_base_commands.cpp", 69, 2919 },
-{ PROC_LINKS(long_search_for_definition__project_wide, 0), true, "long_search_for_definition__project_wide", 40, "List all definitions in the index and jump to the one selected by the user.", 75, "D:\\Programs\\4coder\\custom\\4coder_fleury\\4coder_long_base_commands.cpp", 69, 2913 },
-{ PROC_LINKS(long_search_for_definition_no_filter__project_file, 0), true, "long_search_for_definition_no_filter__project_file", 50, "List all definitions in the current file and jump to the one selected by the user.", 82, "D:\\Programs\\4coder\\custom\\4coder_fleury\\4coder_long_base_commands.cpp", 69, 2925 },
-{ PROC_LINKS(long_search_identifier, 0), false, "long_search_identifier", 22, "Begins an incremental search down through the current buffer for the word or token under the cursor.", 100, "D:\\Programs\\4coder\\custom\\4coder_fleury\\4coder_long_base_commands.cpp", 69, 2268 },
-{ PROC_LINKS(long_search_identifier_case_sensitive, 0), false, "long_search_identifier_case_sensitive", 37, "Begins an incremental search down through the current buffer for the exact word or token under the cursor.", 106, "D:\\Programs\\4coder\\custom\\4coder_fleury\\4coder_long_base_commands.cpp", 69, 2280 },
-{ PROC_LINKS(long_select_current_line, 0), false, "long_select_current_line", 24, "Set the mark to the end of the previous line and cursor to the end of the current line", 86, "D:\\Programs\\4coder\\custom\\4coder_fleury\\4coder_long_base_commands.cpp", 69, 3195 },
-{ PROC_LINKS(long_select_current_token, 0), false, "long_select_current_token", 25, "Set the mark and cursor to the current token's boundary.", 56, "D:\\Programs\\4coder\\custom\\4coder_fleury\\4coder_long_base_commands.cpp", 69, 3239 },
-{ PROC_LINKS(long_select_lower_scope, 0), false, "long_select_lower_scope", 23, "Find the first child scope that starts inside the current selected scope or surrounding scope.", 94, "D:\\Programs\\4coder\\custom\\4coder_fleury\\4coder_long_base_commands.cpp", 69, 3961 },
-{ PROC_LINKS(long_select_next_scope_current_level, 0), false, "long_select_next_scope_current_level", 36, "If a scope is selected, find the next scope that starts after the selected scope on the same level. Otherwise, find the first scope that starts before the cursor.", 162, "D:\\Programs\\4coder\\custom\\4coder_fleury\\4coder_long_base_commands.cpp", 69, 3946 },
-{ PROC_LINKS(long_select_prev_scope_current_level, 0), false, "long_select_prev_scope_current_level", 36, "If a scope is selected, find the prev scope that starts before the selected scope on the same level. Otherwise, find the first scope that starts before the cursor.", 163, "D:\\Programs\\4coder\\custom\\4coder_fleury\\4coder_long_base_commands.cpp", 69, 3937 },
-{ PROC_LINKS(long_select_surrounding_scope, 0), false, "long_select_surrounding_scope", 29, "Select the surrounding scope.", 29, "D:\\Programs\\4coder\\custom\\4coder_fleury\\4coder_long_base_commands.cpp", 69, 3978 },
-{ PROC_LINKS(long_select_upper_scope, 0), false, "long_select_upper_scope", 23, "Select the surrounding scope.", 29, "D:\\Programs\\4coder\\custom\\4coder_fleury\\4coder_long_base_commands.cpp", 69, 3955 },
-{ PROC_LINKS(long_setup_new_project, 0), false, "long_setup_new_project", 22, "Queries the user for several configuration options and initializes a new 4coder project with build scripts for every OS.", 120, "D:\\Programs\\4coder\\custom\\4coder_fleury\\4coder_long_base_commands.cpp", 69, 4274 },
-{ PROC_LINKS(long_startup, 0), false, "long_startup", 12, "Long startup event", 18, "D:\\Programs\\4coder\\custom\\4coder_fleury\\4coder_long.cpp", 55, 480 },
-{ PROC_LINKS(long_switch_move_side_mode, 0), false, "long_switch_move_side_mode", 26, "Change which side move_left/right/next/prev moves to.", 53, "D:\\Programs\\4coder\\custom\\4coder_fleury\\4coder_long_base_commands.cpp", 69, 3455 },
-{ PROC_LINKS(long_switch_pos_context_draw_position, 0), false, "long_switch_pos_context_draw_position", 37, "Switches between drawing the position context at cursor position or at bottom of buffer.", 88, "D:\\Programs\\4coder\\custom\\4coder_fleury\\4coder_long_base_commands.cpp", 69, 2602 },
-{ PROC_LINKS(long_switch_pos_context_option, 0), false, "long_switch_pos_context_option", 30, "Switches the position context mode.", 35, "D:\\Programs\\4coder\\custom\\4coder_fleury\\4coder_long_base_commands.cpp", 69, 2596 },
+{ PROC_LINKS(long_reload_all_themes_default_folder, 0), false, "long_reload_all_themes_default_folder", 37, "Clears and reloads all the theme files in the default theme folder.", 67, "D:\\Programs\\4coder\\custom\\4coder_fleury\\4coder_long_base_commands.cpp", 69, 4202 },
+{ PROC_LINKS(long_replace_in_range, 0), false, "long_replace_in_range", 21, "Queries the user for a needle and string. Replaces all occurences of needle with string in the range between cursor and the mark in the active buffer.", 150, "D:\\Programs\\4coder\\custom\\4coder_fleury\\4coder_long_base_commands.cpp", 69, 2475 },
+{ PROC_LINKS(long_reverse_search, 0), false, "long_reverse_search", 19, "Begins an incremental search up through the current buffer for a user specified string.", 87, "D:\\Programs\\4coder\\custom\\4coder_fleury\\4coder_long_base_commands.cpp", 69, 2155 },
+{ PROC_LINKS(long_reverse_search_case_sensitive, 0), false, "long_reverse_search_case_sensitive", 34, "Searches the current buffer backwards for the exact string. If something is highlighted, will fill search query with it.", 120, "D:\\Programs\\4coder\\custom\\4coder_fleury\\4coder_long_base_commands.cpp", 69, 2167 },
+{ PROC_LINKS(long_reverse_search_identifier, 0), false, "long_reverse_search_identifier", 30, "Begins an incremental search up through the current buffer for the word or token under the cursor.", 98, "D:\\Programs\\4coder\\custom\\4coder_fleury\\4coder_long_base_commands.cpp", 69, 2179 },
+{ PROC_LINKS(long_search, 0), false, "long_search", 11, "Begins an incremental search down through the current buffer for a user specified string.", 89, "D:\\Programs\\4coder\\custom\\4coder_fleury\\4coder_long_base_commands.cpp", 69, 2149 },
+{ PROC_LINKS(long_search_case_sensitive, 0), false, "long_search_case_sensitive", 26, "Searches the current buffer forward for the exact string. If something is highlighted, will fill search query with it.", 118, "D:\\Programs\\4coder\\custom\\4coder_fleury\\4coder_long_base_commands.cpp", 69, 2161 },
+{ PROC_LINKS(long_search_for_definition__current_file, 0), true, "long_search_for_definition__current_file", 40, "List all definitions in the current file and jump to the one selected by the user.", 82, "D:\\Programs\\4coder\\custom\\4coder_fleury\\4coder_long_base_commands.cpp", 69, 2823 },
+{ PROC_LINKS(long_search_for_definition__project_wide, 0), true, "long_search_for_definition__project_wide", 40, "List all definitions in the index and jump to the one selected by the user.", 75, "D:\\Programs\\4coder\\custom\\4coder_fleury\\4coder_long_base_commands.cpp", 69, 2817 },
+{ PROC_LINKS(long_search_for_definition_no_filter__project_file, 0), true, "long_search_for_definition_no_filter__project_file", 50, "List all definitions in the current file and jump to the one selected by the user.", 82, "D:\\Programs\\4coder\\custom\\4coder_fleury\\4coder_long_base_commands.cpp", 69, 2829 },
+{ PROC_LINKS(long_search_identifier, 0), false, "long_search_identifier", 22, "Begins an incremental search down through the current buffer for the word or token under the cursor.", 100, "D:\\Programs\\4coder\\custom\\4coder_fleury\\4coder_long_base_commands.cpp", 69, 2173 },
+{ PROC_LINKS(long_search_identifier_case_sensitive, 0), false, "long_search_identifier_case_sensitive", 37, "Begins an incremental search down through the current buffer for the exact word or token under the cursor.", 106, "D:\\Programs\\4coder\\custom\\4coder_fleury\\4coder_long_base_commands.cpp", 69, 2185 },
+{ PROC_LINKS(long_select_current_line, 0), false, "long_select_current_line", 24, "Set the mark to the end of the previous line and cursor to the end of the current line", 86, "D:\\Programs\\4coder\\custom\\4coder_fleury\\4coder_long_base_commands.cpp", 69, 3099 },
+{ PROC_LINKS(long_select_current_token, 0), false, "long_select_current_token", 25, "Set the mark and cursor to the current token's boundary.", 56, "D:\\Programs\\4coder\\custom\\4coder_fleury\\4coder_long_base_commands.cpp", 69, 3143 },
+{ PROC_LINKS(long_select_lower_scope, 0), false, "long_select_lower_scope", 23, "Find the first child scope that starts inside the current selected scope or surrounding scope.", 94, "D:\\Programs\\4coder\\custom\\4coder_fleury\\4coder_long_base_commands.cpp", 69, 3865 },
+{ PROC_LINKS(long_select_next_scope_current_level, 0), false, "long_select_next_scope_current_level", 36, "If a scope is selected, find the next scope that starts after the selected scope on the same level. Otherwise, find the first scope that starts before the cursor.", 162, "D:\\Programs\\4coder\\custom\\4coder_fleury\\4coder_long_base_commands.cpp", 69, 3850 },
+{ PROC_LINKS(long_select_prev_scope_current_level, 0), false, "long_select_prev_scope_current_level", 36, "If a scope is selected, find the prev scope that starts before the selected scope on the same level. Otherwise, find the first scope that starts before the cursor.", 163, "D:\\Programs\\4coder\\custom\\4coder_fleury\\4coder_long_base_commands.cpp", 69, 3841 },
+{ PROC_LINKS(long_select_surrounding_scope, 0), false, "long_select_surrounding_scope", 29, "Select the surrounding scope.", 29, "D:\\Programs\\4coder\\custom\\4coder_fleury\\4coder_long_base_commands.cpp", 69, 3882 },
+{ PROC_LINKS(long_select_upper_scope, 0), false, "long_select_upper_scope", 23, "Select the surrounding scope.", 29, "D:\\Programs\\4coder\\custom\\4coder_fleury\\4coder_long_base_commands.cpp", 69, 3859 },
+{ PROC_LINKS(long_setup_new_project, 0), false, "long_setup_new_project", 22, "Queries the user for several configuration options and initializes a new 4coder project with build scripts for every OS.", 120, "D:\\Programs\\4coder\\custom\\4coder_fleury\\4coder_long_base_commands.cpp", 69, 4178 },
+{ PROC_LINKS(long_startup, 0), false, "long_startup", 12, "Long startup event", 18, "D:\\Programs\\4coder\\custom\\4coder_fleury\\4coder_long.cpp", 55, 499 },
+{ PROC_LINKS(long_switch_move_side_mode, 0), false, "long_switch_move_side_mode", 26, "Change which side move_left/right/next/prev moves to.", 53, "D:\\Programs\\4coder\\custom\\4coder_fleury\\4coder_long_base_commands.cpp", 69, 3359 },
+{ PROC_LINKS(long_switch_pos_context_draw_position, 0), false, "long_switch_pos_context_draw_position", 37, "Switches between drawing the position context at cursor position or at bottom of buffer.", 88, "D:\\Programs\\4coder\\custom\\4coder_fleury\\4coder_long_base_commands.cpp", 69, 2506 },
+{ PROC_LINKS(long_switch_pos_context_option, 0), false, "long_switch_pos_context_option", 30, "Switches the position context mode.", 35, "D:\\Programs\\4coder\\custom\\4coder_fleury\\4coder_long_base_commands.cpp", 69, 2500 },
 { PROC_LINKS(long_switch_to_search_buffer, 0), false, "long_switch_to_search_buffer", 28, "Switch to the search buffer.", 28, "D:\\Programs\\4coder\\custom\\4coder_fleury\\4coder_long_base_commands.cpp", 69, 1119 },
 { PROC_LINKS(long_test_lister_render, 0), false, "long_test_lister_render", 23, "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Donec placerat tellus vitae feugiat tincidunt. Suspendisse sagittis velit porttitor justo commodo sagittis. Etiam erat metus, elementum eu aliquam et, dictum at eros. Vivamus nulla ex, gravida malesuada iaculis id, maximus at quam. Fusce sodales, velit id varius rhoncus, odio ipsum placerat eros, nec euismod dui nunc in mauris. Donec quis commodo enim. Etiam sed efficitur elit, in interdum lacus. Vivamus sollicitudin hendrerit lacinia. Suspendisse aliquet bibendum nunc, eget fermentum quam feugiat ac. Sed at fringilla neque, eu aliquam risus. Donec ut ante eu erat cursus semper eget et velit. Quisque ut aliquam nibh. Curabitur et justo hendrerit, finibus sapien quis, fringilla ante. Nullam vehicula, nisi in facilisis egestas, tellus nunc faucibus lacus, tempor aliquet nulla felis sit amet felis. Nam non vulputate elit.\n\nVestibulum volutpat est vel felis tincidunt, sed imperdiet neque feugiat. Integer placerat dignissim eros, in sollicitudin lacus venenatis varius. Maecenas in feugiat ex. Nunc elementum sem est, sodales facilisis ligula hendrerit interdum. Integer pulvinar orci eget ipsum porta dapibus. Pellentesque sapien eros, semper sit amet placerat a, viverra malesuada nulla. Donec cursus turpis ut metus auctor pellentesque. Etiam dolor dui, maximus vitae malesuada ac, tincidunt eu tortor. Nullam felis ante, varius elementum mattis nec, pretium in diam.\n\nUt ut malesuada justo. Donec consequat magna sed diam feugiat pellentesque. Duis quis tempus tortor. Donec vulputate ullamcorper massa, eget porta metus ultrices nec. Cras dignissim dictum blandit. Nullam pellentesque volutpat purus vitae bibendum. Aenean quis neque eget orci imperdiet lacinia id finibus lorem. Interdum et malesuada fames ac ante ipsum primis in faucibus. Interdum et malesuada fames ac ante ipsum primis in faucibus. Praesent dictum lectus a ligula venenatis, nec ultricies turpis placerat. Proin euismod ut odio eu luctus. Vivamus eleifend eros sit amet felis dapibus, ac tempus est feugiat. Vivamus sit amet quam id lorem commodo volutpat. Maecenas ac nulla non turpis euismod vestibulum eget vitae tortor.\n\nMauris venenatis nunc ac enim fringilla, vitae varius neque imperdiet. Duis odio purus, commodo in dolor in, mollis malesuada tellus. Duis pharetra vulputate mauris ut cursus. Cras non eros feugiat, lacinia augue ut, tincidunt arcu. Donec pulvinar pulvinar lorem, vel sollicitudin arcu commodo ac. Sed facilisis lorem elit, sit amet dapibus urna varius elementum. Cras at viverra urna, eu vehicula ligula. Etiam ut convallis magna. Suspendisse feugiat quam sit amet accumsan aliquet. Pellentesque vestibulum sapien ut urna sollicitudin consequat. Duis non ullamcorper nibh.\n\nNullam hendrerit, sem et dictum faucibus, neque purus tristique ligula, eu sollicitudin arcu orci in magna. Vivamus auctor, enim varius ornare mattis, dolor magna condimentum enim, nec convallis sem velit nec augue. Pellentesque rutrum mauris ut nulla consectetur condimentum. Aliquam nec massa eu metus sollicitudin tincidunt. Donec lobortis ultricies sem id pretium. Donec quis felis vel ante fermentum pretium. Nulla at mi sit amet ex molestie imperdiet a eget lacus. Nullam rutrum aliquet tellus interdum bibendum.", 3269, "D:\\Programs\\4coder\\custom\\4coder_fleury\\4coder_long_lister.cpp", 62, 790 },
-{ PROC_LINKS(long_toggle_comment_selection, 0), false, "long_toggle_comment_selection", 29, "Performs VS-style (un)commenting on the selected range.", 55, "D:\\Programs\\4coder\\custom\\4coder_fleury\\4coder_long_base_commands.cpp", 69, 5186 },
+{ PROC_LINKS(long_toggle_comment_selection, 0), false, "long_toggle_comment_selection", 29, "Performs VS-style (un)commenting on the selected range.", 55, "D:\\Programs\\4coder\\custom\\4coder_fleury\\4coder_long_base_commands.cpp", 69, 5071 },
 { PROC_LINKS(long_toggle_compilation_expand, 0), false, "long_toggle_compilation_expand", 30, "Expand the compilation window.", 30, "D:\\Programs\\4coder\\custom\\4coder_fleury\\4coder_long_base_commands.cpp", 69, 1143 },
-{ PROC_LINKS(long_toggle_line_offset, 0), false, "long_toggle_line_offset", 23, "Toggles between line numbers and offsets.", 41, "D:\\Programs\\4coder\\custom\\4coder_fleury\\4coder_long_render.cpp", 62, 595 },
+{ PROC_LINKS(long_toggle_line_offset, 0), false, "long_toggle_line_offset", 23, "Toggles between line numbers and offsets.", 41, "D:\\Programs\\4coder\\custom\\4coder_fleury\\4coder_long_render.cpp", 62, 590 },
 { PROC_LINKS(long_toggle_panel_expand, 0), false, "long_toggle_panel_expand", 24, "Expand the current window.", 26, "D:\\Programs\\4coder\\custom\\4coder_fleury\\4coder_long_base_commands.cpp", 69, 1190 },
 { PROC_LINKS(long_toggle_panel_expand_big, 0), false, "long_toggle_panel_expand_big", 28, "Expand the current window.", 26, "D:\\Programs\\4coder\\custom\\4coder_fleury\\4coder_long_base_commands.cpp", 69, 1201 },
-{ PROC_LINKS(long_toggle_pos_context, 0), false, "long_toggle_pos_context", 23, "Toggles position context window.", 32, "D:\\Programs\\4coder\\custom\\4coder_fleury\\4coder_long_base_commands.cpp", 69, 2590 },
+{ PROC_LINKS(long_toggle_pos_context, 0), false, "long_toggle_pos_context", 23, "Toggles position context window.", 32, "D:\\Programs\\4coder\\custom\\4coder_fleury\\4coder_long_base_commands.cpp", 69, 2494 },
+{ PROC_LINKS(long_try_exit, 0), false, "long_try_exit", 13, "Command for responding to a try-exit event", 42, "D:\\Programs\\4coder\\custom\\4coder_fleury\\4coder_long_hooks.cpp", 61, 5 },
 { PROC_LINKS(long_undo, 0), false, "long_undo", 9, "Advances backwards through the undo history of the current buffer.", 66, "D:\\Programs\\4coder\\custom\\4coder_fleury\\4coder_long_base_commands.cpp", 69, 855 },
 { PROC_LINKS(long_undo_all_buffers, 0), false, "long_undo_all_buffers", 21, "Advances backward through the undo history in the buffer containing the most recent regular edit.", 97, "D:\\Programs\\4coder\\custom\\4coder_fleury\\4coder_long_base_commands.cpp", 69, 935 },
 { PROC_LINKS(long_undo_jump, 0), false, "long_undo_jump", 14, "Read from the current point stack and jump there; if already there go to the previous option", 92, "D:\\Programs\\4coder\\custom\\4coder_fleury\\4coder_long_base_commands.cpp", 69, 525 },
 { PROC_LINKS(long_undo_same_pos, 0), false, "long_undo_same_pos", 18, "Advances backward through the undo history of the current buffer but doesn't move the cursor.", 93, "D:\\Programs\\4coder\\custom\\4coder_fleury\\4coder_long_base_commands.cpp", 69, 971 },
-{ PROC_LINKS(long_upper_case, 0), false, "long_upper_case", 15, "Turn all the lower-case characaters to upper-case in the range between the cursor and the mark.", 95, "D:\\Programs\\4coder\\custom\\4coder_fleury\\4coder_long_base_commands.cpp", 69, 3830 },
-{ PROC_LINKS(long_view_input_handler, 0), false, "long_view_input_handler", 23, "Input consumption loop for default view behavior", 48, "D:\\Programs\\4coder\\custom\\4coder_fleury\\4coder_long_base_commands.cpp", 69, 1767 },
+{ PROC_LINKS(long_upper_case, 0), false, "long_upper_case", 15, "Turn all the lower-case characaters to upper-case in the range between the cursor and the mark.", 95, "D:\\Programs\\4coder\\custom\\4coder_fleury\\4coder_long_base_commands.cpp", 69, 3734 },
+{ PROC_LINKS(long_view_input_handler, 0), false, "long_view_input_handler", 23, "Input consumption loop for default view behavior", 48, "D:\\Programs\\4coder\\custom\\4coder_fleury\\4coder_long_hooks.cpp", 61, 157 },
 { PROC_LINKS(long_write_text_and_auto_indent, 0), false, "long_write_text_and_auto_indent", 31, "Inserts text and auto-indents the line on which the cursor sits if any of the text contains 'layout punctuation' such as ;:{}()[]# and new lines.", 145, "D:\\Programs\\4coder\\custom\\4coder_fleury\\4coder_long_base_commands.cpp", 69, 1064 },
-{ PROC_LINKS(long_write_to_file_all_declarations, 0), false, "long_write_to_file_all_declarations", 35, "Save all definitions in the hash table.", 39, "D:\\Programs\\4coder\\custom\\4coder_fleury\\4coder_long_base_commands.cpp", 69, 3004 },
-{ PROC_LINKS(long_write_to_file_all_definitions, 0), false, "long_write_to_file_all_definitions", 34, "Save all definitions in the hash table.", 39, "D:\\Programs\\4coder\\custom\\4coder_fleury\\4coder_long_base_commands.cpp", 69, 2992 },
-{ PROC_LINKS(long_write_to_file_all_empty_scopes, 0), false, "long_write_to_file_all_empty_scopes", 35, "Save all definitions in the hash table.", 39, "D:\\Programs\\4coder\\custom\\4coder_fleury\\4coder_long_base_commands.cpp", 69, 2998 },
-{ PROC_LINKS(long_write_to_file_all_identifiers, 0), false, "long_write_to_file_all_identifiers", 34, "Save all identifiers in the hash table.", 39, "D:\\Programs\\4coder\\custom\\4coder_fleury\\4coder_long_base_commands.cpp", 69, 3010 },
+{ PROC_LINKS(long_write_to_file_all_declarations, 0), false, "long_write_to_file_all_declarations", 35, "Save all definitions in the hash table.", 39, "D:\\Programs\\4coder\\custom\\4coder_fleury\\4coder_long_base_commands.cpp", 69, 2908 },
+{ PROC_LINKS(long_write_to_file_all_definitions, 0), false, "long_write_to_file_all_definitions", 34, "Save all definitions in the hash table.", 39, "D:\\Programs\\4coder\\custom\\4coder_fleury\\4coder_long_base_commands.cpp", 69, 2896 },
+{ PROC_LINKS(long_write_to_file_all_empty_scopes, 0), false, "long_write_to_file_all_empty_scopes", 35, "Save all definitions in the hash table.", 39, "D:\\Programs\\4coder\\custom\\4coder_fleury\\4coder_long_base_commands.cpp", 69, 2902 },
+{ PROC_LINKS(long_write_to_file_all_identifiers, 0), false, "long_write_to_file_all_identifiers", 34, "Save all identifiers in the hash table.", 39, "D:\\Programs\\4coder\\custom\\4coder_fleury\\4coder_long_base_commands.cpp", 69, 2914 },
 { PROC_LINKS(make_directory_query, 0), false, "make_directory_query", 20, "Queries the user for a name and creates a new directory with the given name.", 76, "D:\\Programs\\4coder\\custom\\4coder_base_commands.cpp", 50, 1497 },
 { PROC_LINKS(miblo_decrement_basic, 0), false, "miblo_decrement_basic", 21, "Decrement an integer under the cursor by one.", 45, "D:\\Programs\\4coder\\custom\\4coder_miblo_numbers.cpp", 50, 44 },
 { PROC_LINKS(miblo_decrement_time_stamp, 0), false, "miblo_decrement_time_stamp", 26, "Decrement a time stamp under the cursor by one second. (format [m]m:ss or h:mm:ss", 81, "D:\\Programs\\4coder\\custom\\4coder_miblo_numbers.cpp", 50, 237 },
@@ -968,238 +972,240 @@ static i32 fcoder_metacmd_ID_long_load_project = 155;
 static i32 fcoder_metacmd_ID_long_lower_case = 156;
 static i32 fcoder_metacmd_ID_long_macro_repeat = 157;
 static i32 fcoder_metacmd_ID_long_macro_toggle_recording = 158;
-static i32 fcoder_metacmd_ID_long_mc_down_trail = 159;
-static i32 fcoder_metacmd_ID_long_mc_up_trail = 160;
-static i32 fcoder_metacmd_ID_long_move_down_token_occurrence = 161;
-static i32 fcoder_metacmd_ID_long_move_line_down = 162;
-static i32 fcoder_metacmd_ID_long_move_line_up = 163;
-static i32 fcoder_metacmd_ID_long_move_next_alpha_numeric_or_camel_boundary = 164;
-static i32 fcoder_metacmd_ID_long_move_next_word = 165;
-static i32 fcoder_metacmd_ID_long_move_prev_alpha_numeric_or_camel_boundary = 166;
-static i32 fcoder_metacmd_ID_long_move_prev_word = 167;
-static i32 fcoder_metacmd_ID_long_move_to_next_divider_comment = 168;
-static i32 fcoder_metacmd_ID_long_move_to_next_function_and_type = 169;
-static i32 fcoder_metacmd_ID_long_move_to_prev_divider_comment = 170;
-static i32 fcoder_metacmd_ID_long_move_to_prev_function_and_type = 171;
-static i32 fcoder_metacmd_ID_long_move_up_token_occurrence = 172;
-static i32 fcoder_metacmd_ID_long_open_matching_file_same_panel = 173;
-static i32 fcoder_metacmd_ID_long_paste_and_indent = 174;
-static i32 fcoder_metacmd_ID_long_paste_and_replace_range = 175;
-static i32 fcoder_metacmd_ID_long_point_lister = 176;
-static i32 fcoder_metacmd_ID_long_push_new_jump = 177;
-static i32 fcoder_metacmd_ID_long_query_replace = 178;
-static i32 fcoder_metacmd_ID_long_query_replace_identifier = 179;
-static i32 fcoder_metacmd_ID_long_query_replace_selection = 180;
-static i32 fcoder_metacmd_ID_long_recent_files_menu = 181;
-static i32 fcoder_metacmd_ID_long_redo = 182;
-static i32 fcoder_metacmd_ID_long_redo_all_buffers = 183;
-static i32 fcoder_metacmd_ID_long_redo_jump = 184;
-static i32 fcoder_metacmd_ID_long_redo_same_pos = 185;
-static i32 fcoder_metacmd_ID_long_reload_all_themes_default_folder = 186;
-static i32 fcoder_metacmd_ID_long_replace_in_range = 187;
-static i32 fcoder_metacmd_ID_long_reverse_search = 188;
-static i32 fcoder_metacmd_ID_long_reverse_search_case_sensitive = 189;
-static i32 fcoder_metacmd_ID_long_reverse_search_identifier = 190;
-static i32 fcoder_metacmd_ID_long_search = 191;
-static i32 fcoder_metacmd_ID_long_search_case_sensitive = 192;
-static i32 fcoder_metacmd_ID_long_search_for_definition__current_file = 193;
-static i32 fcoder_metacmd_ID_long_search_for_definition__project_wide = 194;
-static i32 fcoder_metacmd_ID_long_search_for_definition_no_filter__project_file = 195;
-static i32 fcoder_metacmd_ID_long_search_identifier = 196;
-static i32 fcoder_metacmd_ID_long_search_identifier_case_sensitive = 197;
-static i32 fcoder_metacmd_ID_long_select_current_line = 198;
-static i32 fcoder_metacmd_ID_long_select_current_token = 199;
-static i32 fcoder_metacmd_ID_long_select_lower_scope = 200;
-static i32 fcoder_metacmd_ID_long_select_next_scope_current_level = 201;
-static i32 fcoder_metacmd_ID_long_select_prev_scope_current_level = 202;
-static i32 fcoder_metacmd_ID_long_select_surrounding_scope = 203;
-static i32 fcoder_metacmd_ID_long_select_upper_scope = 204;
-static i32 fcoder_metacmd_ID_long_setup_new_project = 205;
-static i32 fcoder_metacmd_ID_long_startup = 206;
-static i32 fcoder_metacmd_ID_long_switch_move_side_mode = 207;
-static i32 fcoder_metacmd_ID_long_switch_pos_context_draw_position = 208;
-static i32 fcoder_metacmd_ID_long_switch_pos_context_option = 209;
-static i32 fcoder_metacmd_ID_long_switch_to_search_buffer = 210;
-static i32 fcoder_metacmd_ID_long_test_lister_render = 211;
-static i32 fcoder_metacmd_ID_long_toggle_comment_selection = 212;
-static i32 fcoder_metacmd_ID_long_toggle_compilation_expand = 213;
-static i32 fcoder_metacmd_ID_long_toggle_line_offset = 214;
-static i32 fcoder_metacmd_ID_long_toggle_panel_expand = 215;
-static i32 fcoder_metacmd_ID_long_toggle_panel_expand_big = 216;
-static i32 fcoder_metacmd_ID_long_toggle_pos_context = 217;
-static i32 fcoder_metacmd_ID_long_undo = 218;
-static i32 fcoder_metacmd_ID_long_undo_all_buffers = 219;
-static i32 fcoder_metacmd_ID_long_undo_jump = 220;
-static i32 fcoder_metacmd_ID_long_undo_same_pos = 221;
-static i32 fcoder_metacmd_ID_long_upper_case = 222;
-static i32 fcoder_metacmd_ID_long_view_input_handler = 223;
-static i32 fcoder_metacmd_ID_long_write_text_and_auto_indent = 224;
-static i32 fcoder_metacmd_ID_long_write_to_file_all_declarations = 225;
-static i32 fcoder_metacmd_ID_long_write_to_file_all_definitions = 226;
-static i32 fcoder_metacmd_ID_long_write_to_file_all_empty_scopes = 227;
-static i32 fcoder_metacmd_ID_long_write_to_file_all_identifiers = 228;
-static i32 fcoder_metacmd_ID_make_directory_query = 229;
-static i32 fcoder_metacmd_ID_miblo_decrement_basic = 230;
-static i32 fcoder_metacmd_ID_miblo_decrement_time_stamp = 231;
-static i32 fcoder_metacmd_ID_miblo_decrement_time_stamp_minute = 232;
-static i32 fcoder_metacmd_ID_miblo_increment_basic = 233;
-static i32 fcoder_metacmd_ID_miblo_increment_time_stamp = 234;
-static i32 fcoder_metacmd_ID_miblo_increment_time_stamp_minute = 235;
-static i32 fcoder_metacmd_ID_mouse_wheel_change_face_size = 236;
-static i32 fcoder_metacmd_ID_mouse_wheel_scroll = 237;
-static i32 fcoder_metacmd_ID_move_down = 238;
-static i32 fcoder_metacmd_ID_move_down_10 = 239;
-static i32 fcoder_metacmd_ID_move_down_textual = 240;
-static i32 fcoder_metacmd_ID_move_down_to_blank_line = 241;
-static i32 fcoder_metacmd_ID_move_down_to_blank_line_end = 242;
-static i32 fcoder_metacmd_ID_move_down_to_blank_line_skip_whitespace = 243;
-static i32 fcoder_metacmd_ID_move_left = 244;
-static i32 fcoder_metacmd_ID_move_left_alpha_numeric_boundary = 245;
-static i32 fcoder_metacmd_ID_move_left_alpha_numeric_or_camel_boundary = 246;
-static i32 fcoder_metacmd_ID_move_left_token_boundary = 247;
-static i32 fcoder_metacmd_ID_move_left_whitespace_boundary = 248;
-static i32 fcoder_metacmd_ID_move_left_whitespace_or_token_boundary = 249;
-static i32 fcoder_metacmd_ID_move_line_down = 250;
-static i32 fcoder_metacmd_ID_move_line_up = 251;
-static i32 fcoder_metacmd_ID_move_right = 252;
-static i32 fcoder_metacmd_ID_move_right_alpha_numeric_boundary = 253;
-static i32 fcoder_metacmd_ID_move_right_alpha_numeric_or_camel_boundary = 254;
-static i32 fcoder_metacmd_ID_move_right_token_boundary = 255;
-static i32 fcoder_metacmd_ID_move_right_whitespace_boundary = 256;
-static i32 fcoder_metacmd_ID_move_right_whitespace_or_token_boundary = 257;
-static i32 fcoder_metacmd_ID_move_up = 258;
-static i32 fcoder_metacmd_ID_move_up_10 = 259;
-static i32 fcoder_metacmd_ID_move_up_to_blank_line = 260;
-static i32 fcoder_metacmd_ID_move_up_to_blank_line_end = 261;
-static i32 fcoder_metacmd_ID_move_up_to_blank_line_skip_whitespace = 262;
-static i32 fcoder_metacmd_ID_multi_paste = 263;
-static i32 fcoder_metacmd_ID_multi_paste_interactive = 264;
-static i32 fcoder_metacmd_ID_multi_paste_interactive_quick = 265;
-static i32 fcoder_metacmd_ID_music_start = 266;
-static i32 fcoder_metacmd_ID_music_stop = 267;
-static i32 fcoder_metacmd_ID_open_all_code = 268;
-static i32 fcoder_metacmd_ID_open_all_code_recursive = 269;
-static i32 fcoder_metacmd_ID_open_file_in_quotes = 270;
-static i32 fcoder_metacmd_ID_open_in_other = 271;
-static i32 fcoder_metacmd_ID_open_long_braces = 272;
-static i32 fcoder_metacmd_ID_open_long_braces_break = 273;
-static i32 fcoder_metacmd_ID_open_long_braces_semicolon = 274;
-static i32 fcoder_metacmd_ID_open_matching_file_cpp = 275;
-static i32 fcoder_metacmd_ID_open_panel_hsplit = 276;
-static i32 fcoder_metacmd_ID_open_panel_vsplit = 277;
-static i32 fcoder_metacmd_ID_page_down = 278;
-static i32 fcoder_metacmd_ID_page_up = 279;
-static i32 fcoder_metacmd_ID_paste = 280;
-static i32 fcoder_metacmd_ID_paste_and_indent = 281;
-static i32 fcoder_metacmd_ID_paste_next = 282;
-static i32 fcoder_metacmd_ID_paste_next_and_indent = 283;
-static i32 fcoder_metacmd_ID_place_in_scope = 284;
-static i32 fcoder_metacmd_ID_play_with_a_counter = 285;
-static i32 fcoder_metacmd_ID_profile_clear = 286;
-static i32 fcoder_metacmd_ID_profile_disable = 287;
-static i32 fcoder_metacmd_ID_profile_enable = 288;
-static i32 fcoder_metacmd_ID_profile_inspect = 289;
-static i32 fcoder_metacmd_ID_project_command_F1 = 290;
-static i32 fcoder_metacmd_ID_project_command_F10 = 291;
-static i32 fcoder_metacmd_ID_project_command_F11 = 292;
-static i32 fcoder_metacmd_ID_project_command_F12 = 293;
-static i32 fcoder_metacmd_ID_project_command_F13 = 294;
-static i32 fcoder_metacmd_ID_project_command_F14 = 295;
-static i32 fcoder_metacmd_ID_project_command_F15 = 296;
-static i32 fcoder_metacmd_ID_project_command_F16 = 297;
-static i32 fcoder_metacmd_ID_project_command_F2 = 298;
-static i32 fcoder_metacmd_ID_project_command_F3 = 299;
-static i32 fcoder_metacmd_ID_project_command_F4 = 300;
-static i32 fcoder_metacmd_ID_project_command_F5 = 301;
-static i32 fcoder_metacmd_ID_project_command_F6 = 302;
-static i32 fcoder_metacmd_ID_project_command_F7 = 303;
-static i32 fcoder_metacmd_ID_project_command_F8 = 304;
-static i32 fcoder_metacmd_ID_project_command_F9 = 305;
-static i32 fcoder_metacmd_ID_project_command_lister = 306;
-static i32 fcoder_metacmd_ID_project_fkey_command = 307;
-static i32 fcoder_metacmd_ID_project_go_to_root_directory = 308;
-static i32 fcoder_metacmd_ID_project_reprint = 309;
-static i32 fcoder_metacmd_ID_query_replace = 310;
-static i32 fcoder_metacmd_ID_query_replace_identifier = 311;
-static i32 fcoder_metacmd_ID_query_replace_selection = 312;
-static i32 fcoder_metacmd_ID_quick_swap_buffer = 313;
-static i32 fcoder_metacmd_ID_redo = 314;
-static i32 fcoder_metacmd_ID_redo_all_buffers = 315;
-static i32 fcoder_metacmd_ID_rename_file_query = 316;
-static i32 fcoder_metacmd_ID_reopen = 317;
-static i32 fcoder_metacmd_ID_replace_in_all_buffers = 318;
-static i32 fcoder_metacmd_ID_replace_in_buffer = 319;
-static i32 fcoder_metacmd_ID_replace_in_range = 320;
-static i32 fcoder_metacmd_ID_reverse_search = 321;
-static i32 fcoder_metacmd_ID_reverse_search_identifier = 322;
-static i32 fcoder_metacmd_ID_save = 323;
-static i32 fcoder_metacmd_ID_save_all_dirty_buffers = 324;
-static i32 fcoder_metacmd_ID_save_to_query = 325;
-static i32 fcoder_metacmd_ID_search = 326;
-static i32 fcoder_metacmd_ID_search_identifier = 327;
-static i32 fcoder_metacmd_ID_seek_beginning_of_line = 328;
-static i32 fcoder_metacmd_ID_seek_beginning_of_textual_line = 329;
-static i32 fcoder_metacmd_ID_seek_end_of_line = 330;
-static i32 fcoder_metacmd_ID_seek_end_of_textual_line = 331;
-static i32 fcoder_metacmd_ID_select_all = 332;
-static i32 fcoder_metacmd_ID_select_next_scope_absolute = 333;
-static i32 fcoder_metacmd_ID_select_next_scope_after_current = 334;
-static i32 fcoder_metacmd_ID_select_prev_scope_absolute = 335;
-static i32 fcoder_metacmd_ID_select_prev_top_most_scope = 336;
-static i32 fcoder_metacmd_ID_select_surrounding_scope = 337;
-static i32 fcoder_metacmd_ID_select_surrounding_scope_maximal = 338;
-static i32 fcoder_metacmd_ID_set_eol_mode_from_contents = 339;
-static i32 fcoder_metacmd_ID_set_eol_mode_to_binary = 340;
-static i32 fcoder_metacmd_ID_set_eol_mode_to_crlf = 341;
-static i32 fcoder_metacmd_ID_set_eol_mode_to_lf = 342;
-static i32 fcoder_metacmd_ID_set_face_size = 343;
-static i32 fcoder_metacmd_ID_set_face_size_this_buffer = 344;
-static i32 fcoder_metacmd_ID_set_mark = 345;
-static i32 fcoder_metacmd_ID_set_mode_to_notepad_like = 346;
-static i32 fcoder_metacmd_ID_set_mode_to_original = 347;
-static i32 fcoder_metacmd_ID_setup_build_bat = 348;
-static i32 fcoder_metacmd_ID_setup_build_bat_and_sh = 349;
-static i32 fcoder_metacmd_ID_setup_build_sh = 350;
-static i32 fcoder_metacmd_ID_setup_new_project = 351;
-static i32 fcoder_metacmd_ID_show_filebar = 352;
-static i32 fcoder_metacmd_ID_show_scrollbar = 353;
-static i32 fcoder_metacmd_ID_show_the_log_graph = 354;
-static i32 fcoder_metacmd_ID_snipe_backward_whitespace_or_token_boundary = 355;
-static i32 fcoder_metacmd_ID_snipe_forward_whitespace_or_token_boundary = 356;
-static i32 fcoder_metacmd_ID_snippet_lister = 357;
-static i32 fcoder_metacmd_ID_string_repeat = 358;
-static i32 fcoder_metacmd_ID_suppress_mouse = 359;
-static i32 fcoder_metacmd_ID_swap_panels = 360;
-static i32 fcoder_metacmd_ID_theme_lister = 361;
-static i32 fcoder_metacmd_ID_to_lowercase = 362;
-static i32 fcoder_metacmd_ID_to_uppercase = 363;
-static i32 fcoder_metacmd_ID_toggle_filebar = 364;
-static i32 fcoder_metacmd_ID_toggle_fps_meter = 365;
-static i32 fcoder_metacmd_ID_toggle_fullscreen = 366;
-static i32 fcoder_metacmd_ID_toggle_highlight_enclosing_scopes = 367;
-static i32 fcoder_metacmd_ID_toggle_highlight_line_at_cursor = 368;
-static i32 fcoder_metacmd_ID_toggle_line_numbers = 369;
-static i32 fcoder_metacmd_ID_toggle_line_wrap = 370;
-static i32 fcoder_metacmd_ID_toggle_mouse = 371;
-static i32 fcoder_metacmd_ID_toggle_paren_matching_helper = 372;
-static i32 fcoder_metacmd_ID_toggle_show_whitespace = 373;
-static i32 fcoder_metacmd_ID_toggle_virtual_whitespace = 374;
-static i32 fcoder_metacmd_ID_tutorial_maximize = 375;
-static i32 fcoder_metacmd_ID_tutorial_minimize = 376;
-static i32 fcoder_metacmd_ID_uncomment_line = 377;
-static i32 fcoder_metacmd_ID_undo = 378;
-static i32 fcoder_metacmd_ID_undo_all_buffers = 379;
-static i32 fcoder_metacmd_ID_view_buffer_other_panel = 380;
-static i32 fcoder_metacmd_ID_view_jump_list_with_lister = 381;
-static i32 fcoder_metacmd_ID_word_complete = 382;
-static i32 fcoder_metacmd_ID_word_complete_drop_down = 383;
-static i32 fcoder_metacmd_ID_write_block = 384;
-static i32 fcoder_metacmd_ID_write_hack = 385;
-static i32 fcoder_metacmd_ID_write_note = 386;
-static i32 fcoder_metacmd_ID_write_space = 387;
-static i32 fcoder_metacmd_ID_write_text_and_auto_indent = 388;
-static i32 fcoder_metacmd_ID_write_text_input = 389;
-static i32 fcoder_metacmd_ID_write_todo = 390;
-static i32 fcoder_metacmd_ID_write_underscore = 391;
-static i32 fcoder_metacmd_ID_write_zero_struct = 392;
+static i32 fcoder_metacmd_ID_long_mc_begin_multi_block = 159;
+static i32 fcoder_metacmd_ID_long_mc_down_trail = 160;
+static i32 fcoder_metacmd_ID_long_mc_up_trail = 161;
+static i32 fcoder_metacmd_ID_long_move_down_token_occurrence = 162;
+static i32 fcoder_metacmd_ID_long_move_line_down = 163;
+static i32 fcoder_metacmd_ID_long_move_line_up = 164;
+static i32 fcoder_metacmd_ID_long_move_next_alpha_numeric_or_camel_boundary = 165;
+static i32 fcoder_metacmd_ID_long_move_next_word = 166;
+static i32 fcoder_metacmd_ID_long_move_prev_alpha_numeric_or_camel_boundary = 167;
+static i32 fcoder_metacmd_ID_long_move_prev_word = 168;
+static i32 fcoder_metacmd_ID_long_move_to_next_divider_comment = 169;
+static i32 fcoder_metacmd_ID_long_move_to_next_function_and_type = 170;
+static i32 fcoder_metacmd_ID_long_move_to_prev_divider_comment = 171;
+static i32 fcoder_metacmd_ID_long_move_to_prev_function_and_type = 172;
+static i32 fcoder_metacmd_ID_long_move_up_token_occurrence = 173;
+static i32 fcoder_metacmd_ID_long_open_matching_file_same_panel = 174;
+static i32 fcoder_metacmd_ID_long_paste_and_indent = 175;
+static i32 fcoder_metacmd_ID_long_paste_and_replace_range = 176;
+static i32 fcoder_metacmd_ID_long_point_lister = 177;
+static i32 fcoder_metacmd_ID_long_push_new_jump = 178;
+static i32 fcoder_metacmd_ID_long_query_replace = 179;
+static i32 fcoder_metacmd_ID_long_query_replace_identifier = 180;
+static i32 fcoder_metacmd_ID_long_query_replace_selection = 181;
+static i32 fcoder_metacmd_ID_long_recent_files_menu = 182;
+static i32 fcoder_metacmd_ID_long_redo = 183;
+static i32 fcoder_metacmd_ID_long_redo_all_buffers = 184;
+static i32 fcoder_metacmd_ID_long_redo_jump = 185;
+static i32 fcoder_metacmd_ID_long_redo_same_pos = 186;
+static i32 fcoder_metacmd_ID_long_reload_all_themes_default_folder = 187;
+static i32 fcoder_metacmd_ID_long_replace_in_range = 188;
+static i32 fcoder_metacmd_ID_long_reverse_search = 189;
+static i32 fcoder_metacmd_ID_long_reverse_search_case_sensitive = 190;
+static i32 fcoder_metacmd_ID_long_reverse_search_identifier = 191;
+static i32 fcoder_metacmd_ID_long_search = 192;
+static i32 fcoder_metacmd_ID_long_search_case_sensitive = 193;
+static i32 fcoder_metacmd_ID_long_search_for_definition__current_file = 194;
+static i32 fcoder_metacmd_ID_long_search_for_definition__project_wide = 195;
+static i32 fcoder_metacmd_ID_long_search_for_definition_no_filter__project_file = 196;
+static i32 fcoder_metacmd_ID_long_search_identifier = 197;
+static i32 fcoder_metacmd_ID_long_search_identifier_case_sensitive = 198;
+static i32 fcoder_metacmd_ID_long_select_current_line = 199;
+static i32 fcoder_metacmd_ID_long_select_current_token = 200;
+static i32 fcoder_metacmd_ID_long_select_lower_scope = 201;
+static i32 fcoder_metacmd_ID_long_select_next_scope_current_level = 202;
+static i32 fcoder_metacmd_ID_long_select_prev_scope_current_level = 203;
+static i32 fcoder_metacmd_ID_long_select_surrounding_scope = 204;
+static i32 fcoder_metacmd_ID_long_select_upper_scope = 205;
+static i32 fcoder_metacmd_ID_long_setup_new_project = 206;
+static i32 fcoder_metacmd_ID_long_startup = 207;
+static i32 fcoder_metacmd_ID_long_switch_move_side_mode = 208;
+static i32 fcoder_metacmd_ID_long_switch_pos_context_draw_position = 209;
+static i32 fcoder_metacmd_ID_long_switch_pos_context_option = 210;
+static i32 fcoder_metacmd_ID_long_switch_to_search_buffer = 211;
+static i32 fcoder_metacmd_ID_long_test_lister_render = 212;
+static i32 fcoder_metacmd_ID_long_toggle_comment_selection = 213;
+static i32 fcoder_metacmd_ID_long_toggle_compilation_expand = 214;
+static i32 fcoder_metacmd_ID_long_toggle_line_offset = 215;
+static i32 fcoder_metacmd_ID_long_toggle_panel_expand = 216;
+static i32 fcoder_metacmd_ID_long_toggle_panel_expand_big = 217;
+static i32 fcoder_metacmd_ID_long_toggle_pos_context = 218;
+static i32 fcoder_metacmd_ID_long_try_exit = 219;
+static i32 fcoder_metacmd_ID_long_undo = 220;
+static i32 fcoder_metacmd_ID_long_undo_all_buffers = 221;
+static i32 fcoder_metacmd_ID_long_undo_jump = 222;
+static i32 fcoder_metacmd_ID_long_undo_same_pos = 223;
+static i32 fcoder_metacmd_ID_long_upper_case = 224;
+static i32 fcoder_metacmd_ID_long_view_input_handler = 225;
+static i32 fcoder_metacmd_ID_long_write_text_and_auto_indent = 226;
+static i32 fcoder_metacmd_ID_long_write_to_file_all_declarations = 227;
+static i32 fcoder_metacmd_ID_long_write_to_file_all_definitions = 228;
+static i32 fcoder_metacmd_ID_long_write_to_file_all_empty_scopes = 229;
+static i32 fcoder_metacmd_ID_long_write_to_file_all_identifiers = 230;
+static i32 fcoder_metacmd_ID_make_directory_query = 231;
+static i32 fcoder_metacmd_ID_miblo_decrement_basic = 232;
+static i32 fcoder_metacmd_ID_miblo_decrement_time_stamp = 233;
+static i32 fcoder_metacmd_ID_miblo_decrement_time_stamp_minute = 234;
+static i32 fcoder_metacmd_ID_miblo_increment_basic = 235;
+static i32 fcoder_metacmd_ID_miblo_increment_time_stamp = 236;
+static i32 fcoder_metacmd_ID_miblo_increment_time_stamp_minute = 237;
+static i32 fcoder_metacmd_ID_mouse_wheel_change_face_size = 238;
+static i32 fcoder_metacmd_ID_mouse_wheel_scroll = 239;
+static i32 fcoder_metacmd_ID_move_down = 240;
+static i32 fcoder_metacmd_ID_move_down_10 = 241;
+static i32 fcoder_metacmd_ID_move_down_textual = 242;
+static i32 fcoder_metacmd_ID_move_down_to_blank_line = 243;
+static i32 fcoder_metacmd_ID_move_down_to_blank_line_end = 244;
+static i32 fcoder_metacmd_ID_move_down_to_blank_line_skip_whitespace = 245;
+static i32 fcoder_metacmd_ID_move_left = 246;
+static i32 fcoder_metacmd_ID_move_left_alpha_numeric_boundary = 247;
+static i32 fcoder_metacmd_ID_move_left_alpha_numeric_or_camel_boundary = 248;
+static i32 fcoder_metacmd_ID_move_left_token_boundary = 249;
+static i32 fcoder_metacmd_ID_move_left_whitespace_boundary = 250;
+static i32 fcoder_metacmd_ID_move_left_whitespace_or_token_boundary = 251;
+static i32 fcoder_metacmd_ID_move_line_down = 252;
+static i32 fcoder_metacmd_ID_move_line_up = 253;
+static i32 fcoder_metacmd_ID_move_right = 254;
+static i32 fcoder_metacmd_ID_move_right_alpha_numeric_boundary = 255;
+static i32 fcoder_metacmd_ID_move_right_alpha_numeric_or_camel_boundary = 256;
+static i32 fcoder_metacmd_ID_move_right_token_boundary = 257;
+static i32 fcoder_metacmd_ID_move_right_whitespace_boundary = 258;
+static i32 fcoder_metacmd_ID_move_right_whitespace_or_token_boundary = 259;
+static i32 fcoder_metacmd_ID_move_up = 260;
+static i32 fcoder_metacmd_ID_move_up_10 = 261;
+static i32 fcoder_metacmd_ID_move_up_to_blank_line = 262;
+static i32 fcoder_metacmd_ID_move_up_to_blank_line_end = 263;
+static i32 fcoder_metacmd_ID_move_up_to_blank_line_skip_whitespace = 264;
+static i32 fcoder_metacmd_ID_multi_paste = 265;
+static i32 fcoder_metacmd_ID_multi_paste_interactive = 266;
+static i32 fcoder_metacmd_ID_multi_paste_interactive_quick = 267;
+static i32 fcoder_metacmd_ID_music_start = 268;
+static i32 fcoder_metacmd_ID_music_stop = 269;
+static i32 fcoder_metacmd_ID_open_all_code = 270;
+static i32 fcoder_metacmd_ID_open_all_code_recursive = 271;
+static i32 fcoder_metacmd_ID_open_file_in_quotes = 272;
+static i32 fcoder_metacmd_ID_open_in_other = 273;
+static i32 fcoder_metacmd_ID_open_long_braces = 274;
+static i32 fcoder_metacmd_ID_open_long_braces_break = 275;
+static i32 fcoder_metacmd_ID_open_long_braces_semicolon = 276;
+static i32 fcoder_metacmd_ID_open_matching_file_cpp = 277;
+static i32 fcoder_metacmd_ID_open_panel_hsplit = 278;
+static i32 fcoder_metacmd_ID_open_panel_vsplit = 279;
+static i32 fcoder_metacmd_ID_page_down = 280;
+static i32 fcoder_metacmd_ID_page_up = 281;
+static i32 fcoder_metacmd_ID_paste = 282;
+static i32 fcoder_metacmd_ID_paste_and_indent = 283;
+static i32 fcoder_metacmd_ID_paste_next = 284;
+static i32 fcoder_metacmd_ID_paste_next_and_indent = 285;
+static i32 fcoder_metacmd_ID_place_in_scope = 286;
+static i32 fcoder_metacmd_ID_play_with_a_counter = 287;
+static i32 fcoder_metacmd_ID_profile_clear = 288;
+static i32 fcoder_metacmd_ID_profile_disable = 289;
+static i32 fcoder_metacmd_ID_profile_enable = 290;
+static i32 fcoder_metacmd_ID_profile_inspect = 291;
+static i32 fcoder_metacmd_ID_project_command_F1 = 292;
+static i32 fcoder_metacmd_ID_project_command_F10 = 293;
+static i32 fcoder_metacmd_ID_project_command_F11 = 294;
+static i32 fcoder_metacmd_ID_project_command_F12 = 295;
+static i32 fcoder_metacmd_ID_project_command_F13 = 296;
+static i32 fcoder_metacmd_ID_project_command_F14 = 297;
+static i32 fcoder_metacmd_ID_project_command_F15 = 298;
+static i32 fcoder_metacmd_ID_project_command_F16 = 299;
+static i32 fcoder_metacmd_ID_project_command_F2 = 300;
+static i32 fcoder_metacmd_ID_project_command_F3 = 301;
+static i32 fcoder_metacmd_ID_project_command_F4 = 302;
+static i32 fcoder_metacmd_ID_project_command_F5 = 303;
+static i32 fcoder_metacmd_ID_project_command_F6 = 304;
+static i32 fcoder_metacmd_ID_project_command_F7 = 305;
+static i32 fcoder_metacmd_ID_project_command_F8 = 306;
+static i32 fcoder_metacmd_ID_project_command_F9 = 307;
+static i32 fcoder_metacmd_ID_project_command_lister = 308;
+static i32 fcoder_metacmd_ID_project_fkey_command = 309;
+static i32 fcoder_metacmd_ID_project_go_to_root_directory = 310;
+static i32 fcoder_metacmd_ID_project_reprint = 311;
+static i32 fcoder_metacmd_ID_query_replace = 312;
+static i32 fcoder_metacmd_ID_query_replace_identifier = 313;
+static i32 fcoder_metacmd_ID_query_replace_selection = 314;
+static i32 fcoder_metacmd_ID_quick_swap_buffer = 315;
+static i32 fcoder_metacmd_ID_redo = 316;
+static i32 fcoder_metacmd_ID_redo_all_buffers = 317;
+static i32 fcoder_metacmd_ID_rename_file_query = 318;
+static i32 fcoder_metacmd_ID_reopen = 319;
+static i32 fcoder_metacmd_ID_replace_in_all_buffers = 320;
+static i32 fcoder_metacmd_ID_replace_in_buffer = 321;
+static i32 fcoder_metacmd_ID_replace_in_range = 322;
+static i32 fcoder_metacmd_ID_reverse_search = 323;
+static i32 fcoder_metacmd_ID_reverse_search_identifier = 324;
+static i32 fcoder_metacmd_ID_save = 325;
+static i32 fcoder_metacmd_ID_save_all_dirty_buffers = 326;
+static i32 fcoder_metacmd_ID_save_to_query = 327;
+static i32 fcoder_metacmd_ID_search = 328;
+static i32 fcoder_metacmd_ID_search_identifier = 329;
+static i32 fcoder_metacmd_ID_seek_beginning_of_line = 330;
+static i32 fcoder_metacmd_ID_seek_beginning_of_textual_line = 331;
+static i32 fcoder_metacmd_ID_seek_end_of_line = 332;
+static i32 fcoder_metacmd_ID_seek_end_of_textual_line = 333;
+static i32 fcoder_metacmd_ID_select_all = 334;
+static i32 fcoder_metacmd_ID_select_next_scope_absolute = 335;
+static i32 fcoder_metacmd_ID_select_next_scope_after_current = 336;
+static i32 fcoder_metacmd_ID_select_prev_scope_absolute = 337;
+static i32 fcoder_metacmd_ID_select_prev_top_most_scope = 338;
+static i32 fcoder_metacmd_ID_select_surrounding_scope = 339;
+static i32 fcoder_metacmd_ID_select_surrounding_scope_maximal = 340;
+static i32 fcoder_metacmd_ID_set_eol_mode_from_contents = 341;
+static i32 fcoder_metacmd_ID_set_eol_mode_to_binary = 342;
+static i32 fcoder_metacmd_ID_set_eol_mode_to_crlf = 343;
+static i32 fcoder_metacmd_ID_set_eol_mode_to_lf = 344;
+static i32 fcoder_metacmd_ID_set_face_size = 345;
+static i32 fcoder_metacmd_ID_set_face_size_this_buffer = 346;
+static i32 fcoder_metacmd_ID_set_mark = 347;
+static i32 fcoder_metacmd_ID_set_mode_to_notepad_like = 348;
+static i32 fcoder_metacmd_ID_set_mode_to_original = 349;
+static i32 fcoder_metacmd_ID_setup_build_bat = 350;
+static i32 fcoder_metacmd_ID_setup_build_bat_and_sh = 351;
+static i32 fcoder_metacmd_ID_setup_build_sh = 352;
+static i32 fcoder_metacmd_ID_setup_new_project = 353;
+static i32 fcoder_metacmd_ID_show_filebar = 354;
+static i32 fcoder_metacmd_ID_show_scrollbar = 355;
+static i32 fcoder_metacmd_ID_show_the_log_graph = 356;
+static i32 fcoder_metacmd_ID_snipe_backward_whitespace_or_token_boundary = 357;
+static i32 fcoder_metacmd_ID_snipe_forward_whitespace_or_token_boundary = 358;
+static i32 fcoder_metacmd_ID_snippet_lister = 359;
+static i32 fcoder_metacmd_ID_string_repeat = 360;
+static i32 fcoder_metacmd_ID_suppress_mouse = 361;
+static i32 fcoder_metacmd_ID_swap_panels = 362;
+static i32 fcoder_metacmd_ID_theme_lister = 363;
+static i32 fcoder_metacmd_ID_to_lowercase = 364;
+static i32 fcoder_metacmd_ID_to_uppercase = 365;
+static i32 fcoder_metacmd_ID_toggle_filebar = 366;
+static i32 fcoder_metacmd_ID_toggle_fps_meter = 367;
+static i32 fcoder_metacmd_ID_toggle_fullscreen = 368;
+static i32 fcoder_metacmd_ID_toggle_highlight_enclosing_scopes = 369;
+static i32 fcoder_metacmd_ID_toggle_highlight_line_at_cursor = 370;
+static i32 fcoder_metacmd_ID_toggle_line_numbers = 371;
+static i32 fcoder_metacmd_ID_toggle_line_wrap = 372;
+static i32 fcoder_metacmd_ID_toggle_mouse = 373;
+static i32 fcoder_metacmd_ID_toggle_paren_matching_helper = 374;
+static i32 fcoder_metacmd_ID_toggle_show_whitespace = 375;
+static i32 fcoder_metacmd_ID_toggle_virtual_whitespace = 376;
+static i32 fcoder_metacmd_ID_tutorial_maximize = 377;
+static i32 fcoder_metacmd_ID_tutorial_minimize = 378;
+static i32 fcoder_metacmd_ID_uncomment_line = 379;
+static i32 fcoder_metacmd_ID_undo = 380;
+static i32 fcoder_metacmd_ID_undo_all_buffers = 381;
+static i32 fcoder_metacmd_ID_view_buffer_other_panel = 382;
+static i32 fcoder_metacmd_ID_view_jump_list_with_lister = 383;
+static i32 fcoder_metacmd_ID_word_complete = 384;
+static i32 fcoder_metacmd_ID_word_complete_drop_down = 385;
+static i32 fcoder_metacmd_ID_write_block = 386;
+static i32 fcoder_metacmd_ID_write_hack = 387;
+static i32 fcoder_metacmd_ID_write_note = 388;
+static i32 fcoder_metacmd_ID_write_space = 389;
+static i32 fcoder_metacmd_ID_write_text_and_auto_indent = 390;
+static i32 fcoder_metacmd_ID_write_text_input = 391;
+static i32 fcoder_metacmd_ID_write_todo = 392;
+static i32 fcoder_metacmd_ID_write_underscore = 393;
+static i32 fcoder_metacmd_ID_write_zero_struct = 394;
 #endif

@@ -31,6 +31,7 @@ function void Long_Render_CursorSymbol(Application_Links* app, Rect_f32 rect, f3
         draw_rectangle(app, start_top, roundness, color);
         draw_rectangle(app, start_side, roundness, color);
     }
+    
     else if(type == cursor_close_range)
     {
         Rect_f32 end_top, end_side, end_bottom;
@@ -132,7 +133,7 @@ function Rect_f32 Long_Render_CursorRect(Application_Links* app, View_ID view_id
     // NOTE(rjf): Draw cursor
     Rect_f32 rect = text_layout_character_on_screen(app, layout, cursor);
     {
-        ARGB_Color cursor_color = Long_GetColor(app, ColorCtx_Cursor(0, GlobalKeybindingMode));
+        ARGB_Color cursor_color = Long_Color_Cursor(app, 0, GlobalKeybindingMode);
         rect.x1 = rect.x0 + thickness;
         if(rect.x0 < view_rect.x0)
         {
@@ -159,7 +160,7 @@ function void Long_Render_NotepadCursor(Application_Links* app, View_ID view, Bu
         
         if (is_active_view)
             Long_Render_CursorInterpolation(app, frame, &global_cursor_rect, &global_last_cursor_rect, rect);
-        ARGB_Color cursor_color = Long_GetColor(app, ColorCtx_Cursor(0, GlobalKeybindingMode));
+        ARGB_Color cursor_color = Long_Color_Cursor(app, 0, GlobalKeybindingMode);
         ARGB_Color  ghost_color = Long_Color_Alpha(cursor_color, 0.5f);
         draw_rectangle(app, global_cursor_rect, roundness, ghost_color);
         
@@ -193,20 +194,14 @@ function void Long_Render_EmacsCursor(Application_Links* app, View_ID view_id, B
     b32 has_highlight_range = Long_Highlight_HasRange(app, view_id);
     if (!has_highlight_range)
     {
-        ColorFlags flags = 0;
-        flags |= !!global_keyboard_macro_is_recording * ColorFlag_Macro;
-        ARGB_Color cursor_color = Long_GetColor(app, ColorCtx_Cursor(flags, GlobalKeybindingMode));
-        ARGB_Color mark_color = cursor_color;
-        ARGB_Color inactive_cursor_color = F4_ARGBFromID(active_color_table, fleury_color_cursor_inactive, 0);
-        
-        if (!F4_ARGBIsValid(inactive_cursor_color))
-            inactive_cursor_color = cursor_color;
-        
+        ARGB_Color cursor_color = Long_Color_Cursor(app, global_keyboard_macro_is_recording, GlobalKeybindingMode);
         if (is_active_view == 0)
         {
-            cursor_color = inactive_cursor_color;
-            mark_color = inactive_cursor_color;
+            ARGB_Color inactive_cursor_color = F4_ARGBFromID(active_color_table, fleury_color_cursor_inactive, 0);
+            if (F4_ARGBIsValid(inactive_cursor_color))
+                cursor_color = inactive_cursor_color;
         }
+        ARGB_Color mark_color = cursor_color;
         
         i64 cursor_pos = view_get_cursor_pos(app, view_id);
         i64 mark_pos = view_get_mark_pos(app, view_id);
@@ -786,7 +781,7 @@ function void Long_MC_DrawHighlights(Application_Links* app, View_ID view, Buffe
         
         i64 cursor = view_get_cursor_pos(app, view);
         i64 mark = view_get_mark_pos(app, view);
-        i64 size = /*cursor - mark*/mark-cursor;
+        i64 size = mark - cursor;
         Assert(size >= 0);
         
         Range_i64 visible_range = text_layout_get_visible_range(app, layout);
@@ -819,104 +814,14 @@ function ARGB_Color Long_Color_Alpha(ARGB_Color color, f32 alpha)
     return pack_color(rgba);
 }
 
-// @COPYPASTA(long): F4_GetColor
-function ARGB_Color Long_GetColor(Application_Links* app, ColorCtx ctx)
+function ARGB_Color Long_Color_Cursor(Application_Links* app, b32 is_macro, keybinding_mode mode)
 {
-    Color_Table table = active_color_table;
-    ARGB_Color default_color = F4_ARGBFromID(table, defcolor_text_default);
-    ARGB_Color color = default_color;
-    f32 t = 1;
-    
-#define Long_FillAndSetColor(flag, id) do { \
-        t = f4_syntax_flag_transitions[BitOffset(flag)]; \
-        color = F4_ARGBFromID(table, id); \
-    } while(0)
-    
-    // NOTE(rjf): Token Color
-    if(ctx.token.size != 0)
-    {
-        Scratch_Block scratch(app);
-        
-        switch(ctx.token.kind)
-        {
-            case TokenBaseKind_Identifier:
-            {
-                Token_Array array = get_token_array_from_buffer(app, ctx.buffer);
-                F4_Index_Note* note = Long_Index_LookupBestNote(app, ctx.buffer, &array, &ctx.token);
-                
-                if (note)
-                {
-                    color = 0xffff0000;
-                    switch (note->kind)
-                    {
-                        case F4_Index_NoteKind_Type:     Long_FillAndSetColor(F4_SyntaxFlag_Types, (note->flags & F4_Index_NoteFlag_SumType) ?
-                                                                              fleury_color_index_sum_type : fleury_color_index_product_type); break;
-                        case F4_Index_NoteKind_Macro:    Long_FillAndSetColor(F4_SyntaxFlag_Macros,  fleury_color_index_macro);       break;
-                        case F4_Index_NoteKind_Function: Long_FillAndSetColor(F4_SyntaxFlag_Functions,  fleury_color_index_function); break;
-                        case F4_Index_NoteKind_Constant: Long_FillAndSetColor(F4_SyntaxFlag_Constants,  fleury_color_index_constant); break;
-                        case F4_Index_NoteKind_Decl:     Long_FillAndSetColor(F4_SyntaxFlag_Constants,  fleury_color_index_decl);     break;
-                        
-                        default: color = 0xffff00ff; break;
-                    }
-                    
-                    if (!F4_ARGBIsValid(color))
-                        color = default_color;
-                }
-            } break;
-            
-            case TokenBaseKind_Preprocessor:   Long_FillAndSetColor(F4_SyntaxFlag_Preprocessor, defcolor_preproc);    break;
-            case TokenBaseKind_Keyword:        Long_FillAndSetColor(F4_SyntaxFlag_Keywords, defcolor_keyword);        break;
-            case TokenBaseKind_Comment:        color = F4_ARGBFromID(table, defcolor_comment);                        break;
-            case TokenBaseKind_LiteralString:  Long_FillAndSetColor(F4_SyntaxFlag_Literals, defcolor_str_constant);   break;
-            case TokenBaseKind_LiteralInteger: Long_FillAndSetColor(F4_SyntaxFlag_Literals, defcolor_int_constant);   break;
-            case TokenBaseKind_LiteralFloat:   Long_FillAndSetColor(F4_SyntaxFlag_Literals, defcolor_float_constant); break;
-            case TokenBaseKind_Operator:
-            {
-                Long_FillAndSetColor(F4_SyntaxFlag_Operators, fleury_color_operators);
-                if (!F4_ARGBIsValid(color))
-                    color = default_color;
-            } break;
-            
-            case TokenBaseKind_ScopeOpen:
-            case TokenBaseKind_ScopeClose:
-            case TokenBaseKind_ParentheticalOpen:
-            case TokenBaseKind_ParentheticalClose:
-            case TokenBaseKind_StatementClose:
-            {
-                color = F4_ARGBFromID(table, fleury_color_syntax_crap);
-                if (!F4_ARGBIsValid(color))
-                    color = default_color;
-            } break;
-            
-            default:
-            {
-                switch (ctx.token.sub_kind)
-                {
-                    case TokenCppKind_LiteralTrue:
-                    case TokenCppKind_LiteralFalse: Long_FillAndSetColor(F4_SyntaxFlag_Literals, defcolor_bool_constant); break;
-                    
-                    case TokenCppKind_LiteralCharacter:
-                    case TokenCppKind_LiteralCharacterWide:
-                    case TokenCppKind_LiteralCharacterUTF8:
-                    case TokenCppKind_LiteralCharacterUTF16:
-                    case TokenCppKind_LiteralCharacterUTF32: Long_FillAndSetColor(F4_SyntaxFlag_Literals, defcolor_char_constant); break;
-                    
-                    case TokenCppKind_PPIncludeFile: Long_FillAndSetColor(F4_SyntaxFlag_Literals, defcolor_include); break;
-                }
-            } break;
-        }
-    }
-    
-    // NOTE(rjf): Cursor Color
+    ARGB_Color color;
+    if (is_macro)
+        color = F4_ARGBFromID(active_color_table, fleury_color_cursor_macro);
     else
-    {
-        if (ctx.flags & ColorFlag_Macro)
-            color = F4_ARGBFromID(table, fleury_color_cursor_macro);
-        else
-            color = F4_ARGBFromID(table, defcolor_cursor, ctx.mode);
-    }
-    
-    return color_blend(default_color, t, color);
+        color = F4_ARGBFromID(active_color_table, defcolor_cursor, mode);
+    return color;
 }
 
 // @COPYPASTA(long): F4_SyntaxHighlight
@@ -927,7 +832,59 @@ function void Long_SyntaxHighlight(Application_Links* app, Text_Layout_ID text_l
     Range_i64 visible_range = text_layout_get_visible_range(app, text_layout_id);
     i64 first_index = token_index_from_pos(array, visible_range.first);
     Token_Iterator_Array it = token_iterator_index(0, array, first_index);
-    ARGB_Color comment_tag_color = F4_ARGBFromID(table, fleury_color_index_comment_tag, 0);
+    
+    ARGB_Color default_color = F4_ARGBFromID(table, defcolor_text_default);
+    ARGB_Color comment_tag_color = F4_ARGBFromID(table, fleury_color_index_comment_tag);
+    b32 valid_comment_color = F4_ARGBIsValid(comment_tag_color);
+    
+    local_const ARGB_Color color_table[TokenBaseKind_COUNT] = {
+        default_color, default_color, default_color, // EOF, Whitespace, LexError
+        F4_ARGBFromID(table, defcolor_comment),
+        F4_ARGBFromID(table, defcolor_keyword),
+        F4_ARGBFromID(table, defcolor_preproc),
+        default_color,
+        F4_ARGBFromID(table, fleury_color_operators),
+        F4_ARGBFromID(table, defcolor_int_constant),
+        F4_ARGBFromID(table, defcolor_float_constant),
+        F4_ARGBFromID(table, defcolor_str_constant),
+        F4_ARGBFromID(table, fleury_color_syntax_crap),
+        F4_ARGBFromID(table, fleury_color_syntax_crap),
+        F4_ARGBFromID(table, fleury_color_syntax_crap),
+        F4_ARGBFromID(table, fleury_color_syntax_crap),
+        F4_ARGBFromID(table, fleury_color_syntax_crap),
+    };
+    
+    local_const F4_SyntaxFlags flag_table[TokenBaseKind_COUNT] = {
+        0, 0, 0, // EOF, Whitespace, LexError
+        F4_SyntaxFlag_Preprocessor,
+        F4_SyntaxFlag_Keywords,
+        F4_SyntaxFlag_Preprocessor,
+        0,
+        F4_SyntaxFlag_Operators,
+        F4_SyntaxFlag_Literals,
+        F4_SyntaxFlag_Literals,
+        F4_SyntaxFlag_Literals,
+        F4_SyntaxFlag_Operators,
+        F4_SyntaxFlag_Operators,
+        F4_SyntaxFlag_Operators,
+        F4_SyntaxFlag_Operators,
+        F4_SyntaxFlag_Operators,
+    };
+    
+    ARGB_Color alt_int_color = default_color;
+    {
+        ARGB_Color int_color = F4_ARGBFromID(table, defcolor_int_constant);
+        Vec4_f32 rgba = unpack_color(int_color);
+        
+        f32 coeff = .7f;
+        if (rgba.r < .5f && rgba.g < .5f && rgba.b < .5f)
+            coeff = 1.3f;
+        
+        rgba.r *= coeff;
+        rgba.g *= coeff;
+        rgba.b *= coeff;
+        alt_int_color = pack_color(rgba);
+    }
     
     for (;;)
     {
@@ -935,28 +892,93 @@ function void Long_SyntaxHighlight(Application_Links* app, Text_Layout_ID text_l
         if (!token || token->pos >= visible_range.one_past_last)
             break;
         
-        ARGB_Color argb = Long_GetColor(app, ColorCtx_Token(*token, buffer));
-        paint_text_color(app, text_layout_id, Ii64_size(token->pos, token->size), argb);
+        Scratch_Block scratch(app);
+        String8 lexeme = push_token_lexeme(app, scratch, buffer, token);
         
-        // NOTE(rjf): Substrings from comments
-        if (F4_ARGBIsValid(comment_tag_color))
+#define Long_SetColor(flag, id) do { syntax_flag = (F4_SyntaxFlag_##flag); argb = F4_ARGBFromID(table, (id)); } while (0)
+        ARGB_Color argb = default_color;
+        F4_SyntaxFlags syntax_flag = 0;
+        
+        if (token->kind == TokenBaseKind_Identifier)
         {
-            if (token->kind == TokenBaseKind_Comment)
+            F4_Index_Note* note = Long_Index_LookupBestNote(app, buffer, array, token);
+            if (note)
             {
-                Scratch_Block scratch(app);
-                String_Const_u8 string = push_buffer_range(app, scratch, buffer, Ii64(token->pos, token->pos + token->size));
+                Managed_ID fleury_type_color = (note->flags & F4_Index_NoteFlag_SumType) ?
+                    fleury_color_index_sum_type : fleury_color_index_product_type;
                 
-                for (u64 i = 0; i < string.size; i += 1)
+                switch (note->kind)
                 {
-                    if (string.str[i] == '@')
-                    {
-                        u64 j = i+1;
-                        for (; j < string.size; j += 1)
-                            if (character_is_whitespace(string.str[j]))
-                                break;
-                        paint_text_color(app, text_layout_id, Ii64(token->pos + (i64)i, token->pos + (i64)j), comment_tag_color);
-                    }
+                    case F4_Index_NoteKind_Type:     Long_SetColor(Types,     fleury_type_color);           break;
+                    case F4_Index_NoteKind_Macro:    Long_SetColor(Macros,    fleury_color_index_macro);    break;
+                    case F4_Index_NoteKind_Function: Long_SetColor(Functions, fleury_color_index_function); break;
+                    case F4_Index_NoteKind_Constant: Long_SetColor(Constants, fleury_color_index_constant); break;
+                    case F4_Index_NoteKind_Decl:     Long_SetColor(Constants, fleury_color_index_decl);     break;
                 }
+            }
+        }
+        
+        else
+        {
+            argb = color_table[token->kind];
+            syntax_flag = flag_table[token->kind];
+            
+            // TODO(long): Abstract this to user-defined language
+            switch (token->sub_kind)
+            {
+                case TokenCppKind_LiteralTrue:
+                case TokenCppKind_LiteralFalse:  Long_SetColor(Literals, defcolor_bool_constant); break;
+                case TokenCppKind_PPIncludeFile: Long_SetColor(Literals, defcolor_include);       break;
+                
+                case TokenCppKind_LiteralCharacter:
+                case TokenCppKind_LiteralCharacterWide:
+                case TokenCppKind_LiteralCharacterUTF8:
+                case TokenCppKind_LiteralCharacterUTF16:
+                case TokenCppKind_LiteralCharacterUTF32: Long_SetColor(Literals, defcolor_char_constant); break;
+            }
+        }
+        
+        f32 t = f4_syntax_flag_transitions[BitOffset(syntax_flag)];
+        if (!F4_ARGBIsValid(argb))
+            argb = default_color;
+        argb = color_blend(default_color, t, argb);
+        paint_text_color(app, text_layout_id, Ii64(token), argb);
+#undef Long_SetColor
+        
+        // NOTE(rjf): Substring from comments
+        if (valid_comment_color && token->kind == TokenBaseKind_Comment)
+        {
+            ARGB_Color color = color_blend(default_color, t, comment_tag_color);
+            for (u64 i = 0; i < lexeme.size; i += 1)
+            {
+                if (lexeme.str[i] == '@')
+                {
+                    u64 j = i+1;
+                    for (; j < lexeme.size && character_is_alpha_numeric(lexeme.str[j]); j += 1);
+                    paint_text_color(app, text_layout_id, Ii64(token->pos+i, token->pos+j), color);
+                }
+            }
+        }
+        
+        // RADDBG-style alternative digit group
+        else if (token->kind == TokenBaseKind_LiteralInteger && token->size >= 3 && character_is_base10(lexeme.str[0]))
+        {
+            // @CONSIDER(long): C-like octal
+            b32 has_prefix = lexeme.str[0] == '0' && character_is_alpha(lexeme.str[1]);
+            i64 chunk_size = has_prefix ? 4 : 3;
+            ARGB_Color colors[] = { argb, color_blend(default_color, t, alt_int_color) };
+            
+            Range_i64 token_range = Ii64(token);
+            token_range.min += 2*has_prefix;
+            i64 size = range_size(token_range);
+            if (has_prefix)
+                paint_text_color(app, text_layout_id, Ii64_size(token->pos, 2), colors[!((size-1)/chunk_size%2)]);
+            
+            for (i64 i = 0; i < size; i += chunk_size)
+            {
+                Range_i64 range = Ii64_size(token_range.max-i, -chunk_size);
+                range.min = clamp_bot(range.min, token_range.min);
+                paint_text_color(app, text_layout_id, range, colors[(i/chunk_size) % 2]);
             }
         }
         
@@ -984,39 +1006,93 @@ function void Long_Render_HexColor(Application_Links* app, View_ID view, Buffer_
 {
     Scratch_Block scratch(app);
     Range_i64 visible_range = text_layout_get_visible_range(app, layout);
-    String_Const_u8 buffer_string = push_buffer_range(app, scratch, buffer, visible_range);
+    String8 string = push_buffer_range(app, scratch, buffer, visible_range);
     
-    for (i64 i = 0; i+9 < range_size(visible_range); ++i)
+    i64 digits = 8, prefix = 2, width = digits + prefix;
+    for (i64 i = 0, size = range_size(visible_range) - width + 1; i < size; ++i)
     {
-        u8* str = buffer_string.str+i;
-        b32 s0 = str[0] != '0';
-        b32 s1 = str[1] != 'x';
-        if (s0 || s1)
+        HEX_SCAN:
+        u8* str = string.str+i;
+        
+        b32 b0 = i > 0      ? character_is_alpha_numeric(str[-1]) : 0;
+        b32 b1 = i < size-1 ? character_is_alpha_numeric(str[prefix+digits]) : 0;
+        b32 b2 = str[0] != '0';
+        b32 b3 = str[1] != 'x';
+        if (b0 || b1 || b2 || b3)
             continue;
         
-        b32 all_hex = 1;
-        for (i64 j = 0; j < 8 && all_hex; ++j)
+        for (i64 j = 0; j < digits; ++j)
         {
-            u8 c = str[j+2];
-            b32 is_digit = '0' <= c && c <= '9';
-            b32 is_lower = 'a' <= c && c <= 'f';
-            b32 is_upper = 'A' <= c && c <= 'F';
-            all_hex = is_digit || is_lower || is_upper;
+            u8 c = str[j+prefix];
+            if (!(('0' <= c && c <= '9') || ('a' <= c && c <= 'f') || ('A' <= c && c <= 'F')))
+            {
+                i += j+1;
+                goto HEX_SCAN;
+            }
         }
-        if (!all_hex) continue;
         
-        i64 pos = visible_range.min + i;
-        Rect_f32 r0 = text_layout_character_on_screen(app, layout, pos+0);
-        Rect_f32 r1 = text_layout_character_on_screen(app, layout, pos+9);
-        Rect_f32 rect = rect_inner(rect_union(r0, r1), -1.f);
+        Range_i64 range = Ii64_size(visible_range.min+i, width);
+        ARGB_Color color = (ARGB_Color)string_to_integer(SCu8(str+prefix, digits), 16);
+        f32 avg = (((color >> 16) & 0xFF) + ((color >> 8) & 0xFF) + (color & 0xFF))/3.f;
+        ARGB_Color contrast = 0xFF000000 | (i32(avg > 110.f)-1);
+        paint_text_color(app, layout, range, contrast);
         
-        ARGB_Color color = ARGB_Color(string_to_integer(SCu8(str+2, 8), 16));
-        u32 sum = ((color >> 16) & 0xFF) + ((color >> 8) & 0xFF) + (color & 0xFF);
-        ARGB_Color contrast = ARGB_Color(0xFF000000 | (i32(sum > 330)-1));
-        
-        draw_rectangle_outline(app, rect_inner(rect, -2.f), 10.f, 4.f, contrast);
+        Rect_f32 left  = text_layout_character_on_screen(app, layout, range.min);
+        Rect_f32 right = text_layout_character_on_screen(app, layout, range.max-1);
+        Rect_f32 rect = rect_inner(rect_union(left, right), -1.f);
         draw_rectangle(app, rect, 8.f, color);
-        paint_text_color(app, layout, Ii64_size(pos, 10), contrast);
-        i += 9;
+        draw_rectangle_outline(app, rect_inner(rect, -2.f), 8.f, 2.1f, contrast);
+        
+        // The loop will automatically increase by an additional one, making us skip an extra byte
+        // That is good because we mustn't render 2 hex numbers right next to each other
+        i += width;
+    }
+}
+
+// @COPYPASTA(lonng): draw_comment_highlights
+function void Long_Render_CommentHighlight(Application_Links* app, Buffer_ID buffer, Text_Layout_ID layout,
+                                           Token_Array* array, Comment_Highlight_Pair* pairs, i32 pair_count)
+{
+    Range_i64 visible_range = text_layout_get_visible_range(app, layout);
+    Token_Iterator_Array it = token_iterator_pos(buffer, array, visible_range.first);
+    
+    while (1)
+    {
+        Scratch_Block scratch(app);
+        Token* token = token_it_read(&it);
+        if (token->pos >= visible_range.one_past_last)
+            break;
+        
+        String8 tail = {};
+        if (token_it_check_and_get_lexeme(app, scratch, &it, TokenBaseKind_Comment, &tail))
+        {
+            for (i64 index = token->pos; tail.size > 0; tail = string_skip(tail, 1), index += 1)
+            {
+                if (index > token->pos && character_is_alpha_numeric(tail.str[-1]))
+                    continue;
+                
+                for (Comment_Highlight_Pair* pair = pairs; pair != pairs+pair_count; pair++)
+                {
+                    u64 needle_size = pair->needle.size;
+                    if (needle_size == 0)
+                        continue;
+                    
+                    String8 prefix = string_prefix(tail, needle_size);
+                    if (!string_match(prefix, pair->needle))
+                        continue;
+                    
+                    if (tail.size > prefix.size && character_is_alpha_numeric(prefix.str[prefix.size]))
+                        continue;
+                    
+                    paint_text_color(app, layout, Ii64_size(index, needle_size), pair->color);
+                    tail = string_skip(tail, needle_size);
+                    index += needle_size;
+                    break;
+                }
+            }
+        }
+        
+        if (!token_it_inc_non_whitespace(&it))
+            break;
     }
 }

@@ -8,7 +8,7 @@
 CUSTOM_ID(colors, long_color_index_field);
 CUSTOM_ID(colors, long_color_index_local);
 CUSTOM_ID(colors, long_color_index_param);
-// TODO(long): color for globals
+// @CONSIDER(long): color for globals
 
 //~ NOTE(long): Typedefs
 

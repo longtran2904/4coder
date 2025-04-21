@@ -82,12 +82,15 @@ function b32 F4_ARGBIsValid(ARGB_Color color);
 //- NOTE(long): Actual Functions
 function ARGB_Color Long_ARGBFromID(Managed_ID id, i32 subindex = 0);
 function ARGB_Color Long_Color_Alpha(ARGB_Color color, f32 alpha);
-function ARGB_Color Long_GetColor(Application_Links* app, ColorCtx ctx);
+function ARGB_Color Long_Color_Cursor(Application_Links* app, b32 is_macro, keybinding_mode mode);
 
 function void Long_SyntaxHighlight(Application_Links* app, Text_Layout_ID text_layout_id, Token_Array* array);
 function void Long_Render_HexColor(Application_Links* app, View_ID view, Buffer_ID buffer, Text_Layout_ID layout);
+function void Long_Render_CommentHighlight(Application_Links* app, Buffer_ID buffer, Text_Layout_ID layout,
+                                           Token_Array* array, Comment_Highlight_Pair* pairs, i32 pair_count);
 
 function void     Long_Render_FadeError(Application_Links* app, Buffer_ID buffer, Range_i64 range);
 function void Long_Render_FadeHighlight(Application_Links* app, Buffer_ID buffer, Range_i64 range);
+
 
 #endif //FCODER_LONG_RENDER_H

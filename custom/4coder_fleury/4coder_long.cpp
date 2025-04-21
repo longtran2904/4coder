@@ -270,22 +270,41 @@
 // [ ] Autocompletion using PosContext or casey/jack's system
 // [ ] String/Comment indenting as code
 // [ ] Render #if block with annotation
-// [ ] Render hex/bin/oct/dec number with thousands/byte separator
+// [X] Render hex/bin/oct/dec number with thousands/byte separator
 
 //- BUGS
 // [ ] Fix global function macro color for variable
 // [ ] `MyStruct arg = {}` in the argument list cause prototype function to be parsed incorectly
+// [X] CPP lexer doesn't support binary integers
+// [X] CPP Syntax highlight doesn't use sub kind
+// [X] Blend the comment tag color with F4_SyntaxFlags
 
 //~ TODO MULTI CURSOR
 // [ ] Across buffers
-// [ ] Begin multi-cursor block that ignore comment lines
 // [ ] Correct MC cursors while enabling virtual whitespace
-// [X] Add cursor for each match when replace_in_range
-// [X] Improve multi-select while in isearch
+// [X] Begin multi-cursor block that ignore comment lines
+// [X] Global commands that can run on the main cursor while in MC mode
+// [X] Handling mouse movement in MC mode
+// [ ] Copy in MC mode -> Exit and re-enter MC mode -> Paste in MC mode
+// [ ] Special UI to know that MC mode is on (cursor color, cursor count, file bar, etc)
+// [ ] Handle special commands (re: commented bindings in Long_Binding_MultiCursor)
+//     [ ] Jupming commands
+//     [ ] Query bar commands
+//     [X] Lister commands
+//     [ ] Others
+
+//~ TODO COMMENTS
+// [X] Toggle comment ignore end of line
+// [X] Improve toggling multi-line range with single-line comments
+// [X] Render user name and comment tag as identifier
 
 //~ TODO BUGS
 // [ ] Fix undo/redo_all_buffers right after saving bug
+// [ ] undo/redo in MC mode
 // [ ] The current saved history gets overwritten by merging with the next modification
+// [ ] Ctrl+Alt+Shift Up/Down quickly is treated as Alt+Shift Up/Down
+// [X] Fix MC copy
+// [X] Fix color render for numeric
 
 //~ @CONSIDER LISTER
 
@@ -294,6 +313,7 @@
 // [ ] Search for definitions like Hoogle
 // [ ] Has a lister for important but rarely used commands
 // [ ] Hotkeys for inserting and cycling through common tags
+// [ ] Run commands while in lister
 
 //- RENDER
 // [ ] Put ... after a large item and scroll its content horizontally over time
@@ -305,6 +325,7 @@
 // [ ] LOC counter
 // [ ] Virtual column
 // [ ] Jump system
+// [ ] Lister + Query Bar: https://discord.com/channels/657067375681863699/657067375681863703/1363439846793679088
 
 //~ @CONSIDER Interesting but low-priority stuff that may or may not be useful but deserves a look
 
@@ -320,15 +341,14 @@
 // [ ] Hot-reload multi-cursor bindings
 // [ ] Custom commands for each reloadable file
 
-//- COMMENT
-// [ ] Toggle multi-line comment ignore blank lines
-// [ ] Toggle comment ignore end of line
-
 //- MISC
 // [ ] Move range selection up and down
 // [ ] Modal auto-complete {} () [] on enter or typing
 // [ ] Jump to location with relative path
 // [ ] Code peek yank
+// [ ] Greedy lookup the binding commands
+// [X] Query replace skip replaced string
+// [X] Redesign exit check message
 
 //~ NOTE(long): @long_macros and default include
 #define LONG_INDEX_INDENT_STATEMENT 1

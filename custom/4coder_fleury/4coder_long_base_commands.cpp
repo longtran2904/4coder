@@ -1709,126 +1709,6 @@ CUSTOM_DOC("Reads a token or word under the cursor and lists all exact case-inse
 
 //~ NOTE(long): MC Commands
 
-function void Long_MC_Apply(Application_Links* app, Managed_Scope scope, Custom_Command_Function* func, MC_Command_Kind kind)
-{
-    View_ID view = mc_context.view;
-    Buffer_ID buffer = view_get_buffer(app, view, Access_Always);
-    
-    // Run standard cursor
-    default_pre_command(app, scope);
-    func(app);
-    Long_ConfirmMarkSnapToCursor(app);
-    
-    // Check that `func` should be safe to re-run
-    if (view != get_active_view(app, Access_Always) ||
-        buffer != view_get_buffer(app, view, Access_Always))
-    {
-        MC_end(app);
-        return;
-    }
-    
-    if (kind == MC_Command_CursorCopy){
-        // Since copy doesn't read from MC clipboards, clear it before doing multiple copies
-        // _CopyPaste would require double-buffering arenas, rather not complicate for nothing
-        linalloc_clear(&mc_context.arena_clipboard);
-    }
-    
-    Buffer_Scroll scroll = view_get_buffer_scroll(app, mc_context.view);
-    MC_Node prev = {mc_context.cursors};
-    MC_pull(app, mc_context.view, kind, &prev);
-    mc_context.cursors = &prev;
-    
-    for (MC_Node *n=prev.next; n; n=n->next){
-        MC_push(app, mc_context.view, kind, n);
-        Long_SnapMarkToCursor(app);
-        mc_context.active_cursor = n;
-        func(app);
-        Long_ConfirmMarkSnapToCursor(app);
-        MC_pull(app, mc_context.view, kind, n);
-    }
-    
-    Rewrite_Type* next_rewrite = scope_attachment(app, scope, view_next_rewrite_loc, Rewrite_Type);
-    if (next_rewrite)
-    {
-        if (*next_rewrite != Rewrite_NoChange)
-        {
-            Rewrite_Type* rewrite = scope_attachment(app, scope, view_rewrite_loc, Rewrite_Type);
-            *rewrite = *next_rewrite;
-        }
-    }
-    
-    mc_context.active_cursor = NULL;
-    mc_context.cursors = prev.next;
-    
-    MC_push(app, mc_context.view, kind, &prev);
-    view_set_buffer_scroll(app, mc_context.view, scroll, SetBufferScroll_NoCursorChange);
-}
-
-CUSTOM_COMMAND_SIG(long_view_input_handler)
-CUSTOM_DOC("Input consumption loop for default view behavior")
-{
-    Scratch_Block scratch(app);
-    default_input_handler_init(app, scratch);
-    
-    View_ID view = get_this_ctx_view(app, Access_Always);
-    Managed_Scope scope = view_get_managed_scope(app, view);
-    
-    for (;;)
-    {
-        // NOTE(allen): Get input
-        User_Input input = get_next_input(app, EventPropertyGroup_Any, 0);
-        Input_Event* event = &input.event;
-        if (input.abort)
-            break;
-        
-        // NOTE(allen): Mouse Suppression
-        Event_Property event_properties = get_event_properties(event);
-        if (suppressing_mouse && (event_properties & EventPropertyGroup_AnyMouseEvent) != 0)
-            continue;
-        
-        // NOTE(allen): Get binding
-        if (implicit_map_function == 0)
-            implicit_map_function = default_implicit_map;
-        Implicit_Map_Result map_result = implicit_map_function(app, 0, 0, event);
-        if (map_result.command == 0)
-        {
-            leave_current_input_unhandled(app);
-            continue;
-        }
-        
-        if (mc_context.active && mc_context.view == get_this_ctx_view(app, Access_Always))
-        {
-            if (event->kind == InputEventKind_Core && event->core.code == CoreCode_NewClipboardContents)
-            {
-                linalloc_clear(&mc_context.arena_clipboard);
-                String8 string = push_string_copy(&mc_context.arena_clipboard, event->core.string);
-                for_mc(node, mc_context.cursors)
-                    node->clipboard = string;
-            }
-            
-            Table_Lookup lookup = table_lookup(&mc_context.table, HandleAsU64(map_result.command));
-            if (lookup.found_match)
-            {
-                u64 val = mc_context.table.vals[lookup.index];
-                Long_MC_Apply(app, scope, map_result.command, MC_Command_Kind(val));
-            }
-            else
-            {
-                MC_apply(app, MC_error_fade, MC_Command_Cursor);
-                Command_Metadata* meta = get_command_metadata(map_result.command);
-                Long_Print_Messagef(app, "[MC] <%s> not available during multi-cursor mode\n", meta ? meta->name : "Command");
-            }
-        }
-        else
-        {
-            // NOTE(allen): Run the command and pre/post command stuff
-            default_pre_command(app, scope);
-            map_result.command(app);
-            default_post_command(app, scope);
-        }
-    }
-}
-
 function void Long_MC_InsertTrail(Application_Links* app, f32 pixels)
 {
     View_ID view = get_active_view(app, 0);
@@ -1867,6 +1747,31 @@ CUSTOM_COMMAND_SIG(long_mc_down_trail)
 CUSTOM_DOC("moves down, leaving a multi-cursor behind it")
 {
     Long_MC_InsertTrail(app, +1);
+}
+
+CUSTOM_COMMAND_SIG(long_mc_begin_multi_block)
+CUSTOM_DOC("[MC] begins multi-cursor using cursor-mark block-rect")
+{
+    MC_begin_multi_block(app);
+    
+    View_ID view = get_active_view(app, Access_Always);
+    Buffer_ID buffer = view_get_buffer(app, view, Access_Always);
+    
+    // TODO(long): off-by-one error
+    for (MC_Node** ptr = &mc_context.cursors; *ptr; ptr = &(*ptr)->next)
+    {
+        i64 pos = (*ptr)->cursor_pos;
+        i64 beg = get_pos_past_lead_whitespace(app, buffer, pos);
+        i64 end =    get_line_end_pos_from_pos(app, buffer, pos);
+        Token* token = get_token_from_pos(app, buffer, beg);
+        
+        if (token && token->kind == TokenBaseKind_Comment && token->pos + token->size >= end)
+        {
+            MC_Node* node = *ptr;
+            *ptr = node->next;
+            sll_stack_push(mc_context.free_list, node);
+        }
+    }
 }
 
 //~ NOTE(long): Query Commands
@@ -2292,15 +2197,13 @@ function void Long_Query_Replace(Application_Links* app, String8 replace_str, i6
     Scratch_Block scratch(app);
     Query_Bar_Group group(app);
     
-    String8 with_string = Long_Query_String(app, scratch, "With: ");
-    if (!with_string.str)
+    String8 with_str = Long_Query_String(app, scratch, "With: ");
+    if (!with_str.str)
         return;
     
     Long_Query_StartBar(app, scratch, "Replace? (enter), (Page)Up, (Page)Down, (esc)\n", {});
     
-    String8 w = with_string;
-    String8 r = replace_str;
-    i64 edit_size = w.size - r.size;
+    i64 edit_size = with_str.size - replace_str.size;
     
     View_ID view = get_active_view(app, Access_ReadVisible);
     Buffer_ID buffer = view_get_buffer(app, view, Access_ReadVisible);
@@ -2322,8 +2225,8 @@ function void Long_Query_Replace(Application_Links* app, String8 replace_str, i6
         {
             if (match.max > match.min)
             {
-                buffer_replace_range(app, buffer, match, w);
-                Long_Render_FadeHighlight(app, buffer, Ii64_size(match.min, w.size));
+                buffer_replace_range(app, buffer, match, with_str);
+                Long_Render_FadeHighlight(app, buffer, Ii64_size(match.min, with_str.size));
                 
                 if (match.min < start_pos)
                 {
@@ -2334,6 +2237,7 @@ function void Long_Query_Replace(Application_Links* app, String8 replace_str, i6
                 }
                 
                 range.max += edit_size;
+                match.min += replace_str.size;
                 match.max = match.min;
                 replaced = 1;
             }
@@ -2341,7 +2245,7 @@ function void Long_Query_Replace(Application_Links* app, String8 replace_str, i6
             else
             {
                 if (!replaced)
-                    Long_Render_FadeError(app, buffer, Ii64_size(match.min, r.size));
+                    Long_Render_FadeError(app, buffer, Ii64_size(match.min, replace_str.size));
                 break;
             }
         }
@@ -2365,19 +2269,19 @@ function void Long_Query_Replace(Application_Links* app, String8 replace_str, i6
         if (do_scan_action || first_time)
         {
             i64 new_pos;
-            seek_string(app, buffer, match.min, range.max, range.min, r, &new_pos,
+            seek_string(app, buffer, match.min, range.max, range.min, replace_str, &new_pos,
                         dir == Scan_Backward ? BufferSeekString_Backward : 0);
             
             if (range_contains(range, new_pos))
-                match = Ii64_size(new_pos, r.size);
+                match = Ii64_size(new_pos, replace_str.size);
             
             else if (first_time)
             {
                 match.min += 1;
-                seek_string_backward(app, buffer, match.min, 0, r, &new_pos);
+                seek_string_backward(app, buffer, match.min, 0, replace_str, &new_pos);
                 
                 if (range_contains(range, new_pos))
-                    match = Ii64_size(new_pos, r.size);
+                    match = Ii64_size(new_pos, replace_str.size);
                 else
                     match.max = match.min;
             }
@@ -3306,7 +3210,7 @@ function void Long_Scan_Delete(Application_Links* app, Side side, Scan_Direction
     range.first = view_get_cursor_pos(app, view);
     range.one_past_last = func(app, buffer, side, direction, range.first);
     range = rectify(range);
-    buffer_replace_range(app, buffer, range, string_u8_empty);
+    buffer_replace_range(app, buffer, range, S8Lit(""));
 }
 
 function void Long_Scan_Delete(Application_Links* app, Scan_Direction direction, Boundary_Function func)
@@ -4689,24 +4593,6 @@ CUSTOM_DOC("Toggle macro recording")
 CUSTOM_COMMAND_SIG(long_macro_repeat)
 CUSTOM_DOC("Repeat most recently recorded keyboard macro n times.")
 {
-    //Query_Bar_Group group(app);
-    //Query_Bar number_bar = {};
-    //number_bar.prompt = SCu8("Repeat Count: ");
-    //u8 number_buffer[4];
-    //number_bar.string.str = number_buffer;
-    //number_bar.string_capacity = sizeof(number_buffer);
-    
-    //if (query_user_number(app, &number_bar))
-    //{
-    //if (number_bar.string.size > 0)
-    //{
-    //i32 repeats = (i32)string_to_integer(number_bar.string, 10);
-    //repeats = clamp_top(repeats, 1000);
-    //for (i32 i = 0; i < repeats; ++i)
-    //keyboard_macro_replay(app);
-    //}
-    //}
-    
     i64 repeats = Long_Query_Number(app, "Repeat Count: ", 4);
     for (i64 i = 0; i < repeats; ++i)
         keyboard_macro_replay(app);
@@ -4855,7 +4741,7 @@ function void Long_ReIndentRange(Application_Links* app, View_ID view, Buffer_ID
     // @COPYPASTA(long): F4_ReIndentLineRange
     for (i64 line = line_range.min; line <= line_range.max; line += 1)
     {
-        // @COYPPASTA(long): F4_ReIndentLine
+        // @COPYPASTA(long): F4_ReIndentLine
         Scratch_Block scratch(app);
         String8 line_string = push_buffer_line(app, scratch, buffer, line);
         i64 line_start_pos = get_line_start_pos(app, buffer, line);
@@ -5009,91 +4895,78 @@ function i64 Long_Line_LastNonWhitespace(Application_Links* app, Buffer_ID buffe
 }
 
 // @COPYPASTA(long): F4_SetLineCommentedOnLine
-function void Long_Comment_ToggleLine(Application_Links* app, Buffer_ID buffer, i64* cursor_p, i64* mark_p)
+function b32 Long_Comment_ToggleLine(Application_Links* app, Buffer_ID buffer, i64 cursor, b32 force_comment)
 {
-    i64 cursor = *cursor_p;
-    i64 mark = *mark_p;
+    b32 result = 0;
     i64 cursor_line = get_line_number_from_pos(app, buffer, cursor);
-    i64 mark_line = get_line_number_from_pos(app, buffer, mark);
     
-    if (cursor_line == mark_line)
+    if (!line_is_blank(app, buffer, cursor_line))
     {
-        i64 line_start = Long_Line_FirstNonWhitespace(app, buffer, cursor_line);
-        i64 line_end = line_start;
+        i64 line_beg = Long_Line_FirstNonWhitespace(app, buffer, cursor_line);
+        i64 line_end = line_beg;
+        String8 str = string_u8_empty;
         
-        b32 is_blank = line_is_blank(app, buffer, cursor_line);
-        if (!is_blank)
-        {
-            String8 str = string_u8_empty;
-            b32 already_has_comment = c_line_comment_starts_at_position(app, buffer, line_start);
-            
-            if (already_has_comment)
-            {
-                line_end += 2;
-                mark -= 2;
-            }
-            else
-            {
-                str = S8Lit("//");
-                mark += 2;
-            }
-            
-            cursor = mark;
-            buffer_replace_range(app, buffer, Ii64(line_start, line_end), str);
-        }
+        b32 already_has_comment = c_line_comment_starts_at_position(app, buffer, line_beg);
+        result = already_has_comment && !force_comment;
+        if (result)
+            line_end += 2;
+        else
+            str = S8Lit("//");
+        
+        buffer_replace_range(app, buffer, Ii64(line_beg, line_end), str);
     }
-    
-    *cursor_p = cursor;
-    *mark_p = mark;
+    return result;
 }
 
+// @COPYPASTA(long): F4_SetBlockCommentedOnRange
 function void Long_Comment_SetRange(Application_Links* app, Buffer_ID buffer, i64* cursor_p, i64* mark_p, b32 commented)
 {
-    Scratch_Block scratch(app);
-    
     i64 cursor = *cursor_p;
     i64 mark = *mark_p;
+    i64 shift = 0;
     Range_i64 range = Ii64(cursor, mark);
     
     if (commented)
     {
-        buffer_replace_range(app, buffer, Ii64(range.max, range.max), S8Lit("*/"));
-        buffer_replace_range(app, buffer, Ii64(range.min, range.min), S8Lit("/*"));
-        
-        if (cursor > mark) cursor += 4;
-        else               mark   += 4;
+        buffer_replace_range(app, buffer, Ii64(range.max), S8Lit("*/"));
+        buffer_replace_range(app, buffer, Ii64(range.min), S8Lit("/*"));
+        shift = 4;
     }
+    
     else if (range.max - range.min >= 2)
     {
-        String8 opener = push_buffer_range(app, scratch, buffer, Ii64(range.min, range.min+2));
-        String8 closer = push_buffer_range(app, scratch, buffer, Ii64(range.max-2, range.max));
-        // @CONSIDER(long): Rather than match both the opener and closer, maybe only check the first one but seek the latter instead
-        if (string_match(opener, S8Lit("/*")) && string_match(closer, S8Lit("*/")))
+        i64 end_pos;
+        seek_string_forward(app, buffer, range.min+2, range.max, S8Lit("*/"), &end_pos);
+        
+        if (end_pos < range.max)
         {
-            buffer_replace_range(app, buffer, Ii64(range.max-2, range.max), S8Lit(""));
-            buffer_replace_range(app, buffer, Ii64(range.min, range.min+2), S8Lit(""));
-            
-            if (cursor > mark) cursor -= 4;
-            if (mark > cursor) mark   -= 4;
+            buffer_replace_range(app, buffer, Ii64_size(  end_pos, 2), S8Lit(""));
+            buffer_replace_range(app, buffer, Ii64_size(range.min, 2), S8Lit(""));
+            shift = -4;
         }
     }
+    
+    if (cursor < mark) mark += shift;
+    else             cursor += shift;
     
     *cursor_p = cursor;
     *mark_p = mark;
 }
 
+// @COPYPASTA(long): F4_SetCommentedOnRange
 function void Long_Comment_ToggleRange(Application_Links* app, Buffer_ID buffer, i64* cursor_p, i64* mark_p)
 {
-    Scratch_Block scratch(app);
-    
     i64 cursor = *cursor_p;
     i64 mark = *mark_p;
     Range_i64 range = Ii64(cursor, mark);
-    Range_i64 line_range = F4_LineRangeFromPosRange(app, buffer, range);
-    Token_Array tokens = get_token_array_from_buffer(app, buffer);
     
+    Range_i64 line_range = F4_LineRangeFromPosRange(app, buffer, range);
     i64 beg_of_min_line = Long_Line_FirstNonWhitespace(app, buffer, line_range.min);
     i64 end_of_max_line =  Long_Line_LastNonWhitespace(app, buffer, line_range.max);
+    
+    Token_Array tokens = get_token_array_from_buffer(app, buffer);
+    Token* min_token = get_token_from_pos(app, &tokens, range.min);
+    Token* max_token = get_token_from_pos(app, &tokens, range.max);
     
     b32 already_has_block_comment = 0;
     {
@@ -5110,72 +4983,84 @@ function void Long_Comment_ToggleRange(Application_Links* app, Buffer_ID buffer,
         }
     }
     
+    // NOTE(rjf): Selection is inside comment
+    if (min_token == max_token && min_token && min_token->kind == TokenBaseKind_Comment)
+    {
+        u8 c = buffer_get_char(app, buffer, min_token->pos+1);
+        if (c == '*')
+            buffer_replace_range(app, buffer, Ii64_size(min_token->pos + min_token->size, -2), S8Lit(""));
+        buffer_replace_range(app, buffer, Ii64_size(min_token->pos, 2), S8Lit(""));
+        cursor = clamp_bot(cursor - 2, min_token->pos);
+        mark = clamp_bot(mark - 2, min_token->pos);
+    }
+    
     // NOTE(rjf): No selection
-    if (range.min == range.max)
-        Long_Comment_ToggleLine(app, buffer, &cursor, &mark);
+    else if (range.min == range.max)
+    {
+        b32 was_comment = Long_Comment_ToggleLine(app, buffer, cursor, 0);
+        if (was_comment) cursor = mark -= 2;
+        else             cursor = mark += 2;
+    }
     
     // NOTE(rjf): Single-Line Selection
     else if (line_range.min == line_range.max)
     {
-        Token* min_token = get_token_from_pos(app, &tokens, (u64)range.min);
-        Token* max_token = get_token_from_pos(app, &tokens, (u64)range.max);
+        if (range.min == beg_of_min_line && range.max == end_of_max_line + 1 && !already_has_block_comment)
+        {
+            b32 was_comment = Long_Comment_ToggleLine(app, buffer, cursor, 0);
+            if (cursor < mark) mark += was_comment ? -2 : 2;
+            else             cursor += was_comment ? -2 : 2;
+        }
         
-        // NOTE(rjf): Selection is inside comment
-        if (min_token == max_token && min_token && min_token->kind == TokenBaseKind_Comment)
-            comment_line_toggle(app);
-        else // NOTE(rjf): Selection is not inside comment
-            Long_Comment_SetRange(app, buffer, &cursor, &mark, !already_has_block_comment);
+        // NOTE(rjf): Selection is not inside comment
+        else Long_Comment_SetRange(app, buffer, &cursor, &mark, !already_has_block_comment);
     }
     
     // NOTE(rjf): Multi-Line Selection
     else if (line_range.min != line_range.max)
     {
-        if (!already_has_block_comment)
+        i64 min_pos = Min(cursor, mark);
+        i64 max_pos = Max(cursor, mark);
+        
+        // NOTE(long): Use a multi-line block comment if there's at least one line that has a single-line comment
+        b32 has_some_comment_lines = 0, has_all_comment_lines = 1;
+        for (i64 i = line_range.min; i <= line_range.max; i += 1)
         {
-            i64 min_pos = Min(cursor, mark);
-            i64 max_pos = Max(cursor, mark);
-            
-            // NOTE(long): Use a multi-line block comment if there's at least one line that has a single-line comment
-            b32 has_one_comment_line = 0, has_all_comment_lines = 1;
+            if (!line_is_blank(app, buffer, i))
+            {
+                i64 pos = Long_Line_FirstNonWhitespace(app, buffer, i);
+                if (c_line_comment_starts_at_position(app, buffer, pos))
+                    has_some_comment_lines = 1;
+                else
+                    has_all_comment_lines = 0;
+            }
+        }
+        
+        // NOTE(long): Selection starts on first column and ends on last column
+        if (min_pos == beg_of_min_line && max_pos > end_of_max_line)
+        {
             for (i64 i = line_range.min; i <= line_range.max; i += 1)
             {
-                if (!line_is_blank(app, buffer, i))
-                {
-                    i64 pos = Long_Line_FirstNonWhitespace(app, buffer, i);
-                    if (c_line_comment_starts_at_position(app, buffer, pos))
-                        has_one_comment_line = 1;
-                    else
-                        has_all_comment_lines = 0;
-                }
+                i64 cursor2 = get_line_start_pos(app, buffer, i);
+                Long_Comment_ToggleLine(app, buffer, cursor2, has_some_comment_lines && !has_all_comment_lines);
             }
             
-            // NOTE(rjf): Selection starts on first column.
-            if (min_pos == beg_of_min_line && max_pos > end_of_max_line && (!has_one_comment_line || has_all_comment_lines))
+            end_of_max_line = Long_Line_LastNonWhitespace(app, buffer, line_range.max) + 1;
+            if (cursor < mark)
             {
-                for (i64 i = line_range.min; i <= line_range.max; i += 1)
-                {
-                    i64 cursor2 = get_line_start_pos(app, buffer, i);
-                    i64 mark2 = get_line_end_pos(app, buffer, i);
-                    Long_Comment_ToggleLine(app, buffer, &cursor2, &mark2);
-                }
-                
-                end_of_max_line = Long_Line_LastNonWhitespace(app, buffer, line_range.max) + 1;
-                if (cursor < mark)
-                {
-                    cursor = beg_of_min_line;
-                    mark = end_of_max_line;
-                }
-                else
-                {
-                    mark = beg_of_min_line;
-                    cursor = end_of_max_line;
-                }
+                cursor = beg_of_min_line;
+                mark = end_of_max_line;
             }
             
-            // NOTE(rjf): Selection does not start on first column.
-            else Long_Comment_SetRange(app, buffer, &cursor, &mark, 1);
+            else
+            {
+                mark = beg_of_min_line;
+                cursor = end_of_max_line;
+            }
         }
-        else Long_Comment_SetRange(app, buffer, &cursor, &mark, 0);
+        
+        // NOTE(long): Selection does not start on first column or end on last column
+        else Long_Comment_SetRange(app, buffer, &cursor, &mark, !already_has_block_comment);
     }
     
     Long_Render_FadeHighlight(app, buffer, Ii64(cursor, mark));

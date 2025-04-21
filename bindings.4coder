@@ -4,9 +4,9 @@ keys_global =
     // NOTE(rjf): Meta
     { "exit_4coder",                           "F4", "Alt"              },
     { "long_change_active_panel",           "Comma", "Control"          },
+    { "long_change_passive_panel",         "Period", "Control"          },
     { "change_active_panel_backwards",      "Comma", "Control", "Shift" },
     { "project_go_to_root_directory",           "H", "Alt"              },
-    { "long_change_passive_panel",         "Period", "Control"          },
     { "toggle_virtual_whitespace",          "Equal", "Control"          },
     { "theme_lister",                           "H", "Control", "Shift" },
     { "MC_end_multi",                      "Escape"                     },
@@ -33,7 +33,7 @@ keys_global =
     { "long_kill_search_buffer",        "K", "Control", "Alt"   },
     { "long_switch_to_search_buffer",   "I", "Control", "Alt"   },
     
-    // NOTE(rjf): Jump Lists
+    // NOTE(long): Jump
     { "goto_next_jump",     "N", "Alt"          },
     { "goto_prev_jump",     "N", "Alt", "Shift" },
     { "goto_first_jump",    "M", "Alt", "Shift" },
@@ -52,17 +52,17 @@ keys_global =
     { "long_command_lister",  "X", "Alt"              },
     
     // NOTE(rjf): Project
-    { "build_in_build_panel",     "M", "Alt"          },
-    { "project_command_lister",   "X", "Alt", "Shift" },
-    { "project_fkey_command",    "F1" },
-    { "project_fkey_command",    "F2" },
-    { "project_fkey_command",    "F3" },
-    { "project_fkey_command",    "F4" },
-    { "project_fkey_command",    "F5" },
-    { "project_fkey_command",    "F6" },
-    { "project_fkey_command",    "F7" },
-    { "project_fkey_command",    "F8" },
-    { "project_fkey_command",    "F9" },
+    { "build_in_build_panel",   "M", "Alt"          },
+    { "project_command_lister", "X", "Alt", "Shift" },
+    { "project_fkey_command",   "F1"  },
+    { "project_fkey_command",   "F2"  },
+    { "project_fkey_command",   "F3"  },
+    { "project_fkey_command",   "F4"  },
+    { "project_fkey_command",   "F5"  },
+    { "project_fkey_command",   "F6"  },
+    { "project_fkey_command",   "F7"  },
+    { "project_fkey_command",   "F8"  },
+    { "project_fkey_command",   "F9"  },
     { "project_fkey_command",   "F10" },
     { "project_fkey_command",   "F11" },
     { "project_fkey_command",   "F12" },
@@ -96,13 +96,13 @@ keys_file =
     
     // NOTE(rjf): Left/Right Arrow Keys
     // NOTE(long): Shift binding will make notepad-mode unselectable
-    { "move_left",                                      "Left"                  },
-    { "long_move_prev_word",                            "Left",  "Control"      },
-    { "long_move_prev_alpha_numeric_or_camel_boundary", "Left",  "Alt"          },
-    { "move_right",                                     "Right"                 },
+    { "move_left",                                      "Left"                 },
+    { "move_right",                                     "Right"                },
+    { "long_move_prev_word",                            "Left",  "Control"     },
     { "long_move_next_word",                            "Right", "Control"     },
-    { "long_move_next_alpha_numeric_or_camel_boundary", "Right", "Alt"          },
-    { "long_switch_move_side_mode",                     "Minus", "Alt"          },
+    { "long_move_prev_alpha_numeric_or_camel_boundary", "Left",  "Alt"         },
+    { "long_move_next_alpha_numeric_or_camel_boundary", "Right", "Alt"         },
+    { "long_switch_move_side_mode",                     "Minus", "Alt"         },
     
     // NOTE(rjf): Up/Down Arrow Keys
     { "move_up",                           "Up"                   },
@@ -123,8 +123,6 @@ keys_file =
     { "goto_end_of_file",                    "PageDown", "Control"                   },
     { "long_move_to_prev_divider_comment",   "PageUp",   "Control", "Shift"          },
     { "long_move_to_next_divider_comment",   "PageDown", "Control", "Shift"          },
-    { "long_move_to_prev_function_and_type", "Up",       "Control", "Shift", "Alt"   },
-    { "long_move_to_next_function_and_type", "Down",     "Control", "Shift", "Alt"   },
     
     // NOTE(long): Ctrl  => Current Buffer vs All Buffers
     //             Alt   => List vs Search/Query
@@ -156,44 +154,48 @@ keys_file =
     // NOTE(long): Multi cursors
     { "MC_add_at_pos",      "BackwardSlash", "Control", "Shift" },
     { "MC_begin_multi",            "Return",     "Alt"          },
-    { "MC_begin_multi_block",           "L", "Control", "Shift" },
+    { "long_mc_begin_multi_block",      "L", "Control", "Shift" },
     { "long_mc_up_trail",              "Up",     "Alt", "Shift" },
     { "long_mc_down_trail",          "Down",     "Alt", "Shift" },
     
+    // NOTE(long): These must be below Alt+Shift
+    { "long_move_to_prev_function_and_type",   "Up", "Control", "Shift", "Alt" },
+    { "long_move_to_next_function_and_type", "Down", "Control", "Shift", "Alt" },
+    
     // NOTE(rjf): Replace
-    { "long_replace_in_range",          "A", "Control"          },
-    { "long_query_replace",             "Q", "Control"          },
-    { "long_query_replace_identifier",  "Q", "Control", "Shift" },
-    { "long_query_replace_selection",   "Q", "Alt"              },
+    { "long_replace_in_range",         "A", "Control"          },
+    { "long_query_replace",            "Q", "Control"          },
+    { "long_query_replace_identifier", "Q", "Control", "Shift" },
+    { "long_query_replace_selection",  "Q", "Alt"              },
     
     // NOTE(rjf): Clipboard
-    { "long_copy",                      "C", "Control"          },
-    { "cut",                            "X", "Control"          },
-    { "long_copy_line",                 "C", "Control", "Shift" },
-    { "long_cut_line",                  "X", "Control", "Shift" },
-    { "long_paste_and_indent",          "V", "Control"          },
-    { "long_paste_and_replace_range",   "V", "Control", "Shift" },
-    { "long_select_current_line",       "A", "Control", "Shift" },
+    { "long_copy",                     "C", "Control"          },
+    { "cut",                           "X", "Control"          },
+    { "long_copy_line",                "C", "Control", "Shift" },
+    { "long_cut_line",                 "X", "Control", "Shift" },
+    { "long_paste_and_indent",         "V", "Control"          },
+    { "long_paste_and_replace_range",  "V", "Control", "Shift" },
+    { "long_select_current_line",      "A", "Control", "Shift" },
     
     // NOTE(long): Modify
-    { "duplicate_line",                 "D",     "Alt"          },
-    { "long_delete_range",              "D", "Control"          },
-    { "delete_line",                    "D", "Control", "Shift" },
-    { "f4_unindent",                  "Tab",   "Shift"          },
+    { "duplicate_line",                "D",     "Alt"          },
+    { "long_delete_range",             "D", "Control"          },
+    { "delete_line",                   "D", "Control", "Shift" },
+    { "f4_unindent",                 "Tab",   "Shift"          },
     
     // NOTE(rjf): View
-    { "center_view",                    "E", "Control"          },
-    { "left_adjust_view",               "E", "Control", "Shift" },
+    { "center_view",                   "E", "Control"          },
+    { "left_adjust_view",              "E", "Control", "Shift" },
     
     // NOTE(rjf): File
-    { "long_kill_buffer",               "K", "Control", "Shift" },
-    { "reopen",                         "O",     "Alt", "Shift" },
-    { "save",                           "S", "Control"          },
-    { "long_redo",                      "Y", "Control"          },
-    { "long_undo",                      "Z", "Control"          },
-    { "long_redo_same_pos",             "Y", "Control", "Shift" },
-    { "long_undo_same_pos",             "Z", "Control", "Shift" },
-    { "view_buffer_other_panel",        "W", "Control", "Shift" },
+    { "long_kill_buffer",              "K", "Control", "Shift" },
+    { "reopen",                        "O",     "Alt", "Shift" },
+    { "save",                          "S", "Control"          },
+    { "long_redo",                     "Y", "Control"          },
+    { "long_undo",                     "Z", "Control"          },
+    { "long_redo_same_pos",            "Y", "Control", "Shift" },
+    { "long_undo_same_pos",            "Z", "Control", "Shift" },
+    { "view_buffer_other_panel",       "W", "Control", "Shift" },
     
     // @CONSIDER(long): Should I bind undo/redo_all_buffers
     
@@ -205,12 +207,12 @@ keys_file =
     { "long_history_lister",                        "H", "Control"          },
     
     // NOTE(long): Index
+    { "long_code_peek",                  	   "Tick", "Control"          },
     { "long_toggle_pos_context",                "Tick",     "Alt"          },
     { "long_switch_pos_context_option",        "Equal",     "Alt"          },
     { "long_switch_pos_context_draw_position", "Equal",     "Alt", "Shift" },
     { "long_go_to_definition",            	"Return", "Control"          },
     { "long_go_to_definition_same_panel",     "Return", "Control", "Shift" },
-    { "long_code_peek",                  	   "Tick", "Control"          },
 };
 
 keys_code =
@@ -224,25 +226,10 @@ keys_code =
     { "long_select_next_scope_current_level", "RightBracket", "Control",   "Alt" },
     { "long_select_surrounding_scope",         "LeftBracket",     "Alt", "Shift" },
     
-    /* @CONSIDER(long): Will I ever actually use these?
-    { "open_long_braces",            "LeftBracket", "Alt"          },
-    { "open_long_braces_semicolon",  "LeftBracket", "Alt", "Shift" },
-    { "open_long_braces_break",     "RightBracket", "Alt", "Shift" },
-    
-    { "write_block",                           "1", "Control"      },
-    { "write_todo",                            "2", "Control"      },
-    { "write_note",                            "3", "Control"      },
-    
-    { "place_in_scope",             "ForwardSlash", "Alt"          },
-    { "delete_current_scope",              "Minus", "Alt"          },
-    { "open_file_in_quotes",                   "1", "Alt"          },
-    { "open_matching_file_cpp",                "2", "Alt"          },
-    */
-    
     // NOTE(long): Auto-complete
-    { "long_toggle_comment_selection", "Semicolon", "Control"          },
-    { "long_autocomplete",                   "Tab"                     },   
-    { "long_indent_range",                   "Tab", "Control"          },
+    { "long_toggle_comment_selection", "Semicolon", "Control" },
+    { "long_autocomplete",                   "Tab"            },   
+    { "long_indent_range",                   "Tab", "Control" },
     
     { "open_matching_file_cpp",                "W", "Alt"          },
     { "long_open_matching_file_same_panel",    "W", "Alt", "Shift" },

@@ -122,7 +122,7 @@ function void MC_render_cursors(Application_Links *app, View_ID view, Text_Layou
 	Range_i64 visible_range = text_layout_get_visible_range(app, layout);
 	ARGB_Color cl_cursor = fcolor_resolve(fcolor_change_alpha(fcolor_id(defcolor_cursor), mc_context.active ? 1.f : 0.8f));
 	ARGB_Color cl_mark   = fcolor_resolve(fcolor_change_alpha(fcolor_id(defcolor_mark),   mc_context.active ? 1.f : 0.8f));
-
+    
 	for_mc(node, mc_context.cursors){
 		if (range_contains(visible_range, node->cursor_pos)){
 			Rect_f32 rect = text_layout_character_on_screen(app, layout, node->cursor_pos);
@@ -144,7 +144,7 @@ function Implicit_Map_Result MC_implicit_map_inner(Application_Links *app, Input
 				node->clipboard = string;
 			}
 		}
-
+        
 		Table_Lookup lookup = table_lookup(&mc_context.table, HandleAsU64(map_result.command));
 		if (lookup.found_match){
 			u64 val = mc_context.table.vals[lookup.index];
@@ -173,17 +173,17 @@ function i32 MC_buffer_edit_range_inner(Application_Links *app, Buffer_ID buffer
 	if (!mc_context.active || buffer_id != view_get_buffer(app, mc_context.view, Access_Always)){
 		return 0;
 	}
-
+    
 	Range_i64 old_range = Ii64(old_cursor_range.min.pos, old_cursor_range.max.pos);
 	i64 insert_size = range_size(new_range);
-
+    
 	for_mc(node, mc_context.cursors){
 		/// TODO: handle case when cursor-mark overlaps other cursors and delete...
 		//if (range_contains(old_range) && node != mc_context.active){}
 		index_shift(&node->cursor_pos, old_range, insert_size);
 		index_shift(&node->mark_pos, old_range, insert_size);
 	}
-
+    
 	return 0;
 }
 
@@ -192,22 +192,22 @@ function void MC_begin(Application_Links *app){
 	if (mc_context.view != view){
 		return MC_end(app);
 	}
-
+    
 	// Remove any multi-cursor overlapping with real cursor
 	i64 cursor_pos = view_get_cursor_pos(app, view);
 	view_set_mark(app, view, seek_pos(cursor_pos));
 	MC_remove(app, cursor_pos);
-
+    
 	// If there are no multi-cursors, don't start
 	if (mc_context.cursors == NULL){
 		return MC_end(app);
 	}
-
+    
 	Buffer_ID buffer = view_get_buffer(app, view, Access_ReadVisible);
 	mc_context.active = true;
 	mc_context.view = view;
 	mc_context.history = history_group_begin(app, buffer);
-
+    
 	String_Const_u8 string = push_clipboard_index(&mc_context.arena_clipboard, 0, 0);
 	for_mc(node, mc_context.cursors){
 		node->clipboard = string;
@@ -236,11 +236,11 @@ function void MC_insert(Application_Links *app, i64 cursor_pos, i64 mark_pos){
 	else if (mc_context.view != view){
 		return;
 	}
-
+    
 	for_mc(node, mc_context.cursors){
 		if (node->cursor_pos == cursor_pos){ return; }
 	}
-
+    
 	MC_Node *node = mc_context.free_list;
 	if (node){
 		sll_stack_pop(mc_context.free_list);
@@ -249,7 +249,7 @@ function void MC_insert(Application_Links *app, i64 cursor_pos, i64 mark_pos){
 		node = push_array_zero(&mc_context.arena_cursors, MC_Node, 1);
 	}
 	sll_stack_push(mc_context.cursors, node);
-
+    
 	node->cursor_pos = cursor_pos;
 	node->mark_pos = mark_pos;
 	node->cur_position = node->nxt_position = V2f32(min_f32, min_f32);
@@ -313,9 +313,9 @@ function void MC_push(Application_Links *app, View_ID view, MC_Command_Kind kind
 function void MC_apply(Application_Links *app, Custom_Command_Function *func, MC_Command_Kind kind){
 	View_ID view = mc_context.view;
 	Buffer_ID buffer = view_get_buffer(app, view, Access_Always);
-
+    
 	func(app);  // Run standard cursor
-
+    
 	// Check that `func` should be safe to re-run
 	if (view != get_active_view(app, Access_Always) ||
 		buffer != view_get_buffer(app, view, Access_Always))
@@ -323,18 +323,18 @@ function void MC_apply(Application_Links *app, Custom_Command_Function *func, MC
 		MC_end(app);
 		return;
 	}
-
+    
 	if (kind == MC_Command_CursorCopy){
 		// Since copy doesn't read from MC clipboards, clear it before doing multiple copies
 		// _CopyPaste would require double-buffering arenas, rather not complicate for nothing
 		linalloc_clear(&mc_context.arena_clipboard);
 	}
-
+    
 	Buffer_Scroll scroll = view_get_buffer_scroll(app, mc_context.view);
 	MC_Node prev = {mc_context.cursors};
 	MC_pull(app, mc_context.view, kind, &prev);
 	mc_context.cursors = &prev;
-
+    
 	for (MC_Node *n=prev.next; n; n=n->next){
 		MC_push(app, mc_context.view, kind, n);
 		mc_context.active_cursor = n;
@@ -343,7 +343,7 @@ function void MC_apply(Application_Links *app, Custom_Command_Function *func, MC
 	}
 	mc_context.active_cursor = NULL;
 	mc_context.cursors = prev.next;
-
+    
 	MC_push(app, mc_context.view, kind, &prev);
 	view_set_buffer_scroll(app, mc_context.view, scroll, SetBufferScroll_NoCursorChange);
 }
@@ -401,23 +401,23 @@ CUSTOM_COMMAND_SIG(MC_begin_multi_block)
 CUSTOM_DOC("[MC] begins multi-cursor using cursor-mark block-rect")
 {
 	MC_end(app);
-
+    
 	View_ID view = get_active_view(app, Access_Always);
 	Buffer_ID buffer = view_get_buffer(app, view, Access_Always);
 	i64 cursor_pos = view_get_cursor_pos(app, view);
 	i64 mark_pos = view_get_mark_pos(app, view);
 	Range_i64 range = Ii64(cursor_pos, mark_pos);
-
+    
 	i64 line_min = get_line_number_from_pos(app, buffer, range.min);
 	i64 line_max = get_line_number_from_pos(app, buffer, range.max);
 	Vec2_f32 p0 = view_relative_xy_of_pos(app, view, line_min, range.min);
 	Vec2_f32 p1 = view_relative_xy_of_pos(app, view, line_min, range.max);
 	Rect_f32 block_rect = Rf32(Min(p0.x, p1.x), Min(p0.y, p1.y), Max(p0.x, p1.x), Max(p0.y, p1.y));
-
+    
 	f32 line_advance = rect_height(block_rect)/f32(Max(1, line_max-line_min));
 	f32 wid = rect_width(block_rect);
 	block_rect = rect_inner(block_rect, -0.1f);
-
+    
 	b32 cursor_is_top = cursor_pos < mark_pos;
 	i64 top_min_pos = max_i64;
 	i64 top_max_pos = max_i64;
@@ -429,11 +429,11 @@ CUSTOM_DOC("[MC] begins multi-cursor using cursor-mark block-rect")
 		Vec2_f32 max_point = min_point + V2f32(wid,0);
 		i64 min_pos = view_pos_at_relative_xy(app, view, line_min, min_point);
 		i64 max_pos = view_pos_at_relative_xy(app, view, line_min, max_point);
-
+        
 		Vec2_f32 min_p = view_relative_xy_of_pos(app, view, line_min, min_pos);
 		Vec2_f32 max_p = view_relative_xy_of_pos(app, view, line_min, max_pos);
 		if(!rect_contains_point(block_rect, min_p) || !rect_contains_point(block_rect, max_p)){ continue; }
-
+        
 		top_min_pos = Min(top_min_pos, min_pos);
 		top_max_pos = Min(top_max_pos, max_pos);
 		bot_min_pos = Max(bot_min_pos, min_pos);
@@ -460,17 +460,17 @@ function i32 MC_buffer_edit_range(Application_Links *app, Buffer_ID buffer_id, R
 function void MC_render_caller(Application_Links *app, Frame_Info frame_info, View_ID view_id){
 	default_render_caller(app, frame_info, view_id);
 	if (view_id != mc_context.view){ return; }
-
+    
 	Buffer_ID buffer = view_get_buffer(app, view_id, Access_Always);
 	Rect_f32 region = view_get_screen_rect(app, view_id);
 	region = default_buffer_region(app, view_id, region);
 	Rect_f32 prev_clip = draw_set_clip(app, region);
-
+    
 	Buffer_Scroll scroll = view_get_buffer_scroll(app, view_id);
 	Text_Layout_ID text_layout_id = text_layout_create(app, buffer, region, scroll.position);
-
+    
 	MC_render_cursors(app, view_id, text_layout_id);
-
+    
 	text_layout_free(app, text_layout_id);
 	draw_set_clip(app, prev_clip);
 }
@@ -479,11 +479,11 @@ function void MC_render_caller(Application_Links *app, Frame_Info frame_info, Vi
 function void MC_setup_essential_mapping(Mapping *mapping, i64 global_id, i64 file_id, i64 code_id){
 	MappingScope();
 	SelectMapping(mapping);
-
+    
 	SelectMap(file_id);
 	ParentMap(global_id);
 	MC_BindTextInput(write_text_input);
-
+    
 	SelectMap(code_id);
 	ParentMap(file_id);
 	MC_BindTextInput(write_text_and_auto_indent);
@@ -492,22 +492,22 @@ function void MC_setup_essential_mapping(Mapping *mapping, i64 global_id, i64 fi
 function void MC_setup_default_mapping(Mapping *mapping, i64 global_id, i64 file_id, i64 code_id){
 	MappingScope();
 	SelectMapping(mapping);
-
+    
 	SelectMap(global_id);
 	MC_Bind(save_all_dirty_buffers,        KeyCode_S, KeyCode_Control, KeyCode_Shift);
 	MC_Bind(close_build_panel,             KeyCode_Comma, KeyCode_Alt);
 	MC_Bind(build_in_build_panel,          KeyCode_M, KeyCode_Alt);
 	MC_Bind(toggle_filebar,                KeyCode_B, KeyCode_Alt);
-
+    
 	MC_Bind(MC_end_multi,          KeyCode_Escape);
-
+    
 	SelectMap(file_id);
 	Bind(MC_add_at_pos,            KeyCode_BackwardSlash, KeyCode_Control);
 	Bind(MC_begin_multi,           KeyCode_Return, KeyCode_Control);
 	Bind(MC_begin_multi_block,     KeyCode_L, KeyCode_Control, KeyCode_Shift);
 	Bind(MC_up_trail,              KeyCode_Up, KeyCode_Control, KeyCode_Alt);
 	Bind(MC_down_trail,            KeyCode_Down, KeyCode_Control, KeyCode_Alt);
-
+    
 	MC_Bind(delete_char,            KeyCode_Delete);
 	MC_Bind(backspace_char,         KeyCode_Backspace);
 	MC_Bind(move_up,                KeyCode_Up);
@@ -530,7 +530,7 @@ function void MC_setup_default_mapping(Mapping *mapping, i64 global_id, i64 file
 	MC_Bind(cursor_mark_swap,            KeyCode_M, KeyCode_Control);
 	MC_Bind(save,                        KeyCode_S, KeyCode_Control);
 	MC_Bind(save_all_dirty_buffers,      KeyCode_S, KeyCode_Control, KeyCode_Shift);
-
+    
 	SelectMap(code_id);
 	ParentMap(file_id);
 	MC_Bind(move_left_alpha_numeric_boundary,           KeyCode_Left, KeyCode_Control);
@@ -551,17 +551,17 @@ function void MC_setup_default_mapping(Mapping *mapping, i64 global_id, i64 file
 #if MC_USE_STUB
 function void MC_STUB_startup(Application_Links *app){
 	default_startup(app);
-
+    
 	String_ID global_map_id = vars_save_string_lit("keys_global");
 	String_ID file_map_id = vars_save_string_lit("keys_file");
 	String_ID code_map_id = vars_save_string_lit("keys_code");
 	MC_setup_default_mapping(&framework_mapping, global_map_id, file_map_id, code_map_id);
-
+    
 	MC_register(exit_4coder,                  MC_Command_Global);
 	MC_register(default_try_exit,             MC_Command_Global);
 	MC_register(mouse_wheel_change_face_size, MC_Command_Global);
 	MC_register(swap_panels,                  MC_Command_Global);
-
+    
 	MC_register(copy,             MC_Command_CursorCopy);
 	MC_register(cut,              MC_Command_CursorCopy);
 	MC_register(paste_and_indent, MC_Command_CursorPaste);
@@ -570,26 +570,26 @@ function void MC_STUB_startup(Application_Links *app){
 void custom_layer_init(Application_Links *app){
 	Thread_Context *tctx = get_thread_context(app);
 	default_framework_init(app);
-
+    
 	MC_init(app);
-
+    
 	set_all_default_hooks(app);
-
+    
 	set_custom_hook(app, HookID_Tick, MC_tick);
 	set_custom_hook(app, HookID_RenderCaller, MC_render_caller);
 	set_custom_hook(app, HookID_BufferEditRange, MC_buffer_edit_range);
-
+    
 	String_ID global_map_id = vars_save_string_lit("keys_global");
 	String_ID file_map_id = vars_save_string_lit("keys_file");
 	String_ID code_map_id = vars_save_string_lit("keys_code");
-
+    
 	mapping_init(tctx, &framework_mapping);
-
+    
 	setup_essential_mapping(&framework_mapping, global_map_id, file_map_id, code_map_id);
 	setup_default_mapping(&framework_mapping, global_map_id, file_map_id, code_map_id);
-
+    
 	MC_setup_essential_mapping(&framework_mapping, global_map_id, file_map_id, code_map_id);
-
+    
 	{
 		MappingScope();
 		SelectMapping(&framework_mapping);

@@ -1,5 +1,227 @@
 
-//~ NOTE(rjf): Render Hooks
+//~ NOTE(long): Essential Hooks
+
+// @COPYPASTA(long): default_try_exit
+CUSTOM_COMMAND_SIG(long_try_exit)
+CUSTOM_DOC("Command for responding to a try-exit event")
+{
+    User_Input input = get_current_input(app);
+    if (match_core_code(&input, CoreCode_TryExit))
+    {
+        b32 do_exit = 1;
+        if (!allow_immediate_close_without_checking_for_changes)
+        {
+            Scratch_Block scratch(app);
+            String8List dirty_list = {};
+            
+            for (Buffer_ID buffer = get_buffer_next(app, 0, Access_Always); buffer;
+                 buffer = get_buffer_next(app, buffer, Access_Always))
+            {
+                Dirty_State dirty = buffer_get_dirty_state(app, buffer);
+                if (HasFlag(dirty, DirtyState_UnsavedChanges))
+                {
+                    String8 name = push_buffer_unique_name(app, scratch, buffer);
+                    string_list_push(scratch, &dirty_list, name);
+                }
+            }
+            
+            u64 dirty_count = dirty_list.node_count;
+            if (dirty_count)
+            {
+                String8 dirty_names = string_list_flatten(scratch, dirty_list, S8Lit(", "), 0, 0);
+                String8 query = S8Lit("There is one dirty buffer, close anyway?");
+                if (dirty_count > 1)
+                    query = push_stringf(scratch, "There are %llu dirty buffers, close anyway?", dirty_count);
+                
+                Lister_Choice_List list = {};
+                lister_choice(scratch, &list, "(N)o",            "", KeyCode_N, SureToKill_No);
+                lister_choice(scratch, &list, "(Y)es",           "", KeyCode_Y, SureToKill_Yes);
+                lister_choice(scratch, &list, "(S)ave", dirty_names, KeyCode_S, SureToKill_Save);
+                
+                do_exit = 0;
+                Lister_Choice* choice = get_choice_from_user(app, query, list);
+                
+                if (choice != 0)
+                {
+                    switch (choice->user_data)
+                    {
+                        case SureToKill_Save: save_all_dirty_buffers(app);
+                        case SureToKill_Yes:
+                        {
+                            allow_immediate_close_without_checking_for_changes = 1;
+                            do_exit = 1;
+                        } break;
+                    }
+                }
+            }
+        }
+        
+        if (do_exit)
+            hard_exit(app);
+    }
+}
+
+function void Long_MC_Pull(Application_Links *app, View_ID view, MC_Command_Kind kind, MC_Node* node)
+{
+    node->cursor_pos = view_get_cursor_pos(app, view);
+    node->mark_pos = view_get_mark_pos(app, view);
+    if (kind == MC_Command_CursorCopy)
+        node->clipboard = push_clipboard_index(&mc_context.arena_clipboard, 0, 0);
+}
+
+function void Long_MC_Push(Application_Links *app, View_ID view, MC_Command_Kind kind, MC_Node* node)
+{
+    view_set_cursor(app, view, seek_pos(node->cursor_pos));
+    view_set_mark(app, view, seek_pos(node->mark_pos));
+    if (kind == MC_Command_CursorPaste)
+        MCi_clipboard_push(node->clipboard);
+}
+
+// @COPYPASTA(long): MC_apply
+function void Long_MC_Apply(Application_Links* app, Managed_Scope scope, Custom_Command_Function* func, MC_Command_Kind kind)
+{
+    View_ID view = mc_context.view;
+    Buffer_ID buffer = view_get_buffer(app, view, Access_Always);
+    i64 old_pos = view_get_cursor_pos(app, view);
+    
+    // Run standard cursor
+    default_pre_command(app, scope);
+    func(app);
+    Long_ConfirmMarkSnapToCursor(app);
+    
+    // Check that `func` should be safe to re-run
+    if (view != get_active_view(app, Access_Always) || buffer != view_get_buffer(app, view, Access_Always))
+    {
+        END:
+        MC_end(app);
+        return;
+    }
+    
+    b32 pos_has_changed = old_pos != view_get_cursor_pos(app, view);
+    Command_Metadata* meta = get_command_metadata(func);
+    if (meta && meta->is_ui && pos_has_changed)
+        goto END;
+    
+    Input_Event event = get_current_input(app).event;
+    // When the user is moving the mouse, end MC mode when the cursor position has changed
+    if ((event.kind == InputEventKind_MouseMove || event.kind == InputEventKind_MouseButton ||
+         event.kind == InputEventKind_MouseButtonRelease) && pos_has_changed)
+        goto END;
+    
+    // @CONSIDER(long): Handle the case where the user switches views by clicking
+    //if (event.kind == InputEventKind_Core && event.core.code == CoreCode_ClickActivateView);
+    
+    if (kind == MC_Command_Global) return;
+    
+    // Since copy doesn't read from MC clipboards, clear it before doing multiple copies
+    // _CopyPaste would require double-buffering arenas, rather not complicate for nothing
+    if (kind == MC_Command_CursorCopy)
+        linalloc_clear(&mc_context.arena_clipboard);
+    
+    Buffer_Scroll scroll = view_get_buffer_scroll(app, mc_context.view);
+    String8 clipboard = MCi_clipboard_pull();
+    MC_Node prev = {mc_context.cursors};
+    Long_MC_Pull(app, mc_context.view, kind, &prev);
+    mc_context.cursors = &prev;
+    
+    for (MC_Node* n = prev.next; n; n = n->next)
+    {
+        Long_MC_Push(app, mc_context.view, kind, n);
+        Long_SnapMarkToCursor(app);
+        
+        mc_context.active_cursor = n;
+        func(app);
+        
+        Long_ConfirmMarkSnapToCursor(app);
+        Long_MC_Pull(app, mc_context.view, kind, n);
+    }
+    
+    Rewrite_Type* next_rewrite = scope_attachment(app, scope, view_next_rewrite_loc, Rewrite_Type);
+    if (next_rewrite)
+    {
+        if (*next_rewrite != Rewrite_NoChange)
+        {
+            Rewrite_Type* rewrite = scope_attachment(app, scope, view_rewrite_loc, Rewrite_Type);
+            *rewrite = *next_rewrite;
+        }
+    }
+    
+    mc_context.active_cursor = 0;
+    mc_context.cursors = prev.next;
+    
+    Long_MC_Push(app, mc_context.view, kind, &prev);
+    MCi_clipboard_push(clipboard);
+    view_set_buffer_scroll(app, mc_context.view, scroll, SetBufferScroll_NoCursorChange);
+}
+
+CUSTOM_COMMAND_SIG(long_view_input_handler)
+CUSTOM_DOC("Input consumption loop for default view behavior")
+{
+    Scratch_Block scratch(app);
+    default_input_handler_init(app, scratch);
+    
+    View_ID view = get_this_ctx_view(app, Access_Always);
+    Managed_Scope scope = view_get_managed_scope(app, view);
+    
+    for (;;)
+    {
+        // NOTE(allen): Get input
+        User_Input input = get_next_input(app, EventPropertyGroup_Any, 0);
+        Input_Event* event = &input.event;
+        if (input.abort)
+            break;
+        
+        // NOTE(allen): Mouse Suppression
+        Event_Property event_properties = get_event_properties(event);
+        if (suppressing_mouse && (event_properties & EventPropertyGroup_AnyMouseEvent) != 0)
+            continue;
+        
+        // NOTE(allen): Get binding
+        if (!implicit_map_function)
+            implicit_map_function = default_implicit_map;
+        Implicit_Map_Result map_result = implicit_map_function(app, 0, 0, event);
+        if (map_result.command == 0)
+        {
+            leave_current_input_unhandled(app);
+            continue;
+        }
+        
+        if (mc_context.active && mc_context.view == get_this_ctx_view(app, Access_Always))
+        {
+            if (event->kind == InputEventKind_Core && event->core.code == CoreCode_NewClipboardContents)
+            {
+                linalloc_clear(&mc_context.arena_clipboard);
+                String8 string = push_string_copy(&mc_context.arena_clipboard, event->core.string);
+                for_mc(node, mc_context.cursors)
+                    node->clipboard = string;
+            }
+            
+            Table_Lookup lookup = table_lookup(&mc_context.table, HandleAsU64(map_result.command));
+            if (lookup.found_match)
+            {
+                u64 val = mc_context.table.vals[lookup.index];
+                Long_MC_Apply(app, scope, map_result.command, MC_Command_Kind(val));
+            }
+            
+            else
+            {
+                MC_apply(app, MC_error_fade, MC_Command_Cursor);
+                Command_Metadata* meta = get_command_metadata(map_result.command);
+                Long_Print_Messagef(app, "[MC] <%s> not available during multi-cursor mode\n", meta ? meta->name : "Command");
+            }
+        }
+        
+        else
+        {
+            // NOTE(allen): Run the command and pre/post command stuff
+            default_pre_command(app, scope);
+            map_result.command(app);
+            default_post_command(app, scope);
+        }
+    }
+}
+
+//~ NOTE(long): Render Hooks
 
 // @COPYPASTA(long): F4_RenderBuffer
 function void Long_RenderBuffer(Application_Links* app, View_ID view_id, Buffer_ID buffer, Face_ID face_id,
@@ -66,7 +288,7 @@ function void Long_RenderBuffer(Application_Links* app, View_ID view_id, Buffer_
                 {S8Lit("TODO"), finalize_color(defcolor_comment_pop, 1)},
                 {    user_name, finalize_color(fleury_color_comment_user_name, 0)},
             };
-            draw_comment_highlights(app, buffer, text_layout_id, &token_array, pairs, ArrayCount(pairs));
+            Long_Render_CommentHighlight(app, buffer, text_layout_id, &token_array, pairs, ArrayCount(pairs));
         }
     }
     else
@@ -304,6 +526,22 @@ function void Long_DrawFileBar(Application_Links* app, View_ID view_id, Buffer_I
     
     draw_rectangle_fcolor(app, bar, 0.f, fcolor_id(defcolor_bar));
     
+    if (!def_get_config_b32_lit("f4_disable_progress_bar"))
+    {
+        f32 progress = (f32)cursor.line / (f32)buffer_get_line_count(app, buffer);
+        Rect_f32 progress_bar_rect =
+        {
+            bar.x0,
+            bar.y0,
+            bar.x0 + (bar.x1 - bar.x0) * progress,
+            bar.y1,
+        };
+        
+        ARGB_Color progress_bar_color = Long_ARGBFromID(fleury_color_file_progress_bar);
+        if (F4_ARGBIsValid(progress_bar_color))
+            draw_rectangle(app, progress_bar_rect, 0, progress_bar_color);
+    }
+    
     Fancy_Line list = {};
     String_Const_u8 unique_name = push_buffer_unique_name(app, scratch, buffer);
     push_fancy_string(scratch, &list, base_color, unique_name);
@@ -369,22 +607,6 @@ function void Long_DrawFileBar(Application_Links* app, View_ID view_id, Buffer_I
     }
     
     draw_fancy_line(app, face_id, fcolor_zero(), &list, bar.p0 + V2f32(2.f, 2.f));
-    
-    if (!def_get_config_b32_lit("f4_disable_progress_bar"))
-    {
-        f32 progress = (f32)cursor.line / (f32)buffer_get_line_count(app, buffer);
-        Rect_f32 progress_bar_rect =
-        {
-            bar.x0 + (bar.x1 - bar.x0)*  progress,
-            bar.y0,
-            bar.x1,
-            bar.y1,
-        };
-        
-        ARGB_Color progress_bar_color = Long_ARGBFromID(fleury_color_file_progress_bar);
-        if (F4_ARGBIsValid(progress_bar_color))
-            draw_rectangle(app, progress_bar_rect, 0, progress_bar_color);
-    }
 }
 
 function void Long_Render(Application_Links* app, Frame_Info frame_info, View_ID view_id)
@@ -406,7 +628,7 @@ function void Long_Render(Application_Links* app, Frame_Info frame_info, View_ID
     Buffer_ID buffer = view_get_buffer(app, view_id, Access_Always);
     String_Const_u8 buffer_name = push_buffer_base_name(app, scratch, buffer);
     
-    //~ NOTE(rjf): Draw background.
+    //- NOTE(long): Draw background
     {
         ARGB_Color color = Long_ARGBFromID(defcolor_back);
         if (string_match(buffer_name, S8Lit("*compilation*")))
@@ -424,11 +646,11 @@ function void Long_Render(Application_Links* app, Frame_Info frame_info, View_ID
         draw_margin(app, view_rect, region, color);
     }
     
-    //~ NOTE(rjf): Draw margin.
+    //- NOTE(long): Draw margin
     {
         ARGB_Color color = Long_ARGBFromID(defcolor_margin);
         if (def_get_config_b32_lit("f4_margin_use_mode_color") && is_active_view)
-            color = Long_GetColor(app, ColorCtx_Cursor(0, GlobalKeybindingMode));
+            color = Long_Color_Cursor(app, 0, GlobalKeybindingMode);
         draw_margin(app, view_rect, region, color);
     }
     
