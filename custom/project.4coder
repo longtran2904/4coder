@@ -52,4 +52,4 @@ fkey_command = {
     .F2 = "build_lexers",
 };
 
-reference_paths = { "D:\Programs\4coder\custom\generated" };
+reference_paths = { "D:/Programs/4coder/custom/generated" };

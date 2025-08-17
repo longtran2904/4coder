@@ -1,6 +1,13 @@
 
 //~ NOTE(long): Essential Hooks
 
+//void A(int abcdefghijklmnopqrstuvwxyz0123456789abcdefghijklmnopqrstuvwxyz0123456789abcdefghijklmnopqrstuvwxyz0123456789
+//abcdefghijklmnopqrstuvwxyz0123456789abcdefghijklmnopqrstuvwxyz0123456789abcdefghijklmnopqrstuvwxyz0123456789
+//abcdefghijklmnopqrstuvwxyz0123456789abcdefghijklmnopqrstuvwxyz0123456789abcdefghijklmnopqrstuvwxyz0123456789abcdefghijklmnopqrstuvwxyz0123456789abcdefghijklmnopqrstuvwxyz0123456789abcdefghijklmnopqrstuvwxyz0123456789abcdefghijklmnopqrstuvwxyz0123456789abcdefghijklmnopqrstuvwxyz0123456789
+//abcdefghijklmnopqrstuvwxyz0123456789abcdefghijklmnopqrstuvwxyz0123456789abcdefghijklmnopqrstuvwxyz0123456789abcdefghijklmnopqrstuvwxyz0123456789abcdefghijklmnopqrstuvwxyz0123456789abcdefghijklmnopqrstuvwxyz0123456789abcdefghijklmnopqrstuvwxyz0123456789abcdefghijklmnopqrstuvwxyz0123456789abcdefghijklmnopqrstuvwxyz0123456789
+//abcdefghijklmnopqrstuvwxyz0123456789abcdefghijklmnopqrstuvwxyz0123456789abcdefghijklmnopqrstuvwxyz0123456789abcdefghijklmnopqrstuvwxyz0123456789abcdefghijklmnopqrstuvwxyz0123456789abcdefghijklmnopqrstuvwxyz0123456789abcdefghijklmnopqrstuvwxyz0123456789abcdefghijklmnopqrstuvwxyz0123456789abcdefghijklmnopqrstuvwxyz0123456789abcdefghijklmnopqrstuvwxyz0123456789);
+//A()
+
 // @COPYPASTA(long): default_try_exit
 CUSTOM_COMMAND_SIG(long_try_exit)
 CUSTOM_DOC("Command for responding to a try-exit event")
@@ -14,8 +21,7 @@ CUSTOM_DOC("Command for responding to a try-exit event")
             Scratch_Block scratch(app);
             String8List dirty_list = {};
             
-            for (Buffer_ID buffer = get_buffer_next(app, 0, Access_Always); buffer;
-                 buffer = get_buffer_next(app, buffer, Access_Always))
+            for (Buffer_ID buffer = get_buffer_next(app, 0, Access_Always); buffer; buffer = get_buffer_next(app, buffer, Access_Always))
             {
                 Dirty_State dirty = buffer_get_dirty_state(app, buffer);
                 if (HasFlag(dirty, DirtyState_UnsavedChanges))
@@ -221,528 +227,10 @@ CUSTOM_DOC("Input consumption loop for default view behavior")
     }
 }
 
-//~ NOTE(long): Render Hooks
-
-// @COPYPASTA(long): F4_RenderBuffer
-function void Long_RenderBuffer(Application_Links* app, View_ID view_id, Buffer_ID buffer, Face_ID face_id,
-                                Text_Layout_ID text_layout_id,
-                                Rect_f32 rect, Frame_Info frame_info)
-{
-    Scratch_Block scratch(app);
-    ProfileScope(app, "[Long] Render Buffer");
-    
-    // NOTE(long): When fading out an undo, the BufferEditRange hook will run before the Tick hook, making the note tree outdated.
-    // Later, the RenderCaller hook will try to look up the color based on the old tree and crash the program.
-    // 1. F4_Language_LexFullInput_NoBreaks (BufferEditRange) will modify the Token list and the buffer (buffer_mark_as_modified)
-    // 2. F4_Render (HookdID_RenderCaller) uses the outdated note tree and crashes the program, so step 3 never runs
-    // 3. F4_Index_Tick (F4_Tick/HookID_Tick) updates the note tree correctly and clears the global_buffer_modified_set
-    // (F4_Tick -> default_tick -> code_index_update_tick -> buffer_modified_set_clear)
-    // Calling the Tick function here will fix the problem.
-    
-    // This bug only happens when you undo/paste some text, not when you redo/delete/type the text.
-    // The render hook always runs after the tick hook and global_buffer_modified_set is always empty in the latter case
-    for (Buffer_Modified_Node* node = global_buffer_modified_set.first; node; node = node->next)
-    {
-        if (node->buffer == buffer)
-        {
-            Long_Index_Tick(app);
-            code_index_update_tick(app);
-            break;
-        }
-    }
-    
-    View_ID active_view = get_active_view(app, Access_Always);
-    b32 is_active_view = (active_view == view_id);
-    
-    Rect_f32 prev_clip = draw_set_clip(app, rect);
-    Rect_f32 view_rect = view_get_screen_rect(app, view_id);
-    
-    Range_i64 visible_range = text_layout_get_visible_range(app, text_layout_id);
-    String8 buffer_name = push_buffer_base_name(app, scratch, buffer);
-    
-    i64 cursor_pos = view_correct_cursor(app, view_id);
-    view_correct_mark(app, view_id);
-    
-    f32 cursor_roundness, mark_thickness;
-    {
-        Face_Metrics metrics = get_face_metrics(app, face_id);
-        u64 cursor_roundness_100 = def_get_config_u64_lit(app, "cursor_roundness");
-        cursor_roundness = metrics.normal_advance*cursor_roundness_100*0.01f;
-        mark_thickness = (f32)def_get_config_u64_lit(app, "mark_thickness");
-    }
-    
-    // NOTE(allen): Token colorizing
-    Token_Array token_array = get_token_array_from_buffer(app, buffer);
-    if (token_array.tokens != 0)
-    {
-        Long_SyntaxHighlight(app, text_layout_id, &token_array);
-        
-        // NOTE(allen): Scan for TODOs and NOTEs
-        b32 use_comment_keywords = def_get_config_b32_lit("use_comment_keywords");
-        if (use_comment_keywords)
-        {
-            String8 user_name = def_get_config_str_lit(scratch, "user_name");
-            Comment_Highlight_Pair pairs[] =
-            {
-                {S8Lit("NOTE"), finalize_color(defcolor_comment_pop, 0)},
-                {S8Lit("TODO"), finalize_color(defcolor_comment_pop, 1)},
-                {    user_name, finalize_color(fleury_color_comment_user_name, 0)},
-            };
-            Long_Render_CommentHighlight(app, buffer, text_layout_id, &token_array, pairs, ArrayCount(pairs));
-        }
-    }
-    else
-        paint_text_color_fcolor(app, text_layout_id, visible_range, fcolor_id(defcolor_text_default));
-    
-    // NOTE(allen): Scope highlight
-    if (def_get_config_b32_lit("use_scope_highlight"))
-    {
-        Color_Array colors = finalize_color_array(defcolor_back_cycle);
-        draw_scope_highlight(app, buffer, text_layout_id, cursor_pos, colors.vals, colors.count);
-    }
-    
-    // NOTE(rjf): Brace highlight
-#ifdef FCODER_FLEURY_BRACE_H
-    {
-        Color_Array colors = finalize_color_array(fleury_color_brace_highlight);
-        if (colors.count >= 1 && F4_ARGBIsValid(colors.vals[0]))
-            F4_Brace_RenderHighlight(app, buffer, text_layout_id, cursor_pos, colors.vals, colors.count);
-    }
-#endif
-    
-    // NOTE(allen): Line highlight
-    {
-        b32 highlight_line_at_cursor = def_get_config_b32_lit("highlight_line_at_cursor");
-        b32 special_buffer = string_match(buffer_name, S8Lit("*compilation*")) || string_match(buffer_name, S8Lit("*search*"));
-        if (highlight_line_at_cursor && (is_active_view || special_buffer))
-        {
-            i64 line = get_line_number_from_pos(app, buffer, cursor_pos);
-            draw_line_highlight(app, text_layout_id, line, fcolor_id(defcolor_highlight_cursor_line));
-        }
-    }
-    
-    // NOTE(rjf): Error/Search Highlight
-    {
-        b32 use_error_highlight = def_get_config_b32_lit("use_error_highlight");
-        b32  use_jump_highlight = def_get_config_b32_lit( "use_jump_highlight");
-        
-        if (use_error_highlight || use_jump_highlight)
-        {
-            Buffer_ID compilation_buffer = get_buffer_by_name(app, S8Lit("*compilation*"), Access_Always);
-            
-            // NOTE(allen): Error highlight
-            if (use_error_highlight)
-                Long_Highlight_DrawErrors(app, buffer, text_layout_id, compilation_buffer);
-            
-            // NOTE(allen): Search highlight
-            if (use_jump_highlight)
-            {
-                Buffer_ID jump_buffer = get_locked_jump_buffer(app);
-                if (jump_buffer != compilation_buffer)
-                    draw_jump_highlights(app, buffer, text_layout_id, jump_buffer, fcolor_id(defcolor_highlight_white));
-            }
-        }
-    }
-    
-    Long_Highlight_DrawRangeList(app, view_id, buffer, text_layout_id, cursor_roundness);
-    Long_Highlight_DrawRange(app, view_id, buffer, text_layout_id, cursor_roundness);
-    
-    // NOTE(jack): Token Occurrence Highlight
-    if (!def_get_config_b32_lit("f4_disable_cursor_token_occurance")) 
-    {
-        ProfileScope(app, "[Long] Token Occurrence Highlight");
-        
-        // NOTE(jack): Get the active cursor's token string
-        Buffer_ID active_buffer = view_get_buffer(app, active_view, Access_Always);
-        i64 active_cursor_pos = view_get_cursor_pos(app, active_view);
-        Token_Array active_array = get_token_array_from_buffer(app, active_buffer);
-        Token_Iterator_Array cursor_it = token_iterator_pos(0, &active_array, active_cursor_pos);
-        Token* cursor_token = token_it_read(&cursor_it);
-        
-        if (cursor_token)
-        {
-            // Loop the visible tokens
-            i64 first_index = token_index_from_pos(&token_array, visible_range.first);
-            Token_Iterator_Array it = token_iterator_index(0, &token_array, first_index);
-            for (;;)
-            {
-                Token* token = token_it_read(&it);
-                if (!token || token->pos >= visible_range.one_past_last)
-                    break;
-                
-                if (token->kind == TokenBaseKind_Identifier)
-                {
-                    String8 cursor_lexeme = push_token_lexeme(app, scratch, active_buffer, cursor_token);
-                    Range_i64 range = Ii64(token);
-                    String8 lexeme = push_buffer_range(app, scratch, buffer, range);
-                    
-                    // NOTE(jack) If this is the buffers cursor token, highlight it with an Underline
-                    if (range_contains(range, view_get_cursor_pos(app, view_id)))
-                        F4_RenderRangeHighlight(app, view_id, text_layout_id, range, F4_RangeHighlightKind_Underline,
-                                                Long_ARGBFromID(fleury_color_token_highlight));
-                    // NOTE(jack): If the token matches the active buffer token. highlight it with a Minor Underline
-                    else if (cursor_token->kind == TokenBaseKind_Identifier && string_match(lexeme, cursor_lexeme))
-                        F4_RenderRangeHighlight(app, view_id, text_layout_id, range, F4_RangeHighlightKind_MinorUnderline,
-                                                Long_ARGBFromID(fleury_color_token_minor_highlight)); 
-                }
-                
-                if (!token_it_inc_non_whitespace(&it))
-                    break;
-            }
-        }
-    }
-    
-    // NOTE(jack): if "f4_disable_cursor_token_occurance" is set, just highlight the cusror 
-    else
-    {
-        ProfileScope(app, "[Long] Token Highlight");
-        Token_Iterator_Array it = token_iterator_pos(0, &token_array, cursor_pos);
-        Token* token = token_it_read(&it);
-        if (token && token->kind == TokenBaseKind_Identifier)
-            F4_RenderRangeHighlight(app, view_id, text_layout_id, Ii64(token), F4_RangeHighlightKind_Underline,
-                                    Long_ARGBFromID(fleury_color_token_highlight));
-    }
-    
-    // NOTE(rjf): Flashes
-    F4_RenderFlashes(app, view_id, text_layout_id);
-    
-    // NOTE(allen): Color parens
-    if (def_get_config_b32_lit("use_paren_helper"))
-    {
-        Color_Array colors = finalize_color_array(defcolor_text_cycle);
-        draw_paren_highlight(app, buffer, text_layout_id, cursor_pos, colors.vals, colors.count);
-    }
-    
-    // NOTE(rjf): Divider Comments
-    Long_Render_DividerComments(app, buffer, text_layout_id);
-    
-    // NOTE(rjf): Cursor Mark Range
-    if (is_active_view && fcoder_mode == FCoderMode_Original)
-        Long_HighlightCursorMarkRange(app, view_id);
-    
-    // NOTE(long): Jump list highlights
-    Long_MC_DrawHighlights(app, view_id, buffer, text_layout_id, cursor_roundness, mark_thickness, is_active_view);
-    Long_Render_HexColor(app, view_id, buffer, text_layout_id);
-    
-    // NOTE(rjf): Cursor
-    switch (fcoder_mode)
-    {
-        case FCoderMode_Original:      Long_Render_EmacsCursor(app, view_id, buffer, text_layout_id, frame_info,
-                                                               cursor_roundness, mark_thickness, is_active_view); break;
-        case FCoderMode_NotepadLike: Long_Render_NotepadCursor(app, view_id, buffer, text_layout_id, frame_info,
-                                                               cursor_roundness, mark_thickness, is_active_view); break;
-    }
-    
-#ifdef FCODER_FLEURY_BRACE_H
-    // NOTE(rjf): Brace annotations/lines
-    F4_Brace_RenderCloseBraceAnnotation(app, buffer, text_layout_id, cursor_pos);
-    F4_Brace_RenderLines(app, buffer, view_id, text_layout_id, cursor_pos);
-#endif
-    
-    // NOTE(allen): Fade ranges
-    paint_fade_ranges(app, text_layout_id, buffer);
-    
-    // NOTE(allen): put the actual text on the actual screen
-    draw_text_layout_default(app, text_layout_id);
-    
-#ifdef FCODER_FLEURY_CALC_H
-    // NOTE(rjf): Interpret buffer as calc code, if it's the calc buffer.
-    if (string_match(buffer_name, S8Lit("*calc*")))
-        F4_CLC_RenderBuffer(app, buffer, view_id, text_layout_id, frame_info);
-    
-    // NOTE(rjf): Draw calc comments.
-    Long_Render_CalcComments(app, view_id, buffer, text_layout_id, frame_info);
-#endif
-    
-    draw_set_clip(app, prev_clip);
-    
-    // NOTE(rjf): Draw tooltips and stuff.
-    if (is_active_view)
-    {
-        // NOTE(rjf): Position context helper
-        F4_Language* language = F4_LanguageFromBuffer(app, buffer);
-        if (language)
-            Long_Index_DrawPosContext(app, view_id, language->PosContext(app, scratch, buffer, cursor_pos));
-        
-        // NOTE(rjf): Draw tooltip list.
-        {
-            Mouse_State mouse = get_mouse_state(app);
-            Face_ID tooltip_face_id = global_small_code_face;
-            Face_Metrics tooltip_face_metrics = get_face_metrics(app, tooltip_face_id);
-            
-            Rect_f32 tooltip_rect =
-            {
-                (f32)mouse.x + 16,
-                (f32)mouse.y + 16,
-                (f32)mouse.x + 16,
-                (f32)mouse.y + 16 + tooltip_face_metrics.line_height + 8,
-            };
-            
-            for (i32 i = 0; i < global_tooltip_count; ++i)
-            {
-                String8 string = global_tooltips[i].string;
-                tooltip_rect.x1 = tooltip_rect.x0;
-                tooltip_rect.x1 += get_string_advance(app, tooltip_face_id, string) + 4;
-                
-                if (tooltip_rect.x1 > view_rect.x1)
-                {
-                    f32 difference = tooltip_rect.x1 - view_rect.x1;
-                    tooltip_rect.x1 = (f32)(i32)(tooltip_rect.x1 - difference);
-                    tooltip_rect.x0 = (f32)(i32)(tooltip_rect.x0 - difference);
-                }
-                
-                Long_Render_TooltipRect(app, tooltip_rect);
-                draw_string(app, tooltip_face_id, string, V2f32(tooltip_rect.x0 + 4, tooltip_rect.y0 + 4),
-                            global_tooltips[i].color);
-                
-                f32 height = rect_height(tooltip_rect) + 1;
-                tooltip_rect.y0 += height;
-                tooltip_rect.y1 += height;
-            }
-        }
-    }
-    
-    // NOTE(rjf): Draw inactive rectangle
-    else
-    {
-        ARGB_Color color = Long_ARGBFromID(fleury_color_inactive_pane_overlay);
-        if (F4_ARGBIsValid(color))
-            draw_rectangle(app, view_rect, 0.f, color);
-    }
-    
-    // NOTE(rjf): Render code peek.
-    if (!view_get_is_passive(app, view_id) && !is_active_view)
-        Long_Index_DrawCodePeek(app, view_id);
-}
-
-// @COPYPASTA(long): F4_DrawFileBar
-function void Long_DrawFileBar(Application_Links* app, View_ID view_id, Buffer_ID buffer, Face_ID face_id, Rect_f32 bar)
-{
-    Scratch_Block scratch(app);
-    
-    FColor base_color = fcolor_id(defcolor_base);
-    FColor pop2_color = fcolor_id(defcolor_pop2);
-    Buffer_Cursor cursor = view_compute_cursor(app, view_id, seek_pos(view_get_cursor_pos(app, view_id)));
-    
-    draw_rectangle_fcolor(app, bar, 0.f, fcolor_id(defcolor_bar));
-    
-    if (!def_get_config_b32_lit("f4_disable_progress_bar"))
-    {
-        f32 progress = (f32)cursor.line / (f32)buffer_get_line_count(app, buffer);
-        Rect_f32 progress_bar_rect =
-        {
-            bar.x0,
-            bar.y0,
-            bar.x0 + (bar.x1 - bar.x0) * progress,
-            bar.y1,
-        };
-        
-        ARGB_Color progress_bar_color = Long_ARGBFromID(fleury_color_file_progress_bar);
-        if (F4_ARGBIsValid(progress_bar_color))
-            draw_rectangle(app, progress_bar_rect, 0, progress_bar_color);
-    }
-    
-    Fancy_Line list = {};
-    String_Const_u8 unique_name = push_buffer_unique_name(app, scratch, buffer);
-    push_fancy_string(scratch, &list, base_color, unique_name);
-    
-    if (buffer == get_comp_buffer(app))
-    {
-        String8 str = push_whole_buffer(app, scratch, buffer);
-        u32 counts[2] = {};
-        for (u64 i = 0; i < str.size; ++i)
-        {
-            String8 searches[] = { S8Lit(": error"), S8Lit(": warning") };
-            for (u64 search = 0; search < ArrayCount(searches); ++search)
-            {
-                String8 substr = string_substring(str, Ii64_size(i, searches[search].size));
-                if (string_match(substr, searches[search], StringMatch_CaseInsensitive))
-                {
-                    i += substr.size - 1;
-                    counts[search]++;
-                    break;
-                }
-            }
-        }
-        
-        i64 line_count = buffer_get_line_count(app, buffer);
-        push_fancy_stringf(scratch, &list, base_color,
-                           " - Line Count: %3llu Row: %3.lld Col: %3.lld - %3u Error(s) %3u Warning(s)",
-                           line_count, cursor.line, cursor.col, counts[0], counts[1]);
-    }
-    else
-    {
-        push_fancy_stringf(scratch, &list, base_color, ": %d", buffer);
-        push_fancy_stringf(scratch, &list, base_color, " - Row: %3.lld Col: %3.lld Pos: %4lld -",
-                           cursor.line, cursor.col, cursor.pos);
-        
-        Managed_Scope scope = buffer_get_managed_scope(app, buffer);
-        Line_Ending_Kind* eol_setting = scope_attachment(app, scope, buffer_eol_setting, Line_Ending_Kind);
-        switch (*eol_setting)
-        {
-            case LineEndingKind_Binary: push_fancy_string(scratch, &list, base_color, S8Lit( " bin")); break;
-            case LineEndingKind_LF:     push_fancy_string(scratch, &list, base_color, S8Lit(  " lf")); break;
-            case LineEndingKind_CRLF:   push_fancy_string(scratch, &list, base_color, S8Lit(" crlf")); break;
-        }
-        
-        u8 space[3];
-        {
-            Dirty_State dirty = buffer_get_dirty_state(app, buffer);
-            String_u8 str = Su8(space, 0, 3);
-            if (dirty != DirtyState_UpToDate)
-                string_append(&str, S8Lit(" "));
-            if (HasFlag(dirty, DirtyState_UnsavedChanges))
-                string_append(&str, S8Lit("*"));
-            if (HasFlag(dirty, DirtyState_UnloadedChanges))
-                string_append(&str, S8Lit("!"));
-            push_fancy_string(scratch, &list, pop2_color, str.string);
-        }
-        
-        b32 enable_virtual_whitespace = def_get_config_b32_lit("enable_virtual_whitespace");
-        push_fancy_stringf(scratch, &list, base_color, " Virtual Whitespace: %s",
-                           enable_virtual_whitespace ? "On" : "Off");
-        
-        push_fancy_stringf(scratch, &list, base_color, " - Left/Right: %s/%s",
-                           (long_global_move_side>>1) ? "Max" : "Min", (long_global_move_side&1) ? "Max" : "Min");
-    }
-    
-    draw_fancy_line(app, face_id, fcolor_zero(), &list, bar.p0 + V2f32(2.f, 2.f));
-}
-
-function void Long_Render(Application_Links* app, Frame_Info frame_info, View_ID view_id)
-{
-#ifdef FCODER_FLEURY_RECENT_FILES_H
-    F4_RecentFiles_RefreshView(app, view_id);
-#endif
-    
-    ProfileScope(app, "[Long] Render");
-    Scratch_Block scratch(app);
-    
-    View_ID active_view = get_active_view(app, Access_Always);
-    b32 is_active_view = (active_view == view_id);
-    
-    f32 margin_size = (f32)def_get_config_u64_lit(app, "f4_margin_size");
-    Rect_f32 view_rect = view_get_screen_rect(app, view_id);
-    Rect_f32 region = rect_inner(view_rect, margin_size);
-    
-    Buffer_ID buffer = view_get_buffer(app, view_id, Access_Always);
-    String_Const_u8 buffer_name = push_buffer_base_name(app, scratch, buffer);
-    
-    //- NOTE(long): Draw background
-    {
-        ARGB_Color color = Long_ARGBFromID(defcolor_back);
-        if (string_match(buffer_name, S8Lit("*compilation*")))
-            color = color_blend(color, 0.5f, 0xff000000);
-        
-        // NOTE(rjf): Inactive background color.
-        else if (!is_active_view)
-        {
-            ARGB_Color inactive_bg_color = Long_ARGBFromID(fleury_color_inactive_pane_background);
-            if (F4_ARGBIsValid(inactive_bg_color))
-                color = inactive_bg_color;
-        }
-        
-        draw_rectangle(app, region, 0.f, color);
-        draw_margin(app, view_rect, region, color);
-    }
-    
-    //- NOTE(long): Draw margin
-    {
-        ARGB_Color color = Long_ARGBFromID(defcolor_margin);
-        if (def_get_config_b32_lit("f4_margin_use_mode_color") && is_active_view)
-            color = Long_Color_Cursor(app, 0, GlobalKeybindingMode);
-        draw_margin(app, view_rect, region, color);
-    }
-    
-    Rect_f32 prev_clip = draw_set_clip(app, region);
-    
-    Face_ID face_id = get_face_id(app, buffer);
-    f32 line_height, digit_advance;
-    {
-        Face_Metrics face_metrics = get_face_metrics(app, face_id);
-        line_height = face_metrics.line_height;
-        digit_advance = face_metrics.decimal_digit_advance;
-    }
-    
-    // NOTE(allen): file bar
-    b64 showing_file_bar = false;
-    if (view_get_setting(app, view_id, ViewSetting_ShowFileBar, &showing_file_bar) && showing_file_bar)
-    {
-        Face_ID global_face = get_face_id(app, 0);
-        Face_Metrics global_metrics = get_face_metrics(app, global_face);
-        
-        Rect_f32_Pair pair = layout_file_bar_on_top(region, global_metrics.line_height);
-        Long_DrawFileBar(app, view_id, buffer, global_face, pair.min);
-        region = pair.max;
-    }
-    
-    Buffer_Scroll scroll = view_get_buffer_scroll(app, view_id);
-    {
-        Buffer_Point_Delta_Result delta = delta_apply(app, view_id, frame_info.animation_dt, scroll);
-        if (!block_match_struct(&scroll.position, &delta.point))
-        {
-            block_copy_struct(&scroll.position, &delta.point);
-            view_set_buffer_scroll(app, view_id, scroll, SetBufferScroll_NoCursorChange);
-        }
-        
-        if (delta.still_animating)
-            animate_in_n_milliseconds(app, 0);
-    }
-    
-    // NOTE(allen): query bars
-    {
-        Query_Bar* space[32];
-        Query_Bar_Ptr_Array query_bars = {};
-        query_bars.ptrs = space;
-        if (get_active_query_bars(app, view_id, ArrayCount(space), &query_bars))
-        {
-            for (i32 i = 0; i < query_bars.count; i += 1)
-            {
-                Rect_f32_Pair pair = layout_query_bar_on_top(region, line_height, 1);
-                draw_query_bar(app, query_bars.ptrs[i], face_id, pair.min);
-                region = pair.max;
-            }
-        }
-    }
-    
-    // NOTE(allen): FPS hud
-    if (show_fps_hud)
-    {
-        Rect_f32_Pair pair = layout_fps_hud_on_bottom(region, line_height);
-        draw_fps_hud(app, frame_info, face_id, pair.max);
-        region = pair.min;
-        animate_in_n_milliseconds(app, 1000);
-    }
-    
-    // NOTE(allen): layout line numbers
-    Rect_f32 line_number_rect = {};
-    if (def_get_config_b32_lit("show_line_number_margins"))
-    {
-        Rect_f32_Pair pair = layout_line_number_margin(app, buffer, region, digit_advance);
-        line_number_rect = pair.min;
-        line_number_rect.x1 += 4;
-        region = pair.max;
-    }
-    
-    // NOTE(allen): begin buffer render
-    Text_Layout_ID text_layout_id = text_layout_create(app, buffer, region, scroll.position);
-    {
-        // NOTE(allen): draw line numbers
-        if (def_get_config_b32_lit("show_line_number_margins"))
-            Long_Render_LineOffsetNumber(app, view_id, buffer, face_id, text_layout_id, line_number_rect);
-        
-        // NOTE(allen): draw the buffer
-        Long_RenderBuffer(app, view_id, buffer, face_id, text_layout_id, region, frame_info);
-    }
-    text_layout_free(app, text_layout_id);
-    
-    draw_set_clip(app, prev_clip);
-}
-
 //~ NOTE(rjf): Tick Hook
 
 // @COPYPASTA(long): F4_Tick
-function void Long_Tick(Application_Links* app, Frame_Info frame_info)
+function void Long_Tick(Application_Links* app, Frame_Info frame)
 {
     linalloc_clear(&global_frame_arena);
     global_tooltip_count = 0;
@@ -751,32 +239,238 @@ function void Long_Tick(Application_Links* app, Frame_Info frame_info)
     if (!view_get_is_passive(app, view))
         long_global_active_view = view;
     
-    F4_TickColors(app, frame_info);
+    F4_TickColors(app, frame);
     Long_Index_Tick(app);
 #ifdef FCODER_FLEURY_CALC_H
-    F4_CLC_Tick(frame_info);
+    F4_CLC_Tick(frame);
 #endif
-    F4_UpdateFlashes(app, frame_info);
+    F4_UpdateFlashes(app, frame);
     
     // NOTE(rjf): Default tick stuff from the 4th dimension:
-    default_tick(app, frame_info);
+    default_tick(app, frame);
     
-    MC_tick_inner(app, frame_info);
+    MC_tick_inner(app, frame);
+}
+
+//~ NOTE(long): Render Hooks
+
+//- GLOBAL
+// mode, bind_by_physical_key
+// use_file_bars, use_error_highlight, use_jump_highlight, use_scope_highlight, use_paren_helper, use_comment_keywords
+// show_line_number_margins, long_show_line_number_offset, enable_output_wrapping (?), enable_undo_fade_out
+// cursor_roundness, mark_thickness, lister_roundness
+// enable_virtual_whitespace, virtual_whitespace_regular_indent, enable_code_wrapping
+// toggle_mouse, show_fps_hud, global face size
+
+//- BUFFER
+// toggle_show_whitespace, toggle_file_bar, fps
+// buffer face size, buffer name, buffer size, line count, current location (row/col/pos)
+
+//- LONG
+// long_global_move_side
+// f4_poscontext_draw_at_bottom_of_buffer, long_global_pos_context_open
+// long_global_child_tooltip_count, long_active_pos_context_option
+// long_lister_tooltip_peek
+
+function void Long_Render(Application_Links* app, Frame_Info frame, View_ID view)
+{
+#ifdef FCODER_FLEURY_RECENT_FILES_H
+    F4_RecentFiles_RefreshView(app, view);
+#endif
+    
+    ProfileScope(app, "[Long] Render");
+    Scratch_Block scratch(app);
+    
+    //- NOTE(long): Setup Context
+    Long_Render_Context _ctx = Long_Render_CreateCtx(app, frame, view);
+    Long_Render_Context* ctx = &_ctx;
+    
+    Rect_f32 view_rect = ctx->rect;
+    f32 margin_size = def_get_config_f32_lit(app, "long_margin_size");
+    ctx->rect = rect_inner(view_rect, margin_size);
+    
+    Long_Render_InitCtxFace(ctx, get_face_id(app, ctx->buffer));
+    Face_Metrics metrics = ctx->metrics;
+    
+    //- NOTE(long): Draw Background/Margin
+    b32 is_active_view = ctx->active_view;
+    {
+        ARGB_Color back_color = Long_ARGBFromID(defcolor_back);
+        if (!is_active_view)
+        {
+            ARGB_Color inactive_bg_color = Long_ARGBFromID(fleury_color_inactive_pane_background);
+            if (F4_ARGBIsValid(inactive_bg_color))
+                back_color = inactive_bg_color;
+        }
+        draw_rectangle(app, ctx->rect, 0, back_color);
+        
+        ARGB_Color margin_color = Long_ARGBFromID(defcolor_margin);
+        if (def_get_config_b32_lit("f4_margin_use_mode_color") && is_active_view)
+            margin_color = Long_Color_Cursor();
+        draw_margin(app, view_rect, ctx->rect, margin_color);
+    }
+    
+    //- NOTE(long): Draw Panel
+    Rect_f32 prev_clip = draw_set_clip(app, ctx->rect);
+    
+    // NOTE(long): File Bar
+    b64 showing_file_bar = false;
+    if (view_get_setting(app, view, ViewSetting_ShowFileBar, &showing_file_bar) && showing_file_bar)
+        Long_Render_FileBar(ctx);
+    
+    // NOTE(long): Buffer Scroll
+    Buffer_Scroll scroll = view_get_buffer_scroll(app, view);
+    {
+        Buffer_Point_Delta_Result delta = delta_apply(app, view, frame.animation_dt, scroll);
+        if (!block_match_struct(&scroll.position, &delta.point))
+        {
+            block_copy_struct(&scroll.position, &delta.point);
+            view_set_buffer_scroll(app, view, scroll, SetBufferScroll_NoCursorChange);
+        }
+        if (delta.still_animating)
+            animate_in_n_milliseconds(app, 0);
+    }
+    
+    // NOTE(long): Query Bars
+    Query_Bar* space[32];
+    Query_Bar_Ptr_Array query_bars = {space};
+    if (get_active_query_bars(app, view, ArrayCount(space), &query_bars))
+    {
+        for (i32 i = 0; i < query_bars.count; ++i)
+        {
+            Rect_f32_Pair pair = layout_query_bar_on_top(ctx->rect, metrics.line_height, 1);
+            draw_query_bar(app, query_bars.ptrs[i], ctx->face, pair.min);
+            // TODO(long): Query bar background or margin
+            ctx->rect = pair.max;
+        }
+    }
+    
+    //- NOTE(long): Draw Line/Buffer Region
+    Rect_f32 layout_rect = ctx->rect;
+    draw_set_clip(app, layout_rect);
+    
+    b32 show_line_number = def_get_config_b32_lit("show_line_number_margins");
+    String8 buffer_name = push_buffer_base_name(app, scratch, ctx->buffer);
+    if (show_line_number && !Long_Buffer_IsSpecial(app, buffer_name))
+        layout_rect = Long_Render_LineNumber(ctx);
+    
+    // TODO(long): Helper function
+    f32 cursor_width = Long_Render_CursorThickness(ctx);
+    f32  emacs_width = f32_ceil32(metrics.text_height/2 - cursor_width); // Long_Render_EmacsSymbol
+    if (is_active_view && fcoder_mode == FCoderMode_Original)
+    {
+        f32 highlight_width  = clamp_top(cursor_width * 2.f, emacs_width / 2.f);
+        f32 highlight_offset = clamp_bot((emacs_width - highlight_width) / 2.f, 0.f);
+        Long_Highlight_CursorMark(app, layout_rect.x0 + highlight_offset, highlight_width);
+    }
+    
+    // NOTE(long): Buffer Layout
+    layout_rect.x0 += emacs_width;
+    ctx->layout = text_layout_create(app, ctx->buffer, layout_rect, scroll.position);
+    Long_Render_Buffer(ctx);
+    text_layout_free(app, ctx->layout);
+    draw_set_clip(app, prev_clip);
+    
+    if (!is_active_view)
+    {
+        ARGB_Color overlay_color = Long_ARGBFromID(fleury_color_inactive_pane_overlay);
+        if (F4_ARGBIsValid(overlay_color))
+            draw_rectangle(app, view_rect, 0.f, overlay_color);
+    }
+}
+
+function void Long_WholeScreenRender(Application_Links* app, Frame_Info frame)
+{
+    Scratch_Block scratch(app);
+    View_ID active_view = get_active_view(app, 0);
+    Buffer_ID active_buffer = view_get_buffer(app, active_view, 0);
+    Rect_f32 region = global_get_screen_rectangle(app);
+    Rect_f32 active_rect = view_get_screen_rect(app, active_view);
+    Face_ID global_face = get_face_id(app, 0);
+    Face_ID tooltip_face = /*global_small_code_face*/global_face;
+    
+    Long_Render_Context _ctx = Long_Render_CreateCtx(app, frame, active_view);
+    Long_Render_Context* ctx = &_ctx;
+    ctx->padding = 6.f; // @CONSTANT(long): Tooltip text_offset
+    
+    Long_Render_InitCtxFace(ctx, global_face);
+    {
+        // NOTE(long): Code Peek HUD
+        ctx->rect = region;
+        f32 center_x = (region.x1 + region.x0) / 2.f;
+        if (active_rect.x0 < center_x)
+            ctx->rect.x0 = center_x;
+        else
+            ctx->rect.x1 = center_x;
+        Long_Index_DrawCodePeek(ctx);
+        
+        // NOTE(long): Position Context Rendering
+        F4_Language* language = F4_LanguageFromBuffer(app, active_buffer);
+        if (language)
+        {
+            i64 cursor_pos = view_get_cursor_pos(app, active_view);
+            Long_Index_DrawPosContext(ctx, language->PosContext(app, scratch, active_buffer, cursor_pos));
+        }
+    }
+    
+    //- NOTE(long): Lister HUD
+    Long_Render_InitCtxFace(ctx, global_face);
+    Long_View_ForEach(view, app, 0)
+    {
+        ctx->view = view;
+        ctx->active_view = view == active_view;
+        
+        Lister* lister = view_get_lister(app, view);
+        if (lister)
+        {
+            Rect_f32 max_rect = view_get_screen_rect(app, view);
+            Vec2_f32 max_size = rect_dim(max_rect);
+            Vec2_f32 hud_size = hadamard(max_size, V2f32(.7f, .875f)); // @CONSTANT
+            Rect_f32 hud_rect = Rf32_xy_wh(max_rect.p0 + (max_size - hud_size)/2.f, hud_size);
+            
+            ctx->rect = Long_Rf32_Round(hud_rect);
+            Long_Lister_RenderHUD(ctx, lister, 0);
+        }
+    }
+    
+    // NOTE(long): FPS HUD
+    if (show_fps_hud)
+    {
+        Long_Render_FPS(ctx);
+        animate_in_n_milliseconds(app, 1000);
+    }
+    
+    // NOTE(long): Tooltip Rendering
+    {
+        ctx->rect = region;
+        Long_Render_InitCtxFace(ctx, tooltip_face);
+        
+        Vec2_f32 tooltip_pos = ctx->mouse + V2f32(16, 16); // @CONSTANT
+        for (i32 i = 0; i < global_tooltip_count; ++i)
+        {
+            String8 string = global_tooltips[i].string;
+            Rect_f32 tooltip_rect = Long_Render_DrawString(ctx, string, tooltip_pos, global_tooltips[i].color);
+            tooltip_pos.y = tooltip_rect.y1 + 2; // @CONSTANT
+        }
+    }
+    
+    //if (qol_try_exit_view)
+    //qol_try_exit_render(app, frame);
 }
 
 //~ NOTE(long): Buffer Hooks
 
-function i32 Long_EndBuffer(Application_Links* app, Buffer_ID buffer_id)
+function i32 Long_EndBuffer(Application_Links* app, Buffer_ID buffer)
 {
     F4_Index_Lock();
-    F4_Index_File* file = F4_Index_LookupFile(app, buffer_id);
+    F4_Index_File* file = F4_Index_LookupFile(app, buffer);
     if (file)
     {
         Long_Index_ClearFile(file);
-        F4_Index_EraseFile(app, buffer_id);
+        F4_Index_EraseFile(app, buffer);
     }
     F4_Index_Unlock();
-    return end_buffer_close_jump_list(app, buffer_id);
+    return end_buffer_close_jump_list(app, buffer);
 }
 
 function i32 Long_SaveFile(Application_Links* app, Buffer_ID buffer)
@@ -870,12 +564,7 @@ function i32 Long_SaveFile(Application_Links* app, Buffer_ID buffer)
     else if (string_match(name, S8Lit("bindings.4coder")))
     {
         if (Long_Binding_LoadData(app, &framework_mapping, path, data))
-        {
-            String_ID global_map = vars_save_string_lit("keys_global");
-            String_ID file_map = vars_save_string_lit("keys_file");
-            String_ID code_map = vars_save_string_lit("keys_code");
-            Long_Binding_SetupEssential(&framework_mapping, global_map, file_map, code_map);
-        }
+            Long_Binding_SetupEssential(&framework_mapping);
     }
     
     else if (string_match(name, S8Lit("project.4coder")))
@@ -889,13 +578,13 @@ function Layout_Item_List Long_Layout(Application_Links* app, Arena* arena, Buff
 {
     Scratch_Block scratch(app);
     Layout_Item_List list = get_empty_item_list(range);
-    String_Const_u8 text = push_buffer_range(app, scratch, buffer, range);
+    String8 text = push_buffer_range(app, scratch, buffer, range);
     
     LefRig_TopBot_Layout_Vars pos_vars;
     {
         Face_Advance_Map advance_map = get_face_advance_map(app, face);
         Face_Metrics metrics = get_face_metrics(app, face);
-        f32 tab_width = (f32)def_get_config_u64_lit(app, "default_tab_width");
+        f32 tab_width = def_get_config_f32_lit(app, "default_tab_width");
         tab_width = clamp_bot(1, tab_width);
         pos_vars = get_lr_tb_layout_vars(&advance_map, &metrics, tab_width, width);
     }

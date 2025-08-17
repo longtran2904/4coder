@@ -12,14 +12,14 @@ mode = "4coder";
 bind_by_physical_key = false;
 
 // UI
-use_scroll_bars = false; // NOTE(long): No idea what use_scroll_bars is
+use_scroll_bars = false; // NOTE(long): 4coder used to have a scroll bar in Alpha
 use_file_bars = true;
 use_error_highlight = true;
 use_jump_highlight = true;
 use_scope_highlight = false;
 use_paren_helper = true;
 use_comment_keywords = true;
-lister_whole_word_backspace_when_modified = true;
+hide_file_bar_in_ui = false;
 show_line_number_margins = false;
 long_show_line_number_offset = true;
 enable_output_wrapping = false;
@@ -27,19 +27,22 @@ enable_output_wrapping = false;
 // NOTE(long): Immediate undo will still have fadeout, this's only for disabling hard character's fadeout
 enable_undo_fade_out = false;
 
-// cursor_roundess is a value [0,50] setting the radius of
+// cursor_roundness is a value [0,50] setting the radius of
 // the cursor and mark's roundness as a percentage of their width
 // (At 50 the left and right corners will be so round they form a semi-circle,
 //  hence 50 is the max)
-cursor_roundness = 20;
+cursor_roundness = 25;
 
 // mark_thickness is a pixel count value setting the
 // thickness of the mark wire box in original mode
-mark_thickness = 2;
+mark_thickness = 20;
 
-// lister_roundess is a value [0,50] setting the radius of
-// the lister items' roundness as a percentage of their height
-lister_roundness = 20;
+tooltip_thickness = 2;
+tooltip_roundness = 50;
+
+lister_roundness = 50;
+lister_margin_size = 3;
+lister_whole_word_backspace_when_modified = true;
 
 // Code Wrapping
 treat_as_code = ".cpp.c.hpp.h.cc.cs.java.rs.glsl.m.mm.ds.md.4coder.jai.vert.frag";
@@ -67,6 +70,9 @@ default_theme_name = "theme-long";
 highlight_line_at_cursor = true;
 
 // Font	
+//default_font_name = "liberation-mono.ttf";
+//default_font_name = "JetBrainsMono-Regular.ttf";
+//default_font_name = "Inconsolata-Regular.ttf";
 default_font_name = "MonaspaceNeon-Regular.ttf";
 default_font_size = 15;
 default_font_hinting = true;
@@ -100,4 +106,6 @@ default_flags_sh  = "-g";
 // f4_disable_poscontext = true;
 // f4_disable_cursor_token_occurance = true;
 
-f4_margin_size = 2;
+// long_disable_token_occurrence = true;
+long_margin_size = 3;
+long_global_show_whitespace = false;

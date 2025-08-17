@@ -151,7 +151,7 @@ build_language_model(void){
     sm_op("/=");
     sm_op("%=");
 	sm_op("?=");
-    sm_op("=>");
+    sm_op("=>", "FatArrow");
     
     sm_char_name('<', "Left");
     sm_char_name('>', "Right");

@@ -423,34 +423,7 @@ F4_Index_PopParent(F4_Index_ParseCtx *ctx, F4_Index_Note *last_parent)
 function b32
 F4_Index_ParseCtx_Inc(F4_Index_ParseCtx *ctx, F4_Index_TokenSkipFlags flags)
 {
-    if (flags & F4_Index_TokenSkipFlag_SkipComment)
-    {
-        b32 result = false;
-        repeat:
-        if (token_it_inc_all(&ctx->it))
-        {
-            Token *token = token_it_read(&ctx->it);
-            if (token != 0)
-            {
-                if (token->kind == TokenBaseKind_Comment)
-                {
-                    //F4_Index_Note* last_note = ctx->active_parent ? ctx->active_parent->last_child : ctx->file->last_note;
-                    F4_Index_Note* last_note = ctx->active_parent;
-                    if (!last_note)
-                        last_note = ctx->file->last_note;
-                    else if (last_note->last_child)
-                        last_note = last_note->last_child;
-                    if (!range_contains_inclusive(Ii64(token), last_note ? last_note->range.min : 0))
-                        F4_Index_ParseComment(ctx, token);
-                }
-                if (token->kind == TokenBaseKind_Comment || token->kind == TokenBaseKind_Whitespace)
-                    goto repeat;
-            }
-            result = true;
-        }
-        ctx->done = !result;
-    }
-    else if(flags & F4_Index_TokenSkipFlag_SkipWhitespace)
+    if(flags & F4_Index_TokenSkipFlag_SkipWhitespace)
     {
         ctx->done = !token_it_inc_non_whitespace(&ctx->it);
     }

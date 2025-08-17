@@ -2,14 +2,14 @@
 keys_global =
 {
     // NOTE(rjf): Meta
-    { "exit_4coder",                           "F4", "Alt"              },
-    { "long_change_active_panel",           "Comma", "Control"          },
-    { "long_change_passive_panel",         "Period", "Control"          },
-    { "change_active_panel_backwards",      "Comma", "Control", "Shift" },
-    { "project_go_to_root_directory",           "H", "Alt"              },
-    { "toggle_virtual_whitespace",          "Equal", "Control"          },
-    { "theme_lister",                           "H", "Control", "Shift" },
-    { "MC_end_multi",                      "Escape"                     },
+    { "exit_4coder",                      "F4", "Alt"              },
+    { "long_change_active_panel",      "Comma", "Control"          },
+    { "long_change_passive_panel",    "Period", "Control"          },
+    { "change_active_panel_backwards", "Comma", "Control", "Shift" },
+    { "project_go_to_root_directory",      "H", "Alt"              },
+    { "toggle_virtual_whitespace",     "Equal", "Control"          },
+    { "long_theme_lister",                 "H", "Control", "Shift" },
+    { "MC_end_multi",                 "Escape"                     },
     
     // NOTE(long): macro
     { "long_macro_toggle_recording",    "U", "Control"          },
@@ -24,7 +24,7 @@ keys_global =
     // NOTE(rjf): Files
     { "interactive_new",                "N", "Control"          },
     { "long_setup_new_project",         "N", "Control", "Shift" },
-    { "interactive_open_or_new",        "O", "Control"          },
+    { "long_interactive_open_or_new",   "O", "Control"          },
     { "f4_open_project",                "O", "Control", "Shift" },
     { "long_interactive_kill_buffer",   "K", "Control"          },
     { "long_interactive_switch_buffer", "I", "Control"          },
@@ -34,42 +34,42 @@ keys_global =
     { "long_switch_to_search_buffer",   "I", "Control", "Alt"   },
     
     // NOTE(long): Jump
-    { "goto_next_jump",     "N", "Alt"          },
-    { "goto_prev_jump",     "N", "Alt", "Shift" },
-    { "goto_first_jump",    "M", "Alt", "Shift" },
-    { "long_undo_jump",     "J", "Alt"          },
-    { "long_redo_jump",     "K", "Alt"          },
-    { "long_push_new_jump", "L", "Alt"          },
-    { "long_point_lister",  "L", "Control"      },
+    { "goto_next_jump",                 "N", "Alt"          },
+    { "goto_prev_jump",                 "N", "Alt", "Shift" },
+    { "goto_first_jump",                "M", "Alt", "Shift" },
+    { "long_undo_jump",                 "J", "Alt"          },
+    { "long_redo_jump",                 "K", "Alt"          },
+    { "long_push_new_jump",             "L", "Alt"          },
+    { "long_point_lister",              "L", "Control"      },
+    
+    // NOTE(long): Commands
+    { "long_execute_any_cli",           "Z", "Alt"          },
+    { "execute_previous_cli",           "Z", "Alt", "Shift" },
+    { "long_command_lister",            "X", "Alt"          },
+    
+    // NOTE(rjf): Project
+    { "long_build_in_build_panel", "M", "Alt"          },
+    { "project_command_lister",    "X", "Alt", "Shift" },
+    { "project_fkey_command",      "F1"                },
+    { "project_fkey_command",      "F2"                },
+    { "project_fkey_command",      "F3"                },
+    { "project_fkey_command",      "F4"                },
+    { "project_fkey_command",      "F5"                },
+    { "project_fkey_command",      "F6"                },
+    { "project_fkey_command",      "F7"                },
+    { "project_fkey_command",      "F8"                },
+    { "project_fkey_command",      "F9"                },
+    { "project_fkey_command",      "F10"               },
+    { "project_fkey_command",      "F11"               },
+    { "project_fkey_command",      "F12"               },
+    { "project_fkey_command",      "F13"               },
+    { "project_fkey_command",      "F14"               },
+    { "project_fkey_command",      "F15"               },
+    { "project_fkey_command",      "F16"               },
     
     // NOTE(long): Search
     { "long_search_for_definition__project_wide", "J", "Control" },
     { "long_search_for_definition__current_file", "J", "Control", "Shift" },
-    
-    // NOTE(long): Commands
-    { "long_execute_any_cli", "Z", "Alt"              },
-    { "execute_previous_cli", "Z", "Alt",   "Shift"   },
-    { "long_command_lister",  "X", "Alt"              },
-    
-    // NOTE(rjf): Project
-    { "build_in_build_panel",   "M", "Alt"          },
-    { "project_command_lister", "X", "Alt", "Shift" },
-    { "project_fkey_command",   "F1"  },
-    { "project_fkey_command",   "F2"  },
-    { "project_fkey_command",   "F3"  },
-    { "project_fkey_command",   "F4"  },
-    { "project_fkey_command",   "F5"  },
-    { "project_fkey_command",   "F6"  },
-    { "project_fkey_command",   "F7"  },
-    { "project_fkey_command",   "F8"  },
-    { "project_fkey_command",   "F9"  },
-    { "project_fkey_command",   "F10" },
-    { "project_fkey_command",   "F11" },
-    { "project_fkey_command",   "F12" },
-    { "project_fkey_command",   "F13" },
-    { "project_fkey_command",   "F14" },
-    { "project_fkey_command",   "F15" },
-    { "project_fkey_command",   "F16" },
     
     // NOTE(rjf): Panels
     { "open_panel_vsplit",       "BackwardSlash", "Control"          },
@@ -96,13 +96,13 @@ keys_file =
     
     // NOTE(rjf): Left/Right Arrow Keys
     // NOTE(long): Shift binding will make notepad-mode unselectable
-    { "move_left",                                      "Left"                 },
-    { "move_right",                                     "Right"                },
-    { "long_move_prev_word",                            "Left",  "Control"     },
-    { "long_move_next_word",                            "Right", "Control"     },
-    { "long_move_prev_alpha_numeric_or_camel_boundary", "Left",  "Alt"         },
-    { "long_move_next_alpha_numeric_or_camel_boundary", "Right", "Alt"         },
-    { "long_switch_move_side_mode",                     "Minus", "Alt"         },
+    { "move_left",                                      "Left"             },
+    { "move_right",                                     "Right"            },
+    { "long_move_prev_word",                            "Left",  "Control" },
+    { "long_move_next_word",                            "Right", "Control" },
+    { "long_move_prev_alpha_numeric_or_camel_boundary", "Left",  "Alt"     },
+    { "long_move_next_alpha_numeric_or_camel_boundary", "Right", "Alt"     },
+    { "long_switch_move_side_mode",                     "Minus", "Alt"     },
     
     // NOTE(rjf): Up/Down Arrow Keys
     { "move_up",                           "Up"                   },
@@ -115,14 +115,14 @@ keys_file =
     { "long_move_down_token_occurrence", "Down", "Control", "Alt" },
     
     // NOTE(rjf): Alternative Movement Keys
-    { "seek_end_of_line",                    "End"                                   },
-    { "f4_home_first_non_whitespace",        "Home"                                  },
-    { "page_up",                             "PageUp"                                },
-    { "page_down",                           "PageDown"                              },
-    { "goto_beginning_of_file",              "PageUp",   "Control"                   },
-    { "goto_end_of_file",                    "PageDown", "Control"                   },
-    { "long_move_to_prev_divider_comment",   "PageUp",   "Control", "Shift"          },
-    { "long_move_to_next_divider_comment",   "PageDown", "Control", "Shift"          },
+    { "seek_end_of_line",                    "End"                          },
+    { "f4_home_first_non_whitespace",        "Home"                         },
+    { "page_up",                             "PageUp"                       },
+    { "page_down",                           "PageDown"                     },
+    { "goto_beginning_of_file",              "PageUp",   "Control"          },
+    { "goto_end_of_file",                    "PageDown", "Control"          },
+    { "long_move_to_prev_divider_comment",   "PageUp",   "Control", "Shift" },
+    { "long_move_to_next_divider_comment",   "PageDown", "Control", "Shift" },
     
     // NOTE(long): Ctrl  => Current Buffer vs All Buffers
     //             Alt   => List vs Search/Query
@@ -152,11 +152,11 @@ keys_file =
     { "long_clean_whitespace_at_cursor", "B", "Control"          },
     
     // NOTE(long): Multi cursors
-    { "MC_add_at_pos",      "BackwardSlash", "Control", "Shift" },
-    { "MC_begin_multi",            "Return",     "Alt"          },
-    { "long_mc_begin_multi_block",      "L", "Control", "Shift" },
-    { "long_mc_up_trail",              "Up",     "Alt", "Shift" },
-    { "long_mc_down_trail",          "Down",     "Alt", "Shift" },
+    { "MC_add_at_pos",     "BackwardSlash", "Control", "Shift" },
+    { "MC_begin_multi",           "Return",     "Alt"          },
+    { "long_mc_begin_multi_block",     "L", "Control", "Shift" },
+    { "long_mc_up_trail",             "Up",     "Alt", "Shift" },
+    { "long_mc_down_trail",         "Down",     "Alt", "Shift" },
     
     // NOTE(long): These must be below Alt+Shift
     { "long_move_to_prev_function_and_type",   "Up", "Control", "Shift", "Alt" },
@@ -207,12 +207,12 @@ keys_file =
     { "long_history_lister",                        "H", "Control"          },
     
     // NOTE(long): Index
-    { "long_code_peek",                  	   "Tick", "Control"          },
-    { "long_toggle_pos_context",                "Tick",     "Alt"          },
-    { "long_switch_pos_context_option",        "Equal",     "Alt"          },
-    { "long_switch_pos_context_draw_position", "Equal",     "Alt", "Shift" },
-    { "long_go_to_definition",            	"Return", "Control"          },
-    { "long_go_to_definition_same_panel",     "Return", "Control", "Shift" },
+    { "long_code_peek",                  	    "Tick", "Control"          },
+    { "long_toggle_pos_context",                 "Tick",     "Alt"          },
+    { "long_switch_pos_context_option",         "Equal",     "Alt"          },
+    { "long_switch_pos_context_draw_position",  "Equal",     "Alt", "Shift" },
+    { "long_go_to_definition",            	 "Return", "Control"          },
+    { "long_go_to_definition_same_panel",      "Return", "Control", "Shift" },
 };
 
 keys_code =

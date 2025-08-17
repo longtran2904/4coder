@@ -13,44 +13,35 @@ F4_CPP_ParseMacroDefinition(F4_Index_ParseCtx *ctx)
 }
 
 internal b32
-F4_CPP_SkipParseBody(F4_Index_ParseCtx *ctx)
+F4_CPP_SkipParseBody(F4_Index_ParseCtx* ctx)
 {
     b32 body_found = 0;
     int nest = 0;
     
-    for(;!ctx->done;)
+    while (!ctx->done)
     {
-        Token *name = 0;
+        Token* name = 0;
         
-        if(F4_Index_ParsePattern(ctx, "%k", TokenBaseKind_Comment, &name))
-        {
-            F4_Index_ParseComment(ctx, name);
-        }
-        else if(F4_Index_ParsePattern(ctx, "%b", TokenCppKind_PPDefine, &name))
-        {
+        if (F4_Index_ParsePattern(ctx, "%b", TokenCppKind_PPDefine, &name))
             F4_CPP_ParseMacroDefinition(ctx);
-        }
-        else if(F4_Index_ParsePattern(ctx, "%t", "{"))
+        
+        else if (F4_Index_ParsePattern(ctx, "%t", "{"))
         {
             nest += 1;
             body_found = 1;
         }
-        else if(F4_Index_ParsePattern(ctx, "%t", "}"))
+        
+        else if (F4_Index_ParsePattern(ctx, "%t", "}"))
         {
             nest -= 1;
-            if(nest == 0)
-            {
+            if (!nest)
                 break;
-            }
         }
-        else if(body_found == 0)
-        {
+        
+        else if (body_found == 0)
             break;
-        }
         else
-        {
-            F4_Index_ParseCtx_Inc(ctx, F4_Index_TokenSkipFlag_SkipWhitespace);
-        }
+            Long_ParseCtx_Inc(ctx);
     }
     return body_found;
 }
@@ -398,14 +389,16 @@ internal F4_LANGUAGE_INDEXFILE(F4_CPP_IndexFile)
             handled = 1;
             b32 prototype = 0;
             
-            if (F4_Index_ParsePattern(ctx, "%k", TokenBaseKind_Keyword, 0) ||
-                F4_Index_ParsePattern(ctx, "%k", TokenBaseKind_Identifier, 0) ||
-                F4_Index_ParsePattern(ctx, "%k", TokenBaseKind_ParentheticalClose, 0))
+            Token* token = token_it_read(&ctx->it);
+            if (token && token->kind == TokenBaseKind_Comment)
+                Long_ParseCtx_Inc(ctx);
+            
+            if (Long_Index_ParseKind(ctx, TokenBaseKind_Keyword, 0) ||
+                Long_Index_ParseKind(ctx, TokenBaseKind_Identifier, 0) ||
+                Long_Index_ParseKind(ctx, TokenBaseKind_ParentheticalClose, 0))
             {
-                if(F4_CPP_ParseFunctionBodyIFuckingHateCPlusPlus(ctx, &prototype))
-                {
+                if (F4_CPP_ParseFunctionBodyIFuckingHateCPlusPlus(ctx, &prototype))
                     F4_Index_MakeNote(ctx, Ii64(name), F4_Index_NoteKind_Function, prototype ? F4_Index_NoteFlag_Prototype : 0);
-                }
             }
         }
         
@@ -475,13 +468,6 @@ internal F4_LANGUAGE_INDEXFILE(F4_CPP_IndexFile)
                 F4_Index_MakeNote(ctx, Ii64(name), F4_Index_NoteKind_Function, prototype ? F4_Index_NoteFlag_ProductType : 0);
                 F4_CPP_SkipParseBody(ctx);
             }
-        }
-        
-        //~ NOTE(rjf): Comment Tags
-        else if(F4_Index_ParsePattern(ctx, "%k", TokenBaseKind_Comment, &name))
-        {
-            handled = 1;
-            F4_Index_ParseComment(ctx, name);
         }
         
         //~ NOTE(rjf): Macros

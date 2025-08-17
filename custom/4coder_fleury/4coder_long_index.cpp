@@ -19,7 +19,7 @@ function b32 Long_Index_IsLambda(F4_Index_Note* note)
 }
 
 function b32 Long_Index_IsNamespace(F4_Index_Note* note)
-{
+{ 
     return note->flags & F4_Index_NoteFlag_Namespace;
 }
 
@@ -48,97 +48,63 @@ function b32 Long_Index_IsMatch(F4_Index_ParseCtx* ctx, Range_i64 range, String8
     return result;
 }
 
+function b32 Long_Index_IsMatch(F4_Index_ParseCtx* ctx, Range_i64 range, String8 str)
+{
+    String8 lexeme = F4_Index_StringFromRange(ctx, range);
+    b32 result = string_match(lexeme, str);
+    return result;
+}
+
 function b32 Long_Index_IsMatch(String8 string, String8* array, u64 count)
 {
     for (u64 i = 0; i < count; ++i)
         if (string_match(string, array[i]))
-            return true;
-    return false;
+            return 1;
+    return 0;
 }
 
 //~ NOTE(long): Parsing Functions
 
-function b32 Long_Index_ParseStr(F4_Index_ParseCtx* ctx, String8 str)
+function b32 Long_ParseCtx_Inc(F4_Index_ParseCtx* ctx)
 {
-    Long_Index_ProfileScope(ctx->app, "[Long] Parse String");
-    F4_Index_ParseCtx ctx_restore = *ctx;
     b32 result = 0;
     
-    Token* token = token_it_read(&ctx->it);
-    if (token)
-        result = string_match(str, string_substring(ctx->string, Ii64(token)));
-    else
-        ctx->done = 1;
-    
-    if (result)
-        F4_Index_ParseCtx_Inc(ctx, F4_Index_TokenSkipFlag_SkipAll);
-    else
-        *ctx = ctx_restore;
-    
-    return result;
-}
-
-function b32 Long_Index_PeekStr(F4_Index_ParseCtx* ctx, String8 str)
-{
-    F4_Index_ParseCtx ctx_restore = *ctx;
-    b32 result = Long_Index_ParseStr(ctx, str);
-    *ctx = ctx_restore;
-    return result;
-}
-
-function b32 Long_Index_ParseKind(F4_Index_ParseCtx* ctx, Token_Base_Kind kind, Range_i64* out_range)
-{
-    F4_Index_ParseCtx ctx_restore = *ctx;
-    b32 result = 0;
-    
-    Token* token = token_it_read(&ctx->it);
-    if (token)
-        result = token->kind == kind;
-    else
-        ctx->done = 1;
-    
-    if(result)
+    repeat:
+    if (token_it_inc_all(&ctx->it))
     {
-        *out_range = Ii64(token);
-        F4_Index_ParseCtx_Inc(ctx, F4_Index_TokenSkipFlag_SkipAll);
+        Token* token = ctx->it.ptr;
+        if (token->kind == TokenBaseKind_Comment)
+        {
+            F4_Index_Note* last_note = ctx->active_parent;
+            
+            if (!last_note)
+                last_note = ctx->file->last_note;
+            else if (last_note->last_child)
+                last_note = last_note->last_child;
+            
+            if (!range_contains_inclusive(Ii64(token), last_note ? last_note->range.min : 0))
+                F4_Index_ParseComment(ctx, token);
+        }
+        
+        if (token->kind == TokenBaseKind_Comment || token->kind == TokenBaseKind_Whitespace)
+            goto repeat;
+        result = 1;
     }
-    else
-        *ctx = ctx_restore;
     
-    return result;
-}
-
-function b32 Long_Index_ParseSubKind(F4_Index_ParseCtx* ctx, i64 sub_kind, Range_i64* out_range)
-{
-    F4_Index_ParseCtx ctx_restore = *ctx;
-    b32 result = 0;
-    
-    Token* token = token_it_read(&ctx->it);
-    if (token)
-        result = token->sub_kind == sub_kind;
-    else
-        ctx->done = 1;
-    
-    if(result)
-    {
-        if (out_range) *out_range = Ii64(token);
-        F4_Index_ParseCtx_Inc(ctx, F4_Index_TokenSkipFlag_SkipAll);
-    }
-    else *ctx = ctx_restore;
-    
-    return result;
+    ctx->done = !result;
+    return ctx->done;
 }
 
 function b32 Long_Index_SkipExpression(F4_Index_ParseCtx* ctx, i16 seperator, i16 terminator)
 {
-    int paren_nest = 0;
-    int scope_nest = 0;
-    b32 result = false;
+    i32 paren_nest = 0;
+    i32 scope_nest = 0;
+    b32 result = 0;
     
     while (!ctx->done)
     {
         Token* token = token_it_read(&ctx->it);
-        b32 done = false;
+        b32 done = 0;
         
         if (paren_nest == 0 && scope_nest == 0)
         {
@@ -154,15 +120,34 @@ function b32 Long_Index_SkipExpression(F4_Index_ParseCtx* ctx, i16 seperator, i1
             case TokenBaseKind_ScopeClose:         { scope_nest--; } break;
         }
         
-        if (paren_nest < 0 || scope_nest < 0)
-            done = true;
-        
+        done |= paren_nest < 0 || scope_nest < 0;
         if (done)
             break;
-        F4_Index_ParseCtx_Inc(ctx, F4_Index_TokenSkipFlag_SkipWhitespace);
+        Long_ParseCtx_Inc(ctx);
     }
     
     return result;
+}
+
+function b32 Long_Index_ParseAngleBody(Application_Links* app, Buffer_ID buffer, Token* token, i32* out_nest)
+{
+    Scratch_Block scratch(app);
+    String8 lexeme = push_token_lexeme(app, scratch, buffer, token);
+    i32 angle_nest = 0;
+    
+    for (u64 i = 0; i < lexeme.size; ++i)
+    {
+        switch(lexeme.str[i])
+        {
+            case '<' : angle_nest++; break;
+            case '>' : angle_nest--; break;
+            default: return 0;
+        }
+    }
+    
+    if (out_nest)
+        *out_nest += angle_nest;
+    return 1;
 }
 
 function b32 Long_Index_SkipBody(F4_Index_ParseCtx* ctx, b32 dec, b32 exit_early)
@@ -174,47 +159,47 @@ function b32 Long_Index_SkipBody(Application_Links* app, Token_Iterator_Array* i
 {
     i32 paren_nest = 0;
     i32 scope_nest = 0;
-    i32 gener_nest = 0;
+    i32 angle_nest = 0;
     i32 final_nest = 0;
     
     b32 (*next_token)(Token_Iterator_Array* it) = token_it_inc;
     if (dec) next_token = token_it_dec;
     
-    while (true)
+    while (1)
     {
         Token* token = token_it_read(it);
-        b32 done = false, nest_found = false;
+        b32 nest_found = 0;
         switch (token->kind)
         {
-            case TokenBaseKind_ScopeOpen:          { scope_nest++; nest_found = true; final_nest = +1; } break;
-            case TokenBaseKind_ScopeClose:         { scope_nest--; nest_found = true; final_nest = -1; } break;
-            case TokenBaseKind_ParentheticalOpen:  { paren_nest++; nest_found = true; final_nest = +1; } break;
-            case TokenBaseKind_ParentheticalClose: { paren_nest--; nest_found = true; final_nest = -1; } break;
+            case TokenBaseKind_ScopeOpen:          { scope_nest++; nest_found = 1; final_nest = +1; } break;
+            case TokenBaseKind_ScopeClose:         { scope_nest--; nest_found = 1; final_nest = -1; } break;
+            case TokenBaseKind_ParentheticalOpen:  { paren_nest++; nest_found = 1; final_nest = +1; } break;
+            case TokenBaseKind_ParentheticalClose: { paren_nest--; nest_found = 1; final_nest = -1; } break;
             
             case TokenBaseKind_Operator:
             {
                 Scratch_Block scratch(app);
-                String8 string = push_buffer_range(app, scratch, buffer, Ii64(token));
+                String8 lexeme = push_token_lexeme(app, scratch, buffer, token);
                 
-                // TODO(long): Replace this with a for loop and compare each char manually
-                while (string.size)
+                for (u64 i = 0; i < lexeme.size; ++i)
                 {
-                    String8 sub_string = string_prefix(string, 1);
-                    string = string_skip(string, 1);
-                    
-                    // NOTE(long): I use string comparison because > and >> are 2 seperate operators, and >>> or more is valid
-                    if      (string_match(sub_string, S8Lit("<"))) { gener_nest++; nest_found = true; final_nest = +1; }
-                    else if (string_match(sub_string, S8Lit(">"))) { gener_nest--; nest_found = true; final_nest = -1; }
-                    else break;
+                    switch(lexeme.str[i])
+                    {
+                        case '<' : angle_nest++; nest_found = 1; final_nest = +1; break;
+                        case '>' : angle_nest--; nest_found = 1; final_nest = -1; break;
+                        default: goto DONE;
+                    }
                 }
+                
+                DONE:;
             } break;
         }
         
-        {
-            done = paren_nest == 0 && scope_nest == 0 && gener_nest == 0;
-            if (dec) done |= (paren_nest > 0 || scope_nest > 0 || gener_nest > 0);
-            else     done |= (paren_nest < 0 || scope_nest < 0 || gener_nest < 0);
-        }
+        b32 done = paren_nest == 0 && scope_nest == 0 && angle_nest == 0;
+        if (dec)
+            done |= (paren_nest > 0 || scope_nest > 0 || angle_nest > 0);
+        else
+            done |= (paren_nest < 0 || scope_nest < 0 || angle_nest < 0);
         
         if (done)
         {
@@ -233,106 +218,108 @@ function b32 Long_Index_SkipBody(Application_Links* app, Token_Iterator_Array* i
             break;
     }
     
-    return paren_nest == 0 && scope_nest == 0 && gener_nest == 0 && (dec ? (final_nest >= 0) : (final_nest <= 0));
+    return paren_nest == 0 && scope_nest == 0 && angle_nest == 0 && (dec ? (final_nest >= 0) : (final_nest <= 0));
+}
+
+function b32 Long_Index_PeekStr(F4_Index_ParseCtx* ctx, String8 str)
+{
+    b32 result = string_match(str, F4_Index_StringFromToken(ctx, ctx->it.ptr));
+    return result;
+}
+
+function b32 Long_Index_ParseStr(F4_Index_ParseCtx* ctx, String8 str)
+{
+    b32 result = Long_Index_PeekStr(ctx, str);
+    if (result)
+        Long_ParseCtx_Inc(ctx);
+    return result;
+}
+
+function b32 Long_Index_PeekKind(F4_Index_ParseCtx* ctx, Token_Base_Kind kind, Range_i64* out_range)
+{
+    b32 result = ctx->it.ptr->kind == kind;
+    if (result && out_range)
+        *out_range = Ii64(ctx->it.ptr);
+    return result;
+}
+
+function b32 Long_Index_ParseKind(F4_Index_ParseCtx* ctx, Token_Base_Kind kind, Range_i64* out_range)
+{
+    b32 result = Long_Index_PeekKind(ctx, kind, out_range);
+    if (result)
+        Long_ParseCtx_Inc(ctx);
+    return result;
+}
+
+function b32 Long_Index_PeekSubKind(F4_Index_ParseCtx* ctx, i64 sub_kind, Range_i64* out_range)
+{
+    b32 result = ctx->it.ptr->sub_kind == sub_kind;
+    if (result && out_range)
+        *out_range = Ii64(ctx->it.ptr);
+    return result;
+}
+
+function b32 Long_Index_ParseSubKind(F4_Index_ParseCtx* ctx, i64 sub_kind, Range_i64* out_range)
+{
+    b32 result = Long_Index_PeekSubKind(ctx, sub_kind, out_range);
+    if (result)
+        Long_ParseCtx_Inc(ctx);
+    return result;
+}
+
+function void Long_Index_SkipPreproc(F4_Index_ParseCtx* ctx)
+{
+    while (!ctx->done)
+    {
+        Token* token = token_it_read(&ctx->it);
+        if (!(token->flags & TokenBaseFlag_PreprocessorBody) || token->kind == TokenBaseKind_Preprocessor)
+            break;
+        Long_ParseCtx_Inc(ctx);
+    }
 }
 
 // @COPYPASTA(long): F4_Index_ParsePattern
 function b32 _Long_Index_ParsePattern(F4_Index_ParseCtx* ctx, char* fmt, va_list _args)
 {
     Long_Index_ProfileScope(ctx->app, "[Long] Parse Pattern");
-    b32 parsed = 1;
-    
     F4_Index_ParseCtx ctx_restore = *ctx;
-    F4_Index_TokenSkipFlags flags = F4_Index_TokenSkipFlag_SkipAll;
+    b32 parsed = 1;
     
     va_list args;
     va_copy(args, _args);
-    for(int i = 0; fmt[i];)
+    for (i32 i = 0; fmt[i] && parsed; ++i)
     {
-        if(fmt[i] == '%')
+        if (fmt[i] == '%')
         {
-            switch(fmt[i+1])
+            switch (fmt[i+1])
             {
                 case 't':
                 {
-                    char *cstring = va_arg(args, char *);
-                    String8 string = SCu8((u8 *)cstring, cstring_length(cstring));
-                    parsed = parsed && F4_Index_RequireToken(ctx, string, flags);
-                }break;
+                    char* cstring = va_arg(args, char*);
+                    String8 string = SCu8((u8*)cstring, cstring_length(cstring));
+                    parsed = parsed && Long_Index_ParseStr(ctx, string);
+                } break;
                 
                 case 'k':
                 {
-                    Token_Base_Kind kind = (Token_Base_Kind)va_arg(args, int);
+                    Token_Base_Kind kind = (Token_Base_Kind)va_arg(args, i32);
                     Range_i64* output_range = va_arg(args, Range_i64*);
-                    Token* token = 0;
-                    parsed = parsed && F4_Index_RequireTokenKind(ctx, kind, &token, flags);
-                    if (parsed && output_range)
-                        *output_range = Ii64(token);
-                }break;
+                    parsed = parsed && Long_Index_ParseKind(ctx, kind, output_range);
+                } break;
                 
                 case 'b':
                 {
-                    i16 kind = (i16)va_arg(args, int);
+                    i16 kind = (i16)va_arg(args, i32);
                     Range_i64* output_range = va_arg(args, Range_i64*);
-                    Token* token = 0;
-                    parsed = parsed && F4_Index_RequireTokenSubKind(ctx, kind, &token, flags);
-                    if (parsed && output_range)
-                        *output_range = Ii64(token);
-                }break;
+                    parsed = parsed && Long_Index_ParseSubKind(ctx, kind, output_range);
+                } break;
                 
-                case 'n':
-                {
-                    F4_Index_NoteKind kind = (F4_Index_NoteKind)va_arg(args, int);
-                    F4_Index_Note **output_note = va_arg(args, F4_Index_Note **);
-                    Token *token = 0;
-                    parsed = parsed && F4_Index_RequireTokenKind(ctx, TokenBaseKind_Identifier, &token, flags);
-                    parsed = parsed && !!token;
-                    if (parsed)
-                    {
-                        String8 token_string = F4_Index_StringFromToken(ctx, token);
-                        F4_Index_Note *note = F4_Index_LookupNote(token_string, 0);
-                        b32 kind_match = 0;
-                        for(F4_Index_Note *n = note; n; n = n->next)
-                        {
-                            if(n->kind == kind)
-                            {
-                                kind_match = 1;
-                                note = n;
-                                break;
-                            }
-                        }
-                        if (note && kind_match)
-                        {
-                            *output_note = note;
-                            parsed = 1;
-                        }
-                        else
-                        {
-                            parsed = 0;
-                        }
-                    }
-                }break;
-                
-                case 's':
-                {
-                    F4_Index_SkipSoftTokens(ctx, 0);
-                }break;
-                
-                case 'o':
-                {
-                    F4_Index_SkipOpTokens(ctx);
-                }break;
-                
+                case 'o': F4_Index_SkipOpTokens(ctx); break;
                 default: break;
             }
-            i += 1;
-        }
-        else
-        {
-            i += 1;
+            i++;
         }
     }
-    
     va_end(args);
     
     if (!parsed)
@@ -373,18 +360,19 @@ function void Long_Index_Tick(Application_Links* app)
 {
     Scratch_Block scratch(app);
     
-    for (Buffer_Modified_Node *node = global_buffer_modified_set.first; node != 0;node = node->next)
+    for (Buffer_Modified_Node* node = global_buffer_modified_set.first; node != 0;node = node->next)
     {
         Temp_Memory_Block temp(scratch);
         Buffer_ID buffer_id = node->buffer;
         
-        String_Const_u8 contents = push_whole_buffer(app, scratch, buffer_id);
+        String8 contents = push_whole_buffer(app, scratch, buffer_id);
         Token_Array tokens = get_token_array_from_buffer(app, buffer_id);
-        if(tokens.count == 0) { continue; }
+        if (!tokens.count)
+            continue;
         
         F4_Index_Lock();
-        F4_Index_File *file = F4_Index_LookupOrMakeFile(app, buffer_id);
-        if(file)
+        F4_Index_File* file = F4_Index_LookupOrMakeFile(app, buffer_id);
+        if (file)
         {
             ProfileScope(app, "[f] reparse");
             Long_Index_ClearFile(file);
@@ -526,7 +514,7 @@ function void Long_Index_ClearFile(F4_Index_File* file)
     {
         file->generation++;
         
-        for (F4_Index_Note *note = file->first_note; note; note = note->next_sibling)
+        for (F4_Index_Note* note = file->first_note; note; note = note->next_sibling)
             Long_Index_FreeHashTree(note);
         
         for (F4_Index_Note* note = file->first_note; note; note = note->next_sibling)
@@ -612,7 +600,7 @@ function F4_Index_Note* Long_Index_MakeNamespace(F4_Index_ParseCtx* ctx, Range_i
         note->string = push_string_copy(&f4_index.arena, note->string);
         note->file = 0;
     }
-    Long_Index_CtxScope(ctx) = {};
+    Long_Parse_Scope(ctx) = {};
     note->flags |= F4_Index_NoteFlag_Namespace;
     return note;
 }
@@ -620,7 +608,7 @@ function F4_Index_Note* Long_Index_MakeNamespace(F4_Index_ParseCtx* ctx, Range_i
 function F4_Index_Note* Long_Index_PushNamespaceScope(F4_Index_ParseCtx* ctx)
 {
     F4_Index_Note* current_namespace = F4_Index_PushParent(ctx, 0);
-    F4_Index_Note* namespace_scope = Long_Index_MakeNote(ctx, {}, Ii64(Long_Index_Token(ctx)), F4_Index_NoteKind_Scope);
+    F4_Index_Note* namespace_scope = Long_Index_MakeNote(ctx, {}, Ii64(ctx->it.ptr), F4_Index_NoteKind_Scope);
     namespace_scope->flags |= F4_Index_NoteFlag_Namespace;
     namespace_scope->first_child = current_namespace->last_child;
     namespace_scope->parent = current_namespace->parent;
@@ -806,7 +794,7 @@ function F4_Index_Note* Long_Index_LookupScope(F4_Index_Note* note, i64 pos)
     {
         Long_Index_IterateValidNoteInFile(child, note)
             if (result = Long_Index_LookupScope(child, pos))
-            break;
+                break;
         
         if (!result)
             result = note;
@@ -1096,7 +1084,7 @@ function F4_Index_Note* Long_Index_LookupBestNote(Application_Links* app, Buffer
 
 //~ NOTE(long): Render Functions
 
-function String8 Long_GetStringAdvance(Application_Links* app, Face_ID face, String8 string, Token* token, i64 startPos, f32* advance)
+function String8 Long_String_GetAdvance(Application_Links* app, Face_ID face, String8 string, Token* token, i64 startPos, f32* advance)
 {
     Range_i64 range = Ii64_size(token->pos - startPos, token->size);
     String8 result = string_substring(string, range);
@@ -1104,16 +1092,16 @@ function String8 Long_GetStringAdvance(Application_Links* app, Face_ID face, Str
     return result;
 }
 
-function Rect_f32 Long_Index_DrawNote(Application_Links* app, Range_i64_Array ranges, Buffer_ID buffer,
-                                      Face_ID face, f32 line_height, f32 padding, ARGB_Color color,
-                                      Vec2_f32 tooltip_position, Range_f32 max_range_x,
-                                      ARGB_Color highlight_color, Range_i64 highlight_range)
+function Rect_f32 Long_Index_DrawNote(Long_Render_Context* ctx, Range_i64_Array ranges, Vec2_f32 tooltip_position,
+                                      Range_f32 max_range_x, Range_i64 highlight_range, ARGB_Color color, ARGB_Color highlight_color)
 {
-    Token_Array* array = 0;
-    {
-        Token_Array _array = get_token_array_from_buffer(app, buffer);
-        array = &_array;
-    }
+    Application_Links* app = ctx->app;
+    Buffer_ID buffer = ctx->buffer;
+    Face_ID face = ctx->face;
+    f32 padding = ctx->padding;
+    f32 line_height = ctx->metrics.line_height;
+    f32 space_advance = ctx->metrics.space_advance;
+    Token_Array* array = &ctx->array;
     
     i64 max_range_pos = ranges.ranges[ranges.count - 1].max;
     if (!max_range_pos)
@@ -1133,7 +1121,6 @@ function Rect_f32 Long_Index_DrawNote(Application_Links* app, Range_i64_Array ra
         Assert(range_union(range, total_range) == range);
         Assert(string.str && string.size);
     }
-    f32 space_size = get_string_advance(app, face, S8Lit(" "));
     Vec2_f32 needed_size = { 0, line_height };
     
 #define Long_IterateRanges(tokens, ranges, foreach, callback) \
@@ -1155,20 +1142,46 @@ function Rect_f32 Long_Index_DrawNote(Application_Links* app, Range_i64_Array ra
     {
         Vec2_f32 maxP = needed_size;
         b32 was_whitespace = 0;
+        f32 max_size_x = range_size(max_range_x);
         // TODO(long): Maybe skip comment?
-        Long_IterateRanges(array, ranges, needed_size.x += (needed_size.x ? space_size : 0),
-                           f32 size_x = needed_size.x;
-                           if (token->kind == TokenBaseKind_Whitespace) needed_size.x += space_size;
-                           else Long_GetStringAdvance(app, face, string, token, total_range.min, &needed_size.x);
-                           if (needed_size.x > range_size(max_range_x))
-                           {
-                               needed_size.x = 0;
-                               if (was_whitespace)
-                                   size_x -= space_size;
-                               maxP.x = Max(maxP.x, size_x);
-                               maxP.y += line_height;
-                           }
-                           was_whitespace = token->kind == TokenBaseKind_Whitespace);
+        // TODO(long): Use Fance_Block
+        for (i32 i = 0; i < ranges.count; ++i)
+        {
+            Range_i64 range = ranges.ranges[i];
+            needed_size.x += needed_size.x ? space_advance : 0;
+            Token_Iterator_Array it = token_iterator_pos(0, array, range.min);
+            do {
+                Token* token = token_it_read(&it);
+                if (token && token->pos >= range.max) break;
+                
+                f32 size_x = needed_size.x;
+                if (token->kind == TokenBaseKind_Whitespace) needed_size.x += space_advance;
+                else Long_String_GetAdvance(app, face, string, token, total_range.min, &needed_size.x);
+                
+                if (needed_size.x > max_size_x)
+                {
+                    if (was_whitespace)
+                        size_x -= space_advance;
+                    
+                    f32 advance = needed_size.x - size_x;
+                    if (advance > max_size_x)
+                    {
+                        maxP.x = max_size_x;
+                        needed_size.x = max_size_x;
+                    }
+                    else
+                    {
+                        maxP.x = Max(maxP.x, size_x);
+                        needed_size.x = advance;
+                    }
+                    
+                    //needed_size.x = 0;
+                    maxP.y += line_height;
+                }
+                was_whitespace = token->kind == TokenBaseKind_Whitespace;
+            } while (token_it_inc_all(&it));
+        }
+        
         if (maxP.x)
             needed_size = maxP;
     }
@@ -1191,12 +1204,12 @@ function Rect_f32 Long_Index_DrawNote(Application_Links* app, Range_i64_Array ra
     
     Vec2_f32 text_position = draw_rect.p0 + Vec2_f32{ padding, padding };
     f32 start_x = text_position.x;
-    Long_IterateRanges(array, ranges, text_position.x += (text_position.x != start_x) ? space_size : 0,
-                       if (token->kind == TokenBaseKind_Whitespace) text_position.x += space_size;
+    Long_IterateRanges(array, ranges, text_position.x += (text_position.x != start_x) ? space_advance : 0,
+                       if (token->kind == TokenBaseKind_Whitespace) text_position.x += space_advance;
                        else
                        {
                            Vec2_f32 pos = text_position;
-                           String8 token_string = Long_GetStringAdvance(app, face, string, token, total_range.min, &text_position.x);
+                           String8 token_string = Long_String_GetAdvance(app, face, string, token, total_range.min, &text_position.x);
                            if (text_position.x >= draw_rect.x1)
                            {
                                text_position.x = start_x + text_position.x - pos.x;
@@ -1206,6 +1219,7 @@ function Rect_f32 Long_Index_DrawNote(Application_Links* app, Range_i64_Array ra
                            draw_string(app, face, token_string, pos, color);
                            if (range_contains(highlight_range, token->pos))
                            {
+                               // @CONSTANT(long)
                                Rect_f32 rect = Rf32(pos.x, pos.y + line_height, text_position.x, pos.y + line_height + 2);
                                draw_rectangle(app, rect, 1, highlight_color);
                            }
@@ -1230,26 +1244,553 @@ function Range_i64_Array Long_Index_GetNoteRanges(Application_Links* app, Arena*
     return result;
 }
 
-global b32 long_global_pos_context_open    = 1;
-global i32 long_global_child_tooltip_count = 20;
-global i32 long_active_pos_context_option  = 0;
-
 function LONG_INDEX_FILTER(Long_Filter_Decl) { return note->kind == F4_Index_NoteKind_Decl || note->kind == F4_Index_NoteKind_Constant; }
 function LONG_INDEX_FILTER(Long_Filter_Func) { return note->kind == F4_Index_NoteKind_Function && !Long_Index_IsLambda(note); }
-function LONG_INDEX_FILTER(Long_Filter_Type) { return note->kind == F4_Index_NoteKind_Type     && !Long_Index_IsGenericArgument(note); }
+function LONG_INDEX_FILTER(Long_Filter_Type) { return note->kind == F4_Index_NoteKind_Type && !Long_Index_IsGenericArgument(note); }
+global NoteFilter* const long_ctx_opts[] = { Long_Filter_Decl, Long_Filter_Func, Long_Filter_Type, };
 
-global NoteFilter* long_global_context_opts[] =
+function Token_List Long_Token_ListFromRange(Application_Links* app, Arena* arena, Token_Array* all_tokens, Range_i64 range)
 {
-    Long_Filter_Decl,
-    Long_Filter_Func,
-    Long_Filter_Type,
-};
+    Token_List result = {};
+    if (range.max - range.min > 0)
+    {
+        Token_Iterator_Array it = token_iterator_pos(0, all_tokens, range.min);
+        do token_list_push(arena, &result, it.ptr);
+        while (token_it_inc(&it) && it.ptr->pos < range.max);
+    }
+    return result;
+}
 
-function Vec2_f32 Long_Index_DrawTooltip(Application_Links* app, Rect_f32 screen_rect, Vec2_f32 tooltip_pos,
-                                         Face_ID face, f32 padding, f32 line_height, ARGB_Color color, ARGB_Color highlight_color,
-                                         F4_Index_Note* note, i32 index, Range_i64 range, Range_i64 highlight_range)
+function Fancy_Block Long_Index_LayoutNote(Long_Render_Context* ctx, Arena* arena, F4_Index_Note* note, Range_i64 highlight_range)
 {
+    Application_Links* app = ctx->app;
+    Buffer_ID buffer = /*ctx->buffer*/note->file->buffer;
+    Token_Array array_ = /*&ctx->array*/get_token_array_from_buffer(app, buffer);
+    Token_Array* array = &array_;
+    Face_ID face = ctx->face;
+    f32 max_width = rect_width(ctx->rect);
+    
+    Scratch_Block scratch(app, arena);
+    Range_i64 range = Long_Index_ArgumentRange(note);
+    Token_List list = Long_Token_ListFromRange(app, scratch, array, range);
+    if (note->base_range.max)
+    {
+        Token_List base = Long_Token_ListFromRange(app, scratch, array, note->base_range);
+        if (base.first)
+        {
+            if (list.first)
+            {
+                base.last->next = list.first;
+                list.first->prev = base.last;
+            }
+            
+            list.first = base.first;
+            list. node_count += base. node_count;
+            list.total_count += base.total_count;
+        }
+    }
+    
+    local_const FColor color_table[TokenBaseKind_COUNT] = {
+#define X(kind, color) fcolor_id(color),
+        Long_Token_ColorTable(X)
+#undef X
+    };
+    
+    Fancy_Block result = {};
+    Fancy_Line* line = push_fancy_line(arena, &result);
+    for (Token_Block* block = list.first; block; block = block->next)
+    {
+        Token_Array note_tokens = { block->tokens, block->count, block->max };
+        
+        for (i64 i = 0; i < note_tokens.count; ++i)
+        {
+            Token* token = note_tokens.tokens + i;
+            String8 lexeme = push_token_lexeme(app, arena, buffer, token);
+            
+            b32 push_space = 0;
+            if (i > 0)
+            {
+                String8 one_space_ops[] = { S8Lit("*"), S8Lit(">"), };
+                String8  no_space_ops[] = { S8Lit("."), S8Lit("::"), S8Lit("<"), };
+                
+                switch (token->kind)
+                {
+                    // Operators
+                    case TokenBaseKind_Operator:
+                    {
+                        push_space = (!Long_Index_IsMatch(lexeme, ExpandArray(one_space_ops)) &&
+                                      !Long_Index_IsMatch(lexeme, ExpandArray( no_space_ops)) &&
+                                      !Long_Index_ParseAngleBody(app, buffer, token, 0));
+                    } break;
+                    
+                    // Atoms
+                    case TokenBaseKind_Keyword:
+                    case TokenBaseKind_Identifier:
+                    case TokenBaseKind_LiteralInteger:
+                    case TokenBaseKind_LiteralFloat:
+                    case TokenBaseKind_LiteralString:
+                    {
+                        Token* prev = token - 1;
+                        String8 prev_lexeme = push_token_lexeme(app, scratch, buffer, prev);
+                        push_space = (!Long_Index_IsMatch(prev_lexeme, ExpandArray(no_space_ops)) &&
+                                      prev->kind != TokenBaseKind_ParentheticalOpen);
+                    } break;
+                }
+            }
+            else push_space = block != list.first;
+            
+            b32 overflow = 0;
+            if (push_space)
+            {
+                f32 advance = get_string_advance(app, ctx->face, lexeme);
+                f32 width = get_fancy_line_width(app, ctx->face, line);
+                Assert(width);
+                overflow = (advance + width + ctx->metrics.space_advance) > max_width;
+            }
+            
+            if (overflow)
+                line = push_fancy_line(arena, &result);
+            else if (push_space)
+                push_fancy_string(arena, line, S8Lit(" "));
+            
+            // TODO(long): Compress this and Long_Syntax_Highlight
+            FColor color = color_table[token->kind];
+            if (highlight_range.min <= token->pos && token->pos + token->size <= highlight_range.max)
+                color = fcolor_id(fleury_color_token_highlight);
+            
+            else if (token->kind == TokenBaseKind_Identifier)
+            {
+                F4_Index_Note* note = Long_Index_LookupBestNote(app, buffer, array, token);
+                switch (note ? note->kind : 0)
+                {
+                    case F4_Index_NoteKind_Type:
+                    {
+                        b32 is_sum_type = note->flags & F4_Index_NoteFlag_SumType;
+                        color = fcolor_id(is_sum_type ? fleury_color_index_sum_type : fleury_color_index_product_type);
+                    } break;
+                    
+                    case F4_Index_NoteKind_Macro:    color = fcolor_id(fleury_color_index_macro);    break;
+                    case F4_Index_NoteKind_Function: color = fcolor_id(fleury_color_index_function); break;
+                    case F4_Index_NoteKind_Constant: color = fcolor_id(fleury_color_index_constant); break;
+                    case F4_Index_NoteKind_Decl:     color = fcolor_id(fleury_color_index_decl);     break;
+                }
+            }
+            
+            Fancy_String* fancy = push_fancy_string(arena, line, lexeme);
+            fancy->fore = color;
+        }
+    }
+    
+    return result;
+}
+
+function void Long_Index_PushNoteTooltip(Long_Render_Context* ctx, Arena* arena, Fancy_Block* block,
+                                         F4_Index_Note* note, Range_i64 highlight_range)
+{
+    if (Long_Index_IsNamespace(note))
+    {
+        String8 name = push_stringf(arena, "namespace %.*s", string_expand(note->string));
+        push_fancy_line(arena, block, name);
+        return;
+    }
+    
+    Application_Links* app = ctx->app;
+    Scratch_Block scratch(app, arena);
+    Range_i64_Array ranges = Long_Index_GetNoteRanges(app, scratch, note, {});
+    Buffer_ID buffer = note->file->buffer;
+    
+    if (ranges.count)
+    {
+        i64 max_range_pos = ranges.ranges[ranges.count - 1].max;
+        if (!max_range_pos)
+            system_error_box("The last range of the note is incorrect");
+        
+        Range_i64 total_range = { ranges.ranges[0].min, max_range_pos };
+        Range_i64 max_range = buffer_range(app, buffer);
+        Assert(total_range.min >= max_range.min && total_range.max <= max_range.max);
+    }
+    else return;
+    
+    Fancy_Line* line = push_array_zero(arena, Fancy_Line, 1);
+    for (i32 i = 0; i < ranges.count; ++i)
+    {
+        Range_i64 range = ranges.ranges[i];
+        String8 string = push_buffer_range(app, arena, buffer, range);
+        
+        if (highlight_range.min >= range.min && highlight_range.max <= range.max)
+        {
+            String8 pre_str = string_prefix(string, highlight_range.min - range.min);
+            string = string_skip(string, pre_str.size);
+            String8 mid_str = string_prefix(string, range_size(highlight_range));
+            string = string_skip(string, mid_str.size);
+            
+            if (pre_str.size) push_fancy_string(arena, line, pre_str);
+            if (mid_str.size) push_fancy_string(arena, line, fcolor_id(fleury_color_token_highlight), mid_str);
+            if (!string.size) continue;
+        }
+        
+        Assert(string.size);
+        push_fancy_string(arena, line, string);
+    }
+    push_fancy_line(block, line);
+}
+
+function Fancy_Block Long_Index_LayoutLine(Long_Render_Context* ctx, Arena* arena, Fancy_Line* line)
+{
+    Fancy_Block result = {};
+    Application_Links* app = ctx->app;
+    f32 max_width = rect_width(ctx->rect);
+    
+    Scratch_Block scratch(app, arena);
+    String8 ws = S8Lit(" \n\r\t\f\v");
+    Fancy_Line* block_line = push_fancy_line(arena, &result);
+    
+    for (Fancy_String* fancy_str = line->first,* prev_str = 0; fancy_str; prev_str = fancy_str, fancy_str = fancy_str->next)
+    {
+        b32 was_highlight = prev_str && prev_str->fore.id == fleury_color_token_highlight;
+        
+        // @COPYPASTA(long): Long_Render_LayoutString
+        String8List list = string_split(scratch, fancy_str->value, ws.str, (i32)ws.size);
+        for (String8Node* node = list.first; node; node = node->next)
+        {
+            String8 str = node->string;
+            b32 push_space = node != list.first || (!was_highlight && fancy_str != line->first);
+            b32 was_newline = push_space && str.str[-1] == '\n';
+            
+            f32 advance = get_string_advance(app, ctx->face, str);
+            f32 width = get_fancy_line_width(app, ctx->face, block_line);
+            b32 overflow = (advance + width + ctx->metrics.space_advance) > max_width;
+            
+            if (was_newline || overflow)
+                block_line = push_fancy_line(arena, &result);
+            else if (push_space)
+                push_fancy_string(arena, block_line, fancy_str->fore, S8Lit(" "));
+            push_fancy_string(arena, block_line, fancy_str->fore, str);
+        }
+    }
+    
+    return result;
+}
+
+function Rect_f32 Long_Index_RenderBlock(Long_Render_Context* ctx, Fancy_Block* block, Vec2_f32 tooltip_pos)
+{
+    Application_Links* app = ctx->app;
+    Face_ID face = ctx->face;
+    
+    Vec2_f32 padding;
+    {
+        f32 margin_size = def_get_config_f32_lit(app, "tooltip_thickness");
+        padding.x = ctx->padding + margin_size;
+        padding.y = padding.x;
+    }
+    
+    Rect_f32 draw_rect;
+    {
+        tooltip_pos.x = f32_floor32(tooltip_pos.x);
+        tooltip_pos.y = f32_floor32(tooltip_pos.y);
+        Vec2_f32 needed_size = get_fancy_block_dim(app, face, block);
+        draw_rect = Rf32_xy_wh(tooltip_pos, needed_size + 2 * padding);
+        
+        Vec2_f32 offset = draw_rect.p1 - ctx->rect.p1;
+        offset.x = clamp_bot(offset.x, 0);
+        offset.y = clamp_bot(offset.y, 0);
+        draw_rect.p0 -= offset;
+        draw_rect.p1 -= offset;
+    }
+    Long_Render_TooltipRect(app, draw_rect);
+    
+    FColor color = fcolor_id(defcolor_text_default);
+    ARGB_Color highlight_color = Long_ARGBFromID(fleury_color_token_highlight);
+    Vec2_f32 text_pos = draw_rect.p0 + padding;
+    f32 start_x = text_pos.x;
+    
+    // @COPYPASTA(long): draw_fancy_block
+    for (Fancy_Line* line_node = block->first; line_node; line_node = line_node->next)
+    {
+        Range_f32 highlight_range = {};
+        for (Fancy_String* str_node = line_node->first; str_node; str_node = str_node->next)
+        {
+            f32 curr_x = text_pos.x;
+            text_pos = draw_fancy_string(app, face, color, str_node, text_pos);
+            
+            if (str_node->fore.id == fleury_color_token_highlight)
+            {
+                if (!highlight_range.max)
+                    highlight_range = If32(curr_x, text_pos.x);
+                else
+                    highlight_range.max = text_pos.x;
+            }
+        }
+        
+        f32 line_height = get_fancy_line_height(app, face, line_node);
+        text_pos.x = start_x;
+        text_pos.y += line_height;
+        
+        if (highlight_range.max)
+        {
+            // @CONSTANT
+            f32 thickness = 2;
+            f32 roundness = 1;
+            
+            Rect_f32 rect = Rf32(highlight_range.min, text_pos.y, highlight_range.max, text_pos.y + thickness);
+            Long_Render_Rect(app, rect, roundness, highlight_color);
+        }
+    }
+    
+    return draw_rect;
+}
+
+function Rect_f32 Long_Index_RenderNote(Long_Render_Context* ctx, F4_Index_Note* note, Vec2_f32 tooltip_pos, Range_i64 highlight_range)
+{
+    Application_Links* app = ctx->app;
+    Rect_f32 region = ctx->rect;
+    Face_ID face = ctx->face;
+    f32 margin_size = def_get_config_f32_lit(app, "tooltip_thickness");
+    f32 padding = ctx->padding + margin_size;
+    
+    Buffer_ID buffer = note->file->buffer;
+    Token_Array array = get_token_array_from_buffer(app, buffer);
+    
     Scratch_Block scratch(app);
+    Range_i64 range = Long_Index_ArgumentRange(note);
+    Token_List list = Long_Token_ListFromRange(app, scratch, &array, range);
+    if (note->base_range.max)
+    {
+        Token_List base = Long_Token_ListFromRange(app, scratch, &array, note->base_range);
+        if (base.first)
+        {
+            if (list.first)
+            {
+                base.last->next = list.first;
+                list.first->prev = base.last;
+            }
+            
+            list.first = base.first;
+            list. node_count += base. node_count;
+            list.total_count += base.total_count;
+        }
+    }
+    
+    local_const FColor color_table[TokenBaseKind_COUNT] = {
+#define X(kind, color) fcolor_id(color),
+        Long_Token_ColorTable(X)
+#undef X
+    };
+    
+    Fancy_Block block = {};
+    Fancy_Line* line = push_fancy_line(scratch, &block);
+    for (Token_Block* tokens = list.first; tokens; tokens = tokens->next)
+    {
+        Token_Array note_tokens = { tokens->tokens, tokens->count, tokens->max };
+        
+        for (i64 i = 0 ; i < note_tokens.count; ++i)
+        {
+            Token* token = note_tokens.tokens + i;
+            String8 lexeme = push_token_lexeme(app, scratch, buffer, token);
+            
+            b32 push_space = 0;
+            if (i > 0)
+            {
+                String8 one_space_ops[] = { S8Lit("*"), S8Lit(">"), };
+                String8  no_space_ops[] = { S8Lit("."), S8Lit("::"), S8Lit("<"), };
+                
+                switch (token->kind)
+                {
+                    // Operators
+                    case TokenBaseKind_Operator:
+                    {
+                        push_space = (!Long_Index_IsMatch(lexeme, ExpandArray(one_space_ops)) &&
+                                      !Long_Index_IsMatch(lexeme, ExpandArray( no_space_ops)) &&
+                                      !Long_Index_ParseAngleBody(app, buffer, token, 0));
+                    } break;
+                    
+                    // Atoms
+                    case TokenBaseKind_Keyword:
+                    case TokenBaseKind_Identifier:
+                    case TokenBaseKind_LiteralInteger:
+                    case TokenBaseKind_LiteralFloat:
+                    case TokenBaseKind_LiteralString:
+                    {
+                        Token* prev = token - 1;
+                        String8 prev_lexeme = push_token_lexeme(app, scratch, buffer, prev);
+                        push_space = (!Long_Index_IsMatch(prev_lexeme, ExpandArray(no_space_ops)) &&
+                                      prev->kind != TokenBaseKind_ParentheticalOpen);
+                    } break;
+                }
+            }
+            else push_space = tokens != list.first;
+            
+            b32 overflow = 0;
+            if (push_space)
+            {
+                f32 advance = get_string_advance(app, ctx->face, lexeme);
+                f32 width = get_fancy_line_width(app, ctx->face, line);
+                Assert(width);
+                overflow = (advance + width + ctx->metrics.space_advance) > rect_width(region);
+            }
+            
+            if (overflow)
+                line = push_fancy_line(scratch, &block);
+            else if (push_space)
+                push_fancy_string(scratch, line, S8Lit(" "));
+            Fancy_String* fancy = push_fancy_string(scratch, line, lexeme);
+            
+            FColor color = color_table[token->kind];
+            if (highlight_range.min <= token->pos && token->pos + token->size <= highlight_range.max)
+                color = fcolor_id(fleury_color_token_highlight);
+            fancy->fore = color;
+        }
+    }
+    
+    tooltip_pos.x = f32_floor32(tooltip_pos.x);
+    tooltip_pos.y = f32_floor32(tooltip_pos.y);
+    Vec2_f32 needed_size = get_fancy_block_dim(app, face, &block);
+    Vec2_f32 padded_size = V2f32(padding, padding);
+    Rect_f32 draw_rect = Rf32_xy_wh(tooltip_pos, needed_size + 2 * padded_size);
+    
+    Vec2_f32 offset = { clamp_bot(draw_rect.x1 - region.x1, 0), clamp_bot(draw_rect.y1 - region.y1, 0) };
+    draw_rect.p0 -= offset;
+    draw_rect.p1 -= offset;
+    Long_Render_TooltipRect(app, draw_rect);
+    
+    ARGB_Color color = finalize_color(defcolor_text_default, 0);
+    ARGB_Color highlight_color = finalize_color(fleury_color_token_highlight, 0);
+    Vec2_f32 text_pos = draw_rect.p0 + padded_size;
+    f32 start_x = text_pos.x;
+    
+    // @COPYPASTA(long): draw_fancy_block
+    for (Fancy_Line* line_node = block.first; line_node; line_node = line_node->next)
+    {
+        Range_f32 highlight_range = {};
+        for (Fancy_String* str_node = line_node->first; str_node; str_node = str_node->next)
+        {
+            f32 curr_x = text_pos.x;
+            text_pos = draw_fancy_string(app, face, fcolor_argb(color), str_node, text_pos);
+            
+            if (str_node->fore.id == fleury_color_token_highlight)
+            {
+                if (!highlight_range.max)
+                    highlight_range = If32(curr_x, text_pos.x);
+                else
+                    highlight_range.max = text_pos.x;
+            }
+        }
+        
+        f32 line_height = get_fancy_line_height(app, face, line_node);
+        text_pos.x = start_x;
+        text_pos.y += line_height;
+        
+        if (highlight_range.max)
+        {
+            // @CONSTANT
+            f32 thickness = 2;
+            f32 roundness = 1;
+            
+            Rect_f32 rect = Rf32(highlight_range.min, text_pos.y, highlight_range.max, text_pos.y + thickness);
+            draw_rectangle(app, rect, roundness, highlight_color);
+        }
+    }
+    
+    return draw_rect;
+}
+
+function Rect_f32 Long_Index_RenderMembers(Long_Render_Context* ctx, F4_Index_Note* note, Vec2_f32 tooltip_pos)
+{
+    Application_Links* app = ctx->app;
+    Scratch_Block scratch(app);
+    Fancy_Block block = {};
+    
+    //- NOTE(long): Init Option
+    i32 option = long_active_pos_context_option;
+    {
+        i32 option_count = ArrayCount(long_ctx_opts);
+        
+        i32 counts[3] = {};
+        for (i32 opt = 0; opt < option_count; ++opt)
+        {
+            i32 member_count = 0;
+            for (F4_Index_Note* child = note->first_child; child; child = child->next_sibling)
+                if (long_ctx_opts[opt](child))
+                    member_count++;
+            counts[opt] = member_count;
+        }
+        
+        while (!counts[option])
+        {
+            option = (option + 1) % option_count;
+            if (option == long_active_pos_context_option)
+                break;
+        }
+        
+        //- NOTE(long): Push Title
+        if (counts[option])
+        {
+            long_active_pos_context_option = option;
+            
+            const char* option_names[] = { "DECL", "FUNC", "TYPE", };
+            FColor option_colors[] =
+            {
+                fcolor_id(fleury_color_index_decl),
+                fcolor_id(fleury_color_index_function),
+                fcolor_id(fleury_color_index_product_type),
+            };
+            i32 prev_idx = WrapIndex(option - 1, option_count);
+            i32 next_idx = WrapIndex(option + 1, option_count);
+            
+            Fancy_Line* title = push_fancy_line(scratch, &block, ctx->face);
+            push_fancy_stringf(scratch, title, option_colors[prev_idx], " <(%.2d) ", counts[prev_idx]);
+            push_fancy_stringf(scratch, title, option_colors[option], "[%s(%.2d)]", option_names[option], counts[option]);
+            push_fancy_stringf(scratch, title, option_colors[next_idx], " (%.2d)> ", counts[next_idx]);
+        }
+    }
+    
+    //- NOTE(long): Push Members
+    i32 note_count = 0;
+    for (F4_Index_Note* child = note->first_child; child; child = child->next_sibling)
+    {
+        if (note_count == long_global_child_tooltip_count)
+        {
+            push_fancy_line(scratch, &block, S8Lit("..."));
+            break;
+        }
+        
+        if (child->kind == F4_Index_NoteKind_Scope || Long_Index_IsComment(child) || !long_ctx_opts[option](child))
+            continue;
+        note_count++;
+        
+        Fancy_Block note_block = Long_Index_LayoutNote(ctx, scratch, child, {});
+        block.last->next = note_block.first;
+        block.last = note_block.last;
+        block.line_count += note_block.line_count;
+    }
+    
+    Rect_f32 draw_rect = Long_Index_RenderBlock(ctx, &block, tooltip_pos);
+    return draw_rect;
+}
+
+function Vec2_f32 Long_Index_RenderTooltip(Long_Render_Context* ctx, F4_Language_PosContextData* pos_ctx, Vec2_f32 tooltip_pos)
+{
+    Application_Links* app = ctx->app;
+    Scratch_Block scratch(app);
+    Rect_f32 region = ctx->rect;
+    Face_ID face = ctx->face;
+    f32 padding = ctx->padding;
+    
+    F4_Index_Note* note = pos_ctx->relevant_note;
+    i32 index = pos_ctx->argument_index;
+    Range_i64 highlight_range = pos_ctx->highlight_range;
+    
+    if (note->kind == F4_Index_NoteKind_Function && index != -1)
+    {
+        F4_Index_Note* argument = Long_Index_LookupChild(note, index);
+        if (argument && argument->kind == F4_Index_NoteKind_Decl)
+            // NOTE(long): The CS parser always parses base_range/scope_range for decls
+            // While the CPP parser never parses decls, so I don't need to check these ranges
+            highlight_range = { argument->base_range.min, argument->scope_range.min };
+    }
+    
+    ARGB_Color color = finalize_color(defcolor_text_default, 0);
+    ARGB_Color highlight_color = finalize_color(fleury_color_token_highlight, 0);
     
     if (note->kind == F4_Index_NoteKind_Decl && index)
     {
@@ -1258,98 +1799,205 @@ function Vec2_f32 Long_Index_DrawTooltip(Application_Links* app, Rect_f32 screen
             return tooltip_pos;
     }
     
+    //- NOTE(long): Setup Title Bar
+#if 0
+    Fancy_Block block = {};
+    Fancy_Line title = {};
+    if (note->kind == F4_Index_NoteKind_Type && index)
+    {
+        i32 option_count = ArrayCount(long_ctx_opts);
+        
+        i32 counts[3] = {};
+        for (i32 opt = 0; opt < option_count; ++opt)
+        {
+            i32 member_count = 0;
+            for (F4_Index_Note* child = note->first_child; child; child = child->next_sibling)
+                if (long_ctx_opts[opt](child))
+                    member_count++;
+            counts[opt] = member_count;
+        }
+        
+        i32 highlight = long_active_pos_context_option;
+        while (!counts[highlight])
+        {
+            highlight = (highlight + 1) % option_count;
+            if (highlight == long_active_pos_context_option)
+                break;
+        }
+        
+        if (counts[highlight])
+        {
+            long_active_pos_context_option = highlight;
+            
+            FColor option_colors[] =
+            {
+                fcolor_id(fleury_color_index_decl),
+                fcolor_id(fleury_color_index_function),
+                fcolor_id(fleury_color_index_product_type),
+            };
+            const char* option_names[] = { "DECL", "FUNC", "TYPE", };
+            i32 prev_idx = WrapIndex(highlight - 1, option_count);
+            i32 next_idx = WrapIndex(highlight + 1, option_count);
+            
+            push_fancy_stringf(scratch, &title, option_colors[prev_idx], "<(%.2d) ", counts[prev_idx]);
+            push_fancy_stringf(scratch, &title, option_colors[highlight], "[%s(%.2d)]", option_names[highlight], counts[highlight]);
+            push_fancy_stringf(scratch, &title, option_colors[next_idx], " (%.2d)>", counts[next_idx]);
+        }
+        
+        //- NOTE(long): Push Members
+        i32 note_count = 0;
+        for (F4_Index_Note* child = note->first_child; child; child = child->next_sibling)
+        {
+            if (note_count == long_global_child_tooltip_count)
+            {
+                push_fancy_line(scratch, &block, S8Lit("..."));
+                break;
+            }
+            
+            if (child->kind == F4_Index_NoteKind_Scope || Long_Index_IsComment(child))
+                continue;
+            if (!long_ctx_opts[highlight](child))
+                continue;
+            
+            Long_Index_PushNoteTooltip(ctx, scratch, &block, child, highlight_range);
+            note_count++;
+        }
+    }
+    //else Long_Index_PushNoteTooltip(ctx, scratch, &block, note, highlight_range);
+    
+    //- NOTE(long): Render Title
+    if (title.first)
+    {
+        Vec2_f32 size = get_fancy_line_dim(app, face, &title);
+        Vec2_f32 title_padding = V2f32(padding, padding) * 1.5f; // @CONSTANT
+        Long_Render_TooltipRect(app, Rf32_xy_wh(tooltip_pos, size + title_padding * 2));
+        draw_fancy_line(app, face, fcolor_argb(color), &title, tooltip_pos + title_padding);
+        tooltip_pos.y += size.y + title_padding.y * 2;
+    }
+#endif
+    
+    //- NOTE(long): Render Block
+    Rect_f32 draw_rect;
+    if (Long_Index_IsNamespace(note))
+    {
+        String8 tooltip_string = push_stringf(scratch, "namespace %.*s", string_expand(note->string));
+        draw_rect = Long_Render_DrawString(ctx, tooltip_string, tooltip_pos, color);
+    }
+    
+    else if (note->kind == F4_Index_NoteKind_Type && index)
+        draw_rect = Long_Index_RenderMembers(ctx, note, tooltip_pos);
+    else draw_rect = Long_Index_RenderNote(ctx, note, tooltip_pos, highlight_range);
+    
+    tooltip_pos.y = draw_rect.y1;
+    return tooltip_pos;
+}
+
+function Vec2_f32 Long_Index_DrawTooltip(Long_Render_Context* ctx, Vec2_f32 tooltip_pos, ARGB_Color color, ARGB_Color highlight_color,
+                                         F4_Language_PosContextData* pos_ctx)
+{
+    Application_Links* app = ctx->app;
+    Rect_f32 screen_rect = ctx->rect;
+    Face_ID face = ctx->face;
+    f32 padding = ctx->padding;
+    
+    F4_Index_Note* note = pos_ctx->relevant_note;
+    i32 index = pos_ctx->argument_index;
+    Range_i64 range = pos_ctx->range;
+    Range_i64 highlight_range = pos_ctx->highlight_range;
+    
+    if (note->kind == F4_Index_NoteKind_Decl && index)
+    {
+        note = Long_Index_LookupRef(app, note, 0);
+        if (!note)
+            return tooltip_pos;
+    }
+    
+    Scratch_Block scratch(app);
     if (note->kind == F4_Index_NoteKind_Type && index)
     {
         i32 opt = long_active_pos_context_option;
-        NoteFilter* filter = long_global_context_opts[opt];
+        NoteFilter* filter = long_ctx_opts[opt];
         
         f32 start_x = tooltip_pos.x;
         Rect_f32 rects[3] = {};
         i32 counts[3] = {};
-        i32 option_count = ArrayCount(long_global_context_opts);
+        i32 option_count = ArrayCount(long_ctx_opts);
         
         for (opt = 0; opt < option_count; ++opt)
         {
             i32 member_count = 0;
             for (F4_Index_Note* child = note->first_child; child; child = child->next_sibling)
-                if (long_global_context_opts[opt](child))
+                if (long_ctx_opts[opt](child))
                     member_count++;
             counts[opt] = member_count;
         }
         
+        i32 highlight = long_active_pos_context_option;
+        b32 empty = 0;
+        while (!counts[highlight])
         {
-            i32 highlight = long_active_pos_context_option;
-            b32 empty = false;
-            while (!counts[highlight])
+            highlight = (highlight + 1) % option_count;
+            if (highlight == long_active_pos_context_option)
             {
-                highlight = (highlight + 1) % option_count;
-                if (highlight == long_active_pos_context_option)
-                {
-                    empty = true;
-                    break;
-                }
-            }
-            filter = long_global_context_opts[highlight];
-            
-            if (!empty)
-            {
-                long_active_pos_context_option = highlight;
-                
-                FColor option_colors[] =
-                {
-                    fcolor_id(fleury_color_index_decl),
-                    fcolor_id(fleury_color_index_function),
-                    fcolor_id(fleury_color_index_product_type),
-                };
-                
-                char* option_names[] =
-                {
-                    "DECL",
-                    "FUNC",
-                    "TYPE",
-                };
-                
-                i32 prev_idx = clamp_loop(highlight - 1, option_count);
-                i32 next_idx = clamp_loop(highlight + 1, option_count);
-                Fancy_Line list = {};
-                
-                push_fancy_stringf(scratch, &list, option_colors[prev_idx], "<(%.2d)", counts[prev_idx]);
-                list.last->post_margin = .5f;
-                
-                f32 beg_offset = get_fancy_line_width(app, face, &list);
-                push_fancy_stringf(scratch, &list, option_colors[highlight], "[%s(%.2d)]", option_names[highlight], counts[highlight]);
-                f32 end_offset = get_fancy_line_width(app, face, &list);
-                
-                push_fancy_stringf(scratch, &list, option_colors[next_idx], "(%.2d)>", counts[next_idx]);
-                list.last->pre_margin = .5f;
-                
-                f32 title_padding = padding * 1.5f;
-                Vec2_f32 padding_vec = Vec2_f32{ title_padding, title_padding };
-                Rect_f32 rect = Rf32_xy_wh(tooltip_pos, get_fancy_line_dim(app, face, &list) + padding_vec * 2);
-                Vec2_f32 text_pos = tooltip_pos + padding_vec;
-                
-                Long_Render_TooltipRect(app, rect);
-                draw_fancy_line(app, face, fcolor_zero(), &list, text_pos);
-                tooltip_pos.y += rect_height(rect);
-                
-                // NOTE(long): Because the title uses a much bigger padding, I like to increase the highlight's y slightly
-                f32 highlight_y = rect.y1 - title_padding;
-                Rect_f32 highlight_rect = Rf32_xy_wh(text_pos.x + beg_offset, highlight_y, end_offset - beg_offset, 2);
-                highlight_rect.x0 += padding;
-                highlight_rect.x1 -= padding;
-                draw_rectangle(app, highlight_rect, 1, highlight_color);
+                empty = 1;
+                break;
             }
         }
+        filter = long_ctx_opts[highlight];
         
-        tooltip_pos.x = start_x;
+        if (!empty)
+        {
+            long_active_pos_context_option = highlight;
+            
+            FColor option_colors[] =
+            {
+                fcolor_id(fleury_color_index_decl),
+                fcolor_id(fleury_color_index_function),
+                fcolor_id(fleury_color_index_product_type),
+            };
+            char* option_names[] = { "DECL", "FUNC", "TYPE", };
+            
+            i32 prev_idx = WrapIndex(highlight - 1, option_count);
+            i32 next_idx = WrapIndex(highlight + 1, option_count);
+            Fancy_Line list = {};
+            
+            push_fancy_stringf(scratch, &list, option_colors[prev_idx], "<(%.2d)", counts[prev_idx]);
+            list.last->post_margin = .5f; // @CONSTANT
+            
+            f32 beg_offset = get_fancy_line_width(app, face, &list);
+            push_fancy_stringf(scratch, &list, option_colors[highlight], "[%s(%.2d)]", option_names[highlight], counts[highlight]);
+            f32 end_offset = get_fancy_line_width(app, face, &list);
+            
+            push_fancy_stringf(scratch, &list, option_colors[next_idx], "(%.2d)>", counts[next_idx]);
+            list.last->pre_margin = .5f; // @CONSTANT
+            
+            f32 title_padding = padding * 1.5f; // @CONSTANT
+            Vec2_f32 padding_vec = Vec2_f32{ title_padding, title_padding };
+            Rect_f32 rect = Rf32_xy_wh(tooltip_pos, get_fancy_line_dim(app, face, &list) + padding_vec * 2);
+            Vec2_f32 text_pos = tooltip_pos + padding_vec;
+            
+            Long_Render_TooltipRect(app, rect);
+            draw_fancy_line(app, face, fcolor_zero(), &list, text_pos);
+            tooltip_pos.y += rect_height(rect);
+            
+            // NOTE(long): Because the title uses a much bigger padding, I like to increase the highlight's y slightly
+            f32 highlight_y = rect.y1 - title_padding;
+            Rect_f32 highlight_rect = Rf32_xy_wh(text_pos.x + beg_offset, highlight_y, end_offset - beg_offset, 2);
+            highlight_rect.x0 += padding;
+            highlight_rect.x1 -= padding;
+            draw_rectangle(app, highlight_rect, 1, highlight_color);
+        }
         
         i32 i = 0;
+        tooltip_pos.x = start_x;
         for (F4_Index_Note* child = note->first_child; child; child = child->next_sibling)
         {
+            Rect_f32 rect = {};
             if (i == long_global_child_tooltip_count)
             {
-                tooltip_pos.y += rect_height(Long_Render_DrawString(app, S8Lit("..."), tooltip_pos, screen_rect,
-                                                                    face, line_height, padding * .5f, color));
+                Long_Render_CtxBlock(ctx, ctx->padding *= .5f) // // @CONSTANT
+                    rect = Long_Render_DrawString(ctx, S8Lit("..."), tooltip_pos, color);
+                tooltip_pos.y += rect_height(rect);
                 break;
             }
             
@@ -1359,19 +2007,24 @@ function Vec2_f32 Long_Index_DrawTooltip(Application_Links* app, Rect_f32 screen
             if (!filter(child))
                 continue;
             
-            Range_i64_Array ranges = Long_Index_GetNoteRanges(app, scratch, child, range);
-            Rect_f32 rect;
             if (Long_Index_IsNamespace(child))
-                rect = Long_Render_DrawString(app, push_stringf(scratch, "namespace %.*s", string_expand(child->string)),
-                                              tooltip_pos, screen_rect, face, line_height, padding, color);
+            {
+                String8 name = push_stringf(scratch, "namespace %.*s", string_expand(child->string));
+                rect = Long_Render_DrawString(ctx, name, tooltip_pos, color);
+            }
             else
-                rect = Long_Index_DrawNote(app, ranges, child->file->buffer,
-                                           face, line_height, padding, color,
-                                           tooltip_pos, Range_f32{ screen_rect.x0, screen_rect.x1 }, highlight_color, highlight_range);
+            {
+                Range_i64_Array ranges = Long_Index_GetNoteRanges(app, scratch, child, range);
+                Long_Render_PushCtxBuffer(ctx, child->file->buffer)
+                    rect = Long_Index_DrawNote(ctx, ranges, tooltip_pos, If32(screen_rect.x0, screen_rect.x1),
+                                               highlight_range, color, highlight_color);
+            }
+            
             tooltip_pos.y += rect_height(rect);
             ++i;
         }
     }
+    
     else
     {
         if (note->kind == F4_Index_NoteKind_Function && index != -1)
@@ -1382,18 +2035,24 @@ function Vec2_f32 Long_Index_DrawTooltip(Application_Links* app, Rect_f32 screen
                 // so I don't need to check these ranges
                 highlight_range = { argument->base_range.min, argument->scope_range.min };
         }
-        Range_i64_Array ranges = Long_Index_GetNoteRanges(app, scratch, note, range);
-        Rect_f32 rect;
+        
+        Rect_f32 rect = {};
         if (Long_Index_IsNamespace(note))
-            rect = Long_Render_DrawString(app, push_stringf(scratch, "namespace %.*s", string_expand(note->string)),
-                                          tooltip_pos, screen_rect, face, line_height, padding, color);
+        {
+            String8 name = push_stringf(scratch, "namespace %.*s", string_expand(note->string));
+            rect = Long_Render_DrawString(ctx, name, tooltip_pos, color);
+        }
+        
         else
-            rect = Long_Index_DrawNote(app, ranges, note->file->buffer,
-                                       face, line_height, padding, color,
-                                       tooltip_pos, Range_f32{ screen_rect.x0, screen_rect.x1 }, highlight_color, highlight_range);
+        {
+            Range_i64_Array ranges = Long_Index_GetNoteRanges(app, scratch, note, range);
+            Long_Render_PushCtxBuffer(ctx, note->file->buffer)
+                rect = Long_Index_DrawNote(ctx, ranges, tooltip_pos, If32(screen_rect.x0, screen_rect.x1),
+                                           highlight_range, color, highlight_color);
+        }
+        
         tooltip_pos.y += rect_height(rect);
     }
-    
     return tooltip_pos;
 }
 
@@ -1412,50 +2071,65 @@ function Range_i64 Long_Index_PosContextRange(Application_Links* app, Buffer_ID 
     return {};
 }
 
-function void Long_Index_DrawPosContext(Application_Links* app, View_ID view, F4_Language_PosContextData* first_ctx)
+function void Long_Index_DrawPosContext(Long_Render_Context* ctx, F4_Language_PosContextData* first_pos_ctx)
 {
-    if (!long_global_pos_context_open) return;
+    if (!long_global_pos_context_open)
+        return;
+    
+    Long_Render_Context restore_ctx = *ctx;
+    Application_Links* app = ctx->app;
+    View_ID view = ctx->view;
+    f32 line_height = ctx->metrics.line_height;
+    f32 padding = ctx->padding;
     
     // NOTE(long): In emacs style, has_highlight_range is only true when searching/multi-selecting
-    b32 has_highlight_range = *scope_attachment(app, view_get_managed_scope(app, view), view_highlight_buffer, Buffer_ID) != 0;
-    if (has_highlight_range) return;
+    b32 has_highlight_range = Long_Highlight_HasRange(app, view);
+    if (has_highlight_range)
+        return;
     
-    Face_ID face = global_small_code_face;
-    f32 padding = 4.f;
-    f32 line_height = get_face_metrics(app, face).line_height;
+    Long_Index_ProfileScope(app, "[Long] Draw Pos Context");
     ARGB_Color color = finalize_color(defcolor_text_default, 0);
     ARGB_Color highlight_color = finalize_color(fleury_color_token_highlight, 0);
     
-    Rect_f32 screen = view_get_screen_rect(app, view);
-    screen.x0 += padding * 4;
-    screen.x1 -= padding * 2;
-    
-    Vec2_f32 tooltip_pos =
-    {
-        global_cursor_rect.x0,
-        global_cursor_rect.y1,
-    };
+    Long_Render_InitCtxFace(ctx, global_small_code_face);
+    Vec2_f32 tooltip_pos;
+    Rect_f32 screen;
     
     b32 render_at_cursor = !def_get_config_b32_lit("f4_poscontext_draw_at_bottom_of_buffer");
-    if (!render_at_cursor)
+    if (render_at_cursor)
     {
-        f32 height = padding * 2;
-        for (F4_Language_PosContextData *ctx = first_ctx; ctx; ctx = ctx->next)
-            height += line_height + 2*padding;
+        screen = global_get_screen_rectangle(app);
+        screen.x0 += padding;
+        screen.x1 -= padding;
+        tooltip_pos = global_cursor_rect.p0 + V2f32(padding, line_height);
+    }
+    
+    else
+    {
+        screen = view_get_screen_rect(app, view);
+        f32 margin_padding = padding + def_get_config_f32_lit(app, "long_margin_size");
+        screen.x0 += margin_padding;
+        screen.x1 -= margin_padding;
+        
+        // TODO(long): Handle the case when the line overflows
+        f32 height = margin_padding;
+        for (F4_Language_PosContextData* pos_ctx = first_pos_ctx; pos_ctx; pos_ctx = pos_ctx->next)
+            height += ctx->metrics.line_height+ padding * 2;
         tooltip_pos = V2f32(screen.x0, screen.y1 - height);
     }
     
-    for (F4_Language_PosContextData* ctx = first_ctx; ctx; ctx = ctx->next)
+    ctx->rect = screen;
+    for (F4_Language_PosContextData* pos_ctx = first_pos_ctx; pos_ctx; pos_ctx = pos_ctx->next)
     {
-        if (ctx->relevant_note)
+        if (pos_ctx->relevant_note)
         {
-            tooltip_pos = Long_Index_DrawTooltip(app, screen, tooltip_pos,
-                                                 face, padding, line_height, color, highlight_color,
-                                                 ctx->relevant_note, ctx->argument_index, ctx->range, ctx->highlight_range);
+            //tooltip_pos = Long_Index_DrawTooltip(ctx, tooltip_pos, color, highlight_color, pos_ctx);
+            tooltip_pos = Long_Index_RenderTooltip(ctx, pos_ctx, tooltip_pos);
             if (render_at_cursor)
-                tooltip_pos.x -= padding * 4;
+                tooltip_pos.x -= padding * 4; // @CONSTANT
         }
     }
+    *ctx = restore_ctx;
 }
 
 function F4_Index_Note* Long_Index_GetDefNote(F4_Index_Note* note, b32 any_note = 0)
@@ -1476,85 +2150,23 @@ function F4_Index_Note* Long_Index_GetDefNote(F4_Index_Note* note, b32 any_note 
     return note;
 }
 
-function void Long_Index_DrawCodePeek(Application_Links* app, View_ID view)
+function void Long_Index_DrawCodePeek(Long_Render_Context* ctx)
 {
-    View_ID active_view = get_active_view(app, Access_Always);
-    Lister* lister = view_get_lister(app, active_view);
-    Rect_f32 screen_rect = view_get_screen_rect(app, view);
-    
-    F4_Index_Note* note = 0;
-    
-    if (long_lister_tooltip_peek == Long_Tooltip_NextToItem && lister && lister->highlighted_node)
+    if (long_global_code_peek_open)
     {
-        Long_Lister_Data* data = (Long_Lister_Data*)lister->highlighted_node->user_data;
-        if ((Lister_Node*)data == lister->highlighted_node + 1)
-        {
-            // @COPYPASTA(long): lister_render
-            Face_ID face = get_face_id(app, 0);
-            f32 line_height = get_face_metrics(app, face).line_height;
-            f32 block_height = lister_get_block_height(line_height);
-            f32 lister_margin = 3.f; // draw_background_and_margin
-            
-            Rect_f32 lister_rect = view_get_screen_rect(app, active_view);
-            lister_rect = rect_inner(lister_rect, lister_margin);
-            
-            f32 y_pos = Long_Lister_GetHeight(lister, line_height, block_height, &lister_rect.y0);
-            f32 width = line_height * 12;
-            f32 padding = 6.f;
-            
-            Rect_f32 clip_rect = layout_file_bar_on_top(rect_inner(screen_rect, lister_margin), line_height).max;
-            Rect_f32 rect = screen_rect;
-            rect.x0 += padding;
-            rect.x1 -= padding;
-            rect.y0 = y_pos;
-            rect.y1 = rect.y0 + width;
-            
-            if (data->tooltip.size)
-            {
-                Vec2_f32 tooltip_pos = rect.p0;
-                if (rect.x0 < lister_rect.x0)
-                    tooltip_pos.x = rect.x1; // NOTE(long): This will get clamped inside the DrawString call
-                
-                Rect_f32 prev_clip = draw_set_clip(app, clip_rect);
-                rect = Long_Render_DrawString(app, data->tooltip, tooltip_pos, rect_inner(screen_rect, padding), face, line_height,
-                                              (block_height-line_height)/2.f, finalize_color(defcolor_text_default, 0), 0);
-                draw_set_clip(app, prev_clip);
-            }
-            else
-            {
-                f32 draw_width = rect_width(rect) * .75f;
-                if (rect.x0 > lister_rect.x0)
-                    rect.x1 = rect.x0 + draw_width;
-                else
-                    rect.x0 = rect.x1 - draw_width;
-                
-                Long_Render_DrawPeek(app, rect, rect_inner(rect, line_height), clip_rect, data->buffer, Ii64(data->pos), 1, 0);
-            }
-            
-            if (lister->set_vertical_focus_to_item)
-            {
-                if (rect.y1 > lister_rect.y1)
-                {
-                    f32 scroll_margin = block_height;
-                    f32 current_height = lister->item_index * block_height + rect_height(rect);
-                    
-                    lister->scroll.target.y = current_height + scroll_margin - rect_height(lister_rect);
-                    lister->set_vertical_focus_to_item = 0;
-                }
-                else if (lister->set_vertical_focus_to_item == LONG_LISTER_TOOLTIP_SPECIAL_VALUE)
-                    lister->set_vertical_focus_to_item = 0;
-            }
-        }
-    }
-    else if (global_code_peek_open)
-    {
+        Application_Links* app = ctx->app;
+        Long_Index_ProfileScope(app, "[Long] Draw Code Peek");
+        View_ID active_view = get_active_view(app, Access_Always);
+        
         i64 pos = view_get_cursor_pos(app, active_view);
         Buffer_ID buffer = view_get_buffer(app, active_view, Access_Always);
         Token* token = get_token_from_pos(app, buffer, pos);
+        
         if (token != 0 && token->size > 0 && token->kind == TokenBaseKind_Identifier)
         {
             Token_Array array = get_token_array_from_buffer(app, buffer);
-            note = Long_Index_LookupBestNote(app, buffer, &array, token);
+            F4_Index_Note* note = Long_Index_LookupBestNote(app, buffer, &array, token);
+            
             if (note)
             {
                 if (!note->file)
@@ -1564,39 +2176,35 @@ function void Long_Index_DrawCodePeek(Application_Links* app, View_ID view)
                 else if (range_contains_inclusive(note->range, pos) && note->file->buffer == buffer)
                     note = Long_Index_GetDefNote(note, 1);
             }
+            
+            if (note)
+            {
+                Rect_f32 tooltip_rect = ctx->rect;
+                f32 peek_height = rect_height(tooltip_rect) * .25f; // @CONSTANT
+                tooltip_rect.y0 = tooltip_rect.y1 - peek_height;
+                f32 padding = def_get_config_f32_lit(app, "long_margin_size") * 2; // @CONSTANT
+                tooltip_rect = rect_inner(tooltip_rect, padding);
+                
+                Rect_f32 content_rect = rect_inner(tooltip_rect, 20); // TODO(long): Replace 20 with line_height
+                Long_Render_DrawPeek(app, tooltip_rect, content_rect, note->file->buffer, note->range, 3);
+            } 
         }
-    }
-    
-    if (note)
-    {
-        Rect_f32 rect = screen_rect;
-        i32 peek_count = 1;
-        f32 padding = 5.f;
-        {
-            f32 peek_height = (f32)((screen_rect.y1 - screen_rect.y0) * (0.3f + 0.4f*(clamp_top(peek_count / 4, 1)))) / peek_count;
-            rect.y0 = screen_rect.y1 - peek_height*peek_count;
-            rect.y1 = rect.y0 + peek_height;
-            rect = rect_inner(rect, padding);
-        }
-        
-        Long_Render_DrawPeek(app, rect, note->file->buffer, note->range, 3);
     }
 }
 
 //~ NOTE(long): Indent Functions
 
 // @COPYPASTA(long): generic_parse_statement
-function Code_Index_Nest*
-Long_Index_ParseGenericStatement(Code_Index_File *index, Generic_Parse_State *state){
+function Code_Index_Nest* Long_Index_ParseGenericStatement(Code_Index_File* index, Generic_Parse_State* state)
+{
     generic_parse_skip_soft_tokens(index, state);
+    Token* token = token_it_read(&state->it);
     
-    Token *token = token_it_read(&state->it);
-    Code_Index_Nest *result = push_array_zero(state->arena, Code_Index_Nest, 1);
+    Code_Index_Nest* result = push_array_zero(state->arena, Code_Index_Nest, 1);
     result->kind = CodeIndexNest_Statement;
     result->open = Ii64(token->pos);
     result->close = Ii64(max_i64);
     result->file = index;
-    
     state->in_statement = true;
     
     b32 is_keyword = 0;
@@ -1628,8 +2236,8 @@ Long_Index_ParseGenericStatement(Code_Index_File *index, Generic_Parse_State *st
             is_metadesk = 1;
     }
     
+    b32 is_identifier = token->kind == TokenBaseKind_Identifier;
     b32 is_operator = token->kind == TokenBaseKind_Operator;
-    
     i64 start_paren_pos = 0;
     Token_Iterator_Array restored = state->it;
     if (token_it_inc(&state->it))
@@ -1647,32 +2255,33 @@ Long_Index_ParseGenericStatement(Code_Index_File *index, Generic_Parse_State *st
         state->it = restored;
     }
     
-    for (b32 first_time = 1; ; first_time = 0){
+    for (b32 first_time = 1; ; first_time = 0)
+    {
         generic_parse_skip_soft_tokens(index, state);
         token = token_it_read(&state->it);
-        if (token == 0 || state->finished){
+        if (token == 0 || state->finished)
+            break;
+        
+        if (state->in_preprocessor)
+        {
+            if (!HasFlag(token->flags, TokenBaseFlag_PreprocessorBody) || token->kind == TokenBaseKind_Preprocessor)
+            {
+                result->is_closed = true;
+                result->close = Ii64(token->pos);
+                break;
+            }
+        }
+        
+        else if (token->kind == TokenBaseKind_Preprocessor)
+        {
+            result->is_closed = true;
+            result->close = Ii64(token->pos);
             break;
         }
         
-        if (state->in_preprocessor){
-            if (!HasFlag(token->flags, TokenBaseFlag_PreprocessorBody) ||
-                token->kind == TokenBaseKind_Preprocessor){
-                result->is_closed = true;
-                result->close = Ii64(token->pos);
-                break;
-            }
-        }
-        else{
-            if (token->kind == TokenBaseKind_Preprocessor){
-                result->is_closed = true;
-                result->close = Ii64(token->pos);
-                break;
-            }
-        }
-        
-        if (is_keyword && token->pos == start_paren_pos)
+        if ((is_keyword || is_identifier) && token->pos == start_paren_pos)
         {
-            Code_Index_Nest *nest = generic_parse_paren(index, state);
+            Code_Index_Nest* nest = generic_parse_paren(index, state);
             nest->parent = result;
             code_index_push_nest(&result->nest_list, nest);
             
@@ -1680,9 +2289,10 @@ Long_Index_ParseGenericStatement(Code_Index_File *index, Generic_Parse_State *st
             nest = generic_parse_statement(index, state);
             nest->parent = result;
             code_index_push_nest(&result->nest_list, nest);
-            Range_i64 close = nest->close;
             
+            Range_i64 close = nest->close;
             token = token_it_read(&state->it);
+            
             // NOTE(long): Check if the child statement was ended by a scope open
             if (token->pos != nest->open.max && token->kind == TokenBaseKind_ScopeOpen)
             {
@@ -1707,7 +2317,6 @@ Long_Index_ParseGenericStatement(Code_Index_File *index, Generic_Parse_State *st
         
         if (is_metadesk)
         {
-            //if (is_tag || token->kind == TokenBaseKind_LiteralString)
             if (!is_operator)
             {
                 result->is_closed = true;
@@ -1726,15 +2335,16 @@ Long_Index_ParseGenericStatement(Code_Index_File *index, Generic_Parse_State *st
         
         if (token->kind == TokenBaseKind_ScopeOpen  ||
             token->kind == TokenBaseKind_ScopeClose ||
-            token->kind == TokenBaseKind_ParentheticalOpen // NOTE(long): This case can only be true on the first iteration
-            )
+            // NOTE(long): This case can only be true on the first iteration
+            token->kind == TokenBaseKind_ParentheticalOpen)
         {
             result->is_closed = true;
             result->close = Ii64(token->pos);
             break;
         }
         
-        if (token->kind == TokenBaseKind_StatementClose){
+        if (token->kind == TokenBaseKind_StatementClose)
+        {
             result->is_closed = true;
             result->close = Ii64(token);
             generic_parse_inc(state);
@@ -1745,7 +2355,7 @@ Long_Index_ParseGenericStatement(Code_Index_File *index, Generic_Parse_State *st
     }
     
     result->nest_array = code_index_nest_ptr_array_from_list(state->arena, &result->nest_list);
-    state->in_statement = false;
+    state->in_statement = 0;
     
     return(result);
 }
@@ -1756,20 +2366,18 @@ function void Long_Index_IndentBuffer(Application_Links* app, Buffer_ID buffer, 
     Scratch_Block scratch(app);
     
     // @COPYPASTA(long): auto_indent_buffer
-    if (HasFlag(flags, Indent_FullTokens)){
-        i32 safety_counter = 0;
-        for (;;){
+    if (HasFlag(flags, Indent_FullTokens))
+    {
+        for (i32 safety_counter = 0, max_counter = 20; safety_counter < max_counter; safety_counter++)
+        {
             Range_i64 expanded = enclose_tokens(app, buffer, pos);
             expanded = enclose_whole_lines(app, buffer, expanded);
-            if (expanded == pos){
+            if (expanded == pos)
                 break;
-            }
+            
             pos = expanded;
-            safety_counter += 1;
-            if (safety_counter == 20){
+            if (safety_counter == max_counter-1)
                 pos = buffer_range(app, buffer);
-                break;
-            }
         }
     }
     
@@ -1778,7 +2386,6 @@ function void Long_Index_IndentBuffer(Application_Links* app, Buffer_ID buffer, 
     i64* shifted_indentations = indentations - lines.first; // NOTE(long): Because lines.first is 1-based
     
     code_index_lock();
-    
     Code_Index_File* file = code_index_get_file(buffer);
     if (file)
     {
@@ -1786,6 +2393,7 @@ function void Long_Index_IndentBuffer(Application_Links* app, Buffer_ID buffer, 
         {
             Indent_Info info = get_indent_info_range(app, buffer, get_line_pos_range(app, buffer, line), tab_width);
             i64 indent = 0, pos = info.first_char_pos;
+            
             for (Code_Index_Nest* nest = code_index_get_nest(file, pos); nest; nest = nest->parent)
             {
                 // NOTE(long): These 2 checks can only be true in the first iteration
@@ -1803,6 +2411,7 @@ function void Long_Index_IndentBuffer(Application_Links* app, Buffer_ID buffer, 
                 {
                     i64 paren_line = get_line_number_from_pos(app, buffer, nest->open.min);
                     Assert(paren_line < line);
+                    
                     Indent_Info paren_indent = get_indent_info_range(app, buffer, get_line_pos_range(app, buffer, paren_line), tab_width);
                     i64 start_text_size = nest->open.min - paren_indent.first_char_pos;
                     indent += (paren_line >= lines.min ? shifted_indentations[paren_line] : paren_indent.indent_pos) + start_text_size + 1;
@@ -1835,11 +2444,13 @@ function void Long_Index_IndentBuffer(Application_Links* app, Buffer_ID buffer, 
                     i64 tab_count = correct_indentation / tab_width;
                     i64 indent = tab_count * tab_width;
                     i64 space_count = correct_indentation - indent;
+                    
                     str_size = tab_count + space_count;
                     str = push_array(scratch, u8, str_size);
                     block_fill_u8(str, tab_count, '\t');
                     block_fill_u8(str + tab_count, space_count, ' ');
                 }
+                
                 else
                 {
                     str_size = correct_indentation;
@@ -1847,7 +2458,7 @@ function void Long_Index_IndentBuffer(Application_Links* app, Buffer_ID buffer, 
                     block_fill_u8(str, str_size, ' ');
                 }
                 
-                Batch_Edit *batch = push_array(scratch, Batch_Edit, 1);
+                Batch_Edit* batch = push_array(scratch, Batch_Edit, 1);
                 sll_queue_push(batch_head, batch_tail, batch);
                 batch->edit.text = SCu8(str, str_size);
                 batch->edit.range = Ii64(line_start_pos, info.first_char_pos);

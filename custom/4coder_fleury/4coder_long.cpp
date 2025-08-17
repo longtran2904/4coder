@@ -238,7 +238,7 @@
 
 //- @long_commands
 
-// - Long_KillBuffer: When you kill a buffer in the original command, 4coder will switch to the most recent buffer.
+// - Long_Buffer_Kill: When you kill a buffer in the original command, 4coder will switch to the most recent buffer.
 //   It's not that bad because killing a buffer isn't common. But what's common is killing the *search* buffer, and
 //   it's very annoying when after a quick search the buffer that you get back isn't the one before the search.
 //   This function will first check if the buffer you want to kill is the *search* buffer, then jump back to the
@@ -260,31 +260,113 @@
 //~ TODO INDEX
 
 //- CODE
+// [ ] Refactor the C# parser
 // [ ] Write a new cpp parser
 // [ ] Rewrite the Index system into a simple drop-in file
 // [ ] Add Index API for customizing the indentation and poscontext
 // [ ] Handle function overloading
 // [ ] Rewrite and optimize the lookup function
 
+//- INDENTING
+// [X] Indent keywords after identifiers (`MyMacro() \n for (..)`)
+// [ ] Change `:` indenting for the ternary operator and label-in-the-midle `else LABEL: \n foo()`
+// [ ] Indentless comments/strings
+
 //- RENDER
 // [ ] Autocompletion using PosContext or casey/jack's system
 // [ ] String/Comment indenting as code
 // [ ] Render #if block with annotation
-// [X] Render hex/bin/oct/dec number with thousands/byte separator
+// [X] Render alternative digit group for numeric's suffixes
 
 //- BUGS
 // [ ] Fix global function macro color for variable
-// [ ] `MyStruct arg = {}` in the argument list cause prototype function to be parsed incorectly
-// [X] CPP lexer doesn't support binary integers
-// [X] CPP Syntax highlight doesn't use sub kind
-// [X] Blend the comment tag color with F4_SyntaxFlags
+// [ ] {} and () in the argument list cause prototype functions and pos-context to be parsed incorectly
+// [X] Fix comments inside function's arguments
+// [ ] Fix pos context bug incorrect rect after modifying string
+
+//~ TODO RENDER
+
+//- HUD
+// [X] FPS HUD
+// [X] Lister
+//     [X] HUD
+//     [X] Theme lister preview color
+//     [X] Buffer lister tooltip (code peeking)
+//     [ ] Mouse tooltip for overflow lister's items
+//     [ ] Slider
+// [X] Code Peek
+// [X] Tooltip
+// [X] Position Context
+//     [ ] Reposition the pos-context when the current line is overflow or spans multiple line
+//     [ ] Add a blank virtual line at the tooltip position
+
+//- CODE
+// [X] Long_Render_Context
+// [X] Long_Render_Buffer
+// [X] Long_Render_Filebar
+// [X] Long_Render
+// [X] Long_WholeScreenRender
+// [X] draw_set_clip
+// [X] Remove Cursor_Type
+// [X] Fleury Brace
+// [X] Change how annotations of braces on the same line are drawn
+// [X] F4_RenderRangeHighlight
+// [X] def_get_config_f32_lit
+// [ ] Compress jump highlight and error highlight into one
+
+//- Margin/Panel
+// [X] Long_Highlight_CursorMark
+// [X] Line Number/Offset Margin
+// [X] Highlight line at cursor
+// [X] Active margin color
+// [ ] Change the margin style
+// [ ] Line/Scope highlight should ignore line number margin
+
+//- Font-dependent (Roundness and Thickness)
+// [X] Cursor
+// [X] Token Underline
+// [X] Cursor-Mark Range
+// [X] Hex Highlight
+// [ ] Brace Line Thickness
+// [ ] Brace Annotation Offset
+
+//- Params
+// [ ] Roundness
+//     [X] Lister
+//     [X] Cursor
+//     [X] Highlight Block
+//     [X] Tooltip
+//     [X] Pos Context
+
+// [ ] Thickness
+//     [X] Cursor Width
+//     [X] Panel Margin
+//     [X] Lister Margin Thickness
+//     [X] Lister Relative Size
+//     [X] Tooltip Margin
+
+// [ ] Offset (relative to face size)
+//     [ ] File Bar (Text Offset + Padded Height
+//     [ ] Mouse Tooltip
+//     [ ] Position Context
+//     [ ] Code Peek
+//     [ ] Lister
+
+// [ ] FPS Hud
+//     [ ] History Depth
+//     [ ] Position (Top-Left, Top-Right, Bot-Left, Bot-Right)
+
+//~ TODO TEXT UI
+// [X] Redesign filebar
+// [X] Fix the last slash is incorrect in the "Building with" message
+// [X] Append a blank line between other messages and the "Building with" message
+// [X] Highlight whitespace
+// [X] Highlight whitespace globally for all buffers
+// [ ] Modify face size commands
 
 //~ TODO MULTI CURSOR
 // [ ] Across buffers
 // [ ] Correct MC cursors while enabling virtual whitespace
-// [X] Begin multi-cursor block that ignore comment lines
-// [X] Global commands that can run on the main cursor while in MC mode
-// [X] Handling mouse movement in MC mode
 // [ ] Copy in MC mode -> Exit and re-enter MC mode -> Paste in MC mode
 // [ ] Special UI to know that MC mode is on (cursor color, cursor count, file bar, etc)
 // [ ] Handle special commands (re: commented bindings in Long_Binding_MultiCursor)
@@ -293,33 +375,49 @@
 //     [X] Lister commands
 //     [ ] Others
 
-//~ TODO COMMENTS
-// [X] Toggle comment ignore end of line
-// [X] Improve toggling multi-line range with single-line comments
-// [X] Render user name and comment tag as identifier
+//~ TODO POINT STACK
+// [X] Virtual stream model
+// [X] Init stack with the first buffer's line
+// [X] Jump to previous buffer after killing the current buffer
 
 //~ TODO BUGS
 // [ ] Fix undo/redo_all_buffers right after saving bug
 // [ ] undo/redo in MC mode
 // [ ] The current saved history gets overwritten by merging with the next modification
-// [ ] Ctrl+Alt+Shift Up/Down quickly is treated as Alt+Shift Up/Down
-// [X] Fix MC copy
-// [X] Fix color render for numeric
+// [X] Ctrl+Alt+Shift Up/Down quickly is treated as Alt+Shift Up/Down
+// [X] Off-by-one error in long_mc_begin_multi_block
+// [X] Upper/lower case in mc mode and stop dirtying buffers
+// [X] Opening new file pushes a new jump point
+// [ ] Fix move up/down token occurence
+// [ ] Move to the next/prev divider comment's line rather than position
+// [X] Fix query replace right next to string bug
+// [X] Actually uses long_show_line_number_offset
+// [X] Lister query tags bug
+// [X] Optimize redundant Long_Lister_GetFilter calls
+// [X] Optimize redundant draw_rectangle calls in Long_Render_DividerComments
+// [X] Fix invalid brace annotation position when the close brace isn't visible
+// [X] Fix toggle config b32 bug
+// [X] Fix overlapped braces rendering
+// [X] Ctrl+Delete while searching doesn't update the highlight range
+// [X] Fix error location bug
+// [X] Fix error highlighting overlapping bug
+// [ ] The cursor doesn't get snapped into view when overlaps with the file bar
 
 //~ @CONSIDER LISTER
 
 //- SEARCH
-// [ ] Replace all the wildcard searching in the query bar and lister with grep or glob
+// [ ] Replace wildcard searching in the query bar and lister with fuzzy search (spaces only)
 // [ ] Search for definitions like Hoogle
 // [ ] Has a lister for important but rarely used commands
 // [ ] Hotkeys for inserting and cycling through common tags
 // [ ] Run commands while in lister
 
 //- RENDER
-// [ ] Put ... after a large item and scroll its content horizontally over time
+// [ ] Put ... after overflow items
 // [ ] Has syntax highlight inside each item's contents
 // [ ] Improve relative path display in the file lister
 // [ ] Render multi-column grid like byp_qol
+// [ ] Exit lister with sub lister for dirty buffers
 
 //~ @CONSIDER NEW SYSTEM
 // [ ] LOC counter
@@ -341,16 +439,21 @@
 // [ ] Hot-reload multi-cursor bindings
 // [ ] Custom commands for each reloadable file
 
+//- Quick Buffer
+// [ ] Config
+// [ ] Project
+// [ ] Bindings
+// [ ] 4coder folder
+// [ ] Reference folders
+
 //- MISC
 // [ ] Move range selection up and down
 // [ ] Modal auto-complete {} () [] on enter or typing
 // [ ] Jump to location with relative path
 // [ ] Code peek yank
 // [ ] Greedy lookup the binding commands
-// [X] Query replace skip replaced string
-// [X] Redesign exit check message
 
-//~ NOTE(long): @long_macros and default include
+//~ NOTE(long): @long_macros
 #define LONG_INDEX_INDENT_STATEMENT 1
 #define LONG_INDEX_INLINE 1
 #define LONG_INDEX_INSERT_QUEUE 1
@@ -358,7 +461,7 @@
 
 #define LONG_LISTER_OVERLOAD 1
 
-#define LONG_ENABLE_INDEX_PROFILE 1
+#define LONG_ENABLE_INDEX_PROFILE 0
 #define LONG_ENABLE_PROFILE 0
 
 #if LONG_ENABLE_INDEX_PROFILE
@@ -369,10 +472,64 @@
 #define Long_Index_ProfileBlock(...)
 #endif
 
-//~ NOTE(rjf): Macros and pragmase stuff that have to be put here for various reasons
+//~ NOTE(long): @default_headers
 #include <string.h>
-#include "4coder_default_include.cpp"
-#pragma warning(disable : 4706)
+#include <stdio.h>
+#include <stdlib.h>
+
+#include "4coder_base_types.h"
+#include "4coder_version.h"
+#include "4coder_table.h"
+#include "4coder_events.h"
+#include "4coder_types.h"
+#include "4coder_doc_content_types.h"
+#include "4coder_default_colors.h"
+#define DYNAMIC_LINK_API
+#include "generated/custom_api.h"
+#include "4coder_system_types.h"
+#define DYNAMIC_LINK_API
+#include "generated/system_api.h"
+#if !defined(META_PASS)
+#include "generated/command_metadata.h"
+#endif
+
+#include "4coder_profile.h"
+#include "4coder_profile_inspect.h"
+
+#include "4coder_token.h"
+#include "generated/lexer_cpp.h"
+#include "generated/4coder_fleury_lexer_jai.h"
+#include "generated/lexer_cs.h"
+
+#include "4coder_variables.h"
+#include "4coder_audio.h"
+#include "4coder_async_tasks.h"
+#include "4coder_string_match.h"
+#include "4coder_helper.h"
+#include "4coder_delta_rule.h"
+#include "4coder_layout_rule.h"
+#include "4coder_code_index.h"
+#include "4coder_draw.h"
+#include "4coder_insertion.h"
+#include "4coder_command_map.h"
+#include "4coder_lister_base.h"
+#include "4coder_clipboard.h"
+#include "4coder_default_framework.h"
+#include "4coder_config.h"
+#include "4coder_auto_indent.h"
+#include "4coder_search.h"
+#include "4coder_build_commands.h"
+#include "4coder_jumping.h"
+#include "4coder_jump_sticky.h"
+#include "4coder_jump_lister.h"
+#include "4coder_project_commands.h"
+#include "4coder_prj_v1.h"
+#include "4coder_function_list.h"
+#include "4coder_scope_commands.h"
+#include "4coder_combined_write_commands.h"
+#include "4coder_log_parser.h"
+#include "4coder_tutorial.h"
+#include "4coder_search_list.h"
 
 //~ NOTE(rjf): @f4_headers
 #include "4coder_fleury_ubiquitous.h"
@@ -382,23 +539,101 @@
 #include "4coder_fleury_render_helpers.h"
 
 //~ NOTE(long): @f4_optional_headers
-#include "4coder_fleury_brace.h"
 #include "4coder_fleury_recent_files.h"
 #include "4coder_fleury_plot.h"
 #include "4coder_fleury_calc.h"
 
 //~ NOTE(long): @long_headers
 #include "4coder_long_hooks.h"
+#include "4coder_long_render.h"
 #include "4coder_long_index.h"
 #include "4coder_long_base_commands.h"
 #include "4coder_long_lister.h"
-#include "4coder_long_render.h"
 #include "4coder_long_bindings.h"
 
-#pragma warning(disable : 4456)
+//~ NOTE(long): @default_src
+#include "4coder_base_types.cpp"
+#include "4coder_stringf.cpp"
+#include "4coder_app_links_allocator.cpp"
+#include "4coder_system_allocator.cpp"
+#include "4coder_file.cpp"
 
-//~ NOTE(long): @byp_src
-#include "plugins/4coder_multi_cursor.cpp"
+#include "4coder_profile.cpp"
+#if LONG_ENABLE_PROFILE
+#include "4coder_profile_static_enable.cpp"
+#else
+#include "4coder_profile_static_disable.cpp"
+#endif
+
+#define DYNAMIC_LINK_API
+#include "generated/custom_api.cpp"
+#define DYNAMIC_LINK_API
+#include "generated/system_api.cpp"
+#include "4coder_system_helpers.cpp"
+#include "4coder_layout.cpp"
+#include "4coder_events.cpp"
+#include "4coder_custom.cpp"
+#include "4coder_log.cpp"
+#include "4coder_hash_functions.cpp"
+#include "4coder_table.cpp"
+#include "4coder_codepoint_map.cpp"
+#include "4coder_async_tasks.cpp"
+#include "4coder_string_match.cpp"
+#include "4coder_buffer_seek_constructors.cpp"
+
+#include "4coder_command_map.cpp"
+#include "4coder_default_map.cpp"
+#include "4coder_mac_map.cpp"
+
+#include "4coder_token.cpp"
+#include "generated/lexer_cpp.cpp"
+#include "generated/4coder_fleury_lexer_jai.cpp"
+#include "generated/lexer_cs.cpp"
+
+#include "4coder_default_framework_variables.cpp"
+#include "4coder_default_colors.cpp"
+#include "4coder_helper.cpp"
+#include "4coder_delta_rule.cpp"
+#include "4coder_layout_rule.cpp"
+#include "4coder_code_index.cpp"
+#include "4coder_fancy.cpp"
+#include "4coder_draw.cpp"
+#include "4coder_font_helper.cpp"
+#include "4coder_config.cpp"
+#include "4coder_dynamic_bindings.cpp"
+#include "4coder_default_framework.cpp"
+#include "4coder_clipboard.cpp"
+#include "4coder_lister_base.cpp"
+#include "4coder_base_commands.cpp"
+#include "4coder_insertion.cpp"
+#include "4coder_eol.cpp"
+#include "4coder_lists.cpp"
+#include "4coder_auto_indent.cpp"
+#include "4coder_search.cpp"
+#include "4coder_jumping.cpp"
+#include "4coder_jump_sticky.cpp"
+#include "4coder_jump_lister.cpp"
+#include "4coder_code_index_listers.cpp"
+#include "4coder_log_parser.cpp"
+#include "4coder_keyboard_macro.cpp"
+#include "4coder_cli_command.cpp"
+#include "4coder_build_commands.cpp"
+#include "4coder_project_commands.cpp"
+#include "4coder_prj_v1.cpp"
+#include "4coder_function_list.cpp"
+#include "4coder_scope_commands.cpp"
+#include "4coder_combined_write_commands.cpp"
+#include "4coder_miblo_numbers.cpp"
+#include "4coder_profile_inspect.cpp"
+#include "4coder_tutorial.cpp"
+#include "4coder_doc_content_types.cpp"
+#include "4coder_doc_commands.cpp"
+#include "4coder_docs.cpp"
+#include "4coder_variables.cpp"
+#include "4coder_audio.cpp"
+#include "4coder_search_list.cpp"
+#include "4coder_examples.cpp"
+#include "4coder_default_hooks.cpp"
 
 //~ NOTE(rjf): @f4_src
 #include "4coder_fleury_ubiquitous.cpp"
@@ -408,26 +643,19 @@
 #include "4coder_fleury_render_helpers.cpp"
 
 //~ NOTE(long): @f4_optional_src
-#include "4coder_fleury_brace.cpp"
 #include "4coder_fleury_recent_files.cpp"
 #include "4coder_fleury_plot.cpp"
 #include "4coder_fleury_calc.cpp"
 
-#pragma warning(default : 4456)
-
 //~ NOTE(long): @long_src
+#include "plugins/4coder_multi_cursor.cpp"
+
 #include "4coder_long_hooks.cpp"
+#include "4coder_long_render.cpp"
 #include "4coder_long_index.cpp"
 #include "4coder_long_base_commands.cpp"
 #include "4coder_long_lister.cpp"
-#include "4coder_long_render.cpp"
 #include "4coder_long_bindings.cpp"
-
-#if LONG_ENABLE_PROFILE
-#include "4coder_profile_static_enable.cpp"
-#else
-#include "4coder_profile_static_disable.cpp"
-#endif
 
 //~ NOTE(rjf): 4coder Stuff
 #include "generated/managed_id_metadata.cpp"
@@ -459,38 +687,25 @@ void custom_layer_init(Application_Links* app)
     implicit_map_function = 0;
     
     // NOTE(long): Set up hooks.
-    {
-        set_all_default_hooks(app);
-        
-        set_custom_hook(app, HookID_Tick,             Long_Tick);
-        set_custom_hook(app, HookID_RenderCaller,     Long_Render);
-        set_custom_hook(app, HookID_ViewEventHandler, long_view_input_handler);
-        
-        set_custom_hook(app, HookID_BeginBuffer,      Long_BeginBuffer);
-        set_custom_hook(app, HookID_EndBuffer,        Long_EndBuffer);
-        set_custom_hook(app, HookID_SaveFile,         Long_SaveFile);
-        set_custom_hook(app, HookID_BufferEditRange,  Long_BufferEditRange);
-        
-        set_custom_hook(app, HookID_Layout,           Long_Layout);
-        set_custom_hook(app, HookID_DeltaRule,        Long_DeltaRule);
-        set_custom_hook_memory_size(app, HookID_DeltaRule, delta_ctx_size(sizeof(Vec2_f32)));
-    }
+    set_all_default_hooks(app);
+    set_custom_hook(app, HookID_Tick,                    Long_Tick);
+    set_custom_hook(app, HookID_RenderCaller,            Long_Render);
+    set_custom_hook(app, HookID_WholeScreenRenderCaller, Long_WholeScreenRender);
+    set_custom_hook(app, HookID_ViewEventHandler,        long_view_input_handler);
+    set_custom_hook(app, HookID_BeginBuffer,             Long_BeginBuffer);
+    set_custom_hook(app, HookID_EndBuffer,               Long_EndBuffer);
+    set_custom_hook(app, HookID_SaveFile,                Long_SaveFile);
+    set_custom_hook(app, HookID_BufferEditRange,         Long_BufferEditRange);
+    set_custom_hook(app, HookID_Layout,                  Long_Layout);
+    set_custom_hook(app, HookID_DeltaRule,               Long_DeltaRule);
+    set_custom_hook_memory_size(app, HookID_DeltaRule,   delta_ctx_size(sizeof(Vec2_f32)));
     
-    // NOTE(long): Set up bindings.
-    {
-        Thread_Context* tctx = get_thread_context(app);
-        mapping_init(tctx, &framework_mapping);
-        String8 bindings_file = S8Lit("bindings.4coder");
-        
-        String_ID global_id = vars_save_string_lit("keys_global");
-        String_ID   file_id = vars_save_string_lit("keys_file");
-        String_ID   code_id = vars_save_string_lit("keys_code");
-        
-        if (!dynamic_binding_load_from_file(app, &framework_mapping, bindings_file))
-            Long_Binding_SetupDefault(&framework_mapping, global_id, file_id, code_id);
-        Long_Binding_SetupEssential(&framework_mapping, global_id, file_id, code_id);
-        Long_Binding_MultiCursor();
-    }
+    // NOTE(long): Set up bindings
+    mapping_init(get_thread_context(app), &framework_mapping);
+    if (!dynamic_binding_load_from_file(app, &framework_mapping, S8Lit("bindings.4coder")))
+        Long_Binding_SetupDefault(&framework_mapping);
+    Long_Binding_SetupEssential(&framework_mapping);
+    Long_Binding_MultiCursor();
     
     // TODO(long): Improve the index and language layers.
     F4_Index_Initialize();
@@ -562,14 +777,17 @@ CUSTOM_DOC("Long startup event")
         new_view_settings(app, view);
         view_set_buffer(app, view, left_buffer, 0);
         
+        Face_Description description = get_buffer_face_description(app, comp_buffer);
+        description.font.file_name = def_search_normal_full_path(scratch, S8Lit("fonts/Inconsolata-Regular.ttf"));
+        
         // NOTE(long): Left Bottom Panel
         View_ID compilation_view = Long_View_Open(app, view, comp_buffer, ViewSplit_Bottom, 1);
-        Font_Load_Location font = { def_search_normal_full_path(scratch, S8Lit("fonts/Inconsolata-Regular.ttf")) };
-        set_buffer_face_by_font_load_location(app, comp_buffer, &font);
+        Face_ID special_face = try_create_new_face(app, &description);
+        buffer_set_face(app, comp_buffer, special_face);
         
         // NOTE(long): Right Bottom Panel
         Long_View_Open(app, compilation_view, msg_buffer, ViewSplit_Right, 1);
-        set_buffer_face_by_font_load_location(app, msg_buffer, &font);
+        buffer_set_face(app, msg_buffer, special_face);
         
         // NOTE(long): Compilation Panel Split
         global_compilation_view = compilation_view;
@@ -635,8 +853,7 @@ CUSTOM_DOC("Long startup event")
 #if 0
         String8 left  = push_buffer_unique_name(app, scratch, recent_buffers[0]);
         String8 right = push_buffer_unique_name(app, scratch, recent_buffers[1]);
-        Long_Print_Messagef(app, "Recent Files:\n  Left:  %.*s\n  Right: %.*s",
-                            string_expand(left), string_expand(right));
+        Long_Print_Messagef(app, "Recent Files:\n  Left:  %.*s\n  Right: %.*s", string_expand(left), string_expand(right));
         
         if (days_older >= max_days_older)
             Long_Print_Messagef(app, " (%llu days older than left)", days_older);
@@ -652,6 +869,10 @@ CUSTOM_DOC("Long startup event")
         }
     }
     
+    //- NOTE(long): Initialize Point Stack
+    Long_View_ForEach(view, app, 0)
+        Long_PointStack_PushCurrent(app, view);
+    
     //- NOTE(rjf): Initialize audio.
     def_audio_init();
     
@@ -660,16 +881,15 @@ CUSTOM_DOC("Long startup event")
         Face_ID default_font = get_face_id(app, 0);
         Face_Description default_desc = get_face_description(app, default_font);
         
-        String8 binpath = system_get_path(scratch, SystemPath_Binary);
-        String8 roboto  = push_u8_stringf(scratch, "%.*sfonts/RobotoCondensed-Regular.ttf", string_expand(binpath));
-        String8 inconsolata = push_u8_stringf(scratch, "%.*sfonts/Inconsolata-Regular.ttf", string_expand(binpath));
+        String8 binary = system_get_path(scratch, SystemPath_Binary);
+        String8 roboto = push_u8_stringf(scratch, "%.*sfonts/RobotoCondensed-Regular.ttf", string_expand(binary));
+        String8 incons = push_u8_stringf(scratch, "%.*sfonts/Inconsolata-Regular.ttf", string_expand(binary));
         
         // NOTE(long): calc/plot faces
-        global_styled_title_face = Long_Font_TryCreate(app, roboto, default_font, 18, 0, 0);
-        global_styled_label_face = Long_Font_TryCreate(app, roboto, default_font, 10, 1, 1);
-        
-        u32 size = default_desc.parameters.pt_size - 1;
-        global_small_code_face = Long_Font_TryCreate(app, inconsolata, default_font, size, 1, 1);
+        u32 pt_size = default_desc.parameters.pt_size;
+        global_styled_title_face = Long_Font_TryCreate(app, roboto, default_font, pt_size + 3, 0, 0);
+        global_styled_label_face = Long_Font_TryCreate(app, roboto, default_font, pt_size - 2, 1, 1);
+        global_small_code_face   = Long_Font_TryCreate(app, incons, default_font, pt_size - 2, 1, 1);
     }
     
     //- NOTE(rjf): Prep virtual whitespace.

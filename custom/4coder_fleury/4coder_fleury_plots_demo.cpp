@@ -8,11 +8,12 @@
 
 
 /*c
-plot_function_samples(100)
+plot_function_samples(2000)
 plot_title('My Plot')
 plot_xaxis('x', -4, 4)
 plot_yaxis('y', -4, 4)
 plot(x^2 * sin(time()), 4*cos(time())*sin(x*time()))
+plot_function_samples(100)
 plot(sin(time())*cos(x+time()), x^3 * sin(time()), sin(-time())*3*x)
 */
 
@@ -188,7 +189,7 @@ plot(1/(x), x^2, -sin(x), cos(4*x))
 
 
 /*c
-t = 2 * abs((time()/8) % 1 - 0.5)
+t = 2 * abs((time()/4) % 1 - 0.5)
 
 plot_xaxis('t', -0.25, 1.25)
 plot_yaxis('v', -0.25, 1.25)
@@ -240,3 +241,17 @@ plot(1-1 * 0.5^(10*x), transition, 1-1 * 0.5^(10*t))
 
 
 
+/*c
+t = 2 * abs((time()/4) % 1 - 0.5)
+plot_xaxis('t', -0.25, 1.25)
+plot_yaxis('v', -0.25, 1.25)
+
+plot_title('Smooth Start')
+transition = [ [t, t, t,], [ t^2, t^3, t^4, ], ]
+plot(x^2, x^3, x^4, transition)
+
+u = 1 - t
+plot_title('Smooth Stop')
+transition = [ [t, t, t,], [ 1-u^2, 1-u^3, 1-u^4, ], ]
+plot(1-(1-x)^2, 1-(1-x)^3, 1-(1-x)^4, transition)
+*/

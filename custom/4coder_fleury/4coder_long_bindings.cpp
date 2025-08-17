@@ -2,13 +2,16 @@
 //~ NOTE(long): Bindings
 
 // @COPYPASTA(long): setup_essential_mapping
-function void Long_Binding_SetupEssential(Mapping* mapping, i64 global_id, i64 file_id, i64 code_id)
+function void Long_Binding_SetupEssential(Mapping* mapping)
 {
     if (!implicit_map_function)
         implicit_map_function = default_implicit_map;
     
     MappingScope();
     SelectMapping(mapping);
+    String_ID global_id = vars_save_string_lit("keys_global");
+    String_ID   file_id = vars_save_string_lit("keys_file");
+    String_ID   code_id = vars_save_string_lit("keys_code");
     
     SelectMap(global_id);
     BindCore(long_startup, CoreCode_Startup);
@@ -31,10 +34,13 @@ function void Long_Binding_SetupEssential(Mapping* mapping, i64 global_id, i64 f
 }
 
 // @COPYPASTA(long): F4_SetDefaultBindings
-function void Long_Binding_SetupDefault(Mapping* mapping, i64 global_id, i64 file_id, i64 code_id)
+function void Long_Binding_SetupDefault(Mapping* mapping)
 {
     MappingScope();
     SelectMapping(mapping);
+    String_ID global_id = vars_save_string_lit("keys_global");
+    String_ID   file_id = vars_save_string_lit("keys_file");
+    String_ID   code_id = vars_save_string_lit("keys_code");
     
     SelectMap(global_id);
     {
@@ -60,7 +66,7 @@ function void Long_Binding_SetupDefault(Mapping* mapping, i64 global_id, i64 fil
         //- Files
         Bind(interactive_new,                KeyCode_N,      KeyCode_Control);
         Bind(long_setup_new_project,         KeyCode_N,      KeyCode_Control, KeyCode_Shift);
-        Bind(interactive_open_or_new,        KeyCode_O,      KeyCode_Control);
+        Bind(long_interactive_open_or_new,   KeyCode_O,      KeyCode_Control);
         Bind(f4_open_project,                KeyCode_O,      KeyCode_Control, KeyCode_Shift);
         Bind(long_interactive_kill_buffer,   KeyCode_K,      KeyCode_Control);
         Bind(long_interactive_switch_buffer, KeyCode_I,      KeyCode_Control);
@@ -88,7 +94,7 @@ function void Long_Binding_SetupDefault(Mapping* mapping, i64 global_id, i64 fil
         Bind(long_command_lister,            KeyCode_X,      KeyCode_Alt);
         
         //- Project
-        Bind(build_in_build_panel,           KeyCode_M,      KeyCode_Alt);
+        Bind(long_build_in_build_panel,      KeyCode_M,      KeyCode_Alt);
         Bind(project_command_lister,         KeyCode_X,      KeyCode_Alt, KeyCode_Shift);
         Bind(project_fkey_command,           KeyCode_F1);
         Bind(project_fkey_command,           KeyCode_F2);
@@ -324,7 +330,7 @@ function void Long_Binding_MultiCursor()
         //- Files
         MC_register(interactive_new,                MC_Command_Global);
         MC_register(long_setup_new_project,         MC_Command_Global);
-        MC_register(interactive_open_or_new,        MC_Command_Global);
+        MC_register(long_interactive_open_or_new,   MC_Command_Global);
         MC_register(f4_open_project,                MC_Command_Global);
         MC_register(long_interactive_kill_buffer,   MC_Command_Global);
         MC_register(long_interactive_switch_buffer, MC_Command_Global);
@@ -352,7 +358,7 @@ function void Long_Binding_MultiCursor()
         MC_register(long_command_lister,            MC_Command_Global);
         
         //- Project
-        MC_register(build_in_build_panel,           MC_Command_Global);
+        MC_register(long_build_in_build_panel,      MC_Command_Global);
         MC_register(project_command_lister,         MC_Command_Global);
         MC_register(project_fkey_command,           MC_Command_Global);
         MC_register(project_fkey_command,           MC_Command_Global);
@@ -477,6 +483,8 @@ function void Long_Binding_MultiCursor()
         MC_register(long_delete_range,               MC_Command_Cursor);
         MC_register(delete_line,                     MC_Command_Cursor);
         MC_register(f4_unindent,                     MC_Command_Cursor);
+        MC_register(long_upper_case,                 MC_Command_Cursor);
+        MC_register(long_lower_case,                 MC_Command_Cursor);
         
         //- View
         MC_register(center_view,                     MC_Command_Global);

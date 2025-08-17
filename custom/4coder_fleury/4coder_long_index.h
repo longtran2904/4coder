@@ -23,6 +23,7 @@ function LONG_INDEX_FILTER(Long_Filter_Note);
 //- NOTE(long): Predicate Functions
 function b32 Long_Index_IsMatch(F4_Index_ParseCtx* ctx, Range_i64 range, String8* array, u64 count);
 function b32 Long_Index_IsMatch(F4_Index_ParseCtx* ctx, Token* token, String8* array, u64 count);
+function b32 Long_Index_IsMatch(F4_Index_ParseCtx* ctx, Range_i64 range, String8 str);
 function b32 Long_Index_IsMatch(String8 string, String8* array, u64 count);
 function b32 Long_Index_MatchNote(Application_Links* app, F4_Index_Note* note, Range_i64 range, String8 match);
 
@@ -32,6 +33,8 @@ function b32 Long_Index_IsLambda(F4_Index_Note* note);
 function b32 Long_Index_IsNamespace(F4_Index_Note* note);
 
 //- NOTE(long): Parsing Functions
+function b32 Long_ParseCtx_Inc(F4_Index_ParseCtx* ctx);
+function b32 Long_Index_ParseAngleBody(Application_Links* app, Buffer_ID buffer, Token* token, i32* out_nest);
 function b32 Long_Index_SkipExpression(F4_Index_ParseCtx* ctx, i16 seperator, i16 terminator);
 function b32 Long_Index_SkipBody(F4_Index_ParseCtx* ctx, b32 dec = 0, b32 exit_early = 0);
 function b32 Long_Index_SkipBody(Application_Links* app, Token_Iterator_Array* it, Buffer_ID buffer, b32 dec = 0, b32 exit_early = 0);
@@ -39,10 +42,13 @@ function b32 Long_Index_ParsePattern(F4_Index_ParseCtx* ctx, char* fmt, ...);
 function b32 Long_Index_PeekPattern(F4_Index_ParseCtx* ctx, char* fmt, ...);
 
 //- NOTE(long): Inline version of Parse/PeekPattern
-function b32 Long_Index_ParseStr (F4_Index_ParseCtx* ctx, String8 str);
-function b32 Long_Index_PeekStr  (F4_Index_ParseCtx* ctx, String8 str);
-function b32 Long_Index_ParseKind(F4_Index_ParseCtx* ctx, Token_Base_Kind kind, Range_i64* out_range);
+function b32      Long_Index_PeekStr(F4_Index_ParseCtx* ctx, String8 str);
+function b32     Long_Index_ParseStr(F4_Index_ParseCtx* ctx, String8 str);
+function b32     Long_Index_PeekKind(F4_Index_ParseCtx* ctx, Token_Base_Kind kind, Range_i64* out_range);
+function b32    Long_Index_ParseKind(F4_Index_ParseCtx* ctx, Token_Base_Kind kind, Range_i64* out_range);
+function b32  Long_Index_PeekSubKind(F4_Index_ParseCtx* ctx, i64 sub_kind, Range_i64* out_range);
 function b32 Long_Index_ParseSubKind(F4_Index_ParseCtx* ctx, i64 sub_kind, Range_i64* out_range);
+function void Long_Index_SkipPreproc(F4_Index_ParseCtx* ctx);
 
 //- NOTE(long): Init Functions
 function void Long_Index_Tick(Application_Links* app);
@@ -63,11 +69,8 @@ function F4_Index_Note* Long_Index_LookupBestNote(Application_Links* app, Buffer
 
 //- NOTE(long): Render Functions
 function Range_i64 Long_Index_PosContextRange(Application_Links* app, Buffer_ID buffer, i64 pos);
-function Vec2_f32 Long_Index_DrawTooltip(Application_Links* app, Rect_f32 screen_rect, Vec2_f32 tooltip_pos,
-                                         Face_ID face, f32 padding, f32 line_height, ARGB_Color color, ARGB_Color highlight_color,
-                                         F4_Index_Note* note, i32 index, Range_i64 range, Range_i64 highlight_range);
-function void Long_Index_DrawPosContext(Application_Links* app, View_ID view, F4_Language_PosContextData* first_ctx);
-function void Long_Index_DrawCodePeek(Application_Links* app, View_ID view);
+function void Long_Index_DrawPosContext(Long_Render_Context* ctx, F4_Language_PosContextData* first_pos_ctx);
+function void Long_Index_DrawCodePeek(Long_Render_Context* ctx);
 
 //- NOTE(long): Indent Functions
 function void Long_Index_IndentBuffer(Application_Links* app, Buffer_ID buffer, Range_i64 range, b32 merge_history = false);
@@ -90,23 +93,18 @@ function void Long_Index_IndentBuffer(Application_Links* app, Buffer_ID buffer, 
     for (F4_Index_Note* child = start; child != end; child = (forward) ? child->next_sibling : child->prev_sibling) \
     if (!Long_Index_IsNamespace(child))
 
-#define Long_Index_Token(ctx) token_it_read(&(ctx)->it)
-#define Long_Index_CtxScope(ctx) (ctx)->active_parent->scope_range
-#define Long_Index_CtxCompare(ctx, compare) ((ctx)->active_parent && ((ctx)->active_parent->compare))
+#define Long_Parse_Scope(ctx) (ctx)->active_parent->scope_range
+#define Long_Parse_Comp(ctx, compare) ((ctx)->active_parent && ((ctx)->active_parent->compare))
 #define Long_Index_PopParent(ctx) F4_Index_PopParent((ctx), (ctx)->active_parent->parent)
-#define Long_Index_IsParentInitialized(ctx) !((ctx)->active_parent && (Long_Index_CtxScope(ctx).start == 0))
+#define Long_Index_IsParentInitialized(ctx) !((ctx)->active_parent && (Long_Parse_Scope(ctx).start == 0))
 
-#define Long_Index_StartCtxScope(ctx) Long_Index_CtxScope(ctx).start = (ctx)->it.ptr->pos
-#define Long_Index_EndCtxScope(ctx)   Long_Index_CtxScope(ctx).end   = (ctx)->it.ptr->pos
-#define Long_Index_BeginCtxChange(ctx) F4_Index_ParseCtx __currentCtx__ = *(ctx)
-#define Long_Index_EndCtxChange(ctx) *(ctx) = __currentCtx__
+#define Long_Index_StartCtxScope(ctx) Long_Parse_Scope(ctx).start = (ctx)->it.ptr->pos
+#define Long_Index_EndCtxScope(ctx)   Long_Parse_Scope(ctx).end   = (ctx)->it.ptr->pos
+#define Long_Index_ScopeBlock(ctx) \
+    for (i64 _temp_ = ((Long_Index_StartCtxScope(ctx)), 1); _temp_; Long_Index_EndCtxScope(ctx), _temp_ = 0)
 
-#define Long_Index_BlockCtxScope(ctx, stm) do { \
-        Long_Index_StartCtxScope(ctx); stm; Long_Index_EndCtxScope(ctx); \
-    } while (0)
-#define Long_Index_BlockCtxChange(ctx, stm) do { \
-        Long_Index_BeginCtxChange(ctx); stm; Long_Index_EndCtxChange(ctx); \
-    } while (0)
+#define Long_Index_IterBlock(ctx) \
+    for (Token* _ptr_ = (ctx)->it.ptr; _ptr_; (ctx)->it.ptr = _ptr_, _ptr_ = 0)
 #define Long_Index_PeekPrevious(ctx, stm) do { \
         if (token_it_dec(&(ctx)->it)) { stm; token_it_inc(&(ctx)->it); } \
     } while (0)

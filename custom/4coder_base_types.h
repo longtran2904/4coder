@@ -1,6 +1,6 @@
 /*
- * 4coder base types
- */
+* 4coder base types
+*/
 
 // TOP
 
@@ -560,9 +560,9 @@ union SNode{
 #define zdll_push_back_NP_(f,l,n,next,prev) ((f==0)?(n->next=n->prev=0,f=l=n):(n->prev=l,n->next=0,l->next=n,l=n))
 #define zdll_remove_back_NP_(f,l,next,prev) ((f==l)?(f=l=0):(l->prev->next=0,l=l->prev))
 #define zdll_remove_NP_(f,l,n,next,prev)       \
-((l==n)?(zdll_remove_back_NP_(f,l,next,prev))  \
-:(f==n)?(zdll_remove_back_NP_(l,f,prev,next)) \
-:       (dll_remove_NP_(n,n,next,prev)))
+    ((l==n)?(zdll_remove_back_NP_(f,l,next,prev))  \
+     :(f==n)?(zdll_remove_back_NP_(l,f,prev,next)) \
+     :       (dll_remove_NP_(n,n,next,prev)))
 
 #define zdll_push_back(f,l,n) zdll_push_back_NP_((f),(l),(n),next,prev)
 #define zdll_push_front(f,l,n) zdll_push_back_NP_((l),(f),(n),prev,next)
@@ -571,7 +571,7 @@ union SNode{
 #define zdll_remove(f,l,n) zdll_remove_NP_((f),(l),(n),next,prev)
 
 #define zdll_assert_good(T,f) Stmnt( if (f != 0){ Assert(f->prev == 0); \
-for(T *p_ = f; p_ != 0; p_ = p_->next){ Assert(p_->prev == 0 || p_->prev->next == p_); Assert(p_->next == 0 || p_->next->prev == p_); }  } )
+                                        for(T *p_ = f; p_ != 0; p_ = p_->next){ Assert(p_->prev == 0 || p_->prev->next == p_); Assert(p_->next == 0 || p_->next->prev == p_); }  } )
 
 ////////////////////////////////
 

@@ -130,11 +130,6 @@ internal F4_LANGUAGE_INDEXFILE(F4_Jai_IndexFile)
         }
         
         //~ NOTE(rjf): Comment Tags
-        else if(F4_Index_RequireTokenKind(ctx, TokenBaseKind_Comment, &name, F4_Index_TokenSkipFlag_SkipWhitespace))
-        {
-            F4_Index_ParseComment(ctx, name);
-        }
-        
         else
         {
             F4_Index_ParseCtx_Inc(ctx, flags);

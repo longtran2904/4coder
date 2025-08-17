@@ -31,6 +31,7 @@
 // 1079 differentiate function calls with types
 // 1078 fix generic parsing
 // 1083 fix namespace handling
+// 1090 parse generic arguments in constructors and operators
 using UnityEngine;
 
 namespace UnityEngine { class MyEngine; }
@@ -46,9 +47,9 @@ namespace MyNamespace
 {
     class A
     {
-        namespace NamespaceInClass
+        namespace NamespaceInClass // NOTE(long): Classes can't have namespaces
         {
-            
+            Test.Function(Test.Function2(VeryLongFunction(GenericFunc(Test.Stuff.a), test_global_1), 3.f), (float)test_global_2);
         }
     }
     namespace OtherNamespace { }
@@ -170,9 +171,9 @@ testDecl1;
 Test.Stuff testDecl2;
 Test /*Some other comment*/ CreateTest(int a, int b, float c);
 Test.Stuff[][][] VeryLongFunction(Test.Stuff something, int someOtherThing, float fl, Optional[] optionals, params OtherTest[] others,
-                                  int[][][] veryLongArg, Entity. A . EntityAbility anotherLongArg, bool[][][][][][][] values,
+                                  int[][][] veryLongArg, Entity. A ./*comment*/ EntityAbility anotherLongArg, bool[][][][][][][] values,
                                   Generic<Type<T>> a, SomeOtherType type, System.Type otherType, EnumTest enumTest, TestStruct testStruct,
-                                  TestSingleEnum senum, AnotherArg arg);
+                                  TestSingleEnum /*comment*/ senum, /*comment*/ AnotherArg arg);
 #endif
 
 #if UNKNOW
@@ -194,6 +195,7 @@ struct Vector2
     
     public static implicit operator Vector2(Vector3 v);
     public static implicit operator Vector3(Vector2 v);
+    public static implicit operator Vector3<T>(T t);
     
     public Vector2(float x, float y);
 }
@@ -208,6 +210,7 @@ class Vector3
     class Vector2
     {
         public Vector2(float x, float y);
+        public Vector2<T, U>(T t, U u);
     }
 }
 

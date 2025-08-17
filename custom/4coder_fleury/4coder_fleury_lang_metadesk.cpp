@@ -16,39 +16,28 @@ internal F4_LANGUAGE_INDEXFILE(F4_MD_IndexFile)
 {
     for(;!ctx->done;)
     {
-        Token *name = 0;
-        Token* tag = 0;
+        Token* name = 0;
+        Token*  tag = 0;
         
         if (F4_Index_ParsePattern(ctx, "%b%o%k", F4_MD_TokenSubKind_Tag, &tag, TokenBaseKind_Identifier, &name))
         {
             String8 tag_str = F4_Index_StringFromToken(ctx, tag);
+            if (0) { }
             
-            if (string_match(tag_str, S8Lit("@enum")) ||
-                string_match(tag_str, S8Lit("@union")) )
+            else if (string_match(tag_str, S8Lit("@enum")) || string_match(tag_str, S8Lit("@union")) )
                 F4_Index_MakeNote(ctx, Ii64(name), F4_Index_NoteKind_Type, F4_Index_NoteFlag_SumType);
-            else if (string_match(tag_str, S8Lit("@text")) ||
-                     string_match(tag_str, S8Lit("@embed")) ||
-                     string_match(tag_str, S8Lit("@data")))
+            else if (string_match(tag_str, S8Lit("@text")) || string_match(tag_str, S8Lit("@embed")) || string_match(tag_str, S8Lit("@data")))
                 F4_Index_MakeNote(ctx, Ii64(name), F4_Index_NoteKind_Decl, 0);
             else
                 F4_Index_MakeNote(ctx, Ii64(name), F4_Index_NoteKind_Type, 0);
         }
         
-        else if(F4_Index_RequireTokenKind(ctx, TokenBaseKind_Identifier, &name, F4_Index_TokenSkipFlag_SkipWhitespace))
+        else if (F4_Index_RequireTokenKind(ctx, TokenBaseKind_Identifier, &name, F4_Index_TokenSkipFlag_SkipWhitespace))
         {
-            if(F4_Index_RequireToken(ctx, S8Lit(":"), F4_Index_TokenSkipFlag_SkipWhitespace))
-            {
+            if (F4_Index_RequireToken(ctx, S8Lit(":"), F4_Index_TokenSkipFlag_SkipWhitespace))
                 F4_Index_MakeNote(ctx, Ii64(name), F4_Index_NoteKind_Type, 0);
-            }
         }
-        else if(F4_Index_RequireTokenKind(ctx, TokenBaseKind_Comment, &name, F4_Index_TokenSkipFlag_SkipWhitespace))
-        {
-            F4_Index_ParseComment(ctx, name);
-        }
-        else
-        {
-            F4_Index_ParseCtx_Inc(ctx, F4_Index_TokenSkipFlag_SkipWhitespace);
-        }
+        else Long_ParseCtx_Inc(ctx);
     }
 }
 
@@ -58,17 +47,6 @@ internal F4_LANGUAGE_LEXINIT(F4_MD_LexInit)
     state->string = contents;
     state->at = contents.str;
     state->one_past_last = contents.str + contents.size;
-}
-
-internal b32
-F4_MD_CharIsSymbol(u8 c)
-{
-    return (c == '~' || c == '!' || c == '@' || c == '#' || c == '$' ||
-            c == '%' || c == '^' || c == '&' || c == '*' || c == '(' ||
-            c == ')' || c == '-' || c == '=' || c == '+' || c == '[' ||
-            c == ']' || c == '{' || c == '}' || c == ':' || c == ';' ||
-            c == ',' || c == '<' || c == '.' || c == '>' || c == '/' ||
-            c == '?' || c == '|' || c == '\\');
 }
 
 function Token Long_MD_LexStrLit(F4_MD_LexerState* state, String8 mark, i64 pos)
@@ -288,7 +266,12 @@ internal F4_LANGUAGE_LEXFULLINPUT(F4_MD_LexFullInput)
         }
         
         // NOTE(rjf): Operators
-        else if(F4_MD_CharIsSymbol(chr))
+        else if(chr == '~' || chr == '!' || chr == '@' || chr == '#' || chr == '$' ||
+                chr == '%' || chr == '^' || chr == '&' || chr == '*' || chr == '(' ||
+                chr == ')' || chr == '-' || chr == '=' || chr == '+' || chr == '[' ||
+                chr == ']' || chr == '{' || chr == '}' || chr == ':' || chr == ';' ||
+                chr == ',' || chr == '<' || chr == '.' || chr == '>' || chr == '/' ||
+                chr == '?' || chr == '|' || chr == '\\')
         {
             Token token = { i, 1, TokenBaseKind_Operator, 0 };
             token_list_push(arena, list, &token);
@@ -370,29 +353,32 @@ internal F4_LANGUAGE_POSCONTEXT(F4_MD_PosContext)
 
 function Range_i64 Long_MD_ParseStrExpr(Application_Links* app, Buffer_ID buffer, Range_i64 range)
 {
+    Long_Index_ProfileScope(app, "[Long] Parse MD Expr");
+    Scratch_Block scratch(app);
     Range_i64 result = {};
     
-    i64 expr_pos = 0;
     String8 expr_str = S8Lit("$(");
-    seek_string_forward(app, buffer, range.min, range.max, expr_str, &expr_pos);
+    String8 str = push_buffer_range(app, scratch, buffer, range);
     
-    if (expr_pos < range.max)
+    for (i64 expr_pos = 0, size = range.max - range.min; expr_pos < size; ++expr_pos)
     {
-        Scratch_Block scratch(app);
-        String8 str = push_buffer_range(app, scratch, buffer, Ii64(expr_pos + expr_str.size, range.max));
-        
-        i64 paren = 1;
-        u64 i = 0;
-        for (; i < str.size && paren; ++i)
+        String8 substr = string_substring(str, Ii64_size(expr_pos, expr_str.size));
+        if (string_match(substr, expr_str))
         {
-            switch (str.str[i])
+            u64 i = expr_pos + expr_str.size;
+            
+            for (i64 paren = 1; i < str.size && paren; ++i)
             {
-                case '(': paren++; break;
-                case ')': paren--; break;
+                switch (str.str[i])
+                {
+                    case '(': paren++; break;
+                    case ')': paren--; break;
+                }
             }
+            
+            result = Ii64(expr_pos+range.min, i+range.min);
+            break;
         }
-        
-        result = Ii64_size(expr_pos, i + expr_str.size);
     }
     
     return result;

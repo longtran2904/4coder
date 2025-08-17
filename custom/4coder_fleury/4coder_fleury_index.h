@@ -96,8 +96,6 @@ typedef u32 F4_Index_TokenSkipFlags;
 enum
 {
     F4_Index_TokenSkipFlag_SkipWhitespace = (1<<0),
-    F4_Index_TokenSkipFlag_SkipComment    = (1<<1),
-    F4_Index_TokenSkipFlag_SkipAll        = F4_Index_TokenSkipFlag_SkipWhitespace|F4_Index_TokenSkipFlag_SkipComment,
 };
 
 function void F4_Index_Initialize(void);

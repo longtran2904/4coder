@@ -4,6 +4,7 @@
 [NULL] a { declaration [global] }
 [NULL] { { [namespace] }
 [MyNamespace] A { <MyNamespace> type }
+[A] { { <A>  }
 [NULL] { { [namespace] }
 [NULL] test_global_1 { declaration [global] }
 [NULL] test_global_2 { declaration [global] }
@@ -32,12 +33,8 @@
 [DoGenericShit] U { <DoGenericShit> type [generic] }
 [DoGenericShit] a { <DoGenericShit> declaration [argument] }
 [DoGenericShit] b { <DoGenericShit> declaration [argument] }
-[DoGenericShit] @tag comment
-    */ { <DoGenericShit> comment tag }
 [MyGenericType] @tag comment
     */ { <MyGenericType> comment tag }
-[MyGenericType] TODO: todo comment
-*/ { <MyGenericType> TODO }
 [NULL] TODO: todo comment
 */ { TODO }
 [NULL] myType { declaration [global] }
@@ -51,7 +48,6 @@
 [NULL] TestSingleEnum { type }
 [NULL] EnumTest { type }
 [EnumTest] A { <EnumTest> constant }
-[A] { { <A>  }
 [EnumTest] B { <EnumTest> constant }
 [EnumTest] C { <EnumTest> constant }
 [NULL] Base { type }
@@ -68,8 +64,6 @@
 [C] Namespace { <C> function }
 [NULL] { { [namespace] }
 [B] Namespace { <B> type }
-[B] @"C:\Users\scoleridge\Documents\"; { <B> comment tag }
-[B] @"My pensive SARA ! thy soft cheek reclined { <B> comment tag }
 [NULL] @"C:\Users\scoleridge\Documents\"; { comment tag }
 [NULL] @"My pensive SARA ! thy soft cheek reclined { comment tag }
 [NULL] verbatimStr3 { declaration [global] }
@@ -135,6 +129,9 @@
 [Vector2] v { <Vector2> declaration [argument] }
 [Vector2] Vector3 { <Vector2> operator }
 [Vector3] v { <Vector3> declaration [argument] }
+[Vector2] Vector3 { <Vector2> operator }
+[Vector3] T { <Vector3> type [generic] }
+[Vector3] t { <Vector3> declaration [argument] }
 [Vector2] Vector2 { <Vector2> constructor }
 [Vector2] x { <Vector2> declaration [argument] }
 [Vector2] y { <Vector2> declaration [argument] }
@@ -146,6 +143,11 @@
 [Vector2] Vector2 { <Vector2> constructor }
 [Vector2] x { <Vector2> declaration [argument] }
 [Vector2] y { <Vector2> declaration [argument] }
+[Vector2] Vector2 { <Vector2> constructor }
+[Vector2] T { <Vector2> type [generic] }
+[Vector2] U { <Vector2> type [generic] }
+[Vector2] t { <Vector2> declaration [argument] }
+[Vector2] u { <Vector2> declaration [argument] }
 [NULL] Vector3 { function }
 [NULL] { {  }
 [NULL] { {  }
@@ -395,6 +397,10 @@
 [SerializeType] obj { <SerializeType> declaration [argument] }
 [SerializeType] builder { <SerializeType> declaration [argument] }
 [SerializeType] fieldName { <SerializeType> declaration [argument] }
+[SerializeType] TODO: I only handle the case when the current or parent is an element from an array. Hanlde the remaining cases. { <SerializeType> TODO }
+[SerializeType] TODO: Handle array of serializable type contains array of serializable type contains array of... { <SerializeType> TODO }
+[SerializeType] TODO: I only handle the case when the current or parent is an element from an array. Hanlde the remaining cases. { <SerializeType> TODO }
+[SerializeType] TODO: Handle array of serializable type contains array of serializable type contains array of... { <SerializeType> TODO }
 [SerializeType] { { <SerializeType>  }
 [SerializeType]  { <SerializeType> lambda }
 [] data { <> declaration [argument] }
@@ -402,8 +408,8 @@
 [] data { <> declaration [argument] }
 [] property { <> declaration [local] }
 [] name { <> declaration [local] }
-[] TODO: I only handle the case when the current or parent is an element from an array. Hanlde the remaining cases. { <> TODO }
 [] { { <>  }
+[{] TODO: I only handle the case when the current or parent is an element from an array. Hanlde the remaining cases. { <{> TODO }
 [{] isArrayElement { <{> declaration [local] }
 [{] isParentArrayElement { <{> declaration [local] }
 [{] TODO: Handle array of serializable type contains array of serializable type contains array of... { <{> TODO }
@@ -506,8 +512,8 @@
 [GameManager] StartGameMode { <GameManager> function }
 [StartGameMode] mode { <StartGameMode> declaration [argument] }
 [StartGameMode] { { <StartGameMode>  }
-[StartGameMode] TODO: { <StartGameMode> TODO }
 [StartGameMode] { { <StartGameMode>  }
+[{] TODO: { <{> TODO }
 [{] isMainMode { <{> declaration [local] }
 [StartGameMode] { { <StartGameMode>  }
 [{] { { <{>  }
@@ -562,8 +568,8 @@
 [EntityProperty] StartAtMinMoveRegion { <EntityProperty> constant }
 [EntityProperty] IsCritical { <EntityProperty> constant }
 [EntityProperty] UsePooling { <EntityProperty> constant }
-[EntityProperty] CustomInit { <EntityProperty> constant }
 [EntityProperty] TODO: Maybe collapse this and UsePooling into one { <EntityProperty> TODO }
+[EntityProperty] CustomInit { <EntityProperty> constant }
 [EntityProperty] AddMoneyWhenCollide { <EntityProperty> constant }
 [EntityProperty] FallingOnSpawn { <EntityProperty> constant }
 [EntityProperty] IsGrounded { <EntityProperty> constant }
@@ -866,8 +872,8 @@
 [{]  { <{> lambda }
 []  { <> lambda }
 [] width { <> declaration [argument] }
-[{] TODO: Fade trail { <{> TODO }
 [{] { { <{>  }
+[{] TODO: Fade trail { <{> TODO }
 [{] EnableTrail { <{> function }
 [EnableTrail] trail { <EnableTrail> declaration [argument] }
 [EnableTrail] emitTime { <EnableTrail> declaration [argument] }
@@ -1084,4 +1090,4 @@
 [DecreaseTrailWidth] startWidth { <DecreaseTrailWidth> declaration [local] }
 [DecreaseTrailWidth] startTime { <DecreaseTrailWidth> declaration [local] }
 [DecreaseTrailWidth] { { <DecreaseTrailWidth>  }
-Note count: 1082
+Note count: 1090

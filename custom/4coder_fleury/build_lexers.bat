@@ -11,10 +11,5 @@ call ..\bin\build_one_time .\4coder_long_cs_lexer_gen.cpp ..\..\
 REM copy ..\generated\lexer_cs.h .\generated\4coder_long_lexer_cs.h
 REM copy ..\generated\lexer_cs.cpp .\generated\4coder_long_lexer_cs.cpp
 
-REM call ..\bin\build_one_time .\4coder_fleury_jai_lexer_gen.cpp ..\..\
-REM ..\..\one_time.exe
-REM copy ..\generated\lexer_jai.h .\generated\4coder_fleury_lexer_jai.h
-REM copy ..\generated\lexer_jai.cpp .\generated\4coder_fleury_lexer_jai.cpp
-
 call ..\bin\build_one_time ..\languages\4coder_cpp_lexer_gen.cpp ..\..\
 ..\..\one_time.exe

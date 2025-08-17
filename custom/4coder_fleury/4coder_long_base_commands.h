@@ -7,12 +7,12 @@
 
 global View_ID long_global_active_view = 0;
 
-global b32 global_code_peek_open = 0;
-
 // NOTE(long): first bit is the move_next side, second bit is the move_prev side
 global u32 long_global_move_side = 1;
-
-global Range_i64 long_cursor_select_range;
+global b32 long_global_code_peek_open = 0;
+global b32 long_global_pos_context_open    = 1;
+global i32 long_global_child_tooltip_count = 20;
+global i32 long_active_pos_context_option  = 0;
 
 global Character_Predicate long_predicate_alpha_numeric_underscore_dot = { {
         0,   0,   0,   0,   0,   64,  255, 3, 
@@ -25,12 +25,15 @@ global Character_Predicate long_predicate_alpha_numeric_underscore_dot = { {
 
 //~ NOTE(long): Helper Functions
 
-#define clamp_loop(x, size) ((((x) % (size)) + (size)) % (size))
+#define WrapIndex(x, size) ((((x) % (size)) + (size)) % (size))
 #define Long_View_ForEach(view, app, flags) \
     for (View_ID view = get_view_next(app, 0, flags); view; view = get_view_next(app, view, flags))
 
+#define StrStartsWith(str, needle, ...) string_match(string_prefix(str, needle.size), needle, __VA_ARGS__)
+
 function b32 Long_F32_Invalid(f32 f);
 function b32 Long_Rf32_Invalid(Rect_f32 r);
+function Rect_f32 Long_Rf32_Round(Rect_f32 r);
 function i32 Long_Abs(i32 num);
 function i64 Long_Abs(i64 num);
 
@@ -45,6 +48,11 @@ function void Long_ConfirmMarkSnapToCursor(Application_Links* app);
 function b32       Long_IsPosValid(Application_Links* app, View_ID view, Buffer_ID buffer, i64 pos, i64 current_pos);
 function void Long_Jump_ToLocation(Application_Links* app, View_ID view, Buffer_ID buffer, i64 pos);
 function void   Long_Jump_ToBuffer(Application_Links* app, View_ID view, Buffer_ID buffer, b32 push_src = 1, b32 push_dst = 1);
+
+function String8 Long_Buffer_PushLine(Application_Links* app, Arena* arena, Buffer_ID buffer, i64 pos);
+function Buffer_ID Long_Buffer_GetSearchBuffer(Application_Links* app);
+function b32 Long_Buffer_IsSearch(Application_Links* app, Buffer_ID buffer);
+function b32 Long_Buffer_IsSpecial(Application_Links* app, String8 name);
 
 function void Long_Print_Messagef(Application_Links* app, char* fmt, ...);
 function void   Long_Print_Errorf(Application_Links* app, char* fmt, ...);
@@ -62,9 +70,10 @@ function void   Long_Print_Errorf(Application_Links* app, char* fmt, ...);
 
 #define def_get_config_b32_lit(key) def_get_config_b32(vars_save_string_lit(key))
 #define def_toggle_config_b32_lit(key) Stmnt(String_ID __id__ = vars_save_string_lit(key); \
-                                             def_set_config_b32(__id__, def_get_config_b32(__id__));)
+                                             def_set_config_b32(__id__, !def_get_config_b32(__id__));)
 #define def_get_config_u64_lit(app, key) def_get_config_u64(app, vars_save_string_lit(key))
 #define def_get_config_str_lit(arena, key) def_get_config_string(arena, vars_save_string_lit(key))
+#define def_get_config_f32_lit(app, key) ((f32)def_get_config_u64((app), vars_save_string_lit(key)))
 
 function void    Long_Vars_Append(Application_Links* app, Arena* arena, String8List*  list, Variable_Handle var, i32 indent);
 function String8 Long_Vars_StrFromArray(Application_Links* app, Arena* arena, Variable_Handle var, i32 indent, String8List ignore = {});
@@ -76,7 +85,7 @@ function Marker* Long_SearchBuffer_GetMarkers(Application_Links* app, Arena* are
                                               Buffer_ID buffer, i32* out_count);
 function void Long_SearchBuffer_Jump(Application_Links* app, Locked_Jump_State state, Sticky_Jump jump);
 function Sticky_Jump Long_SearchBuffer_NearestJump(Application_Links* app, Buffer_ID buffer, i64 pos,
-                                                   Locked_Jump_State state, Managed_Scope scope, Sticky_Jump_Stored* out_stored);
+                                                   Marker_List* list, Managed_Scope scope, Sticky_Jump_Stored* out_stored);
 
 //~ NOTE(long): List Functions
 
@@ -98,7 +107,7 @@ function b32 Long_Query_DefaultInput(Application_Links* app, Query_Bar* bar, Vie
 function b32      Long_Query_General(Application_Links* app, Query_Bar* bar, String8 init, u32 force_radix = 0);
 function String8 Long_Query_StringEx(Application_Links* app, Arena* arena, char* prompt, u8* string_space,
                                      u64 space_size, String8 init);
-function String8   Long_Query_String(Application_Links* app, Arena* arena, char* prompt, String8 init = string_u8_empty);
+function String8   Long_Query_String(Application_Links* app, Arena* arena, char* prompt, String8 init = {});
 
 //~ NOTE(long): Search Functions
 
@@ -123,25 +132,27 @@ function void Long_Config_ApplyFromData(Application_Links* app, String8 data, i3
 
 //~ NOTE(long): Point Stack Functions
 
+// @IMPORTANT(long): This must be a power of two
+#define LONG_POINT_STACK_DEPTH 64
+#define PS_WrapIndex(idx) ((idx) & (LONG_POINT_STACK_DEPTH - 1))
+
 struct Long_Point_Stack
 {
-    Managed_Object markers[POINT_STACK_DEPTH];
-    Buffer_ID buffers[POINT_STACK_DEPTH];
-    i32 bot;
-    
-    // NOTE(long): The current and top is one past the actual point index
-    i32 current;
-    i32 top;
+    Managed_Object markers[LONG_POINT_STACK_DEPTH];
+    Buffer_ID      buffers[LONG_POINT_STACK_DEPTH];
+    u32 bot;
+    u32 curr;
+    u32 top; // opl
 };
 
 CUSTOM_ID(attachment, long_point_stacks);
 
 function void Long_PointStack_Push(Application_Links* app, Buffer_ID buffer, i64 pos, View_ID view = 0);
+function void Long_PointStack_PushCurrent(Application_Links* app, View_ID view);
 function void Long_PointStack_SetCurrent(Long_Point_Stack* stack, i32 index);
 function void Long_PointStack_Append(Application_Links* app, Long_Point_Stack* stack, Buffer_ID buffer, i64 pos, View_ID view = 0);
 
-function void Long_PointStack_Jump(Application_Links* app, View_ID view, Buffer_ID target_buffer, i64 target_pos,
-                                   Buffer_ID current_buffer = 0, i64 current_pos = 0);
+function void Long_PointStack_Jump(Application_Links* app, View_ID view, Buffer_ID target_buffer, i64 target_pos);
 function void Long_PointStack_JumpNext(Application_Links* app, View_ID view, i32 advance);
 
 //~ NOTE(long): History Functions
