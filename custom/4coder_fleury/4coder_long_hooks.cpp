@@ -3,8 +3,8 @@
 
 //void A(int abcdefghijklmnopqrstuvwxyz0123456789abcdefghijklmnopqrstuvwxyz0123456789abcdefghijklmnopqrstuvwxyz0123456789
 //abcdefghijklmnopqrstuvwxyz0123456789abcdefghijklmnopqrstuvwxyz0123456789abcdefghijklmnopqrstuvwxyz0123456789
-//abcdefghijklmnopqrstuvwxyz0123456789abcdefghijklmnopqrstuvwxyz0123456789abcdefghijklmnopqrstuvwxyz0123456789abcdefghijklmnopqrstuvwxyz0123456789abcdefghijklmnopqrstuvwxyz0123456789abcdefghijklmnopqrstuvwxyz0123456789abcdefghijklmnopqrstuvwxyz0123456789abcdefghijklmnopqrstuvwxyz0123456789
-//abcdefghijklmnopqrstuvwxyz0123456789abcdefghijklmnopqrstuvwxyz0123456789abcdefghijklmnopqrstuvwxyz0123456789abcdefghijklmnopqrstuvwxyz0123456789abcdefghijklmnopqrstuvwxyz0123456789abcdefghijklmnopqrstuvwxyz0123456789abcdefghijklmnopqrstuvwxyz0123456789abcdefghijklmnopqrstuvwxyz0123456789abcdefghijklmnopqrstuvwxyz0123456789
+//abcdefghijklmnopqrstuvwxyz0123456789abcdefghijklmnopqrstuvwxyz0123456789abcdefghijklmnopqrstuvwxyz0123456789abcdefghijklmnopqrstuvwxyz0123456789abcdefghijklmnopqrstuvwxyz0123456789abcdefghijklmnopqrstuvwxyz0123456789
+//abcdefghijklmnopqrstuvwxyz0123456789abcdefghijklmnopqrstuvwxyz0123456789abcdefghijklmnopqrstuvwxyz0123456789abcdefghijklmnopqrstuvwxyz0123456789abcdefghijklmnopqrstuvwxyz0123456789abcdefghijklmnopqrstuvwxyz0123456789abcdefghijklmnopqrstuvwxyz01234567
 //abcdefghijklmnopqrstuvwxyz0123456789abcdefghijklmnopqrstuvwxyz0123456789abcdefghijklmnopqrstuvwxyz0123456789abcdefghijklmnopqrstuvwxyz0123456789abcdefghijklmnopqrstuvwxyz0123456789abcdefghijklmnopqrstuvwxyz0123456789abcdefghijklmnopqrstuvwxyz0123456789abcdefghijklmnopqrstuvwxyz0123456789abcdefghijklmnopqrstuvwxyz0123456789abcdefghijklmnopqrstuvwxyz0123456789);
 //A()
 
@@ -21,7 +21,8 @@ CUSTOM_DOC("Command for responding to a try-exit event")
             Scratch_Block scratch(app);
             String8List dirty_list = {};
             
-            for (Buffer_ID buffer = get_buffer_next(app, 0, Access_Always); buffer; buffer = get_buffer_next(app, buffer, Access_Always))
+            for (Buffer_ID buffer = get_buffer_next(app, 0, Access_Always); buffer;
+                 buffer = get_buffer_next(app, buffer, Access_Always))
             {
                 Dirty_State dirty = buffer_get_dirty_state(app, buffer);
                 if (HasFlag(dirty, DirtyState_UnsavedChanges))
@@ -233,6 +234,7 @@ CUSTOM_DOC("Input consumption loop for default view behavior")
 function void Long_Tick(Application_Links* app, Frame_Info frame)
 {
     linalloc_clear(&global_frame_arena);
+    long_fancy_tooltips = {};
     global_tooltip_count = 0;
     
     View_ID view = get_active_view(app, 0);
@@ -293,7 +295,7 @@ function void Long_Render(Application_Links* app, Frame_Info frame, View_ID view
     Face_Metrics metrics = ctx->metrics;
     
     //- NOTE(long): Draw Background/Margin
-    b32 is_active_view = ctx->active_view;
+    b32 is_active_view = ctx->is_active_view;
     {
         ARGB_Color back_color = Long_ARGBFromID(defcolor_back);
         if (!is_active_view)
@@ -387,11 +389,9 @@ function void Long_WholeScreenRender(Application_Links* app, Frame_Info frame)
     Rect_f32 region = global_get_screen_rectangle(app);
     Rect_f32 active_rect = view_get_screen_rect(app, active_view);
     Face_ID global_face = get_face_id(app, 0);
-    Face_ID tooltip_face = /*global_small_code_face*/global_face;
     
     Long_Render_Context _ctx = Long_Render_CreateCtx(app, frame, active_view);
     Long_Render_Context* ctx = &_ctx;
-    ctx->padding = 6.f; // @CONSTANT(long): Tooltip text_offset
     
     Long_Render_InitCtxFace(ctx, global_face);
     {
@@ -414,11 +414,10 @@ function void Long_WholeScreenRender(Application_Links* app, Frame_Info frame)
     }
     
     //- NOTE(long): Lister HUD
-    Long_Render_InitCtxFace(ctx, global_face);
     Long_View_ForEach(view, app, 0)
     {
         ctx->view = view;
-        ctx->active_view = view == active_view;
+        ctx->is_active_view = view == active_view;
         
         Lister* lister = view_get_lister(app, view);
         if (lister)
@@ -441,16 +440,18 @@ function void Long_WholeScreenRender(Application_Links* app, Frame_Info frame)
     }
     
     // NOTE(long): Tooltip Rendering
+    Long_Render_InitCtxFace(ctx, global_small_code_face);
     {
-        ctx->rect = region;
-        Long_Render_InitCtxFace(ctx, tooltip_face);
+        // @CONSTANT
+        Vec2_f32 mouse_offset = V2f32(16, 16);
+        f32 height_offset = 0;
         
-        Vec2_f32 tooltip_pos = ctx->mouse + V2f32(16, 16); // @CONSTANT
-        for (i32 i = 0; i < global_tooltip_count; ++i)
+        Vec2_f32 tooltip_pos = ctx->mouse + mouse_offset;
+        for (Fancy_Line* line = long_fancy_tooltips.first; line; line = line->next)
         {
-            String8 string = global_tooltips[i].string;
-            Rect_f32 tooltip_rect = Long_Render_DrawString(ctx, string, tooltip_pos, global_tooltips[i].color);
-            tooltip_pos.y = tooltip_rect.y1 + 2; // @CONSTANT
+            Fancy_Block block = Long_Render_LayoutLine(ctx, scratch, line);
+            tooltip_pos.y = Long_Render_FancyBlock(ctx, &block, tooltip_pos).y;
+            tooltip_pos.y += height_offset;
         }
     }
     
@@ -574,7 +575,8 @@ function i32 Long_SaveFile(Application_Links* app, Buffer_ID buffer)
 }
 
 // @COPYPASTA(long): F4_LayoutInner
-function Layout_Item_List Long_Layout(Application_Links* app, Arena* arena, Buffer_ID buffer, Range_i64 range, Face_ID face, f32 width)
+function Layout_Item_List Long_Layout(Application_Links* app, Arena* arena, Buffer_ID buffer,
+                                      Range_i64 range, Face_ID face, f32 width)
 {
     Scratch_Block scratch(app);
     Layout_Item_List list = get_empty_item_list(range);
@@ -735,17 +737,17 @@ function BUFFER_HOOK_SIG(Long_BeginBuffer)
     
     Scratch_Block scratch(app);
     b32 treat_as_code = false;
-    String_Const_u8 file_name = push_buffer_file_name(app, scratch, buffer_id);
-    String_Const_u8 buffer_name = push_buffer_base_name(app, scratch, buffer_id);
+    String8 file_name = push_buffer_file_name(app, scratch, buffer_id);
+    String8 buffer_name = push_buffer_base_name(app, scratch, buffer_id);
     
     // NOTE(rjf): Treat as code if the config tells us to.
     if (treat_as_code == false)
     {
         if (file_name.size > 0)
         {
-            String_Const_u8 treat_as_code_string = def_get_config_str_lit(scratch, "treat_as_code");
-            String_Const_u8_Array extensions = parse_extension_line_to_extension_list(app, scratch, treat_as_code_string);
-            String_Const_u8 ext = string_file_extension(file_name);
+            String8 treat_as_code_string = def_get_config_str_lit(scratch, "treat_as_code");
+            String8Array extensions = parse_extension_line_to_extension_list(app, scratch, treat_as_code_string);
+            String8 ext = string_file_extension(file_name);
             for (i32 i = 0; i < extensions.count; ++i)
             {
                 if (string_match(ext, extensions.strings[i]))
@@ -866,7 +868,7 @@ function BUFFER_EDIT_RANGE_SIG(Long_BufferEditRange)
             Token* token_resync = ptr->tokens + token_index_resync_guess;
             
             Range_i64 relex_range = Ii64(token_first->pos, token_resync->pos + token_resync->size + text_shift);
-            String_Const_u8 partial_text = push_buffer_range(app, scratch, buffer_id, relex_range);
+            String8 partial_text = push_buffer_range(app, scratch, buffer_id, relex_range);
             
             // NOTE(rjf): Lex
             F4_Language* language = F4_LanguageFromBuffer(app, buffer_id);

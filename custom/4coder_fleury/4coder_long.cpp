@@ -263,7 +263,7 @@
 // [ ] Refactor the C# parser
 // [ ] Write a new cpp parser
 // [ ] Rewrite the Index system into a simple drop-in file
-// [ ] Add Index API for customizing the indentation and poscontext
+// [ ] Add Index API for customizing the indentation and pos-context
 // [ ] Handle function overloading
 // [ ] Rewrite and optimize the lookup function
 
@@ -273,7 +273,7 @@
 // [ ] Indentless comments/strings
 
 //- RENDER
-// [ ] Autocompletion using PosContext or casey/jack's system
+// [ ] Autocompletion using Pos-Context or casey/jack's system
 // [ ] String/Comment indenting as code
 // [ ] Render #if block with annotation
 // [X] Render alternative digit group for numeric's suffixes
@@ -281,8 +281,9 @@
 //- BUGS
 // [ ] Fix global function macro color for variable
 // [ ] {} and () in the argument list cause prototype functions and pos-context to be parsed incorectly
+// [ ] Parsing arary in the CPP parser
 // [X] Fix comments inside function's arguments
-// [ ] Fix pos context bug incorrect rect after modifying string
+// [ ] Fix pos-context bug incorrect rect after modifying string
 
 //~ TODO RENDER
 
@@ -292,13 +293,18 @@
 //     [X] HUD
 //     [X] Theme lister preview color
 //     [X] Buffer lister tooltip (code peeking)
-//     [ ] Mouse tooltip for overflow lister's items
+//     [X] Mouse tooltip for overflow lister's items
 //     [ ] Slider
-// [X] Code Peek
 // [X] Tooltip
-// [X] Position Context
-//     [ ] Reposition the pos-context when the current line is overflow or spans multiple line
+//     [X] Fancy
+//     [X] Line Wrap
+// [X] Pos-Context
+//     [X] Redesign the title bar
+//     [X] Syntax Highlighting
+//     [X] Line wraping for overflown tooltip
+//     [ ] Reposition the overflowwn tooltip
 //     [ ] Add a blank virtual line at the tooltip position
+// [X] Code Peek
 
 //- CODE
 // [X] Long_Render_Context
@@ -320,37 +326,51 @@
 // [X] Highlight line at cursor
 // [X] Active margin color
 // [ ] Change the margin style
-// [ ] Line/Scope highlight should ignore line number margin
 
-//- Font-dependent (Roundness and Thickness)
-// [X] Cursor
-// [X] Token Underline
-// [X] Cursor-Mark Range
-// [X] Hex Highlight
-// [ ] Brace Line Thickness
-// [ ] Brace Annotation Offset
+//- Line Wrap/Overflow
+// [ ] Weird wrap postion
+// [ ] Incorrect movement (up/down/beg/end) between visual lines
+// [ ] Overflow line width
+// [ ] Overlap with line number margin
+
+//- Font-dependent
+// [ ] Roundness/Thickness
+//     [X] Cursor
+//     [X] Token Underline
+//     [X] Cursor-Mark Range
+//     [X] Hex Highlight
+//     [X] Brace Line
+
+// [ ] Text Offset
+//     [X] File Bar
+//     [X] FPS HUD
+//     [X] Lister
+//     [X] Tooltip
+//     [X] Code Peek
 
 //- Params
-// [ ] Roundness
+// [X] Roundness
 //     [X] Lister
 //     [X] Cursor
 //     [X] Highlight Block
 //     [X] Tooltip
-//     [X] Pos Context
+//     [X] Pos-Context
 
-// [ ] Thickness
+// [X] Thickness
 //     [X] Cursor Width
 //     [X] Panel Margin
-//     [X] Lister Margin Thickness
-//     [X] Lister Relative Size
 //     [X] Tooltip Margin
+//     [X] Lister Margin Thickness
+//     [X] Lister Size (relative to screen size)
 
-// [ ] Offset (relative to face size)
-//     [ ] File Bar (Text Offset + Padded Height
+// [ ] Pos Offset
 //     [ ] Mouse Tooltip
-//     [ ] Position Context
-//     [ ] Code Peek
-//     [ ] Lister
+//         [ ] First Offset
+//         [ ]  Next Offset
+//     [ ] Pos-Context
+//         [X] First Offset
+//         [X]  Next Offset
+//     [X] Brace Annotation
 
 // [ ] FPS Hud
 //     [ ] History Depth
@@ -362,7 +382,12 @@
 // [X] Append a blank line between other messages and the "Building with" message
 // [X] Highlight whitespace
 // [X] Highlight whitespace globally for all buffers
-// [ ] Modify face size commands
+// [ ] Face commands
+//     [ ] Use the new query bar system
+//     [ ] Up/Down to change the face size
+//     [ ] Cap the input size
+//     [ ] Change other related faces (global_small_code_face)
+//     [ ] Collapse down into two fonts: UI and Code
 
 //~ TODO MULTI CURSOR
 // [ ] Across buffers
@@ -388,7 +413,7 @@
 // [X] Off-by-one error in long_mc_begin_multi_block
 // [X] Upper/lower case in mc mode and stop dirtying buffers
 // [X] Opening new file pushes a new jump point
-// [ ] Fix move up/down token occurence
+// [X] Fix move up/down token occurence
 // [ ] Move to the next/prev divider comment's line rather than position
 // [X] Fix query replace right next to string bug
 // [X] Actually uses long_show_line_number_offset
@@ -401,6 +426,7 @@
 // [X] Ctrl+Delete while searching doesn't update the highlight range
 // [X] Fix error location bug
 // [X] Fix error highlighting overlapping bug
+// [X] Fix toggle comment crlf bug
 // [ ] The cursor doesn't get snapped into view when overlaps with the file bar
 
 //~ @CONSIDER LISTER

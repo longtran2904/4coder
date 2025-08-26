@@ -21,6 +21,11 @@ function Rect_f32 Long_Rf32_Round(Rect_f32 r)
     return r;
 }
 
+function Vec2_f32 Long_V2f32(f32 f)
+{
+    return V2f32(f, f);
+}
+
 function i32 Long_Abs(i32 num)
 {
     i32 mask = num >> 31;
@@ -3629,16 +3634,16 @@ function i64 Long_Boundary_CursorToken(Application_Links* app, Buffer_ID buffer,
                         
                         search_bounds.start = nest->open.start;
                         search_bounds.end = (funciton_body_nest ? funciton_body_nest->close.end : nest->close.end);
-                    } break; 
+                    } goto SCAN; 
                     
                     case CodeIndexNest_Scope:
                     {
                         search_bounds.start = (prev_important_nest ? prev_important_nest->open.start : nest->open.start);
                         search_bounds.end = nest->close.end;
-                    } break;
+                    } goto SCAN;
+                    
+                    //case CodeIndexNest_Preprocessor: break;
                 }
-                
-                break;
             }
             
             // NOTE(jack): Keep track of the most recent Paren scope (parameter list) so that we can use it directly
@@ -3650,6 +3655,7 @@ function i64 Long_Boundary_CursorToken(Application_Links* app, Buffer_ID buffer,
         }
     }
     
+    SCAN:
     if (range_contains(search_bounds, pos))
     {
         View_ID view = get_active_view(app, Access_Always);
@@ -5074,8 +5080,13 @@ CUSTOM_DOC("Unindent the selected range.")
 function i64 Long_Line_FirstNonWhitespace(Application_Links* app, Buffer_ID buffer, i64 line)
 {
     Scratch_Block scratch(app);
+    
+    // @COPYPASTA(long): push_buffer_line
     Range_i64 range = get_line_pos_range(app, buffer, line);
     String8 str = push_buffer_range(app, scratch, buffer, range);
+    while (str.size > 0 && str.str[str.size - 1] == '\r')
+        str.size -= 1;
+    
     i64 result = string_find_first_non_whitespace(str) + range.first;
     return result;
 }
@@ -5083,8 +5094,13 @@ function i64 Long_Line_FirstNonWhitespace(Application_Links* app, Buffer_ID buff
 function i64 Long_Line_LastNonWhitespace(Application_Links* app, Buffer_ID buffer, i64 line)
 {
     Scratch_Block scratch(app);
+    
+    // @COPYPASTA(long): push_buffer_line
     Range_i64 range = get_line_pos_range(app, buffer, line);
     String8 str = push_buffer_range(app, scratch, buffer, range);
+    while (str.size > 0 && str.str[str.size - 1] == '\r')
+        str.size -= 1;
+    
     i64 result = string_find_last_non_whitespace(str) + range.first;
     return result;
 }

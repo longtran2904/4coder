@@ -52,8 +52,8 @@ function void Long_Lister_RenderHUD(Long_Render_Context* ctx, Lister* lister, b3
     i32 item_index = lister->item_index;
     
     f32 margin_size = def_get_config_f32_lit(app, "lister_margin_size");
-    f32 text_offset = 6.f; // @CONSTANT
-    f32 tooltip_padding = 6.f + margin_size; // @CONSTANT
+    f32 text_offset = f32_round32(ctx->metrics.normal_advance * .75f);
+    f32 padding = def_get_config_f32_lit(app, "tooltip_padding") + margin_size;
     f32 lister_roundness = def_get_config_f32_lit(app, "lister_roundness");
     
     f32 line_height = ctx->metrics.line_height;
@@ -65,7 +65,7 @@ function void Long_Lister_RenderHUD(Long_Render_Context* ctx, Lister* lister, b3
     FColor text_color = fcolor_id(defcolor_text_default);
     
     //- @COPYPASTA(long): draw_background_and_margin
-    ARGB_Color margin_color = Long_ARGBFromID(ctx->active_view ? defcolor_margin_active : defcolor_margin);
+    ARGB_Color margin_color = Long_ARGBFromID(ctx->is_active_view ? defcolor_margin_active : defcolor_margin);
     Rect_f32 view_rect = ctx->rect;
     Rect_f32 prev_clip = Long_Render_SetClip(app, view_rect);
     ctx->rect = rect_inner(view_rect, margin_size);
@@ -129,25 +129,31 @@ function void Long_Lister_RenderHUD(Long_Render_Context* ctx, Lister* lister, b3
     Fancy_Block block = {};
     Vec2_f32 tooltip_size = {};
     
+    f32 under_item_padding = line_height;
+    f32  next_item_padding = line_height * .5f;
     if (item_data)
     {
         if (item_data->tooltip.size)
         {
-            f32 max_width = list_size.x - line_height * 2;
-            if (!under_item)
-                max_width = screen_extent + (screen_extent-list_size.x)*.5f - tooltip_padding*2.f - line_height;
+            f32 under_total_padding = under_item_padding * 2;
+            f32  next_total_padding =  next_item_padding * 2;
             
+            f32 max_width = list_size.x - under_total_padding;
+            if (!under_item)
+                max_width = screen_extent + (screen_extent-list_size.x)*.5f - padding*2.f - next_total_padding;
             block = Long_Render_LayoutString(ctx, scratch, item_data->tooltip, max_width);
-            tooltip_size = get_fancy_block_dim(app, face, &block) + V2f32(line_height, line_height);
+            tooltip_size = get_fancy_block_dim(app, face, &block);
+            
             if (under_item)
             {
-                tooltip_size.y += line_height + block_height;
+                tooltip_size.y += under_total_padding + block_height;
                 tooltip_size.x = list_size.x;
             }
+            else
+                tooltip_size += Long_V2f32(next_total_padding);
             
 #if 0 // NOTE(long): This will clamp the tooltip border
-            else
-                tooltip_size.x = clamp_top(tooltip_size.x, max_width + line_height);
+            else tooltip_size.x = clamp_top(tooltip_size.x, max_width + line_height);
 #endif
         }
         
@@ -157,10 +163,7 @@ function void Long_Lister_RenderHUD(Long_Render_Context* ctx, Lister* lister, b3
             tooltip_size.y += block_height;
         }
     }
-    else
-        tooltip_size.y = block_height;
-    
-    f32 tooltip_advance = under_item * (tooltip_size.y - block_height);
+    else tooltip_size.y = block_height;
     
     //- NOTE(long): Auto-scroll
     if (lister->set_vertical_focus_to_item)
@@ -193,6 +196,7 @@ function void Long_Lister_RenderHUD(Long_Render_Context* ctx, Lister* lister, b3
     lister->visible_count = clamp_bot(1, lister->visible_count);
     
     //- NOTE(long): Smooth Scroll
+    f32 tooltip_advance = under_item * (tooltip_size.y - block_height);
     {
         Range_f32 scroll_range = If32(0.f, clamp_bot(0.f, (item_count-1)*block_height + tooltip_advance));
         lister->scroll.target.y = clamp_range(scroll_range, lister->scroll.target.y);
@@ -263,28 +267,27 @@ function void Long_Lister_RenderHUD(Long_Render_Context* ctx, Lister* lister, b3
                 if (!under_item)
                 {
                     if (draw_tooltip_left)
-                        x_pos = list_rect.x0 - tooltip_padding - tooltip_size.x;
+                        x_pos = list_rect.x0 - padding - tooltip_size.x;
                     else
-                        x_pos = list_rect.x1 + tooltip_padding;
+                        x_pos = list_rect.x1 + padding;
                 }
                 
                 Rect_f32 tooltip_rect = Rf32_xy_wh(V2f32(x_pos, y.min), tooltip_size);
-                Rect_f32 content_rect = rect_inner(tooltip_rect, line_height);
+                Rect_f32 content_rect = tooltip_rect;
                 if (under_item)
                     content_rect.y0 += block_height;
-                else if (item_data->tooltip.size)
-                    content_rect = rect_inner(tooltip_rect, line_height*.5f);
                 
                 Long_Render_SetClip(app, under_item ? list_rect : tooltip_rect);
+                Long_Render_TooltipRect(app, tooltip_rect);
+                
                 if (item_data->tooltip.size)
                 {
-                    Long_Render_TooltipRect(app, tooltip_rect);
+                    content_rect = rect_inner(content_rect, under_item ? under_item_padding : next_item_padding);
                     Rect_f32 content_clip = rect_intersect(content_rect, list_rect);
                     Long_Render_SetClip(app, under_item ? content_clip : content_rect);
                     draw_fancy_block(app, face, text_color, &block, content_rect.p0);
                 }
-                else
-                    Long_Render_DrawPeek(app, tooltip_rect, content_rect, item_data->buffer, Ii64(item_data->pos), 1);
+                else Long_Render_DrawPeek(app, content_rect, item_data->buffer, Ii64(item_data->pos), 1);
             }
         }
         
@@ -305,10 +308,18 @@ function void Long_Lister_RenderHUD(Long_Render_Context* ctx, Lister* lister, b3
         push_fancy_string(scratch, &line, S8Lit(" "));
         push_fancy_string(scratch, &line, pop2_color, node->status);
         
-        Rect_f32 text_rect = rect_intersect(rect_inner(item_inner, text_offset), list_rect);
+        Rect_f32 text_rect = rect_intersect(item_inner, list_rect);
+        text_rect.x0 += text_offset;
+        text_rect.x1 -= text_offset;
         Long_Render_SetClip(app, text_rect);
+        
         Vec2_f32 p = V2f32(text_rect.x0, item_outer.y0 + (block_height - line_height) * .5f);
-        draw_fancy_line(app, face, fcolor_zero(), &line, p);
+        p = draw_fancy_line(app, face, fcolor_zero(), &line, p);
+        if (p.x > text_rect.x1 && hovered)
+        {
+            Fancy_Line* tooltip = Long_Render_PushTooltip(0, node->string, text_color);
+            Long_Render_PushTooltip(tooltip, node->status, pop2_color);
+        }
         
         //- NOTE(long): Advance Y
         y_pos = y.max;
@@ -523,7 +534,7 @@ function b32 Long_Lister_HandleKeyStroke(Application_Links* app, Lister* lister,
             else
                 result = 0;
             
-            //lister->set_vertical_focus_to_item = result;
+            lister->set_vertical_focus_to_item = result;
         } break;
     }
     

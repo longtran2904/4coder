@@ -2,8 +2,6 @@
 4coder_lexer_cpp_test.cpp - A tester for the C++ lexer.
 */
 
-// TOP
-
 #if 0
 
 0.
@@ -494,7 +492,7 @@ int main(void){
         [
          c
          ]
-            b;
+        b;
     }
     
     // ---
@@ -503,24 +501,24 @@ int main(void){
         [
          c;
          ]
+        b;
+    }
+    
+    // ---
+    {
+        a
+            [
+             c
+             ]
             b;
     }
     
     // ---
     {
         a
-	    [
-         c
-         ]
-            b;
-    }
-    
-    // ---
-    {
-        a
-        [
-         c;
-         ]
+            [
+             c;
+             ]
             b;
     }
     
@@ -530,7 +528,7 @@ int main(void){
         (
          c
          )
-            b;
+        b;
     }
     
     // ---
@@ -539,24 +537,24 @@ int main(void){
         (
          c;
          )
+        b;
+    }
+    
+    // ---
+    {
+        a
+            (
+             c
+             )
             b;
     }
     
     // ---
     {
         a
-	    (
-         c
-         )
-            b;
-    }
-    
-    // ---
-    {
-        a
-        (
-         c;
-         )
+            (
+             c;
+             )
             b;
     }
     
@@ -568,6 +566,3 @@ int main(void){
     
     return(0);
 }
-
-// BOTTOM
-

@@ -5,6 +5,7 @@
 [NULL] { { [namespace] }
 [MyNamespace] A { <MyNamespace> type }
 [A] { { <A>  }
+[{] { { <{>  }
 [NULL] { { [namespace] }
 [NULL] test_global_1 { declaration [global] }
 [NULL] test_global_2 { declaration [global] }
@@ -1090,4 +1091,4 @@
 [DecreaseTrailWidth] startWidth { <DecreaseTrailWidth> declaration [local] }
 [DecreaseTrailWidth] startTime { <DecreaseTrailWidth> declaration [local] }
 [DecreaseTrailWidth] { { <DecreaseTrailWidth>  }
-Note count: 1090
+Note count: 1091

@@ -105,8 +105,10 @@ function void Long_Index_IndentBuffer(Application_Links* app, Buffer_ID buffer, 
 
 #define Long_Index_IterBlock(ctx) \
     for (Token* _ptr_ = (ctx)->it.ptr; _ptr_; (ctx)->it.ptr = _ptr_, _ptr_ = 0)
-#define Long_Index_PeekPrevious(ctx, stm) do { \
-        if (token_it_dec(&(ctx)->it)) { stm; token_it_inc(&(ctx)->it); } \
-    } while (0)
+//#define Long_Index_PeekPrevious(ctx, stm) do { \
+//if (token_it_dec(&(ctx)->it)) { stm; token_it_inc(&(ctx)->it); } \
+//} while (0)
+#define Long_Index_PeekPrevious(ctx) \
+    for (Token* _ptr_ = (ctx)->it.ptr; _ptr_ && token_it_dec(&(ctx)->it); (ctx)->it.ptr = _ptr_, _ptr_ = 0)
 
 #endif //4CODER_LONG_INDEX_H

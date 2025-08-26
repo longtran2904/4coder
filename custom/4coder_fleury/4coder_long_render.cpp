@@ -11,7 +11,7 @@ function Long_Render_Context Long_Render_CreateCtx(Application_Links* app, Frame
     
     ctx.rect = view_get_screen_rect(app, view);
     ctx.view = view;
-    ctx.active_view = get_active_view(app, 0) == view;
+    ctx.is_active_view = get_active_view(app, 0) == view;
     return ctx;
 }
 
@@ -53,10 +53,6 @@ function void Long_Render_Rect(Application_Links* app, Rect_f32 rect, f32 roundn
     draw_rectangle(app, rect, rect_roundness, color);
 }
 
-// TODO(long): cursor_roundness for cursor/block/underline
-// lister_roundness for lister
-// long_ui_roundness for the remaining (code peek, tooltip, etc)
-
 function void Long_Render_CursorRect(Application_Links* app, Rect_f32 rect, ARGB_Color color)
 {
     f32 roundness = def_get_config_f32_lit(app, "cursor_roundness");
@@ -74,7 +70,10 @@ function void Long_Render_BorderRect(Application_Links* app, Rect_f32 rect, f32 
 function void Long_Render_RoundedRect(Application_Links* app, Rect_f32 rect, f32 thickness, f32 roundness,
                                       ARGB_Color background_color, ARGB_Color border_color)
 {
-    f32 outline_roundness = roundness * .01f * Min(rect.x1 - rect.x0, rect.y1 - rect.y0); // @COPYPASTA(long): Long_Render_Rect
+    // @COPYPASTA(long): Long_Render_Rect
+    f32 outline_roundness = roundness * .01f;
+    outline_roundness *= Min(rect.x1 - rect.x0, rect.y1 - rect.y0);
+    
     Long_Render_Rect(app, rect, roundness, background_color);
     draw_rectangle_outline(app, rect, outline_roundness, thickness + 1, border_color);
 }
@@ -162,7 +161,8 @@ function void Long_Render_CursorInterpolation(Long_Render_Context* ctx, Rect_f32
 function f32 Long_Render_CursorThickness(Long_Render_Context* ctx)
 {
     f32 bracket_width = 0.5f * ctx->metrics.text_height;
-    f32 thickness = Long_Render_Thickness(ctx->app) * .01f * bracket_width;
+    f32 thickness = def_get_config_f32_lit(ctx->app, "mark_thickness") * .01f;
+    thickness *= bracket_width;
     return f32_round32(thickness);
 }
 
@@ -206,7 +206,7 @@ function void Long_Render_NotepadCursor(Long_Render_Context* ctx)
         i64 mark_pos = view_get_mark_pos(app, view);
         Rect_f32 rect = Long_Render_NotepadSymbol(ctx, cursor_pos, mark_pos, cursor_color);
         
-        if (ctx->active_view)
+        if (ctx->is_active_view)
             Long_Render_CursorInterpolation(ctx, &global_cursor_rect, &global_last_cursor_rect, rect);
         Long_Render_CursorRect(app, global_cursor_rect, ghost_color);
         
@@ -261,7 +261,7 @@ function void Long_Render_EmacsCursor(Long_Render_Context* ctx)
     if (!has_highlight_range)
     {
         ARGB_Color cursor_color = Long_Color_Cursor();
-        if (!ctx->active_view)
+        if (!ctx->is_active_view)
         {
             ARGB_Color inactive_cursor_color = Long_ARGBFromID(fleury_color_cursor_inactive, 0);
             if (F4_ARGBIsValid(inactive_cursor_color))
@@ -277,7 +277,7 @@ function void Long_Render_EmacsCursor(Long_Render_Context* ctx)
         Range_i64 visible_range = ctx->visible_range;
         
         // NOTE(rjf): Draw cursor.
-        if (ctx->active_view)
+        if (ctx->is_active_view)
         {
             Rect_f32 view_rect = view_get_screen_rect(app, view);
             
@@ -373,6 +373,15 @@ function void Long_Highlight_CursorMark(Application_Links* app, f32 x_pos, f32 w
 
 //~ NOTE(long): Tooltip Rendering
 
+function Fancy_Line* Long_Render_PushTooltip(Fancy_Line* line, String8 string, FColor color)
+{
+    String8 string_copy = push_string_copy(&global_frame_arena, string);
+    if (!line)
+        line = push_fancy_line(&global_frame_arena, &long_fancy_tooltips);
+    push_fancy_string(&global_frame_arena, line, color, string_copy);
+    return line;
+}
+
 // @COPYPASTA(long): F4_DrawTooltipRect
 function void Long_Render_TooltipRect(Application_Links* app, Rect_f32 rect)
 {
@@ -383,8 +392,7 @@ function void Long_Render_TooltipRect(Application_Links* app, Rect_f32 rect)
     Long_Render_BorderRect(app, rect, thickness, roundness, back_color, border_color);
 }
 
-function void Long_Render_DrawPeek(Application_Links* app, Rect_f32 tooltip_rect, Rect_f32 content_rect,
-                                   Buffer_ID buffer, Range_i64 range, i64 line_offset)
+function void Long_Render_DrawPeek(Application_Links* app, Rect_f32 rect, Buffer_ID buffer, Range_i64 range, i64 line_offset)
 {
     if (!buffer_exists(app, buffer))
         return;
@@ -394,11 +402,14 @@ function void Long_Render_DrawPeek(Application_Links* app, Rect_f32 tooltip_rect
     while (draw_line < line && line_is_blank(app, buffer, draw_line))
         draw_line++;
     
-    range.min = get_line_start_pos(app, buffer, draw_line);
     i64 end_pos = get_line_end_pos(app, buffer, line);
+    range.min = get_line_start_pos(app, buffer, draw_line);
     range.max = clamp_bot(range.max, end_pos);
     
-    Text_Layout_ID layout = text_layout_create(app, buffer, Long_Rf32_Round(content_rect), { draw_line });
+    Face_Metrics metrics = get_face_metrics(app, get_face_id(app, buffer));
+    rect = rect_inner(rect, metrics.line_height); 
+    
+    Text_Layout_ID layout = text_layout_create(app, buffer, Long_Rf32_Round(rect), { draw_line });
     Token_Array array = get_token_array_from_buffer(app, buffer);
     if (array.tokens)
     {
@@ -410,10 +421,34 @@ function void Long_Render_DrawPeek(Application_Links* app, Rect_f32 tooltip_rect
     else
         paint_text_color(app, layout, range, Long_ARGBFromID(defcolor_text_default));
     
-    Long_Render_TooltipRect(app, tooltip_rect);
     draw_line_highlight(app, layout, line, Long_ARGBFromID(defcolor_highlight_white));
     draw_text_layout_default(app, layout);
     text_layout_free(app, layout);
+}
+
+function Vec2_f32 Long_Render_FancyBlock(Long_Render_Context* ctx, Fancy_Block* block, Vec2_f32 tooltip_pos)
+{
+    Application_Links* app = ctx->app;
+    Scratch_Block scratch(app);
+    Rect_f32 region = ctx->rect;
+    
+    Vec2_f32 padded_size = Long_V2f32(Long_Render_TooltipOffset(ctx, normal_advance/2.f));
+    Vec2_f32 needed_size = get_fancy_block_dim(app, ctx->face, block);
+    Rect_f32 tooltip_rect = Rf32_xy_wh(tooltip_pos, needed_size + 2*padded_size);
+    
+#if 1
+    f32 offset = clamp_bot(tooltip_rect.x1 - region.x1, 0);
+    tooltip_rect.x0 -= offset;
+    tooltip_rect.x1 -= offset;
+#else
+    Vec2_f32 offset = { clamp_bot(tooltip_rect.x1 - region.x1, 0), clamp_bot(tooltip_rect.y1 - region.y1, 0) };
+    tooltip_rect.p0 -= offset;
+    tooltip_rect.p1 -= offset;
+#endif
+    
+    Long_Render_TooltipRect(app, tooltip_rect);
+    draw_fancy_block(app, ctx->face, fcolor_zero(), block, tooltip_rect.p0 + padded_size);
+    return tooltip_rect.p1;
 }
 
 function Fancy_Block Long_Render_LayoutString(Long_Render_Context* ctx, Arena* arena, String8 string, f32 max_width)
@@ -429,8 +464,7 @@ function Fancy_Block Long_Render_LayoutString(Long_Render_Context* ctx, Arena* a
     for (String8Node* node = list.first; node; node = node->next)
     {
         String8 str = node->string;
-        //b32 not_first = node != list.first;
-        b32 was_newline = /*not_first &&*/node == list.first || str.str[-1] == '\n';
+        b32 was_newline = node == list.first || str.str[-1] == '\n';
         
         b32 overflow = 0;
         if (!was_newline)
@@ -443,40 +477,56 @@ function Fancy_Block Long_Render_LayoutString(Long_Render_Context* ctx, Arena* a
         
         if (overflow)
             line = push_fancy_line(arena, &result);
-        else if (/*not_first*/!was_newline)
+        else if (!was_newline)
             push_fancy_string(arena, line, S8Lit(" "));
         push_fancy_string(arena, line, str);
     }
     return result;
 }
 
-function Rect_f32 Long_Render_DrawString(Long_Render_Context* ctx, String8 string, Vec2_f32 tooltip_pos, ARGB_Color color)
+function Fancy_Block Long_Render_LayoutLine(Long_Render_Context* ctx, Arena* arena, Fancy_Line* line)
+{
+    Fancy_Block result = {};
+    Application_Links* app = ctx->app;
+    f32 max_width = rect_width(ctx->rect);
+    
+    Scratch_Block scratch(app, arena);
+    String8 ws = S8Lit(" \n\r\t\f\v");
+    Fancy_Line* block_line = push_fancy_line(arena, &result);
+    
+    for (Fancy_String* fancy_str = line->first,* prev_str = 0; fancy_str; prev_str = fancy_str, fancy_str = fancy_str->next)
+    {
+        // @COPYPASTA(long): Long_Render_LayoutString
+        String8List list = string_split(scratch, fancy_str->value, ws.str, (i32)ws.size);
+        for (String8Node* node = list.first; node; node = node->next)
+        {
+            String8 str = node->string;
+            b32 push_space = node != list.first || fancy_str != line->first;
+            b32 was_newline = push_space && str.str[-1] == '\n';
+            
+            f32 advance = get_string_advance(app, ctx->face, str);
+            f32 width = get_fancy_line_width(app, ctx->face, block_line);
+            b32 overflow = (advance + width + ctx->metrics.space_advance) > max_width;
+            
+            if (was_newline || overflow)
+                block_line = push_fancy_line(arena, &result);
+            else if (push_space)
+                push_fancy_string(arena, block_line, fancy_str->fore, S8Lit(" "));
+            push_fancy_string(arena, block_line, fancy_str->fore, str);
+        }
+    }
+    
+    return result;
+}
+
+function Vec2_f32 Long_Render_DrawString(Long_Render_Context* ctx, String8 string, Vec2_f32 tooltip_pos, ARGB_Color color)
 {
     Application_Links* app = ctx->app;
-    Rect_f32 region = ctx->rect;
-    Face_ID face = ctx->face;
-    f32 margin_size = def_get_config_f32_lit(app, "tooltip_thickness");
-    f32 padding = ctx->padding + margin_size;
-    
     Scratch_Block scratch(app);
-    Fancy_Block block = Long_Render_LayoutString(ctx, scratch, string, rect_width(region) - 2*padding);
-    Vec2_f32 needed_size = get_fancy_block_dim(app, face, &block);
-    Vec2_f32 padded_size = V2f32(padding, padding);
-    Rect_f32 draw_rect = Rf32_xy_wh(tooltip_pos, needed_size + 2 * padded_size);
-    
-#if 1
-    f32 offset = clamp_bot(draw_rect.x1 - region.x1, 0);
-    draw_rect.x0 -= offset;
-    draw_rect.x1 -= offset;
-#else
-    Vec2_f32 offset = { clamp_bot(draw_rect.x1 - region.x1, 0), clamp_bot(draw_rect.y1 - region.y1, 0) };
-    draw_rect.p0 -= offset;
-    draw_rect.p1 -= offset;
-#endif
-    
-    Long_Render_TooltipRect(app, draw_rect);
-    draw_fancy_block(app, face, fcolor_argb(color), &block, draw_rect.p0 + padded_size);
-    return draw_rect;
+    Fancy_Block block = Long_Render_LayoutString(ctx, scratch, string, rect_width(ctx->rect));
+    for (Fancy_Line* line = block.first; line; line = line->next)
+        line->fore = fcolor_argb(color);
+    return Long_Render_FancyBlock(ctx, &block, tooltip_pos);
 }
 
 //~ NOTE(long): Render Hook
@@ -730,20 +780,8 @@ function void Long_Render_FPS(Long_Render_Context* ctx)
     f32 height = line_height * fps_history_depth; // layout_fps_hud_on_bottom
     
     Vec2_f32 pos;
-#if 0
     {
-        Rect_f32_Pair pair = rect_split_top_bottom_neg(ctx->rect, height);
-        Rect_f32 rect = pair.max;
-        ctx->rect = pair.min;
-        
-        draw_rectangle_fcolor(app, rect, 0.f, f_black);
-        draw_rectangle_outline_fcolor(app, rect, 0.f, 1.f, f_white);
-        pos = rect.p0;
-    }
-    
-#else
-    {
-        f32 padding = ctx->metrics.normal_advance;
+        f32 padding = Long_Render_TooltipOffset(ctx, normal_advance);
         f32 width = get_string_advance(app, ctx->face, S8Lit("FPS: [12345]: ---------- | ---------- | 123.45"));
         
         Rect_f32 rect = global_get_screen_rectangle(app);
@@ -754,9 +792,8 @@ function void Long_Render_FPS(Long_Render_Context* ctx)
         rect.y1 = rect.y0 + height + padding * 2;
         
         Long_Render_TooltipRect(app, rect);
-        pos = rect.p0 + V2f32(padding, padding);
+        pos = rect.p0 + Long_V2f32(padding);
     }
-#endif
     
     local_persist f32 history_literal_dt[fps_history_depth] = {};
     local_persist f32 history_animation_dt[fps_history_depth] = {};
@@ -901,7 +938,7 @@ function void Long_Render_Buffer(Long_Render_Context* ctx)
             Long_Highlight_DrawErrors(ctx, compilation_buffer);
         
         // NOTE(long): Current line highlight
-        if (def_get_config_b32_lit("highlight_line_at_cursor") && (ctx->active_view || is_special))
+        if (def_get_config_b32_lit("highlight_line_at_cursor") && (ctx->is_active_view || is_special))
         {
             // @COPYPASTA(long): draw_line_highlight
             i64 line = get_line_number_from_pos(app, buffer, cursor_pos);
@@ -1078,10 +1115,10 @@ function void Long_Render_FileBar(Long_Render_Context* ctx)
     i64 line_count = buffer_get_line_count(app, buffer);
     Buffer_Cursor cursor = view_compute_cursor(app, view, seek_pos(view_get_cursor_pos(app, view)));
     
+    Vec2_f32 padding = V2f32(metrics.normal_advance, f32_round32(metrics.line_height/8.f));
     Rect_f32 bar;
     {
-        f32 padding = 2.f; // @CONSTANT
-        Rect_f32_Pair pair = rect_split_top_bottom(ctx->rect, metrics.line_height + padding);
+        Rect_f32_Pair pair = rect_split_top_bottom(ctx->rect, metrics.line_height + padding.y * 2);
         ctx->rect = pair.max;
         bar = pair.min;
     }
@@ -1089,7 +1126,7 @@ function void Long_Render_FileBar(Long_Render_Context* ctx)
     
     if (!def_get_config_b32_lit("f4_disable_progress_bar"))
     {
-        f32 progress = (f32)cursor.line / (f32)line_count;
+        f32 progress = (f32)(cursor.line-1) / (f32)(line_count-1);
         Rect_f32 progress_bar_rect = bar;
         progress_bar_rect.x1 = bar.x0 + (bar.x1 - bar.x0) * progress;
         
@@ -1098,9 +1135,13 @@ function void Long_Render_FileBar(Long_Render_Context* ctx)
             draw_rectangle(app, progress_bar_rect, 0, progress_bar_color);
     }
     
-    Fancy_Line list = {};
-    Managed_Scope scope = buffer_get_managed_scope(app, buffer);
+    Vec2_f32 start_pos = bar.p0 + padding;
+    Vec2_f32 end_pos = V2f32(bar.x1 - padding.x, bar.y0 + padding.y);
+    String8 pos_str = push_stringf(scratch, "P%lld", cursor.pos);
+    String8 end_str = push_stringf(scratch, "L%lld:C%-4lld %6s", cursor.line, cursor.col, pos_str.str);
+    end_pos.x -= get_string_advance(app, face, end_str);
     
+    Fancy_Line list = {};
     String8 unique_name = push_buffer_unique_name(app, scratch, buffer);
     push_fancy_string(scratch, &list, base_color, unique_name);
     
@@ -1129,7 +1170,7 @@ function void Long_Render_FileBar(Long_Render_Context* ctx)
     {
         b32 is_virtual = def_get_config_b32_lit("enable_virtual_whitespace");
         push_fancy_stringf(scratch, &list, base_color, " - Virtual Whitespace: %s", is_virtual ? "On" : "Off");
-        push_fancy_stringf(scratch, &list, base_color, " - Move Prev/Next: %s/%s",
+        push_fancy_stringf(scratch, &list, base_color, " - Word: Prev-%s/Next-%s",
                            (long_global_move_side>>1) ? "Max" : "Min", (long_global_move_side&1) ? "Max" : "Min");
     }
     
@@ -1137,6 +1178,7 @@ function void Long_Render_FileBar(Long_Render_Context* ctx)
     {
         push_fancy_stringf(scratch, &list, base_color, ": %d - ", buffer);
         
+        Managed_Scope scope = buffer_get_managed_scope(app, buffer);
         Line_Ending_Kind* eol_setting = scope_attachment(app, scope, buffer_eol_setting, Line_Ending_Kind);
         String8 eol_string = {};
         switch (*eol_setting)
@@ -1147,14 +1189,16 @@ function void Long_Render_FileBar(Long_Render_Context* ctx)
         }
         push_fancy_string(scratch, &list, base_color, eol_string);
         
-        u8 space[3];
+        Face_Description desc = get_buffer_face_description(app, buffer);
+        push_fancy_stringf(scratch, &list, base_color, " - %upt ", desc.parameters.pt_size);
+        
+        u8 spaces[3] = {};
         {
             Dirty_State dirty = buffer_get_dirty_state(app, buffer);
-            String_u8 str = Su8(space, 0, 3);
+            String_u8 str = Su8(spaces, 0, 3);
             
             if (dirty)
             {
-                string_append(&str, S8Lit(" "));
                 if (HasFlag(dirty, DirtyState_UnsavedChanges))
                     string_append(&str, S8Lit("*"));
                 if (HasFlag(dirty, DirtyState_UnloadedChanges))
@@ -1163,37 +1207,18 @@ function void Long_Render_FileBar(Long_Render_Context* ctx)
             
             push_fancy_string(scratch, &list, pop2_color, str.string);
         }
+        
+        f32 total_width = get_fancy_line_width(app, face, &list);
+        if (start_pos.x + total_width >= end_pos.x)
+        {
+            list.last = list.first;
+            list.first->next = 0;
+        }
     }
     
-    f32 offset = 4.f;
-    Vec2_f32 pos = V2f32(bar.x1 - 16.f, bar.y0 + offset);
-    {
-        String8 pos_str = push_stringf(scratch, "P%lld", cursor.pos);
-        
-        f32 min_width = get_string_advance(app, face, S8Lit("P12345"));
-        f32 pos_width = get_string_advance(app, face, pos_str);
-        pos_width = clamp_bot(pos_width, min_width);
-        
-        pos.x -= pos_width;
-        draw_string(app, face, pos_str, pos, base_color);
-        pos.x -= clamp_bot(64 - pos_width, 16);
-    }
-    
-    {
-        String8 row_str = push_stringf(scratch, "L%lld:", cursor.line);
-        String8 col_str = push_stringf(scratch, "C%lld" , cursor.col);
-        
-        f32 min_width = get_string_advance(app, face, S8Lit("C999"));
-        f32 col_width = get_string_advance(app, face, col_str);
-        f32 row_width = get_string_advance(app, face, row_str);
-        
-        pos.x -= clamp_bot(min_width, col_width);
-        draw_string(app, face, col_str, pos, base_color);
-        pos.x -= row_width;
-        draw_string(app, face, row_str, pos, base_color);
-    }
-    
-    draw_fancy_line(app, face, fcolor_zero(), &list, bar.p0 + V2f32(offset, offset));
+    start_pos = draw_fancy_line(app, face, fcolor_zero(), &list, start_pos);
+    if (start_pos.x < end_pos.x)
+        draw_string(app, face, end_str, end_pos, base_color);
 }
 
 //~ NOTE(long): Highlight Rendering
@@ -1345,7 +1370,7 @@ function void Long_Highlight_DrawErrors(Long_Render_Context* ctx, Buffer_ID jump
         // NOTE(long): Push error messages when hovering over the highlighted line
         Vec2_f32 mouse = ctx->mouse;
         if (mouse.x >= region.x0 && mouse.x < region.x1 && mouse.y >= y.min && mouse.y < y.max)
-            F4_PushTooltip(error_string, annotation_color);
+            Long_Render_PushTooltip(0, error_string, fcolor_argb(annotation_color));
     }
 }
 
@@ -1357,7 +1382,7 @@ function void Long_MC_DrawHighlights(Long_Render_Context* ctx)
     // TODO(long): Technically speaking only mc cursors and the main cursor must be in the active view
     // The minor highlighted matches don't need to and can still be drawn on inactive views
     // But there's currently no way for this function to know the size of each highlight (the search string's length)
-    if (!ctx->active_view)
+    if (!ctx->is_active_view)
         return;
     
     Application_Links* app = ctx->app;
@@ -1678,7 +1703,8 @@ function void Long_Render_BraceAnnotation(Long_Render_Context* ctx, i64 pos, Col
             Rect_f32 close_scope_rect = text_layout_character_on_screen(app, ctx->layout, last_char);
             if (rect_width(close_scope_rect) > 0)
             {
-                Vec2_f32 close_scope_pos = close_scope_rect.p0 + V2f32(12, 0);
+                f32 draw_offset = ctx->metrics.space_advance;
+                Vec2_f32 close_scope_pos = V2f32(close_scope_rect.x1 + draw_offset, close_scope_rect.y0);
                 ARGB_Color color = colors.vals[(ranges.count-i-1) % colors.count];
                 draw_string(app, global_small_code_face, line, close_scope_pos, color);
             }
@@ -1698,13 +1724,14 @@ function void Long_Render_BraceLines(Long_Render_Context* ctx, i64 pos, Color_Ar
 {
     Application_Links* app = ctx->app;
     Text_Layout_ID layout = ctx->layout;
+    Face_Metrics metrics = ctx->metrics;
     Buffer_ID buffer = ctx->buffer;
     View_ID view = ctx->view;
     Rect_f32 rect = text_layout_region(app, ctx->layout);
     
     ProfileScope(app, "[F4] Brace Lines");
     Buffer_Scroll scroll = view_get_buffer_scroll(app, view);
-    f32 off_x = rect.x0 - scroll.position.pixel_shift.x + f32_floor32(ctx->metrics.normal_advance/2.f);
+    f32 off_x = rect.x0 - scroll.position.pixel_shift.x + f32_floor32(metrics.normal_advance/2.f);
     u64 vw_indent = def_get_config_u64_lit(app, "virtual_whitespace_regular_indent");
     
     Scratch_Block scratch(app);
@@ -1715,7 +1742,7 @@ function void Long_Render_BraceLines(Long_Render_Context* ctx, i64 pos, Color_Ar
         Range_i64 range = ranges.ranges[i];
         f32 pos_x;
         if (def_get_config_b32_lit("enable_virtual_whitespace"))
-            pos_x = (ranges.count-i-1) * ctx->metrics.space_advance * vw_indent;
+            pos_x = (ranges.count-i-1) * metrics.space_advance * vw_indent;
         
         else
         {
@@ -1744,7 +1771,7 @@ function void Long_Render_BraceLines(Long_Render_Context* ctx, i64 pos, Color_Ar
                 end_idx = string_find_first_non_whitespace(line_end);
             }
             
-            pos_x = ctx->metrics.space_advance * Min(beg_idx, end_idx);
+            pos_x = metrics.space_advance * Min(beg_idx, end_idx);
         }
         
         Range_f32 y = rect_y(rect);
@@ -1752,14 +1779,15 @@ function void Long_Render_BraceLines(Long_Render_Context* ctx, i64 pos, Color_Ar
             Rect_f32 beg_rect = text_layout_character_on_screen(app, layout, range.min);
             Rect_f32 end_rect = text_layout_character_on_screen(app, layout, range.max);
             if (range.min >= ctx->visible_range.min)
-                y.min = beg_rect.y0 + ctx->metrics.line_height;
+                y.min = beg_rect.y0 + metrics.line_height;
             if (range.max <= ctx->visible_range.max)
                 y.max = end_rect.y0 - 4.f;
         }
         
         // NOTE(long): We can't use the open/close braces rect directly because they may not be visible
         pos_x += off_x;
-        Rect_f32 line_rect = Rf32(pos_x, y.min, pos_x + 1.f, y.max);
+        f32 thickness = metrics.normal_advance/8.f;
+        Rect_f32 line_rect = Rf32(pos_x, y.min, pos_x + thickness, y.max);
         draw_rectangle(app, line_rect, 0.5f, colors.vals[(ranges.count-i-1) % colors.count]);
     }
 }
@@ -1862,16 +1890,55 @@ function void Long_Syntax_Highlight(Long_Render_Context* ctx)
             F4_Index_Note* note = Long_Index_LookupBestNote(app, buffer, array, token);
             if (note)
             {
-                Managed_ID fleury_type_color = (note->flags & F4_Index_NoteFlag_SumType) ?
-                    fleury_color_index_sum_type : fleury_color_index_product_type;
+                //Managed_ID fleury_type_color = (note->flags & F4_Index_NoteFlag_SumType) ?
+                //fleury_color_index_sum_type : fleury_color_index_product_type;
                 
                 switch (note->kind)
                 {
-                    case F4_Index_NoteKind_Type:     Long_SetColor(Types,     fleury_type_color);           break;
+                    case F4_Index_NoteKind_Type:     Long_SetColor(Types,     /*fleury_type_color*/fleury_color_index_product_type); break;
                     case F4_Index_NoteKind_Macro:    Long_SetColor(Macros,    fleury_color_index_macro);    break;
                     case F4_Index_NoteKind_Function: Long_SetColor(Functions, fleury_color_index_function); break;
                     case F4_Index_NoteKind_Constant: Long_SetColor(Constants, fleury_color_index_constant); break;
                     case F4_Index_NoteKind_Decl:     Long_SetColor(Constants, fleury_color_index_decl);     break;
+                }
+                
+                switch (note->kind)
+                {
+                    case F4_Index_NoteKind_Decl:
+                    {
+                        if (note->parent)
+                        {
+                            if (Long_Index_IsArgument(note))
+                                Long_SetColor(Constants, long_color_index_param);
+                            else if (note->parent->kind == F4_Index_NoteKind_Type)
+                                Long_SetColor(Constants, long_color_index_field);
+                            else
+                                Long_SetColor(Constants, long_color_index_local);
+                        }
+                    } break;
+                    
+                    case F4_Index_NoteKind_Type:
+                    {
+                        if (Long_Index_IsNamespace(note)) break;
+                        
+                        NOTE_TYPE_CASE:
+                        if (F4_ARGBIsValid(F4_ARGBFromID(table, fleury_color_index_sum_type)))
+                        {
+                            String8 base_type = push_buffer_range(app, scratch, note->file->buffer, note->base_range);
+                            String8 types[] = { S8Lit("struct"), S8Lit("enum") };
+                            if (Long_Index_IsMatch(base_type, ExpandArray(types) || (note->flags & F4_Index_NoteFlag_SumType)))
+                                Long_SetColor(Types, fleury_color_index_sum_type);
+                        }
+                    } break;
+                    
+                    case F4_Index_NoteKind_Function:
+                    {
+                        if (note->parent && note->parent->kind == F4_Index_NoteKind_Type && string_match(note->string, note->parent->string))
+                        {
+                            note = note->parent;
+                            goto NOTE_TYPE_CASE;
+                        }
+                    } break;
                 }
             }
         }

@@ -34,6 +34,7 @@ global Character_Predicate long_predicate_alpha_numeric_underscore_dot = { {
 function b32 Long_F32_Invalid(f32 f);
 function b32 Long_Rf32_Invalid(Rect_f32 r);
 function Rect_f32 Long_Rf32_Round(Rect_f32 r);
+function Vec2_f32 Long_V2f32(f32 f);
 function i32 Long_Abs(i32 num);
 function i64 Long_Abs(i64 num);
 

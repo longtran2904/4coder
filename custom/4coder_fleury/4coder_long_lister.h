@@ -6,7 +6,7 @@
 enum Long_Lister_HeaderType
 {
     Long_Header_None,
-    Long_Header_Path,
+    //Long_Header_Path,
     Long_Header_Location,
 };
 

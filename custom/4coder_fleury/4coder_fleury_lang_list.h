@@ -8,6 +8,7 @@
 #include "4coder_fleury_lang_metadesk.cpp"
 #include "4coder_fleury_lang_jai.cpp"
 #include "4coder_long_lang_cs.cpp"
+#include "4coder_long_lang_cpp.cpp"
 
 // NOTE(rjf): @f4_register_languages Register languages.
 function void F4_RegisterLanguages(void)
@@ -19,6 +20,9 @@ function void F4_RegisterLanguages(void)
         F4_RegisterLanguage(cpp_exts[i], F4_CPP_IndexFile, lex_full_input_cpp_init, lex_full_input_cpp_breaks,
                             F4_CPP_PosContext, F4_CPP_Highlight, Lex_State_Cpp);
     }
+    
+    F4_RegisterLanguage(S8Lit("lcpp"), Long_CPP_IndexFile, lex_full_input_cpp_init, lex_full_input_cpp_breaks,
+                        Long_CPP_PosContext, 0, Lex_State_Cpp);
     
     // NOTE(long): CS
     F4_RegisterLanguage(S8Lit("cs"), Long_CS_IndexFile, lex_full_input_cs_init, lex_full_input_cs_breaks,

@@ -31,7 +31,7 @@
 // 1079 differentiate function calls with types
 // 1078 fix generic parsing
 // 1083 fix namespace handling
-// 1090 parse generic arguments in constructors and operators
+// 1091 parse generic arguments in constructors and operators
 using UnityEngine;
 
 namespace UnityEngine { class MyEngine; }
@@ -49,7 +49,7 @@ namespace MyNamespace
     {
         namespace NamespaceInClass // NOTE(long): Classes can't have namespaces
         {
-            Test.Function(Test.Function2(VeryLongFunction(GenericFunc(Test.Stuff.a), test_global_1), 3.f), (float)test_global_2);
+            Test.Function(Test.Function2(VeryLongFunction(GenericFunc(Test.Stuff.a), test_global_1, {}, [], ()), 3.f), (float)test_global_2);
         }
     }
     namespace OtherNamespace { }

@@ -17,10 +17,9 @@ struct Long_Render_Context
     Frame_Info frame;
     Rect_f32 rect;
     View_ID view;
-    b32 active_view;
+    b32 is_active_view;
     
     Face_ID face;
-    f32 padding;
     Face_Metrics metrics;
 };
 
@@ -31,8 +30,8 @@ struct Long_Render_Context
 #define Long_Render_PushCtxBuffer(ctx, buf) \
     Long_Render_CtxBlock(ctx, (ctx)->buffer = (buf), (ctx)->array = get_token_array_from_buffer((ctx)->app, (buf)))
 
-#define Long_Render_Thickness(app) (def_get_config_f32_lit((app), "mark_thickness"))
-#define Long_Render_Roundness(ctx) ((ctx)->metrics.normal_advance * def_get_config_f32_lit((ctx)->app, "cursor_roundness")/100.f)
+#define Long_Render_TooltipOffset(ctx, value) (def_get_config_f32_lit((ctx)->app, "tooltip_thickness") + \
+                                               ((ctx)->metrics.value))
 
 function Long_Render_Context Long_Render_CreateCtx(Application_Links* app, Frame_Info frame, View_ID view);
 function void Long_Render_InitCtxLayout(Long_Render_Context* ctx, Text_Layout_ID layout, Token_Array array);
@@ -54,12 +53,15 @@ function void    Long_Render_EmacsCursor(Long_Render_Context* ctx);
 
 //~ NOTE(long): Tooltip Rendering
 
-function Fancy_Block Long_Render_LayoutString(Long_Render_Context* ctx, Arena* arena, String8 string, f32 max_width);
+global Fancy_Block long_fancy_tooltips;
+function Fancy_Line* Long_Render_PushTooltip(Fancy_Line* line, String8 string, FColor color);
 function void Long_Render_TooltipRect(Application_Links* app, Rect_f32 rect);
-function void Long_Render_DrawPeek(Application_Links* app, Rect_f32 tooltip_rect, Rect_f32 content_rect,
-                                   Buffer_ID buffer, Range_i64 range, i64 line_offset);
-function Rect_f32 Long_Render_DrawString(Long_Render_Context* ctx, String8 string, Vec2_f32 tooltip_pos,
-                                         ARGB_Color color);
+
+function Fancy_Block Long_Render_LayoutString(Long_Render_Context* ctx, Arena* arena, String8 string, f32 max_width);
+function Fancy_Block Long_Render_LayoutLine(Long_Render_Context* ctx, Arena* arena, Fancy_Line* line);
+function Vec2_f32 Long_Render_FancyBlock(Long_Render_Context* ctx, Fancy_Block* block, Vec2_f32 tooltip_pos);
+function Vec2_f32 Long_Render_DrawString(Long_Render_Context* ctx, String8 string, Vec2_f32 tooltip_pos, ARGB_Color color);
+function void Long_Render_DrawPeek(Application_Links* app, Rect_f32 rect, Buffer_ID buffer, Range_i64 range, i64 line_offset);
 
 //~ NOTE(long): Brace Rendering
 

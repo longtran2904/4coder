@@ -88,29 +88,44 @@ function b32 Long_CS_ParseGenericBase(F4_Index_ParseCtx* ctx)
     return result;
 }
 
-global String8 cs_types[] =
+function b32 Long_CS_ParseBuiltinType(F4_Index_ParseCtx* ctx, Range_i64* range)
 {
-    S8Lit("bool"   ),
-    S8Lit("byte"   ),
-    S8Lit("sbyte"  ),
-    S8Lit("char"   ),
-    S8Lit("decimal"),
-    S8Lit("double" ),
-    S8Lit("float"  ),
-    S8Lit("int"    ),
-    S8Lit("uint"   ),
-    S8Lit("nint"   ),
-    S8Lit("nuint"  ),
-    S8Lit("long"   ),
-    S8Lit("ulong"  ),
-    S8Lit("short"  ),
-    S8Lit("ushort" ),
-    S8Lit("object" ),
-    S8Lit("string" ),
-    S8Lit("dynamic"),
-    S8Lit("void"   ),
-    S8Lit("var"    ),
-};
+    local_const String8 cs_types[] = {
+        S8Lit("bool"   ),
+        S8Lit("byte"   ),
+        S8Lit("sbyte"  ),
+        S8Lit("char"   ),
+        S8Lit("decimal"),
+        S8Lit("double" ),
+        S8Lit("float"  ),
+        S8Lit("int"    ),
+        S8Lit("uint"   ),
+        S8Lit("nint"   ),
+        S8Lit("nuint"  ),
+        S8Lit("long"   ),
+        S8Lit("ulong"  ),
+        S8Lit("short"  ),
+        S8Lit("ushort" ),
+        S8Lit("object" ),
+        S8Lit("string" ),
+        S8Lit("dynamic"),
+        S8Lit("void"   ),
+        S8Lit("var"    ),
+    };
+    
+    b32 result = 0;
+    for (u64 i = 0; i < ArrayCount(cs_types); ++i)
+    {
+        result = string_match(cs_types[i], F4_Index_StringFromToken(ctx, ctx->it.ptr));
+        if (result)
+        {
+            *range = Ii64(ctx->it.ptr);
+            Long_ParseCtx_Inc(ctx);
+            break;
+        }
+    }
+    return result;
+}
 
 // NOTE(long): This doesn't parse pointers
 function b32 Long_CS_ParseBase(F4_Index_ParseCtx* ctx, Range_i64* base_range)
@@ -131,10 +146,16 @@ function b32 Long_CS_ParseBase(F4_Index_ParseCtx* ctx, Range_i64* base_range)
     }
     
     // NOTE(long): Built-in Types
-    else if (Long_CS_ParseKind(ctx, TokenBaseKind_Keyword, &base))
+    //else if (Long_CS_ParseKind(ctx, TokenBaseKind_Keyword, &base))
+    //{
+    //result = Long_Index_IsMatch(ctx, base, ExpandArray(cs_types));
+    //if (result && Long_CS_PeekSubKind(ctx, TokenCsKind_BrackOp, 0))
+    //result = Long_Index_SkipBody(ctx);
+    //}
+    else if (Long_CS_ParseBuiltinType(ctx, &base))
     {
-        result = Long_Index_IsMatch(ctx, base, ExpandArray(cs_types));
-        if (result && Long_CS_PeekSubKind(ctx, TokenCsKind_BrackOp, 0))
+        result = 1;
+        if (Long_CS_PeekSubKind(ctx, TokenCsKind_BrackOp, 0))
             result = Long_Index_SkipBody(ctx);
     }
     
@@ -151,7 +172,8 @@ function b32 Long_CS_ParseBase(F4_Index_ParseCtx* ctx, Range_i64* base_range)
         {
             if (!Long_CS_IsTokenSelection(ctx->it.ptr))
             {
-                Long_Index_PeekPrevious(ctx, base.end = Ii64(ctx->it.ptr).end);
+                Long_Index_PeekPrevious(ctx)
+                    base.end = Ii64(ctx->it.ptr).end;
                 break;
             }
             Long_ParseCtx_Inc(ctx);
@@ -172,8 +194,13 @@ function b32 Long_CS_ParseNameAndArg(F4_Index_ParseCtx* ctx, Range_i64* name_ran
     
     b32 result = Long_CS_ParseKind(ctx, TokenBaseKind_Identifier, &name);
     if (!result && name_is_op)
-        result = (Long_CS_ParseKind(ctx, TokenBaseKind_Operator, &name) ||
-                  Long_CS_ParseKind(ctx, TokenBaseKind_Keyword , &name));
+    {
+        //result = (Long_CS_ParseKind(ctx, TokenBaseKind_Operator, &name) || Long_CS_ParseKind(ctx, TokenBaseKind_Keyword , &name));
+        result = Long_CS_ParseKind(ctx, TokenBaseKind_Operator, &name);
+        if (!result)
+            //result = Long_CS_ParseKind(ctx, TokenBaseKind_Keyword , &name) && Long_Index_IsMatch(ctx, base, ExpandArray(cs_types));
+            result = Long_CS_ParseBuiltinType(ctx, &name);
+    }
     
     if (result)
     {
@@ -274,9 +301,10 @@ internal F4_LANGUAGE_INDEXFILE(Long_CS_IndexFile)
         b32 use_modifier = 0;
         b32 initialized = Long_Index_IsParentInitialized(ctx);
         
-        // TODO(long): Nil value for ctx->active_parent
-        // TODO(long): Rework parsing comments
-        // TODO(long): Parse anonymous arguments
+        // TODO(long):
+        // [ ] Nil value for ctx->active_parent
+        // [ ] Rework parsing comments
+        // [ ] Parse anonymous arguments
         
         if (0) {}
         
@@ -597,6 +625,8 @@ internal F4_LANGUAGE_POSCONTEXT(Long_CS_PosContext)
 //void name(Application_Links *app, Text_Layout_ID text_layout_id, Token_Array *array, Color_Table color_table)
 internal F4_LANGUAGE_HIGHLIGHT(Long_CS_Highlight)
 {
+    // NOTE(long): This is slow in debug mode
+    // LookupBestNote is redundant because Long_Syntax_Highlight has already called it
 #if 0
     Buffer_ID buffer = text_layout_get_buffer(app, text_layout_id);
     Range_i64 visible_range = text_layout_get_visible_range(app, text_layout_id);

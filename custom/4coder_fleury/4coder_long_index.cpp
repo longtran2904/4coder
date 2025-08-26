@@ -1074,175 +1074,19 @@ function F4_Index_Note* Long_Index_LookupBestNote(Application_Links* app, Buffer
     }
     
     F4_Index_Note* result = Long_Index_LookupNoteFromList(app, names, range.min, file, scope_note, filter_note, lookup_type);
+    
+    // TODO(long): This totally is a *hack* for C# attributes
     if (!result && names.last)
     {
         names.last->string = push_stringf(scratch, "%.*s%s", string_expand(names.last->string), "Attribute");
         result = Long_Index_LookupNoteFromList(app, names, range.min, file, scope_note, filter_note, lookup_type);
+        if (result && result->kind != F4_Index_NoteKind_Type)
+            result = 0;
     }
     return result;
 }
 
 //~ NOTE(long): Render Functions
-
-function String8 Long_String_GetAdvance(Application_Links* app, Face_ID face, String8 string, Token* token, i64 startPos, f32* advance)
-{
-    Range_i64 range = Ii64_size(token->pos - startPos, token->size);
-    String8 result = string_substring(string, range);
-    *advance += get_string_advance(app, face, result);
-    return result;
-}
-
-function Rect_f32 Long_Index_DrawNote(Long_Render_Context* ctx, Range_i64_Array ranges, Vec2_f32 tooltip_position,
-                                      Range_f32 max_range_x, Range_i64 highlight_range, ARGB_Color color, ARGB_Color highlight_color)
-{
-    Application_Links* app = ctx->app;
-    Buffer_ID buffer = ctx->buffer;
-    Face_ID face = ctx->face;
-    f32 padding = ctx->padding;
-    f32 line_height = ctx->metrics.line_height;
-    f32 space_advance = ctx->metrics.space_advance;
-    Token_Array* array = &ctx->array;
-    
-    i64 max_range_pos = ranges.ranges[ranges.count - 1].max;
-    if (!max_range_pos)
-        system_error_box("The last range of the note is incorrect");
-    {
-        Token_Iterator_Array it = token_iterator_pos(0, array, max_range_pos - 1);
-        Token* token = token_it_read(&it);
-        if (token && token->kind == TokenBaseKind_Whitespace)
-            max_range_pos = token->pos;
-    }
-    Range_i64 total_range = { ranges.ranges[0].min, max_range_pos };
-    
-    Scratch_Block scratch(app);
-    String8 string = push_buffer_range(app, scratch, buffer, total_range);
-    {
-        Range_i64 range = buffer_range(app, buffer);
-        Assert(range_union(range, total_range) == range);
-        Assert(string.str && string.size);
-    }
-    Vec2_f32 needed_size = { 0, line_height };
-    
-#define Long_IterateRanges(tokens, ranges, foreach, callback) \
-    do { \
-        Range_i64* _ranges_ = (ranges).ranges; \
-        i64 _count_ = (ranges).count; \
-        for (i32 i = 0; i < _count_; ++i) \
-        { \
-            { foreach; } \
-            Token_Iterator_Array it = token_iterator_pos(0, (tokens), _ranges_[i].min); \
-            do { \
-                Token* token = token_it_read(&it); \
-                if (token && token->pos >= _ranges_[i].max) break; \
-                { callback; } \
-            } while (token_it_inc_all(&it)); \
-        } \
-    } while (0)
-    
-    {
-        Vec2_f32 maxP = needed_size;
-        b32 was_whitespace = 0;
-        f32 max_size_x = range_size(max_range_x);
-        // TODO(long): Maybe skip comment?
-        // TODO(long): Use Fance_Block
-        for (i32 i = 0; i < ranges.count; ++i)
-        {
-            Range_i64 range = ranges.ranges[i];
-            needed_size.x += needed_size.x ? space_advance : 0;
-            Token_Iterator_Array it = token_iterator_pos(0, array, range.min);
-            do {
-                Token* token = token_it_read(&it);
-                if (token && token->pos >= range.max) break;
-                
-                f32 size_x = needed_size.x;
-                if (token->kind == TokenBaseKind_Whitespace) needed_size.x += space_advance;
-                else Long_String_GetAdvance(app, face, string, token, total_range.min, &needed_size.x);
-                
-                if (needed_size.x > max_size_x)
-                {
-                    if (was_whitespace)
-                        size_x -= space_advance;
-                    
-                    f32 advance = needed_size.x - size_x;
-                    if (advance > max_size_x)
-                    {
-                        maxP.x = max_size_x;
-                        needed_size.x = max_size_x;
-                    }
-                    else
-                    {
-                        maxP.x = Max(maxP.x, size_x);
-                        needed_size.x = advance;
-                    }
-                    
-                    //needed_size.x = 0;
-                    maxP.y += line_height;
-                }
-                was_whitespace = token->kind == TokenBaseKind_Whitespace;
-            } while (token_it_inc_all(&it));
-        }
-        
-        if (maxP.x)
-            needed_size = maxP;
-    }
-    
-    Rect_f32 draw_rect =
-    {
-        tooltip_position.x,
-        tooltip_position.y,
-        tooltip_position.x + needed_size.x + 2*padding,
-        tooltip_position.y + needed_size.y + 2*padding,
-    };
-    
-    if (draw_rect.x1 > max_range_x.max)
-    {
-        draw_rect.x0 -= draw_rect.x1 - max_range_x.max;
-        draw_rect.x1 = max_range_x.max;
-    }
-    
-    Long_Render_TooltipRect(app, draw_rect);
-    
-    Vec2_f32 text_position = draw_rect.p0 + Vec2_f32{ padding, padding };
-    f32 start_x = text_position.x;
-    Long_IterateRanges(array, ranges, text_position.x += (text_position.x != start_x) ? space_advance : 0,
-                       if (token->kind == TokenBaseKind_Whitespace) text_position.x += space_advance;
-                       else
-                       {
-                           Vec2_f32 pos = text_position;
-                           String8 token_string = Long_String_GetAdvance(app, face, string, token, total_range.min, &text_position.x);
-                           if (text_position.x >= draw_rect.x1)
-                           {
-                               text_position.x = start_x + text_position.x - pos.x;
-                               pos.x = start_x;
-                               pos.y = text_position.y += line_height;
-                           }
-                           draw_string(app, face, token_string, pos, color);
-                           if (range_contains(highlight_range, token->pos))
-                           {
-                               // @CONSTANT(long)
-                               Rect_f32 rect = Rf32(pos.x, pos.y + line_height, text_position.x, pos.y + line_height + 2);
-                               draw_rectangle(app, rect, 1, highlight_color);
-                           }
-                       });
-#undef Long_IterateRanges
-    
-    return draw_rect;
-}
-
-function Range_i64_Array Long_Index_GetNoteRanges(Application_Links* app, Arena* arena, F4_Index_Note* note, Range_i64 range)
-{
-    // NOTE(long): I need an array of ranges for handling trailing decl: int a = ..., b = ..., c = ...;
-    // if I want to display b, I needs to draw `int b = ...`
-    Range_i64_Array result = { push_array_zero(arena, Range_i64, 3), 0 };
-    
-    if (note->base_range.max)
-        result.ranges[result.count++] = note->base_range;
-    result.ranges[result.count++] = Long_Index_ArgumentRange(note);
-    if (range.max)
-        result.ranges[result.count++] = range;
-    
-    return result;
-}
 
 function LONG_INDEX_FILTER(Long_Filter_Decl) { return note->kind == F4_Index_NoteKind_Decl || note->kind == F4_Index_NoteKind_Constant; }
 function LONG_INDEX_FILTER(Long_Filter_Func) { return note->kind == F4_Index_NoteKind_Function && !Long_Index_IsLambda(note); }
@@ -1261,18 +1105,39 @@ function Token_List Long_Token_ListFromRange(Application_Links* app, Arena* aren
     return result;
 }
 
-function Fancy_Block Long_Index_LayoutNote(Long_Render_Context* ctx, Arena* arena, F4_Index_Note* note, Range_i64 highlight_range)
+function Fancy_Block Long_Index_LayoutNote(Long_Render_Context* ctx, Arena* arena, F4_Index_Note* note,
+                                           Range_i64 highlight_range, Range_i64 note_range)
 {
     Application_Links* app = ctx->app;
-    Buffer_ID buffer = /*ctx->buffer*/note->file->buffer;
-    Token_Array array_ = /*&ctx->array*/get_token_array_from_buffer(app, buffer);
-    Token_Array* array = &array_;
     Face_ID face = ctx->face;
     f32 max_width = rect_width(ctx->rect);
     
+    local_const FColor color_table[TokenBaseKind_COUNT] = {
+#define X(kind, color) fcolor_id(color),
+        Long_Token_ColorTable(X)
+#undef X
+    };
+    
+    Fancy_Block result = {};
+    Fancy_Line* line = push_fancy_line(arena, &result);
+    
+    if (Long_Index_IsNamespace(note))
+    {
+        push_fancy_string(arena, line, color_table[TokenBaseKind_Keyword], S8Lit("namespace "));
+        push_fancy_string(arena, line, fcolor_id(fleury_color_index_product_type), note->string);
+        return result;
+    }
+    
+    Buffer_ID buffer = /*ctx->buffer*/note->file->buffer;
+    Token_Array array_ = /*&ctx->array*/get_token_array_from_buffer(app, buffer);
+    Token_Array* array = &array_;
+    
     Scratch_Block scratch(app, arena);
     Range_i64 range = Long_Index_ArgumentRange(note);
+    if (range.max < note_range.max)
+        range.max = note_range.max;
     Token_List list = Long_Token_ListFromRange(app, scratch, array, range);
+    
     if (note->base_range.max)
     {
         Token_List base = Long_Token_ListFromRange(app, scratch, array, note->base_range);
@@ -1290,14 +1155,6 @@ function Fancy_Block Long_Index_LayoutNote(Long_Render_Context* ctx, Arena* aren
         }
     }
     
-    local_const FColor color_table[TokenBaseKind_COUNT] = {
-#define X(kind, color) fcolor_id(color),
-        Long_Token_ColorTable(X)
-#undef X
-    };
-    
-    Fancy_Block result = {};
-    Fancy_Line* line = push_fancy_line(arena, &result);
     for (Token_Block* block = list.first; block; block = block->next)
     {
         Token_Array note_tokens = { block->tokens, block->count, block->max };
@@ -1384,136 +1241,89 @@ function Fancy_Block Long_Index_LayoutNote(Long_Render_Context* ctx, Arena* aren
     return result;
 }
 
-function void Long_Index_PushNoteTooltip(Long_Render_Context* ctx, Arena* arena, Fancy_Block* block,
-                                         F4_Index_Note* note, Range_i64 highlight_range)
-{
-    if (Long_Index_IsNamespace(note))
-    {
-        String8 name = push_stringf(arena, "namespace %.*s", string_expand(note->string));
-        push_fancy_line(arena, block, name);
-        return;
-    }
-    
-    Application_Links* app = ctx->app;
-    Scratch_Block scratch(app, arena);
-    Range_i64_Array ranges = Long_Index_GetNoteRanges(app, scratch, note, {});
-    Buffer_ID buffer = note->file->buffer;
-    
-    if (ranges.count)
-    {
-        i64 max_range_pos = ranges.ranges[ranges.count - 1].max;
-        if (!max_range_pos)
-            system_error_box("The last range of the note is incorrect");
-        
-        Range_i64 total_range = { ranges.ranges[0].min, max_range_pos };
-        Range_i64 max_range = buffer_range(app, buffer);
-        Assert(total_range.min >= max_range.min && total_range.max <= max_range.max);
-    }
-    else return;
-    
-    Fancy_Line* line = push_array_zero(arena, Fancy_Line, 1);
-    for (i32 i = 0; i < ranges.count; ++i)
-    {
-        Range_i64 range = ranges.ranges[i];
-        String8 string = push_buffer_range(app, arena, buffer, range);
-        
-        if (highlight_range.min >= range.min && highlight_range.max <= range.max)
-        {
-            String8 pre_str = string_prefix(string, highlight_range.min - range.min);
-            string = string_skip(string, pre_str.size);
-            String8 mid_str = string_prefix(string, range_size(highlight_range));
-            string = string_skip(string, mid_str.size);
-            
-            if (pre_str.size) push_fancy_string(arena, line, pre_str);
-            if (mid_str.size) push_fancy_string(arena, line, fcolor_id(fleury_color_token_highlight), mid_str);
-            if (!string.size) continue;
-        }
-        
-        Assert(string.size);
-        push_fancy_string(arena, line, string);
-    }
-    push_fancy_line(block, line);
-}
-
-function Fancy_Block Long_Index_LayoutLine(Long_Render_Context* ctx, Arena* arena, Fancy_Line* line)
-{
-    Fancy_Block result = {};
-    Application_Links* app = ctx->app;
-    f32 max_width = rect_width(ctx->rect);
-    
-    Scratch_Block scratch(app, arena);
-    String8 ws = S8Lit(" \n\r\t\f\v");
-    Fancy_Line* block_line = push_fancy_line(arena, &result);
-    
-    for (Fancy_String* fancy_str = line->first,* prev_str = 0; fancy_str; prev_str = fancy_str, fancy_str = fancy_str->next)
-    {
-        b32 was_highlight = prev_str && prev_str->fore.id == fleury_color_token_highlight;
-        
-        // @COPYPASTA(long): Long_Render_LayoutString
-        String8List list = string_split(scratch, fancy_str->value, ws.str, (i32)ws.size);
-        for (String8Node* node = list.first; node; node = node->next)
-        {
-            String8 str = node->string;
-            b32 push_space = node != list.first || (!was_highlight && fancy_str != line->first);
-            b32 was_newline = push_space && str.str[-1] == '\n';
-            
-            f32 advance = get_string_advance(app, ctx->face, str);
-            f32 width = get_fancy_line_width(app, ctx->face, block_line);
-            b32 overflow = (advance + width + ctx->metrics.space_advance) > max_width;
-            
-            if (was_newline || overflow)
-                block_line = push_fancy_line(arena, &result);
-            else if (push_space)
-                push_fancy_string(arena, block_line, fancy_str->fore, S8Lit(" "));
-            push_fancy_string(arena, block_line, fancy_str->fore, str);
-        }
-    }
-    
-    return result;
-}
-
-function Rect_f32 Long_Index_RenderBlock(Long_Render_Context* ctx, Fancy_Block* block, Vec2_f32 tooltip_pos)
+function Rect_f32 Long_Index_RenderBlock(Long_Render_Context* ctx, Fancy_Block* block, Vec2_f32 tooltip_pos, Fancy_Line* title)
 {
     Application_Links* app = ctx->app;
     Face_ID face = ctx->face;
+    ARGB_Color highlight_color = Long_ARGBFromID(fleury_color_token_highlight);
     
-    Vec2_f32 padding;
-    {
-        f32 margin_size = def_get_config_f32_lit(app, "tooltip_thickness");
-        padding.x = ctx->padding + margin_size;
-        padding.y = padding.x;
-    }
+    f32 thickness = def_get_config_f32_lit(app, "tooltip_thickness");
+    f32 roundness = def_get_config_f32_lit(app, "tooltip_roundness");
     
+    Vec2_f32 padding = Long_V2f32(Long_Render_TooltipOffset(ctx, normal_advance/2.f));
+    b32 has_title = title && title->first;
+    f32 title_padding = padding.x * 1.5f;
+    f32 title_offset = 0;
+    f32 title_height = 0;
+    
+    // NOTE(long): Render Background
     Rect_f32 draw_rect;
     {
-        tooltip_pos.x = f32_floor32(tooltip_pos.x);
-        tooltip_pos.y = f32_floor32(tooltip_pos.y);
-        Vec2_f32 needed_size = get_fancy_block_dim(app, face, block);
-        draw_rect = Rf32_xy_wh(tooltip_pos, needed_size + 2 * padding);
+        Vec2_f32 needed_size = get_fancy_block_dim(app, face, block) + 2 * padding;
         
-        Vec2_f32 offset = draw_rect.p1 - ctx->rect.p1;
-        offset.x = clamp_bot(offset.x, 0);
-        offset.y = clamp_bot(offset.y, 0);
+        if (has_title)
+        {
+            Vec2_f32 title_size = get_fancy_line_dim(app, face, title);
+            title_height = title_size.y;
+            
+            title_size += Long_V2f32(title_padding * 2);
+            needed_size.y += title_size.y + thickness + padding.y;
+            
+            needed_size.x = clamp_bot(needed_size.x ,title_size.x);
+            title_offset = (needed_size.x - title_size.x) / 2.f + title_padding;
+        }
+        draw_rect = Rf32_xy_wh(tooltip_pos, needed_size);
+        
+        Rect_f32 region = ctx->rect;
+        Vec2_f32 offset = { clamp_bot(draw_rect.x1 - region.x1, 0), clamp_bot(draw_rect.y1 - region.y1, 0) };
         draw_rect.p0 -= offset;
         draw_rect.p1 -= offset;
     }
     Long_Render_TooltipRect(app, draw_rect);
     
-    FColor color = fcolor_id(defcolor_text_default);
-    ARGB_Color highlight_color = Long_ARGBFromID(fleury_color_token_highlight);
+    // NOTE(long): Render Title
     Vec2_f32 text_pos = draw_rect.p0 + padding;
-    f32 start_x = text_pos.x;
+    if (has_title)
+    {
+        Vec2_f32 title_pos = draw_rect.p0 + V2f32(title_offset, title_padding);
+        draw_fancy_line(app, face, fcolor_zero(), title, title_pos);
+        text_pos.y = title_pos.y + title_height;
+        
+        Range_f32 highlight_x = rect_range_x(draw_rect);
+        f32 highlight_offset = title_offset + get_fancy_string_width(app, face, title->first);
+        highlight_x.min += highlight_offset;
+        highlight_x.max -= highlight_offset;
+        
+        // @CONSTANT(long): text_pos.y + thickness
+        Rect_f32 highlight_rect = Rf32(highlight_x, If32_size(text_pos.y + thickness, thickness));
+        Long_Render_Rect(app, highlight_rect, roundness, highlight_color);
+        text_pos.y += title_padding;
+        
+        Range_f32 div_x = rect_range_x(draw_rect);
+        f32 div_offset = /*title_offset*/title_padding;
+        div_x.min += div_offset;
+        div_x.max -= div_offset;
+        
+        Rect_f32 div_rect = Rf32(div_x, If32_size(text_pos.y, thickness));
+        Long_Render_Rect(app, div_rect, roundness, Long_ARGBFromID(defcolor_margin_active));
+        text_pos.y += thickness + padding.y;
+    }
     
     // @COPYPASTA(long): draw_fancy_block
+    f32 start_x = text_pos.x;
     for (Fancy_Line* line_node = block->first; line_node; line_node = line_node->next)
     {
         Range_f32 highlight_range = {};
         for (Fancy_String* str_node = line_node->first; str_node; str_node = str_node->next)
         {
+            FColor color = str_node->fore;
+            if (!fcolor_is_valid(color))
+                color = fcolor_id(defcolor_text_default);
+            
             f32 curr_x = text_pos.x;
             text_pos = draw_fancy_string(app, face, color, str_node, text_pos);
             
-            if (str_node->fore.id == fleury_color_token_highlight)
+            if (color.id == fleury_color_token_highlight)
             {
                 if (!highlight_range.max)
                     highlight_range = If32(curr_x, text_pos.x);
@@ -1522,16 +1332,11 @@ function Rect_f32 Long_Index_RenderBlock(Long_Render_Context* ctx, Fancy_Block* 
             }
         }
         
-        f32 line_height = get_fancy_line_height(app, face, line_node);
         text_pos.x = start_x;
-        text_pos.y += line_height;
+        text_pos.y += get_fancy_line_height(app, face, line_node);
         
         if (highlight_range.max)
         {
-            // @CONSTANT
-            f32 thickness = 2;
-            f32 roundness = 1;
-            
             Rect_f32 rect = Rf32(highlight_range.min, text_pos.y, highlight_range.max, text_pos.y + thickness);
             Long_Render_Rect(app, rect, roundness, highlight_color);
         }
@@ -1540,157 +1345,12 @@ function Rect_f32 Long_Index_RenderBlock(Long_Render_Context* ctx, Fancy_Block* 
     return draw_rect;
 }
 
-function Rect_f32 Long_Index_RenderNote(Long_Render_Context* ctx, F4_Index_Note* note, Vec2_f32 tooltip_pos, Range_i64 highlight_range)
+function Rect_f32 Long_Index_RenderNote(Long_Render_Context* ctx, F4_Index_Note* note, Vec2_f32 tooltip_pos,
+                                        Range_i64 highlight_range, Range_i64 note_range)
 {
-    Application_Links* app = ctx->app;
-    Rect_f32 region = ctx->rect;
-    Face_ID face = ctx->face;
-    f32 margin_size = def_get_config_f32_lit(app, "tooltip_thickness");
-    f32 padding = ctx->padding + margin_size;
-    
-    Buffer_ID buffer = note->file->buffer;
-    Token_Array array = get_token_array_from_buffer(app, buffer);
-    
-    Scratch_Block scratch(app);
-    Range_i64 range = Long_Index_ArgumentRange(note);
-    Token_List list = Long_Token_ListFromRange(app, scratch, &array, range);
-    if (note->base_range.max)
-    {
-        Token_List base = Long_Token_ListFromRange(app, scratch, &array, note->base_range);
-        if (base.first)
-        {
-            if (list.first)
-            {
-                base.last->next = list.first;
-                list.first->prev = base.last;
-            }
-            
-            list.first = base.first;
-            list. node_count += base. node_count;
-            list.total_count += base.total_count;
-        }
-    }
-    
-    local_const FColor color_table[TokenBaseKind_COUNT] = {
-#define X(kind, color) fcolor_id(color),
-        Long_Token_ColorTable(X)
-#undef X
-    };
-    
-    Fancy_Block block = {};
-    Fancy_Line* line = push_fancy_line(scratch, &block);
-    for (Token_Block* tokens = list.first; tokens; tokens = tokens->next)
-    {
-        Token_Array note_tokens = { tokens->tokens, tokens->count, tokens->max };
-        
-        for (i64 i = 0 ; i < note_tokens.count; ++i)
-        {
-            Token* token = note_tokens.tokens + i;
-            String8 lexeme = push_token_lexeme(app, scratch, buffer, token);
-            
-            b32 push_space = 0;
-            if (i > 0)
-            {
-                String8 one_space_ops[] = { S8Lit("*"), S8Lit(">"), };
-                String8  no_space_ops[] = { S8Lit("."), S8Lit("::"), S8Lit("<"), };
-                
-                switch (token->kind)
-                {
-                    // Operators
-                    case TokenBaseKind_Operator:
-                    {
-                        push_space = (!Long_Index_IsMatch(lexeme, ExpandArray(one_space_ops)) &&
-                                      !Long_Index_IsMatch(lexeme, ExpandArray( no_space_ops)) &&
-                                      !Long_Index_ParseAngleBody(app, buffer, token, 0));
-                    } break;
-                    
-                    // Atoms
-                    case TokenBaseKind_Keyword:
-                    case TokenBaseKind_Identifier:
-                    case TokenBaseKind_LiteralInteger:
-                    case TokenBaseKind_LiteralFloat:
-                    case TokenBaseKind_LiteralString:
-                    {
-                        Token* prev = token - 1;
-                        String8 prev_lexeme = push_token_lexeme(app, scratch, buffer, prev);
-                        push_space = (!Long_Index_IsMatch(prev_lexeme, ExpandArray(no_space_ops)) &&
-                                      prev->kind != TokenBaseKind_ParentheticalOpen);
-                    } break;
-                }
-            }
-            else push_space = tokens != list.first;
-            
-            b32 overflow = 0;
-            if (push_space)
-            {
-                f32 advance = get_string_advance(app, ctx->face, lexeme);
-                f32 width = get_fancy_line_width(app, ctx->face, line);
-                Assert(width);
-                overflow = (advance + width + ctx->metrics.space_advance) > rect_width(region);
-            }
-            
-            if (overflow)
-                line = push_fancy_line(scratch, &block);
-            else if (push_space)
-                push_fancy_string(scratch, line, S8Lit(" "));
-            Fancy_String* fancy = push_fancy_string(scratch, line, lexeme);
-            
-            FColor color = color_table[token->kind];
-            if (highlight_range.min <= token->pos && token->pos + token->size <= highlight_range.max)
-                color = fcolor_id(fleury_color_token_highlight);
-            fancy->fore = color;
-        }
-    }
-    
-    tooltip_pos.x = f32_floor32(tooltip_pos.x);
-    tooltip_pos.y = f32_floor32(tooltip_pos.y);
-    Vec2_f32 needed_size = get_fancy_block_dim(app, face, &block);
-    Vec2_f32 padded_size = V2f32(padding, padding);
-    Rect_f32 draw_rect = Rf32_xy_wh(tooltip_pos, needed_size + 2 * padded_size);
-    
-    Vec2_f32 offset = { clamp_bot(draw_rect.x1 - region.x1, 0), clamp_bot(draw_rect.y1 - region.y1, 0) };
-    draw_rect.p0 -= offset;
-    draw_rect.p1 -= offset;
-    Long_Render_TooltipRect(app, draw_rect);
-    
-    ARGB_Color color = finalize_color(defcolor_text_default, 0);
-    ARGB_Color highlight_color = finalize_color(fleury_color_token_highlight, 0);
-    Vec2_f32 text_pos = draw_rect.p0 + padded_size;
-    f32 start_x = text_pos.x;
-    
-    // @COPYPASTA(long): draw_fancy_block
-    for (Fancy_Line* line_node = block.first; line_node; line_node = line_node->next)
-    {
-        Range_f32 highlight_range = {};
-        for (Fancy_String* str_node = line_node->first; str_node; str_node = str_node->next)
-        {
-            f32 curr_x = text_pos.x;
-            text_pos = draw_fancy_string(app, face, fcolor_argb(color), str_node, text_pos);
-            
-            if (str_node->fore.id == fleury_color_token_highlight)
-            {
-                if (!highlight_range.max)
-                    highlight_range = If32(curr_x, text_pos.x);
-                else
-                    highlight_range.max = text_pos.x;
-            }
-        }
-        
-        f32 line_height = get_fancy_line_height(app, face, line_node);
-        text_pos.x = start_x;
-        text_pos.y += line_height;
-        
-        if (highlight_range.max)
-        {
-            // @CONSTANT
-            f32 thickness = 2;
-            f32 roundness = 1;
-            
-            Rect_f32 rect = Rf32(highlight_range.min, text_pos.y, highlight_range.max, text_pos.y + thickness);
-            draw_rectangle(app, rect, roundness, highlight_color);
-        }
-    }
-    
+    Scratch_Block scratch(ctx->app);
+    Fancy_Block block = Long_Index_LayoutNote(ctx, scratch, note, highlight_range, note_range);
+    Rect_f32 draw_rect = Long_Index_RenderBlock(ctx, &block, tooltip_pos, 0);
     return draw_rect;
 }
 
@@ -1699,12 +1359,13 @@ function Rect_f32 Long_Index_RenderMembers(Long_Render_Context* ctx, F4_Index_No
     Application_Links* app = ctx->app;
     Scratch_Block scratch(app);
     Fancy_Block block = {};
+    Fancy_Line title = {};
+    Rect_f32 draw_rect = {};
     
     //- NOTE(long): Init Option
     i32 option = long_active_pos_context_option;
+    i32 option_count = ArrayCount(long_ctx_opts);
     {
-        i32 option_count = ArrayCount(long_ctx_opts);
-        
         i32 counts[3] = {};
         for (i32 opt = 0; opt < option_count; ++opt)
         {
@@ -1734,14 +1395,16 @@ function Rect_f32 Long_Index_RenderMembers(Long_Render_Context* ctx, F4_Index_No
                 fcolor_id(fleury_color_index_function),
                 fcolor_id(fleury_color_index_product_type),
             };
+            
             i32 prev_idx = WrapIndex(option - 1, option_count);
             i32 next_idx = WrapIndex(option + 1, option_count);
             
-            Fancy_Line* title = push_fancy_line(scratch, &block, ctx->face);
-            push_fancy_stringf(scratch, title, option_colors[prev_idx], " <(%.2d) ", counts[prev_idx]);
-            push_fancy_stringf(scratch, title, option_colors[option], "[%s(%.2d)]", option_names[option], counts[option]);
-            push_fancy_stringf(scratch, title, option_colors[next_idx], " (%.2d)> ", counts[next_idx]);
+            push_fancy_stringf(scratch, &title, option_colors[prev_idx],  "<(%.2d) ", counts[prev_idx]);
+            push_fancy_stringf(scratch, &title, option_colors[option], "[%s(%.2d)]", option_names[option], counts[option]);
+            push_fancy_stringf(scratch, &title, option_colors[next_idx], " (%.2d)>", counts[next_idx]);
         }
+        
+        else return Long_Index_RenderNote(ctx, note, tooltip_pos, {}, {});
     }
     
     //- NOTE(long): Push Members
@@ -1758,13 +1421,19 @@ function Rect_f32 Long_Index_RenderMembers(Long_Render_Context* ctx, F4_Index_No
             continue;
         note_count++;
         
-        Fancy_Block note_block = Long_Index_LayoutNote(ctx, scratch, child, {});
-        block.last->next = note_block.first;
-        block.last = note_block.last;
-        block.line_count += note_block.line_count;
+        Fancy_Block note_block = Long_Index_LayoutNote(ctx, scratch, child, {}, {});
+        if (!block.first)
+            block = note_block;
+        
+        else
+        {
+            block.last->next = note_block.first;
+            block.last = note_block.last;
+            block.line_count += note_block.line_count;
+        }
     }
     
-    Rect_f32 draw_rect = Long_Index_RenderBlock(ctx, &block, tooltip_pos);
+    draw_rect = Long_Index_RenderBlock(ctx, &block, tooltip_pos, &title);
     return draw_rect;
 }
 
@@ -1774,7 +1443,6 @@ function Vec2_f32 Long_Index_RenderTooltip(Long_Render_Context* ctx, F4_Language
     Scratch_Block scratch(app);
     Rect_f32 region = ctx->rect;
     Face_ID face = ctx->face;
-    f32 padding = ctx->padding;
     
     F4_Index_Note* note = pos_ctx->relevant_note;
     i32 index = pos_ctx->argument_index;
@@ -1789,270 +1457,21 @@ function Vec2_f32 Long_Index_RenderTooltip(Long_Render_Context* ctx, F4_Language
             highlight_range = { argument->base_range.min, argument->scope_range.min };
     }
     
-    ARGB_Color color = finalize_color(defcolor_text_default, 0);
-    ARGB_Color highlight_color = finalize_color(fleury_color_token_highlight, 0);
-    
     if (note->kind == F4_Index_NoteKind_Decl && index)
     {
         note = Long_Index_LookupRef(app, note, 0);
         if (!note)
-            return tooltip_pos;
+            goto EXIT;
     }
     
-    //- NOTE(long): Setup Title Bar
-#if 0
-    Fancy_Block block = {};
-    Fancy_Line title = {};
-    if (note->kind == F4_Index_NoteKind_Type && index)
-    {
-        i32 option_count = ArrayCount(long_ctx_opts);
-        
-        i32 counts[3] = {};
-        for (i32 opt = 0; opt < option_count; ++opt)
-        {
-            i32 member_count = 0;
-            for (F4_Index_Note* child = note->first_child; child; child = child->next_sibling)
-                if (long_ctx_opts[opt](child))
-                    member_count++;
-            counts[opt] = member_count;
-        }
-        
-        i32 highlight = long_active_pos_context_option;
-        while (!counts[highlight])
-        {
-            highlight = (highlight + 1) % option_count;
-            if (highlight == long_active_pos_context_option)
-                break;
-        }
-        
-        if (counts[highlight])
-        {
-            long_active_pos_context_option = highlight;
-            
-            FColor option_colors[] =
-            {
-                fcolor_id(fleury_color_index_decl),
-                fcolor_id(fleury_color_index_function),
-                fcolor_id(fleury_color_index_product_type),
-            };
-            const char* option_names[] = { "DECL", "FUNC", "TYPE", };
-            i32 prev_idx = WrapIndex(highlight - 1, option_count);
-            i32 next_idx = WrapIndex(highlight + 1, option_count);
-            
-            push_fancy_stringf(scratch, &title, option_colors[prev_idx], "<(%.2d) ", counts[prev_idx]);
-            push_fancy_stringf(scratch, &title, option_colors[highlight], "[%s(%.2d)]", option_names[highlight], counts[highlight]);
-            push_fancy_stringf(scratch, &title, option_colors[next_idx], " (%.2d)>", counts[next_idx]);
-        }
-        
-        //- NOTE(long): Push Members
-        i32 note_count = 0;
-        for (F4_Index_Note* child = note->first_child; child; child = child->next_sibling)
-        {
-            if (note_count == long_global_child_tooltip_count)
-            {
-                push_fancy_line(scratch, &block, S8Lit("..."));
-                break;
-            }
-            
-            if (child->kind == F4_Index_NoteKind_Scope || Long_Index_IsComment(child))
-                continue;
-            if (!long_ctx_opts[highlight](child))
-                continue;
-            
-            Long_Index_PushNoteTooltip(ctx, scratch, &block, child, highlight_range);
-            note_count++;
-        }
-    }
-    //else Long_Index_PushNoteTooltip(ctx, scratch, &block, note, highlight_range);
-    
-    //- NOTE(long): Render Title
-    if (title.first)
-    {
-        Vec2_f32 size = get_fancy_line_dim(app, face, &title);
-        Vec2_f32 title_padding = V2f32(padding, padding) * 1.5f; // @CONSTANT
-        Long_Render_TooltipRect(app, Rf32_xy_wh(tooltip_pos, size + title_padding * 2));
-        draw_fancy_line(app, face, fcolor_argb(color), &title, tooltip_pos + title_padding);
-        tooltip_pos.y += size.y + title_padding.y * 2;
-    }
-#endif
-    
-    //- NOTE(long): Render Block
     Rect_f32 draw_rect;
-    if (Long_Index_IsNamespace(note))
-    {
-        String8 tooltip_string = push_stringf(scratch, "namespace %.*s", string_expand(note->string));
-        draw_rect = Long_Render_DrawString(ctx, tooltip_string, tooltip_pos, color);
-    }
-    
-    else if (note->kind == F4_Index_NoteKind_Type && index)
+    if (note->kind == F4_Index_NoteKind_Type && index)
         draw_rect = Long_Index_RenderMembers(ctx, note, tooltip_pos);
-    else draw_rect = Long_Index_RenderNote(ctx, note, tooltip_pos, highlight_range);
+    else
+        draw_rect = Long_Index_RenderNote(ctx, note, tooltip_pos, highlight_range, pos_ctx->range);
     
     tooltip_pos.y = draw_rect.y1;
-    return tooltip_pos;
-}
-
-function Vec2_f32 Long_Index_DrawTooltip(Long_Render_Context* ctx, Vec2_f32 tooltip_pos, ARGB_Color color, ARGB_Color highlight_color,
-                                         F4_Language_PosContextData* pos_ctx)
-{
-    Application_Links* app = ctx->app;
-    Rect_f32 screen_rect = ctx->rect;
-    Face_ID face = ctx->face;
-    f32 padding = ctx->padding;
-    
-    F4_Index_Note* note = pos_ctx->relevant_note;
-    i32 index = pos_ctx->argument_index;
-    Range_i64 range = pos_ctx->range;
-    Range_i64 highlight_range = pos_ctx->highlight_range;
-    
-    if (note->kind == F4_Index_NoteKind_Decl && index)
-    {
-        note = Long_Index_LookupRef(app, note, 0);
-        if (!note)
-            return tooltip_pos;
-    }
-    
-    Scratch_Block scratch(app);
-    if (note->kind == F4_Index_NoteKind_Type && index)
-    {
-        i32 opt = long_active_pos_context_option;
-        NoteFilter* filter = long_ctx_opts[opt];
-        
-        f32 start_x = tooltip_pos.x;
-        Rect_f32 rects[3] = {};
-        i32 counts[3] = {};
-        i32 option_count = ArrayCount(long_ctx_opts);
-        
-        for (opt = 0; opt < option_count; ++opt)
-        {
-            i32 member_count = 0;
-            for (F4_Index_Note* child = note->first_child; child; child = child->next_sibling)
-                if (long_ctx_opts[opt](child))
-                    member_count++;
-            counts[opt] = member_count;
-        }
-        
-        i32 highlight = long_active_pos_context_option;
-        b32 empty = 0;
-        while (!counts[highlight])
-        {
-            highlight = (highlight + 1) % option_count;
-            if (highlight == long_active_pos_context_option)
-            {
-                empty = 1;
-                break;
-            }
-        }
-        filter = long_ctx_opts[highlight];
-        
-        if (!empty)
-        {
-            long_active_pos_context_option = highlight;
-            
-            FColor option_colors[] =
-            {
-                fcolor_id(fleury_color_index_decl),
-                fcolor_id(fleury_color_index_function),
-                fcolor_id(fleury_color_index_product_type),
-            };
-            char* option_names[] = { "DECL", "FUNC", "TYPE", };
-            
-            i32 prev_idx = WrapIndex(highlight - 1, option_count);
-            i32 next_idx = WrapIndex(highlight + 1, option_count);
-            Fancy_Line list = {};
-            
-            push_fancy_stringf(scratch, &list, option_colors[prev_idx], "<(%.2d)", counts[prev_idx]);
-            list.last->post_margin = .5f; // @CONSTANT
-            
-            f32 beg_offset = get_fancy_line_width(app, face, &list);
-            push_fancy_stringf(scratch, &list, option_colors[highlight], "[%s(%.2d)]", option_names[highlight], counts[highlight]);
-            f32 end_offset = get_fancy_line_width(app, face, &list);
-            
-            push_fancy_stringf(scratch, &list, option_colors[next_idx], "(%.2d)>", counts[next_idx]);
-            list.last->pre_margin = .5f; // @CONSTANT
-            
-            f32 title_padding = padding * 1.5f; // @CONSTANT
-            Vec2_f32 padding_vec = Vec2_f32{ title_padding, title_padding };
-            Rect_f32 rect = Rf32_xy_wh(tooltip_pos, get_fancy_line_dim(app, face, &list) + padding_vec * 2);
-            Vec2_f32 text_pos = tooltip_pos + padding_vec;
-            
-            Long_Render_TooltipRect(app, rect);
-            draw_fancy_line(app, face, fcolor_zero(), &list, text_pos);
-            tooltip_pos.y += rect_height(rect);
-            
-            // NOTE(long): Because the title uses a much bigger padding, I like to increase the highlight's y slightly
-            f32 highlight_y = rect.y1 - title_padding;
-            Rect_f32 highlight_rect = Rf32_xy_wh(text_pos.x + beg_offset, highlight_y, end_offset - beg_offset, 2);
-            highlight_rect.x0 += padding;
-            highlight_rect.x1 -= padding;
-            draw_rectangle(app, highlight_rect, 1, highlight_color);
-        }
-        
-        i32 i = 0;
-        tooltip_pos.x = start_x;
-        for (F4_Index_Note* child = note->first_child; child; child = child->next_sibling)
-        {
-            Rect_f32 rect = {};
-            if (i == long_global_child_tooltip_count)
-            {
-                Long_Render_CtxBlock(ctx, ctx->padding *= .5f) // // @CONSTANT
-                    rect = Long_Render_DrawString(ctx, S8Lit("..."), tooltip_pos, color);
-                tooltip_pos.y += rect_height(rect);
-                break;
-            }
-            
-            if (child->kind == F4_Index_NoteKind_Scope || Long_Index_IsComment(child))
-                continue;
-            
-            if (!filter(child))
-                continue;
-            
-            if (Long_Index_IsNamespace(child))
-            {
-                String8 name = push_stringf(scratch, "namespace %.*s", string_expand(child->string));
-                rect = Long_Render_DrawString(ctx, name, tooltip_pos, color);
-            }
-            else
-            {
-                Range_i64_Array ranges = Long_Index_GetNoteRanges(app, scratch, child, range);
-                Long_Render_PushCtxBuffer(ctx, child->file->buffer)
-                    rect = Long_Index_DrawNote(ctx, ranges, tooltip_pos, If32(screen_rect.x0, screen_rect.x1),
-                                               highlight_range, color, highlight_color);
-            }
-            
-            tooltip_pos.y += rect_height(rect);
-            ++i;
-        }
-    }
-    
-    else
-    {
-        if (note->kind == F4_Index_NoteKind_Function && index != -1)
-        {
-            F4_Index_Note* argument = Long_Index_LookupChild(note, index);
-            if (argument && argument->kind == F4_Index_NoteKind_Decl)
-                // NOTE(long): The CS parser always parses base_range and scope_range for decl, while the CPP parser never parses decl
-                // so I don't need to check these ranges
-                highlight_range = { argument->base_range.min, argument->scope_range.min };
-        }
-        
-        Rect_f32 rect = {};
-        if (Long_Index_IsNamespace(note))
-        {
-            String8 name = push_stringf(scratch, "namespace %.*s", string_expand(note->string));
-            rect = Long_Render_DrawString(ctx, name, tooltip_pos, color);
-        }
-        
-        else
-        {
-            Range_i64_Array ranges = Long_Index_GetNoteRanges(app, scratch, note, range);
-            Long_Render_PushCtxBuffer(ctx, note->file->buffer)
-                rect = Long_Index_DrawNote(ctx, ranges, tooltip_pos, If32(screen_rect.x0, screen_rect.x1),
-                                           highlight_range, color, highlight_color);
-        }
-        
-        tooltip_pos.y += rect_height(rect);
-    }
+    EXIT:
     return tooltip_pos;
 }
 
@@ -2080,7 +1499,8 @@ function void Long_Index_DrawPosContext(Long_Render_Context* ctx, F4_Language_Po
     Application_Links* app = ctx->app;
     View_ID view = ctx->view;
     f32 line_height = ctx->metrics.line_height;
-    f32 padding = ctx->padding;
+    f32 padding = def_get_config_f32_lit(app, "tooltip_padding");
+    f32 margin_padding = padding + def_get_config_f32_lit(app, "long_margin_size");
     
     // NOTE(long): In emacs style, has_highlight_range is only true when searching/multi-selecting
     b32 has_highlight_range = Long_Highlight_HasRange(app, view);
@@ -2091,6 +1511,7 @@ function void Long_Index_DrawPosContext(Long_Render_Context* ctx, F4_Language_Po
     ARGB_Color color = finalize_color(defcolor_text_default, 0);
     ARGB_Color highlight_color = finalize_color(fleury_color_token_highlight, 0);
     
+    f32 thickness = Long_Render_CursorThickness(ctx); // Do this before switching the face
     Long_Render_InitCtxFace(ctx, global_small_code_face);
     Vec2_f32 tooltip_pos;
     Rect_f32 screen;
@@ -2099,15 +1520,17 @@ function void Long_Index_DrawPosContext(Long_Render_Context* ctx, F4_Language_Po
     if (render_at_cursor)
     {
         screen = global_get_screen_rectangle(app);
-        screen.x0 += padding;
-        screen.x1 -= padding;
-        tooltip_pos = global_cursor_rect.p0 + V2f32(padding, line_height);
+        screen.x0 += margin_padding;
+        screen.x1 -= margin_padding;
+        
+        // NOTE(long): The pos-context tooltip is always below the token occurrence underline
+        // The underline uses text_height, and line_height >= text_height
+        tooltip_pos = global_cursor_rect.p0 + V2f32(padding, line_height + thickness);
     }
     
     else
     {
         screen = view_get_screen_rect(app, view);
-        f32 margin_padding = padding + def_get_config_f32_lit(app, "long_margin_size");
         screen.x0 += margin_padding;
         screen.x1 -= margin_padding;
         
@@ -2123,10 +1546,10 @@ function void Long_Index_DrawPosContext(Long_Render_Context* ctx, F4_Language_Po
     {
         if (pos_ctx->relevant_note)
         {
-            //tooltip_pos = Long_Index_DrawTooltip(ctx, tooltip_pos, color, highlight_color, pos_ctx);
+            f32 old_y = tooltip_pos.y;
             tooltip_pos = Long_Index_RenderTooltip(ctx, pos_ctx, tooltip_pos);
             if (render_at_cursor)
-                tooltip_pos.x -= padding * 4; // @CONSTANT
+                tooltip_pos.x -= ctx->metrics.line_height/2.f;
         }
     }
     *ctx = restore_ctx;
@@ -2179,14 +1602,20 @@ function void Long_Index_DrawCodePeek(Long_Render_Context* ctx)
             
             if (note)
             {
-                Rect_f32 tooltip_rect = ctx->rect;
-                f32 peek_height = rect_height(tooltip_rect) * .25f; // @CONSTANT
-                tooltip_rect.y0 = tooltip_rect.y1 - peek_height;
-                f32 padding = def_get_config_f32_lit(app, "long_margin_size") * 2; // @CONSTANT
-                tooltip_rect = rect_inner(tooltip_rect, padding);
+                f32 padding = def_get_config_f32_lit(app, "long_margin_size") * 2;
+                f32 peek_height = def_get_config_f32_lit(app, "long_code_peek_height") * .01f;
                 
-                Rect_f32 content_rect = rect_inner(tooltip_rect, 20); // TODO(long): Replace 20 with line_height
-                Long_Render_DrawPeek(app, tooltip_rect, content_rect, note->file->buffer, note->range, 3);
+                Rect_f32 tooltip_rect = ctx->rect;
+                peek_height *= rect_height(tooltip_rect);
+                
+                if (peek_height > padding)
+                {
+                    tooltip_rect.y0 = tooltip_rect.y1 - peek_height;
+                    tooltip_rect = rect_inner(tooltip_rect, padding);
+                    
+                    Long_Render_TooltipRect(app, tooltip_rect);
+                    Long_Render_DrawPeek(app, tooltip_rect, note->file->buffer, note->range, 3);
+                }
             } 
         }
     }
