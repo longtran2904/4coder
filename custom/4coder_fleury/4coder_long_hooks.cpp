@@ -1,13 +1,6 @@
 
 //~ NOTE(long): Essential Hooks
 
-//void A(int abcdefghijklmnopqrstuvwxyz0123456789abcdefghijklmnopqrstuvwxyz0123456789abcdefghijklmnopqrstuvwxyz0123456789
-//abcdefghijklmnopqrstuvwxyz0123456789abcdefghijklmnopqrstuvwxyz0123456789abcdefghijklmnopqrstuvwxyz0123456789
-//abcdefghijklmnopqrstuvwxyz0123456789abcdefghijklmnopqrstuvwxyz0123456789abcdefghijklmnopqrstuvwxyz0123456789abcdefghijklmnopqrstuvwxyz0123456789abcdefghijklmnopqrstuvwxyz0123456789abcdefghijklmnopqrstuvwxyz0123456789
-//abcdefghijklmnopqrstuvwxyz0123456789abcdefghijklmnopqrstuvwxyz0123456789abcdefghijklmnopqrstuvwxyz0123456789abcdefghijklmnopqrstuvwxyz0123456789abcdefghijklmnopqrstuvwxyz0123456789abcdefghijklmnopqrstuvwxyz0123456789abcdefghijklmnopqrstuvwxyz01234567
-//abcdefghijklmnopqrstuvwxyz0123456789abcdefghijklmnopqrstuvwxyz0123456789abcdefghijklmnopqrstuvwxyz0123456789abcdefghijklmnopqrstuvwxyz0123456789abcdefghijklmnopqrstuvwxyz0123456789abcdefghijklmnopqrstuvwxyz0123456789abcdefghijklmnopqrstuvwxyz0123456789abcdefghijklmnopqrstuvwxyz0123456789abcdefghijklmnopqrstuvwxyz0123456789abcdefghijklmnopqrstuvwxyz0123456789);
-//A()
-
 // @COPYPASTA(long): default_try_exit
 CUSTOM_COMMAND_SIG(long_try_exit)
 CUSTOM_DOC("Command for responding to a try-exit event")
@@ -284,15 +277,12 @@ function void Long_Render(Application_Links* app, Frame_Info frame, View_ID view
     Scratch_Block scratch(app);
     
     //- NOTE(long): Setup Context
-    Long_Render_Context _ctx = Long_Render_CreateCtx(app, frame, view);
+    Long_Render_Context _ctx = Long_Render_CreateCtx(app, frame, view, 0);
     Long_Render_Context* ctx = &_ctx;
     
     Rect_f32 view_rect = ctx->rect;
     f32 margin_size = def_get_config_f32_lit(app, "long_margin_size");
     ctx->rect = rect_inner(view_rect, margin_size);
-    
-    Long_Render_InitCtxFace(ctx, get_face_id(app, ctx->buffer));
-    Face_Metrics metrics = ctx->metrics;
     
     //- NOTE(long): Draw Background/Margin
     b32 is_active_view = ctx->is_active_view;
@@ -340,7 +330,7 @@ function void Long_Render(Application_Links* app, Frame_Info frame, View_ID view
     {
         for (i32 i = 0; i < query_bars.count; ++i)
         {
-            Rect_f32_Pair pair = layout_query_bar_on_top(ctx->rect, metrics.line_height, 1);
+            Rect_f32_Pair pair = layout_query_bar_on_top(ctx->rect, ctx->metrics.line_height, 1);
             draw_query_bar(app, query_bars.ptrs[i], ctx->face, pair.min);
             // TODO(long): Query bar background or margin
             ctx->rect = pair.max;
@@ -358,17 +348,17 @@ function void Long_Render(Application_Links* app, Frame_Info frame, View_ID view
     
     // TODO(long): Helper function
     f32 cursor_width = Long_Render_CursorThickness(ctx);
-    f32  emacs_width = f32_ceil32(metrics.text_height/2 - cursor_width); // Long_Render_EmacsSymbol
+    f32  emacs_width = f32_ceil32(ctx->metrics.text_height/2 - cursor_width); // Long_Render_EmacsSymbol
     if (is_active_view && fcoder_mode == FCoderMode_Original)
     {
         f32 highlight_width  = clamp_top(cursor_width * 2.f, emacs_width / 2.f);
         f32 highlight_offset = clamp_bot((emacs_width - highlight_width) / 2.f, 0.f);
         Long_Highlight_CursorMark(app, layout_rect.x0 + highlight_offset, highlight_width);
     }
+    layout_rect.x0 += emacs_width;
     
     // NOTE(long): Buffer Layout
-    layout_rect.x0 += emacs_width;
-    ctx->layout = text_layout_create(app, ctx->buffer, layout_rect, scroll.position);
+    Long_Render_InitCtxBuffer(ctx, ctx->buffer, layout_rect, scroll.position);
     Long_Render_Buffer(ctx);
     text_layout_free(app, ctx->layout);
     draw_set_clip(app, prev_clip);
@@ -388,12 +378,9 @@ function void Long_WholeScreenRender(Application_Links* app, Frame_Info frame)
     Buffer_ID active_buffer = view_get_buffer(app, active_view, 0);
     Rect_f32 region = global_get_screen_rectangle(app);
     Rect_f32 active_rect = view_get_screen_rect(app, active_view);
-    Face_ID global_face = get_face_id(app, 0);
     
-    Long_Render_Context _ctx = Long_Render_CreateCtx(app, frame, active_view);
+    Long_Render_Context _ctx = Long_Render_CreateCtx(app, frame, active_view, 1);
     Long_Render_Context* ctx = &_ctx;
-    
-    Long_Render_InitCtxFace(ctx, global_face);
     {
         // NOTE(long): Code Peek HUD
         ctx->rect = region;
@@ -440,7 +427,7 @@ function void Long_WholeScreenRender(Application_Links* app, Frame_Info frame)
     }
     
     // NOTE(long): Tooltip Rendering
-    Long_Render_InitCtxFace(ctx, global_small_code_face);
+    Long_Render_SetCtxFace(ctx, global_small_code_face);
     {
         // @CONSTANT
         Vec2_f32 mouse_offset = V2f32(16, 16);
@@ -454,9 +441,6 @@ function void Long_WholeScreenRender(Application_Links* app, Frame_Info frame)
             tooltip_pos.y += height_offset;
         }
     }
-    
-    //if (qol_try_exit_view)
-    //qol_try_exit_render(app, frame);
 }
 
 //~ NOTE(long): Buffer Hooks
@@ -572,86 +556,6 @@ function i32 Long_SaveFile(Application_Links* app, Buffer_ID buffer)
         Long_Prj_Parse(app, path, data);
     
     return 0;
-}
-
-// @COPYPASTA(long): F4_LayoutInner
-function Layout_Item_List Long_Layout(Application_Links* app, Arena* arena, Buffer_ID buffer,
-                                      Range_i64 range, Face_ID face, f32 width)
-{
-    Scratch_Block scratch(app);
-    Layout_Item_List list = get_empty_item_list(range);
-    String8 text = push_buffer_range(app, scratch, buffer, range);
-    
-    LefRig_TopBot_Layout_Vars pos_vars;
-    {
-        Face_Advance_Map advance_map = get_face_advance_map(app, face);
-        Face_Metrics metrics = get_face_metrics(app, face);
-        f32 tab_width = def_get_config_f32_lit(app, "default_tab_width");
-        tab_width = clamp_bot(1, tab_width);
-        pos_vars = get_lr_tb_layout_vars(&advance_map, &metrics, tab_width, width);
-    }
-    
-    if (text.size)
-    {
-        b32 skipping_leading_whitespace = 0;
-        Newline_Layout_Vars newline_vars = get_newline_layout_vars();
-        
-        u8* ptr = text.str;
-        u8* end_ptr = ptr + text.size;
-        while (ptr < end_ptr)
-        {
-            Character_Consume_Result consume = utf8_consume(ptr, (u64)(end_ptr - ptr));
-            i64 index = layout_index_from_ptr(ptr, text.str, range.first);
-            
-            switch (consume.codepoint)
-            {
-                case '\t':
-                case ' ':
-                {
-                    newline_layout_consume_default(&newline_vars);
-                    f32 advance = lr_tb_advance(&pos_vars, face, consume.codepoint);
-                    if (!skipping_leading_whitespace)
-                        lr_tb_write_with_advance(&pos_vars, face, advance, arena, &list, index, consume.codepoint);
-                    else
-                        lr_tb_advance_x_without_item(&pos_vars, advance);
-                } break;
-                
-                default:
-                {
-                    newline_layout_consume_default(&newline_vars);
-                    lr_tb_write(&pos_vars, face, arena, &list, index, consume.codepoint);
-                } break;
-                
-                case '\r': newline_layout_consume_CR(&newline_vars, index); break;
-                
-                case '\n':
-                {
-                    i64 newline_index = newline_layout_consume_LF(&newline_vars, index);
-                    lr_tb_write_blank(&pos_vars, face, arena, &list, newline_index);
-                    lr_tb_next_line(&pos_vars);
-                } break;
-                
-                case max_u32:
-                {
-                    newline_layout_consume_default(&newline_vars);
-                    lr_tb_write_byte(&pos_vars, face, arena, &list, index, *ptr);
-                } break;
-            }
-            
-            ptr += consume.inc;
-        }
-        
-        if (newline_layout_consume_finish(&newline_vars))
-        {
-            i64 index = layout_index_from_ptr(ptr, text.str, range.first);
-            lr_tb_write_blank(&pos_vars, face, arena, &list, index);
-        }
-    }
-    else
-        lr_tb_write_blank(&pos_vars, face, arena, &list, range.first);
-    
-    layout_item_list_finish(&list, -pos_vars.line_to_text_shift);
-    return list;
 }
 
 //~ NOTE(long): F4 Clone Hooks

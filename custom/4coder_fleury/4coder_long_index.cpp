@@ -1512,7 +1512,7 @@ function void Long_Index_DrawPosContext(Long_Render_Context* ctx, F4_Language_Po
     ARGB_Color highlight_color = finalize_color(fleury_color_token_highlight, 0);
     
     f32 thickness = Long_Render_CursorThickness(ctx); // Do this before switching the face
-    Long_Render_InitCtxFace(ctx, global_small_code_face);
+    Long_Render_SetCtxFace(ctx, global_small_code_face);
     Vec2_f32 tooltip_pos;
     Rect_f32 screen;
     

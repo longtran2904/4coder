@@ -33,9 +33,10 @@ struct Long_Render_Context
 #define Long_Render_TooltipOffset(ctx, value) (def_get_config_f32_lit((ctx)->app, "tooltip_thickness") + \
                                                ((ctx)->metrics.value))
 
-function Long_Render_Context Long_Render_CreateCtx(Application_Links* app, Frame_Info frame, View_ID view);
-function void Long_Render_InitCtxLayout(Long_Render_Context* ctx, Text_Layout_ID layout, Token_Array array);
-function void Long_Render_InitCtxFace(Long_Render_Context* ctx, Face_ID face);
+function Long_Render_Context Long_Render_CreateCtx(Application_Links* app, Frame_Info frame, View_ID view, b32 global_face);
+function Text_Layout_ID Long_Render_InitCtxBuffer(Long_Render_Context* ctx, Buffer_ID buffer,
+                                                  Rect_f32 layout_rect, Buffer_Point point);
+function void Long_Render_SetCtxFace(Long_Render_Context* ctx, Face_ID face);
 
 //~ NOTE(long): Render Helper
 

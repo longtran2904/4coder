@@ -1,7 +1,7 @@
 
 //~ NOTE(long): Render Context
 
-function Long_Render_Context Long_Render_CreateCtx(Application_Links* app, Frame_Info frame, View_ID view)
+function Long_Render_Context Long_Render_CreateCtx(Application_Links* app, Frame_Info frame, View_ID view, b32 global_face)
 {
     Long_Render_Context ctx = {};
     ctx.app = app;
@@ -12,17 +12,23 @@ function Long_Render_Context Long_Render_CreateCtx(Application_Links* app, Frame
     ctx.rect = view_get_screen_rect(app, view);
     ctx.view = view;
     ctx.is_active_view = get_active_view(app, 0) == view;
+    
+    Long_Render_SetCtxFace(&ctx, get_face_id(app, !global_face * ctx.buffer));
     return ctx;
 }
 
-function void Long_Render_InitCtxLayout(Long_Render_Context* ctx, Text_Layout_ID layout, Token_Array array)
+function Text_Layout_ID Long_Render_InitCtxBuffer(Long_Render_Context* ctx, Buffer_ID buffer,
+                                                  Rect_f32 layout_rect, Buffer_Point point)
 {
-    ctx->layout = layout;
-    ctx->array = array;
-    ctx->visible_range = text_layout_get_visible_range(ctx->app, layout);
+    Application_Links* app = ctx->app;
+    ctx->buffer = buffer;
+    ctx->array = get_token_array_from_buffer(app, buffer);
+    ctx->layout = text_layout_create(app, buffer, layout_rect, point);
+    ctx->visible_range = text_layout_get_visible_range(app, ctx->layout);
+    return ctx->layout;
 }
 
-function void Long_Render_InitCtxFace(Long_Render_Context* ctx, Face_ID face)
+function void Long_Render_SetCtxFace(Long_Render_Context* ctx, Face_ID face)
 {
     ctx->face = face;
     ctx->metrics = get_face_metrics(ctx->app, face);
@@ -408,16 +414,12 @@ function void Long_Render_DrawPeek(Application_Links* app, Rect_f32 rect, Buffer
     
     Face_Metrics metrics = get_face_metrics(app, get_face_id(app, buffer));
     rect = rect_inner(rect, metrics.line_height); 
+    rect = Long_Rf32_Round(rect);
     
-    Text_Layout_ID layout = text_layout_create(app, buffer, Long_Rf32_Round(rect), { draw_line });
-    Token_Array array = get_token_array_from_buffer(app, buffer);
-    if (array.tokens)
-    {
-        Long_Render_Context ctx = {app};
-        ctx.buffer = buffer;
-        Long_Render_InitCtxLayout(&ctx, layout, array);
+    Long_Render_Context ctx = {app};
+    Text_Layout_ID layout = Long_Render_InitCtxBuffer(&ctx, buffer, rect, {draw_line});
+    if (ctx.array.tokens)
         Long_Syntax_Highlight(&ctx);
-    }
     else
         paint_text_color(app, layout, range, Long_ARGBFromID(defcolor_text_default));
     
@@ -844,10 +846,18 @@ function void Long_Render_FPS(Long_Render_Context* ctx)
 function void Long_Render_Buffer(Long_Render_Context* ctx)
 {
     Application_Links* app = ctx->app;
-    Text_Layout_ID layout = ctx->layout;
     Buffer_ID buffer = ctx->buffer;
     Rect_f32 rect = ctx->rect;
     View_ID view = ctx->view;
+    
+    Range_i64 visible_range = ctx->visible_range;
+    Text_Layout_ID layout = ctx->layout;
+    Token_Array array = ctx->array;
+    b32 has_token_array = !!array.tokens;
+    
+    Rect_f32 layout_rect = text_layout_region(app, layout);
+    Rect_f32 buffer_rect = view_get_buffer_region(app, view);
+    Rect_f32 screen_rect = view_get_screen_rect(app, view);
     
     ProfileScope(app, "[Long] Render Buffer");
     Scratch_Block scratch(app);
@@ -873,12 +883,6 @@ function void Long_Render_Buffer(Long_Render_Context* ctx)
             break;
         }
     }
-    
-    Token_Array array = get_token_array_from_buffer(app, buffer);
-    b32 has_token_array = !!array.tokens;
-    ctx->array = array;
-    Range_i64 visible_range = text_layout_get_visible_range(app, layout);
-    ctx->visible_range = visible_range;
     
     i64 cursor_pos = view_correct_cursor(app, view);
     view_correct_mark(app, view);
@@ -1028,8 +1032,6 @@ function void Long_Render_Buffer(Long_Render_Context* ctx)
     if (has_token_array)
     {
         ARGB_Color token_highlight = Long_ARGBFromID(fleury_color_token_highlight);
-        //f32 roundness = ctx->roundness;
-        //ctx->roundness = 4.f;
         
         // TODO(long): Rather than using tokens, this should works with normal text
         if (def_get_config_b32_lit("long_disable_token_occurrence")) 
@@ -1075,7 +1077,6 @@ function void Long_Render_Buffer(Long_Render_Context* ctx)
                 }
             }
         }
-        //ctx->roundness = roundness;
     }
     
     //- NOTE(long): Cursor Rendering
@@ -1104,8 +1105,8 @@ function void Long_Render_FileBar(Long_Render_Context* ctx)
     Application_Links* app = ctx->app;
     Buffer_ID buffer = ctx->buffer;
     View_ID view = ctx->view;
-    Face_ID face = /*ctx->face*/get_face_id(app, 0);
-    Face_Metrics metrics = /*ctx->metrics*/get_face_metrics(app, face);
+    Face_ID face = get_face_id(app, 0);
+    Face_Metrics metrics = get_face_metrics(app, face);
     
     ProfileScope(app, "[Long] File Bar");
     Scratch_Block scratch(app);
@@ -1345,13 +1346,14 @@ function void Long_Highlight_DrawErrors(Long_Render_Context* ctx, Buffer_ID jump
         }
         
         Range_f32 y = text_layout_line_on_screen(app, layout, code_line_number);
-        Rect_f32 region = text_layout_region(app, layout); // TODO(long): region should be view_rect
+        Rect_f32 region = text_layout_region(app, layout);
         
         // NOTE(long): Draw error annotations
         if (!overlapped)
         {
-            Rect_f32 end_rect = text_layout_character_on_screen(app, layout, get_line_end_pos(app, buffer, code_line_number)-1);
-            Face_ID face = global_small_code_face; // TODO(long): The caller should set the face
+            i64 end_pos = get_line_end_pos(app, buffer, code_line_number) - 1;
+            Rect_f32 end_rect = text_layout_character_on_screen(app, layout, end_pos);
+            Face_ID face = global_small_code_face;
             
 #if 0
             Vec2_f32 draw_position = V2f32(end_rect.x1 + 40.f, end_rect.y0);
@@ -1411,7 +1413,7 @@ function void Long_MC_DrawHighlights(Long_Render_Context* ctx)
             
             for_mc(node, mc_context.cursors)
                 Long_Render_HighlightBlock(ctx, Ii64(node->cursor_pos, node->mark_pos), .75f);
-            Long_Render_NotepadSymbol(ctx, cursor, mark, 0); // TODO(long)
+            Long_Render_HighlightBlock(ctx, Ii64(cursor, mark));
         }
     }
 }
@@ -1591,7 +1593,7 @@ function void Long_Highlight_Whitespace(Long_Render_Context* ctx)
     }
 }
 
-CUSTOM_COMMAND_SIG(long_toggle_show_whitespace)
+CUSTOM_COMMAND_SIG(long_toggle_show_whitespace_all_buffers)
 CUSTOM_DOC("Toggles whitespace visibility status for all buffers.")
 {
     def_toggle_config_b32_lit("long_global_show_whitespace");
@@ -1890,12 +1892,9 @@ function void Long_Syntax_Highlight(Long_Render_Context* ctx)
             F4_Index_Note* note = Long_Index_LookupBestNote(app, buffer, array, token);
             if (note)
             {
-                //Managed_ID fleury_type_color = (note->flags & F4_Index_NoteFlag_SumType) ?
-                //fleury_color_index_sum_type : fleury_color_index_product_type;
-                
                 switch (note->kind)
                 {
-                    case F4_Index_NoteKind_Type:     Long_SetColor(Types,     /*fleury_type_color*/fleury_color_index_product_type); break;
+                    case F4_Index_NoteKind_Type:     Long_SetColor(Types,     fleury_color_index_product_type); break;
                     case F4_Index_NoteKind_Macro:    Long_SetColor(Macros,    fleury_color_index_macro);    break;
                     case F4_Index_NoteKind_Function: Long_SetColor(Functions, fleury_color_index_function); break;
                     case F4_Index_NoteKind_Constant: Long_SetColor(Constants, fleury_color_index_constant); break;
@@ -2002,7 +2001,7 @@ function void Long_Syntax_Highlight(Long_Render_Context* ctx)
             
             if (suffix_pos)
             {
-                Range_i64 suffix_range = Ii64(token_range.min+suffix_pos, token_range.max);
+                Range_i64 suffix_range = Ii64(token->pos + suffix_pos, token_range.max);
                 token_range.max = suffix_range.min;
                 paint_text_color(app, layout, suffix_range, colors[1]);
             }

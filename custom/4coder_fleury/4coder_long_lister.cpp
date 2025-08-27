@@ -336,15 +336,12 @@ function void Long_Lister_Render(Application_Links* app, Frame_Info frame, View_
     if (!lister)
         return;
     
-    // TODO(long): Helper Function
-    Long_Render_Context ctx = Long_Render_CreateCtx(app, frame, view);
-    Long_Render_InitCtxFace(&ctx, get_face_id(app, 0));
-    
     b64 show_file_bar = 0;
     view_get_setting(app, view, ViewSetting_ShowFileBar, &show_file_bar);
     if (show_file_bar)
         show_file_bar = !def_get_config_b32_lit("hide_file_bar_in_ui");
     
+    Long_Render_Context ctx = Long_Render_CreateCtx(app, frame, view, 1);
     Long_Lister_RenderHUD(&ctx, lister, (b32)show_file_bar);
 }
 

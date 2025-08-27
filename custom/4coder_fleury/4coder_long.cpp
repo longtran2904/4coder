@@ -268,7 +268,6 @@
 // [ ] Rewrite and optimize the lookup function
 
 //- INDENTING
-// [X] Indent keywords after identifiers (`MyMacro() \n for (..)`)
 // [ ] Change `:` indenting for the ternary operator and label-in-the-midle `else LABEL: \n foo()`
 // [ ] Indentless comments/strings
 
@@ -276,56 +275,25 @@
 // [ ] Autocompletion using Pos-Context or casey/jack's system
 // [ ] String/Comment indenting as code
 // [ ] Render #if block with annotation
-// [X] Render alternative digit group for numeric's suffixes
 
 //- BUGS
 // [ ] Fix global function macro color for variable
 // [ ] {} and () in the argument list cause prototype functions and pos-context to be parsed incorectly
 // [ ] Parsing arary in the CPP parser
-// [X] Fix comments inside function's arguments
-// [ ] Fix pos-context bug incorrect rect after modifying string
 
 //~ TODO RENDER
 
-//- HUD
-// [X] FPS HUD
-// [X] Lister
-//     [X] HUD
-//     [X] Theme lister preview color
-//     [X] Buffer lister tooltip (code peeking)
-//     [X] Mouse tooltip for overflow lister's items
-//     [ ] Slider
-// [X] Tooltip
-//     [X] Fancy
-//     [X] Line Wrap
-// [X] Pos-Context
-//     [X] Redesign the title bar
-//     [X] Syntax Highlighting
-//     [X] Line wraping for overflown tooltip
-//     [ ] Reposition the overflowwn tooltip
-//     [ ] Add a blank virtual line at the tooltip position
-// [X] Code Peek
+//- Pos-Context
+// [ ] Anchor it at the start position
+// [ ] Display it above the current line when overflow or newline
+// [ ] Add blank virtual lines at the tooltip position so there's no overlapped
+// [ ] Handle line-wrapping when drawing at bottom
 
 //- CODE
-// [X] Long_Render_Context
-// [X] Long_Render_Buffer
-// [X] Long_Render_Filebar
-// [X] Long_Render
-// [X] Long_WholeScreenRender
-// [X] draw_set_clip
-// [X] Remove Cursor_Type
-// [X] Fleury Brace
-// [X] Change how annotations of braces on the same line are drawn
-// [X] F4_RenderRangeHighlight
-// [X] def_get_config_f32_lit
 // [ ] Compress jump highlight and error highlight into one
-
-//- Margin/Panel
-// [X] Long_Highlight_CursorMark
-// [X] Line Number/Offset Margin
-// [X] Highlight line at cursor
-// [X] Active margin color
 // [ ] Change the margin style
+// [ ] Slider
+// [X] Long_Render_Context helper
 
 //- Line Wrap/Overflow
 // [ ] Weird wrap postion
@@ -333,61 +301,12 @@
 // [ ] Overflow line width
 // [ ] Overlap with line number margin
 
-//- Font-dependent
-// [ ] Roundness/Thickness
-//     [X] Cursor
-//     [X] Token Underline
-//     [X] Cursor-Mark Range
-//     [X] Hex Highlight
-//     [X] Brace Line
-
-// [ ] Text Offset
-//     [X] File Bar
-//     [X] FPS HUD
-//     [X] Lister
-//     [X] Tooltip
-//     [X] Code Peek
-
-//- Params
-// [X] Roundness
-//     [X] Lister
-//     [X] Cursor
-//     [X] Highlight Block
-//     [X] Tooltip
-//     [X] Pos-Context
-
-// [X] Thickness
-//     [X] Cursor Width
-//     [X] Panel Margin
-//     [X] Tooltip Margin
-//     [X] Lister Margin Thickness
-//     [X] Lister Size (relative to screen size)
-
-// [ ] Pos Offset
-//     [ ] Mouse Tooltip
-//         [ ] First Offset
-//         [ ]  Next Offset
-//     [ ] Pos-Context
-//         [X] First Offset
-//         [X]  Next Offset
-//     [X] Brace Annotation
-
-// [ ] FPS Hud
-//     [ ] History Depth
-//     [ ] Position (Top-Left, Top-Right, Bot-Left, Bot-Right)
-
-//~ TODO TEXT UI
-// [X] Redesign filebar
-// [X] Fix the last slash is incorrect in the "Building with" message
-// [X] Append a blank line between other messages and the "Building with" message
-// [X] Highlight whitespace
-// [X] Highlight whitespace globally for all buffers
-// [ ] Face commands
-//     [ ] Use the new query bar system
-//     [ ] Up/Down to change the face size
-//     [ ] Cap the input size
-//     [ ] Change other related faces (global_small_code_face)
-//     [ ] Collapse down into two fonts: UI and Code
+//~ TODO Face Commands
+// [ ] Use the new query bar system
+// [ ] Up/Down to change the face size
+// [ ] Cap the input size
+// [ ] Change other related faces (global_small_code_face)
+// [ ] Collapse down into two fonts: UI and Code
 
 //~ TODO MULTI CURSOR
 // [ ] Across buffers
@@ -400,34 +319,14 @@
 //     [X] Lister commands
 //     [ ] Others
 
-//~ TODO POINT STACK
-// [X] Virtual stream model
-// [X] Init stack with the first buffer's line
-// [X] Jump to previous buffer after killing the current buffer
-
 //~ TODO BUGS
 // [ ] Fix undo/redo_all_buffers right after saving bug
 // [ ] undo/redo in MC mode
 // [ ] The current saved history gets overwritten by merging with the next modification
-// [X] Ctrl+Alt+Shift Up/Down quickly is treated as Alt+Shift Up/Down
-// [X] Off-by-one error in long_mc_begin_multi_block
-// [X] Upper/lower case in mc mode and stop dirtying buffers
-// [X] Opening new file pushes a new jump point
-// [X] Fix move up/down token occurence
 // [ ] Move to the next/prev divider comment's line rather than position
-// [X] Fix query replace right next to string bug
-// [X] Actually uses long_show_line_number_offset
-// [X] Lister query tags bug
-// [X] Optimize redundant Long_Lister_GetFilter calls
-// [X] Optimize redundant draw_rectangle calls in Long_Render_DividerComments
-// [X] Fix invalid brace annotation position when the close brace isn't visible
-// [X] Fix toggle config b32 bug
-// [X] Fix overlapped braces rendering
-// [X] Ctrl+Delete while searching doesn't update the highlight range
-// [X] Fix error location bug
-// [X] Fix error highlighting overlapping bug
-// [X] Fix toggle comment crlf bug
 // [ ] The cursor doesn't get snapped into view when overlaps with the file bar
+// [ ] Fix incorrect pos-context rect after modifying string
+// [X] Fix suffix color for alt digit groups
 
 //~ @CONSIDER LISTER
 
@@ -444,6 +343,10 @@
 // [ ] Improve relative path display in the file lister
 // [ ] Render multi-column grid like byp_qol
 // [ ] Exit lister with sub lister for dirty buffers
+
+//~ @CONSIDER FPS HUD
+// [ ] History Depth
+// [ ] Position (Top-Left, Top-Right, Bot-Left, Bot-Right)
 
 //~ @CONSIDER NEW SYSTEM
 // [ ] LOC counter
@@ -722,7 +625,6 @@ void custom_layer_init(Application_Links* app)
     set_custom_hook(app, HookID_EndBuffer,               Long_EndBuffer);
     set_custom_hook(app, HookID_SaveFile,                Long_SaveFile);
     set_custom_hook(app, HookID_BufferEditRange,         Long_BufferEditRange);
-    set_custom_hook(app, HookID_Layout,                  Long_Layout);
     set_custom_hook(app, HookID_DeltaRule,               Long_DeltaRule);
     set_custom_hook_memory_size(app, HookID_DeltaRule,   delta_ctx_size(sizeof(Vec2_f32)));
     

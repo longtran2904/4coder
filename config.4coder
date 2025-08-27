@@ -105,6 +105,6 @@ default_flags_sh  = "-g";
 // f4_disable_cursor_token_occurance = true;
 
 // long_disable_token_occurrence = true;
-long_code_peek_height = 1;
+long_code_peek_height = 25;
 long_margin_size = 3;
 long_global_show_whitespace = false;
