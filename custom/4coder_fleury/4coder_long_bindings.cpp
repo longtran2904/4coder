@@ -273,9 +273,9 @@ function void Long_Binding_SetupDefault(Mapping* mapping)
         Bind(long_select_surrounding_scope,         KeyCode_LeftBracket,  KeyCode_Alt,     KeyCode_Shift);
         
         //- Auto Completion
-        Bind(long_autocomplete,                   KeyCode_Tab);
-        Bind(long_indent_range,                   KeyCode_Tab, KeyCode_Control);
-        Bind(long_toggle_comment_selection, KeyCode_Semicolon, KeyCode_Control);
+        Bind(long_autocomplete,                     KeyCode_Tab);
+        Bind(long_indent_range,                     KeyCode_Tab, KeyCode_Control);
+        Bind(long_toggle_comment_selection,   KeyCode_Semicolon, KeyCode_Control);
         
         //- Matching Files
         Bind(open_matching_file_cpp,                KeyCode_W, KeyCode_Alt);

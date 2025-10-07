@@ -15,54 +15,81 @@
 
 //- @long_render_intro
 
+// @panel_render (Long_Render)
 // - File Bars: Uses the global font and includes Ryan's "progress bar" idea
 //   Displays file metadata (name, id, EOL mode, etc) at the start and cursor position at the end
-
+//
 // - Line Margin: Displays either absolute line numbers or relative offsets from the current line
 //   Toggle visibility or switch mode with toggle_line_numbers and long_toggle_line_offset
+//
+// - Cursor-Mark Highlight:
 
+// @buffer_render (Long_Render_Buffer)
 // - Error Annotations: Inspired by qol_draw_compile_errors and F4_RenderErrorAnnotations
 //   Highlights lines with errors in red and displays the message at the end of the line
 //   Can also show config, binding, and project errors
-
+//
 // - Hex Colors: Highlight any 8-digit with a color interpreted from its value
 //   Very helpful when changing the theme colors (open any theme file and see)
-
+//
 // - Digit Grouping: Colors every 2 (bin), 3 (decimal), or 4 (hex) digits alternately
 //   Applies to numeric prefixes and postfixes as well
-
+//
 // - Highlight: There are currently 3 separate highlight systems:
 //   - List: for highlighting a runtime list of ranges (push via Long_Highlight_Push)
 //   - Range: for highlighting between the cursor and mark (notepad-style, isearch, query, etc.)
 //   - Multi-Cursor: for highlighting all entries in the cursor list
 // => I should probably merge these 3 into one system
-
+//
 // - Whitespace Highlight: Render whitespaces as grey circles
 //   Could be done via draw_rectangle with roundness, but small circles look bad in 4coder
 //   Instead, a font-dependent dot character is drawn at the correct size to fake the circle
 //   Toggle per-view with toggle_show_whitespace, or globally with long_toggle_whitespace_all
-
+//
 // - Brace Rendering: Consits of 3 subsystems, inspired by 4coder_fleury_brace:
 //   - Lines: thin vertical lines connecting the cursor’s surrounding open and close braces
 //   - Annotation: small text after a close brace showing the code before the matching open brace
 //   - Highlight: colors each surrounding brace pair differently
 // - Paren Rendering: Only has paren highlighting out of the three brace features
-
+//
 // - Divider Comments: A smarter version of F4_RenderDividerComments
 //   Renders the dividing line only up to the visible screen edge
-
+//
 // - Token Occurrence Highlight: Similar to Ryan's Cursor Identifier Highlight
 //   A modified version of F4_RenderRangeHighlight, inlined directly into Long_Render_Buffer
-
-// - Cursor Rendering: Supports two cursor styles:
-//   - Original: The mark is visible and must be moved manually
-//   - Notepad-like: The mark is hidden and stops snapping to the cursor when holding Shift
+//
+// - Cursor Rendering: Supports two cursor styles:  and 
+//   - Original (Long_Render_EmacsCursor): The mark is visible and must be moved manually
+//   - Notepad-like (Long_Render_NotepadCursor): Mark hidden; no snapping while holding Shift
 //   Both styles smoothly interpolate the cursor/mark and include a glow effect
-//   In Original mode, a thin vertical line is drawn between the cursor and mark
 
-//- @long_hud_intro
+// @screen_render (Long_WholeScreenRender)
+// - Code Peek: Searches for the symbol under the cursor and displays its declaration
+//   Rendered with full syntax highlighting at the bottom of the other half of the screen
+//
+// - Position-Context: Renders a helper tooltip showing extra info about the current symbol
+//   For example, if the symbol is a function, the tooltip shows all of its arguments
+//   Entries are pushed via F4_Language_PosContext_PushData (originally Ryan's idea)
+//   Multiple configurable options => see @long_index_intro for details
+//
+// - Lister: An improved version of the default lister_render using the new lister system
+//   - Each item can include a header, tooltip, and optional preview
+//     (e.g. code peek for the index lister, docs for the command lister)
+//   - Only renders visible items while displaying the total count and current index
+//   - Occupies a portion of the current panel rather than filling it
+//
+// - FPS: Displays stats (FPS, frame time, frame index, etc) in the top-right corner
+//   Tracks the last 10 frames (configurable with fps_history_depth)
+//
+// - Tooltip: Renders a global list of runtime tooltips
+//   Each is defined by a range and color, added via Long_Render_PushTooltip
 
-//- @f4_optional_files Calculator/Ploting/Recent-Files
+//- @f4_optional_intro
+
+// Optional Fleury systems that I found useful:
+// - 4coder_fleury_calc
+// - 4coder_fleury_plot
+// - 4coder_fleury_recent_files
 
 //- @long_hot_reload
 
@@ -72,7 +99,15 @@
 // - Bindings
 // - Project
 
-//- @long_auto_indent
+//- @long_auto_indent (4coder_code_index.cpp)
+
+// LONG_INDEX_INDENT_STATEMENT: #define generic_parse_statement as Long_Index_ParseGenericStatement
+// - Indents control-flow statements that can take a single statement (e.g. if, else, for)
+// - Properly indents C# [Attributes]
+// - Properly indents Metadesk statements
+
+// LONG_INDEX_INDENT_PAREN: By default, 4coder stops indenting inside parentheses
+// Set this macro to true to enable it (see 4coder_code_index_test.cpp for examples)
 
 //- @long_point_stack_intro
 
@@ -97,7 +132,7 @@
 
 //- @long_search_intro
 
-// All new search, query, and list commands use an improved query system that supports basic actions
+// All new search, query, and list commands use an improved system that supports basic actions
 // such as copy-paste, clear all, center view, and integrates better with the multi-cursor system
 
 // Notable Functions:
@@ -107,76 +142,60 @@
 //   - Can limit the search to the current buffer
 //   - Remembers the buffer/position before the search, allowing a jump back when aborted
 //   - Uses the new Multi-Select system (see @long_multi_select_intro for more info)
+// - long_replace_in_range: Same as replace_in_range, but integrates better with multi-cursor
+//   Highlights all matches in the range and shows a brief error fade if no match is found
 
 //- @long_multi_select_intro
 
-// Long_SearchBuffer_MultiSelect is a makeshift function for implementing a multi-cursor-like system.
-// It works by rendering the jump buffer with a custom render function (Long_Highlight_DrawList) that
-// will draw a notepad-like cursor at each sticky jump location and have a custom navigation code to
-// move the highlighted range around.
+// I previously had a makeshift function to handle basic navigation and typing
+// Later, I switched to BYP's excellent 4coder_multi_cursor plugin (see the file for more info)
 
-// Up/Down will move to the prev/next location and hold down shift while doing so to select multiple locations
-// Left/Right to change the current selection size, and move all the cursors around
-// Esc will undo all the changes and jump back to the old position, while Enter will commit all the edits
-// Shift+Esc still keeps the current position and exits back to the normal jump highlighting code
-
-// This is a quick and dirty way for stuff to work, so one of the main weaknesses is that you can't run any
-// custom commands, which means you can't use basic navigation like move_up/down, copy/cut/paste, mark
-// highlighting, etc. Each cursor can't be moved in arbitrary ways or has its own mark, and any new commands
-// you want must be implemented in the Long_SearchBuffer_MultiSelect function.
-
-// A better way to implement this is to parse the *keyboard* buffer like the macro system and store each cursor
-// and mark position in a marker array. If you don't need cursors to be in multiple buffers, and ok with a
-// notepad-like design for each cursor (meaning you can't have arbitrary mark position), then this's probably
-// the best way to do it.
+// Notable commands:
+// - Long_MC_DrawHighlights: Renders all cursors
+// - Long_MC_ListAllLocations: Searches for a query and adds a new cursor for each match
+// - long_mc_begin_multi_block: Like MC_begin_multi_block, but ignores comments and blank lines
+// - long_mc_up/down_trail: Like MC_up/down_trail, but usuable by the main cursor in MC mode
 
 //- @long_index_intro
 
-// This is my biggest customization layer yet. It contains multiple helper functions for writing a parser,
-// and using/lookup the generated index note. Originally, It started as an extended version for the fleury's
-// index system. But after adding and writing most the code by hand, it has grown bigger and more complete
-// than the fleury's one. I also have modified multiple fleury's files, so it's probably better to just
-// completely rewrite and make it a simple drop-in file. For now, a short list of all the noteworthy features:
-
-// - The Lookup Function
-//   Long_Index_LookupBestNote is the most important function in this layer. This function will parse a series
-//   of "selective path" and lookup the best-matched note. It has a proper handling for name collision and
-//   local/nested notes. It'll search the declaration type, return type, the inheritance tree, or the imported
-//   namespaces for a match. It also understands that 'this' means search in the base type, 'new' means searching
-//   for constructor, and `new Type {...}` means object initializer in C# (hasn't implementd for in C/C++ yet).
-//   All the index commands and render functions use this, including but not limited to: Long_Index_IndentBuffer,
-//   Long_GoToDefinition, Long_SearchDefinition, Long_Scan_Note, Long_Index_DrawPosContext, and F4_GetColor.
-
-// - The C# Parser
-//   This is a mostly complete parser. It can parse (using) namespaces; classes, structs, enums, and tuples;
-//   functions and function-like features like constructors, lambdas, getters/setters, and operators;
-//   local/global declarations, type's fields, and function's arguments; generic type arguments and inheritance.
-//   You can take a look at it in 4coder_long_lang_cs.cpp and 4coder_cs_lexer_test.cs for more details.
-
-// - The Indent Function
-//   Long_Index_IndentBuffer uses Code_Index_Nest just like the virtual whitespace system, so now anytime you
-//   change the way the parser works, both of these will be updated correctly.
-//   All the new indenting commands are just the same as their counterpart but use this new indenting system.
-
+// This is my largest customization layer so far, with helpers for writing a parser
+// Originally started as an extended Fleury index system, but now larger and more complete
+// Several Fleury files were modified, so it’s better rewritten as a simple drop-in file
+// Here's a short list of noteworthy features follows:
+//
+// - Long_Index_LookupBestNote: The lookup function is the most important function in this layer
+//   This function will parse a series of "selective path" and lookup the best-matched note
+//   It resolves name collisions and can search the inheritance tree or imported namespaces
+//   It understands that 'this' means search the base type, while 'new' is for constructors, etc
+//   All the index commands and render functions use this, including but not limited to:
+//   Long_Index_IndentBuffer, Long_GoToDefinition, Long_Index_DrawPosContext, and Long_Syntax_Highlight
+//
+// - The C# Parser: A complete and powerful parser that can handle:
+//   - using directives and types, including classes, structs, enums, and tuples
+//   - functions, constructors, lambdas, getters/setters, and operators
+//   - declarations, type fields, function arguments, generic arguments, and inheritance
+//   See 4coder_long_lang_cs.cpp and 4coder_cs_lexer_test.cs for examples and details
+//
+// - Long_Index_IndentBuffer: Uses Code_Index_Nest like the virtual whitespace system
+//   Anytime the parser changes, both are updated correctly
+//   All new indenting commands mirror their originals but use this new indenting system
+//
 // - The Render System
-//
-// 1. Long_Index_DrawPosContext
-//   Unlike F4_PosContext_Render, it will draw a function's return type, the variable's declaration type, and a type's
-//   keyword (class, struct, enum, etc). When displaying a type, it will split all the type's members into 3
-//   categories: TYPES, FUNCS, and DECLS, and display the number of entries for each one. You can cycle
-//   between each category by calling the command long_switch_pos_context_option. Calling long_toggle_pos_context
-//   for toggling the commands, and long_switch_pos_context_draw_position for changing the tooltip position.
-//
-// 2. Long_Index_DrawCodePeek
-//   This is the same as F4_CodePeek_Render, but uses F4_Index_Note rather than Code_Index_Note and
-//   calls Long_Index_LookupBestNote. It will prioritize def notes over prototype ones.
+// 1. Long_Index_DrawPosContext: Similar to F4_PosContext_Render, but:
+//   - Shows a declaration's base type (return type for functions, class/struct/etc. for types)
+//   - For types (C# only, for now), splits into 3 categories: TYPES, FUNCS, and DECLS
+//     - Cycles between categories with long_switch_pos_context_option
+//     - Toggles on/off with long_toggle_pos_context
+//     - Switches the tooltip's position with long_switch_pos_context_draw_position
+// 2. Long_Index_DrawCodePeek: Similar to F4_CodePeek_Render, but:
+//   - Uses F4_Index_Note rather than Code_Index_Note
+//   - Calls Long_Index_LookupBestNote, which prioritizes definition notes over prototypes
 
-// - FINAL NOTE -
-// When I first wrote this system, I had some experience parsing and modifying AST nodes. After reading
-// how Ryan did his parser and indexer, I've learned a lot of new and useful techniques. Since then,
-// I've been experimenting with my other projects (including this C# parser). If I have the time and
-// energy in the future, I'll write a more detailed comment about the way this C# parser works and how
-// I think about parsing now.
+// - @FINAL_NOTE -
+// When I first wrote this system, I had some experience parsing and modifying AST nodes
+// After studying how Ryan built his parser and indexer, I learned many new and useful techniques
+// Since then, I've experimented with other projects, including this C# parser
+// In the future, if I have time and energy, I'll write a more detailed comment on my experience
 
 //- @long_lister_intro
 
@@ -211,13 +230,13 @@
 
 // Move commands:
 // - long_move_up/down_token_occurrence: copies Jack’s F4_Boundary_CursorToken
-// - long_move_next/prev_alpha_numeric_or_camel_boundary: like the defaults, but better case handling
+// - long_move_next/prev_alpha_numeric_or_camel: like the defaults, but better case handling
 // - long_move_next/prev_word: similar to the default commands, but better with comments/strings
 // - long_move_to_next/prev_function_and_type: uses F4_Index to scan for named functions/types
 // - long_move_to_next/prev_divider_comment: simplified version of _F4_Boundary_DividerComment
 
 // Scope commands:
-// - long_select_prev/next_scope_current_level: If a scope is selected, jump to its prev/next sibling
+// - long_select_prev/next_scope_current_level: If a scope is selected, jump to its sibling
 //   Otherwise, select the first scope before the cursor
 // - long_select_upper_scope: selects the parent/surrounding scope
 //   (same as select_surrounding_scope, renamed for consistency)
@@ -227,19 +246,31 @@
 
 //- @long_commands
 
-// - Long_Buffer_Kill: When you kill a buffer in the original command, 4coder will switch to the most recent buffer.
-//   It's not that bad because killing a buffer isn't common. But what's common is killing the *search* buffer, and
-//   it's very annoying when after a quick search the buffer that you get back isn't the one before the search.
-//   This function will first check if the buffer you want to kill is the *search* buffer, then jump back to the
-//   correct position afterward.
-//   This is used by long_interactive_kill_buffer, long_kill_buffer, and long_kill_search_buffer.
-
-// - long_select_current_line: This will move the cursor to the end of the current line and the mark to the
-//   first non-whitespace character on the current line or the end of the previous line if it's already there.
-
-// - long_load_project: I modified this command to work with the new reference library concept.
-//   Each project file can now contain an array of reference paths (set inside the reference_paths variable)
-//   When this command runs, it will recursively load all files in those paths as read-only and unimportant
+// - Long_Buffer_Kill: Fixes 4coder's default buffer-kill behavior
+//   Normally, killing a buffer switches to the most recent buffer
+//   This is annoying when killing the search buffer, as you return to the wrong place
+//   This function checks if the buffer being killed is the search buffer
+//   If so, it jumps back to the correct position afterward
+//   Used by long_interactive_kill_buffer, long_kill_buffer, and long_kill_search_buffer
+//
+// - long_load_project: Modified to work with the new reference library concept
+//   Each project file can contain an array of reference paths in reference_paths
+//   This command recursively loads all files in those paths as read-only and unimportant
+//
+// - long_macro_toggle_recording: Toggles macro recording
+//   Much better than 2 different commands for starting and stopping recording
+//
+// - long_toggle_compilation_expand: Similar to f4_toggle_compilation_expand but centers the view
+//   The expanded height is relative to the font's line height
+// - long_toggle_panel_expand: Toggles the current panel's proportion between 0.625 and 0.5
+// - long_toggle_panel_expand_big: Same as above, but between 0.75 and 0.625
+//
+// - long_paste_and_replace_range: This is my favorite command
+//   Combines deleting the selected range and pasting into a single operation
+//
+// - long_toggle_comment_selection: Performs VS-style (un)commenting on the selected range
+//   Comments each line with single-line comments, ignoring blank lines
+//   Uses block comments if the selection doesn’t start/end at the first/last non-whitespace
 
 
 //~ TODO INDEX
@@ -371,7 +402,7 @@
 #define LONG_INDEX_INDENT_STATEMENT 1
 #define LONG_INDEX_INLINE 1
 #define LONG_INDEX_INSERT_QUEUE 1
-#define LONG_INDEX_INDENT_PAREN 1
+#define LONG_INDEX_INDENT_PAREN 0
 
 #define LONG_LISTER_OVERLOAD 1
 
