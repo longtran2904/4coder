@@ -467,11 +467,14 @@ internal F4_LANGUAGE_INDEXFILE(Long_CS_IndexFile)
         else if (Long_CS_ParseDecl(ctx, &base, &name, &use_modifier))
         {
             DECLARATION:
-            Long_Index_MakeNote(ctx, base, name, F4_Index_NoteKind_Decl);
             if (use_modifier)
-                Long_Index_PopParent(ctx);
+                if (Long_Parse_Comp(ctx, scope_range.max > ctx->active_parent->scope_range.min) &&
+                    ctx->active_parent->kind == F4_Index_NoteKind_Decl)
+                    Long_Index_PopParent(ctx);
+            Long_Index_MakeNote(ctx, base, name, F4_Index_NoteKind_Decl, !use_modifier);
             
-            else if (!Long_CS_PeekSubKind(ctx, TokenCsKind_FatArrow, 0) && !Long_CS_PeekKind(ctx, TokenBaseKind_ScopeOpen, 0))
+            if (!use_modifier &&!Long_CS_PeekSubKind(ctx, TokenCsKind_FatArrow, 0) &&
+                !Long_CS_PeekKind(ctx, TokenBaseKind_ScopeOpen, 0))
             {
                 Long_Index_IterBlock(ctx)
                     Long_Index_ScopeBlock(ctx)

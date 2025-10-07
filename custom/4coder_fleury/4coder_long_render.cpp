@@ -651,6 +651,7 @@ function Rect_f32 Long_Render_LineNumber(Long_Render_Context* ctx)
     FColor line_color = fcolor_id(defcolor_line_numbers_text, 0);
     FColor curr_color = fcolor_id(defcolor_line_numbers_text, 1);
     b32 draw_line_offset = def_get_config_b32_lit("long_show_line_number_offset");
+    i64 current_line = get_line_number_from_pos(app, buffer, view_get_cursor_pos(app, view));
     
     ProfileScope(app, "[Long] Render Line Number Margin");
     Rect_f32 layout_rect, margin;
@@ -663,6 +664,9 @@ function Rect_f32 Long_Render_LineNumber(Long_Render_Context* ctx)
             visible_line_count = clamp_top(visible_line_count, line_count-1);
             digit_count = digit_count_from_integer(visible_line_count, 10);
             digit_count++; // For the +/- unary prefix
+            
+            u64 current_count = digit_count_from_integer(current_line, 10);
+            digit_count = Max(digit_count, current_count);
         }
         else
             digit_count = digit_count_from_integer(line_count, 10);
@@ -683,17 +687,18 @@ function Rect_f32 Long_Render_LineNumber(Long_Render_Context* ctx)
     Range_i64 line_range = get_line_range_from_pos_range(app, buffer, visible_range);
     line_range.max++;
     
-    i64 current_line = get_line_number_from_pos(app, buffer, view_get_cursor_pos(app, view));
     for (i64 line_number = line_range.min; line_number < line_range.max; ++line_number)
     {
         Scratch_Block scratch(app);
         b32 is_current = line_number == current_line;
         
         Fancy_String fstring = {};
-        if (!draw_line_offset)
+        if (!draw_line_offset || is_current)
             fstring.value = push_stringf(scratch,  " %*lld", digit_count, line_number);
+#if 0
         else if (is_current)
-            fstring.value = push_stringf(scratch,  " %*lld", digit_count, 0);
+            fstring.value = push_stringf(scratch,  " %*lld", digit_count, line_number);
+#endif
         else
             fstring.value = push_stringf(scratch, " %+*lld", digit_count, line_number - current_line);
         
@@ -1139,6 +1144,7 @@ function void Long_Render_FileBar(Long_Render_Context* ctx)
     Vec2_f32 start_pos = bar.p0 + padding;
     Vec2_f32 end_pos = V2f32(bar.x1 - padding.x, bar.y0 + padding.y);
     String8 pos_str = push_stringf(scratch, "P%lld", cursor.pos);
+    // TODO(long): Show column numbers based on characters, not bytes
     String8 end_str = push_stringf(scratch, "L%lld:C%-4lld %6s", cursor.line, cursor.col, pos_str.str);
     end_pos.x -= get_string_advance(app, face, end_str);
     
@@ -1593,7 +1599,7 @@ function void Long_Highlight_Whitespace(Long_Render_Context* ctx)
     }
 }
 
-CUSTOM_COMMAND_SIG(long_toggle_show_whitespace_all_buffers)
+CUSTOM_COMMAND_SIG(long_toggle_whitespace_all)
 CUSTOM_DOC("Toggles whitespace visibility status for all buffers.")
 {
     def_toggle_config_b32_lit("long_global_show_whitespace");
@@ -1678,7 +1684,7 @@ function void Long_Render_BraceAnnotation(Long_Render_Context* ctx, i64 pos, Col
                     break;
                 
                 b32 is_atom = (token->kind == TokenBaseKind_LiteralInteger || token->kind == TokenBaseKind_LiteralFloat ||
-                               token->kind == TokenBaseKind_LiteralString  || token->kind == TokenBaseKind_Identifier);
+                                   token->kind == TokenBaseKind_LiteralString  || token->kind == TokenBaseKind_Identifier);
                 if (is_atom || token->kind == TokenBaseKind_Keyword        || token->kind == TokenBaseKind_Comment)
                 {
                     if (start_token)

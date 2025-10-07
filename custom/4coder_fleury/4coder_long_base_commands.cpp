@@ -3467,14 +3467,14 @@ CUSTOM_DOC("Seek left for the prev token.")
     Long_Scan_Move(app, Scan_Backward, Long_Boundary_TokenAndWhitespace);
 }
 
-CUSTOM_COMMAND_SIG(long_backspace_token_boundary)
+CUSTOM_COMMAND_SIG(long_backspace_token)
 CUSTOM_DOC("Deletes left to a token boundary.")
 {
     Scratch_Block scratch(app);
     Long_Scan_Delete(app, Scan_Backward, Long_Boundary_TokenAndWhitespace);
 }
 
-CUSTOM_COMMAND_SIG(long_delete_token_boundary)
+CUSTOM_COMMAND_SIG(long_delete_token)
 CUSTOM_DOC("Deletes right to a token boundary.")
 {
     Scratch_Block scratch(app);
@@ -3514,26 +3514,26 @@ function i64 Long_Boundary_AlphaNumericCamel(Application_Links* app, Buffer_ID b
     return result;
 }
 
-CUSTOM_COMMAND_SIG(long_move_next_alpha_numeric_or_camel_boundary)
+CUSTOM_COMMAND_SIG(long_move_next_alpha_numeric_or_camel)
 CUSTOM_DOC("Seek right for boundary between alphanumeric characters or camel case word and non-alphanumeric characters.")
 {
     Long_Scan_Move(app, Scan_Forward, Long_Boundary_AlphaNumericCamel);
 }
 
-CUSTOM_COMMAND_SIG(long_move_prev_alpha_numeric_or_camel_boundary)
+CUSTOM_COMMAND_SIG(long_move_prev_alpha_numeric_or_camel)
 CUSTOM_DOC("Seek left for boundary between alphanumeric characters or camel case word and non-alphanumeric characters.")
 {
     Long_Scan_Move(app, Scan_Backward, Long_Boundary_AlphaNumericCamel);
 }
 
-CUSTOM_COMMAND_SIG(long_backspace_alpha_numeric_or_camel_boundary)
+CUSTOM_COMMAND_SIG(long_backspace_alpha_numeric_or_camel)
 CUSTOM_DOC("Deletes left to a alphanumeric or camel boundary.")
 {
     Scratch_Block scratch(app);
     Long_Scan_Delete(app, Scan_Backward, Long_Boundary_AlphaNumericCamel);
 }
 
-CUSTOM_COMMAND_SIG(long_delete_alpha_numeric_or_camel_boundary)
+CUSTOM_COMMAND_SIG(long_delete_alpha_numeric_or_camel)
 CUSTOM_DOC("Deletes right to an alphanumeric or camel boundary.")
 {
     Scratch_Block scratch(app);

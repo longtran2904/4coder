@@ -885,29 +885,40 @@ function F4_Index_Note* Long_Index_LookupNoteFromList(Application_Links* app, St
         if (note)
         {
             F4_Index_Note* child = note;
-            
-            for (String8Node* name = names.first->next; name; name = name->next)
+            for (String8Node* name = names.first->next; name && child; name = name->next)
             {
                 // NOTE(long): The reason we need a filter_note is to make sure cases like this never crash:
                 // TestA.anything TestA;
                 // Or
                 // TestA.stuff1 TestB;
                 // TestB.stuff2 TestA;
-                // Or so on for TestC, TestD, etc
+                // (so on and so forth for TestC, TestD, etc)
                 
                 F4_Index_Note* parent = child;
                 child = Long_Index_LookupChild(name->string, parent);
                 
+                F4_Index_Note* ref = 0;
+                if (parent != filter_note)
+                {
+                    if (!filter_note)
+                        filter_note = parent;
+                    ref = Long_Index_LookupRef(app, parent, filter_note);
+                }
+                
                 while (!child && parent && parent != filter_note)
                 {
-                    if (!filter_note) filter_note = parent;
                     parent = Long_Index_LookupRef(app, parent, filter_note);
+                    
+                    // A B;
+                    // B A;
+                    // B C;
+                    // C.stuff; -> Infinite Recursion
+                    if (parent == ref)
+                        parent = 0;
+                    
                     if (parent)
                         child = Long_Index_LookupChild(name->string, parent);
                 }
-                
-                if (!child)
-                    break;
             }
             
             note = child;

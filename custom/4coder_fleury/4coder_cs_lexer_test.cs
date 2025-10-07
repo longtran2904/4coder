@@ -32,6 +32,7 @@
 // 1078 fix generic parsing
 // 1083 fix namespace handling
 // 1091 parse generic arguments in constructors and operators
+// 1099 fix recursive reference and out arguments inside assignment
 using UnityEngine;
 
 namespace UnityEngine { class MyEngine; }
@@ -49,7 +50,9 @@ namespace MyNamespace
     {
         namespace NamespaceInClass // NOTE(long): Classes can't have namespaces
         {
-            Test.Function(Test.Function2(VeryLongFunction(GenericFunc(Test.Stuff.a), test_global_1, {}, [], ()), 3.f), (float)test_global_2);
+            Test decl = MyFunc(int a1, out int a2);
+            Test.Function(Test.Function2(VeryLongFunction(GenericFunc(Test.Stuff.a), test_global_1, a2,
+                                                          {}, [], ()), 3.f), (float)test_global_2);
         }
     }
     namespace OtherNamespace { }
@@ -63,6 +66,11 @@ int test_global_1, test_global_2;
 {
     TestA.stuff1 TestB;
     TestB.stuff2 TestA;
+    
+    Test1 Test2;
+    Test2 Test1;
+    Test2 Test3;
+    Test3.Foo;
     
     int a;
     Test t = new Test

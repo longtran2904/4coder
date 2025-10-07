@@ -1,3 +1,7 @@
+[NULL] { {  }
+[{] B { <{> declaration [local] }
+[{] A { <{> declaration [local] }
+[{] C { <{> declaration [local] }
 [NULL] { { [namespace] }
 [UnityEngine] MyEngine { <UnityEngine> type }
 [NULL] myEngine { declaration [global] }
@@ -5,6 +9,10 @@
 [NULL] { { [namespace] }
 [MyNamespace] A { <MyNamespace> type }
 [A] { { <A>  }
+[{] definitionType { <{> declaration [local] }
+[{] arrayCount { <{> declaration [local] }
+[{] pointerCount { <{> declaration [local] }
+[{] elementType { <{> declaration [local] }
 [{] { { <{>  }
 [NULL] { { [namespace] }
 [NULL] test_global_1 { declaration [global] }
@@ -1091,4 +1099,4 @@
 [DecreaseTrailWidth] startWidth { <DecreaseTrailWidth> declaration [local] }
 [DecreaseTrailWidth] startTime { <DecreaseTrailWidth> declaration [local] }
 [DecreaseTrailWidth] { { <DecreaseTrailWidth>  }
-Note count: 1091
+Note count: 1099

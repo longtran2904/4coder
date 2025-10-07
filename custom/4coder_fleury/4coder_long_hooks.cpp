@@ -427,12 +427,13 @@ function void Long_WholeScreenRender(Application_Links* app, Frame_Info frame)
     }
     
     // NOTE(long): Tooltip Rendering
-    Long_Render_SetCtxFace(ctx, global_small_code_face);
+    //Long_Render_SetCtxFace(ctx, global_small_code_face);
     {
         // @CONSTANT
         Vec2_f32 mouse_offset = V2f32(16, 16);
         f32 height_offset = 0;
         
+        ctx->rect = region;
         Vec2_f32 tooltip_pos = ctx->mouse + mouse_offset;
         for (Fancy_Line* line = long_fancy_tooltips.first; line; line = line->next)
         {

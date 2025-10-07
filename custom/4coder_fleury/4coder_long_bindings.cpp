@@ -45,81 +45,81 @@ function void Long_Binding_SetupDefault(Mapping* mapping)
     SelectMap(global_id);
     {
         //- Meta
-        Bind(long_change_active_panel,       KeyCode_Comma,  KeyCode_Control);
-        Bind(long_change_passive_panel,      KeyCode_Period, KeyCode_Control);
-        Bind(change_active_panel_backwards,  KeyCode_Comma,  KeyCode_Control, KeyCode_Shift);
-        Bind(project_go_to_root_directory,   KeyCode_H,      KeyCode_Alt);
-        Bind(toggle_virtual_whitespace,      KeyCode_Equal,  KeyCode_Control);
-        Bind(theme_lister,                   KeyCode_H,      KeyCode_Control, KeyCode_Shift);
-        Bind(MC_end_multi,                   KeyCode_Escape);
+        Bind(long_change_active_panel,             KeyCode_Comma, KeyCode_Control);
+        Bind(long_change_passive_panel,           KeyCode_Period, KeyCode_Control);
+        Bind(change_active_panel_backwards,        KeyCode_Comma, KeyCode_Control, KeyCode_Shift);
+        Bind(project_go_to_root_directory,             KeyCode_H, KeyCode_Alt);
+        Bind(theme_lister,                             KeyCode_H, KeyCode_Control, KeyCode_Shift);
+        Bind(MC_end_multi,                        KeyCode_Escape);
         
         //- Macro
-        Bind(long_macro_toggle_recording,    KeyCode_U,      KeyCode_Control);
-        Bind(keyboard_macro_replay,          KeyCode_U,      KeyCode_Control, KeyCode_Shift);
-        Bind(long_macro_repeat,              KeyCode_U,      KeyCode_Control, KeyCode_Alt);
+        Bind(long_macro_toggle_recording,              KeyCode_U, KeyCode_Control);
+        Bind(keyboard_macro_replay,                    KeyCode_U, KeyCode_Control, KeyCode_Shift);
+        Bind(long_macro_repeat,                        KeyCode_U, KeyCode_Control, KeyCode_Alt);
         
         //- Toggle UI
-        Bind(toggle_filebar,                 KeyCode_B,      KeyCode_Alt);
-        Bind(toggle_line_numbers,            KeyCode_Equal,  KeyCode_Control, KeyCode_Shift);
-        Bind(toggle_fullscreen,              KeyCode_F11,    KeyCode_Control);
+        Bind(toggle_virtual_whitespace,            KeyCode_Equal, KeyCode_Control);
+        Bind(toggle_filebar,                           KeyCode_B, KeyCode_Alt);
+        Bind(toggle_line_numbers,                  KeyCode_Equal, KeyCode_Control, KeyCode_Shift);
+        Bind(toggle_fullscreen,                      KeyCode_F11, KeyCode_Control);
         
         //- Files
-        Bind(interactive_new,                KeyCode_N,      KeyCode_Control);
-        Bind(long_setup_new_project,         KeyCode_N,      KeyCode_Control, KeyCode_Shift);
-        Bind(long_interactive_open_or_new,   KeyCode_O,      KeyCode_Control);
-        Bind(f4_open_project,                KeyCode_O,      KeyCode_Control, KeyCode_Shift);
-        Bind(long_interactive_kill_buffer,   KeyCode_K,      KeyCode_Control);
-        Bind(long_interactive_switch_buffer, KeyCode_I,      KeyCode_Control);
-        Bind(save_all_dirty_buffers,         KeyCode_S,      KeyCode_Control, KeyCode_Shift);
-        Bind(long_recent_files_menu,         KeyCode_V,      KeyCode_Alt);
-        Bind(long_kill_search_buffer,        KeyCode_K,      KeyCode_Control, KeyCode_Alt);
-        Bind(long_switch_to_search_buffer,   KeyCode_I,      KeyCode_Control, KeyCode_Alt);
+        Bind(interactive_new,                          KeyCode_N, KeyCode_Control);
+        Bind(long_setup_new_project,                   KeyCode_N, KeyCode_Control, KeyCode_Shift);
+        Bind(long_interactive_open_or_new,             KeyCode_O, KeyCode_Control);
+        Bind(f4_open_project,                          KeyCode_O, KeyCode_Control, KeyCode_Shift);
+        Bind(long_interactive_kill_buffer,             KeyCode_K, KeyCode_Control);
+        Bind(long_interactive_switch_buffer,           KeyCode_I, KeyCode_Control);
+        Bind(save_all_dirty_buffers,                   KeyCode_S, KeyCode_Control, KeyCode_Shift);
+        Bind(long_recent_files_menu,                   KeyCode_V, KeyCode_Alt);
+        Bind(long_kill_search_buffer,                  KeyCode_K, KeyCode_Control, KeyCode_Alt);
+        Bind(long_switch_to_search_buffer,             KeyCode_I, KeyCode_Control, KeyCode_Alt);
         
         //- Jump
-        Bind(goto_next_jump,                 KeyCode_N,      KeyCode_Alt);
-        Bind(goto_prev_jump,                 KeyCode_N,      KeyCode_Alt, KeyCode_Shift);
-        Bind(goto_first_jump,                KeyCode_M,      KeyCode_Alt, KeyCode_Shift);
-        Bind(long_undo_jump,                 KeyCode_J,      KeyCode_Alt);
-        Bind(long_redo_jump,                 KeyCode_K,      KeyCode_Alt);
-        Bind(long_push_new_jump,             KeyCode_L,      KeyCode_Alt);
-        Bind(long_point_lister,              KeyCode_L,      KeyCode_Control);
+        Bind(goto_next_jump,                           KeyCode_N, KeyCode_Alt);
+        Bind(goto_prev_jump,                           KeyCode_N, KeyCode_Alt, KeyCode_Shift);
+        Bind(goto_first_jump,                          KeyCode_M, KeyCode_Alt, KeyCode_Shift);
+        Bind(long_undo_jump,                           KeyCode_J, KeyCode_Alt);
+        Bind(long_redo_jump,                           KeyCode_K, KeyCode_Alt);
+        Bind(long_push_new_jump,                       KeyCode_L, KeyCode_Alt);
+        Bind(long_point_lister,                        KeyCode_L, KeyCode_Control);
         
         //- Search
         Bind(long_search_for_definition__project_wide, KeyCode_J, KeyCode_Control);
         Bind(long_search_for_definition__current_file, KeyCode_J, KeyCode_Control, KeyCode_Shift);
         
         //- Command
-        Bind(long_execute_any_cli,           KeyCode_Z,      KeyCode_Alt);
-        Bind(execute_previous_cli,           KeyCode_Z,      KeyCode_Alt, KeyCode_Shift);
-        Bind(long_command_lister,            KeyCode_X,      KeyCode_Alt);
+        Bind(long_execute_any_cli,                     KeyCode_Z, KeyCode_Alt);
+        Bind(execute_previous_cli,                     KeyCode_Z, KeyCode_Alt, KeyCode_Shift);
+        Bind(long_command_lister,                      KeyCode_X, KeyCode_Alt);
         
         //- Project
-        Bind(long_build_in_build_panel,      KeyCode_M,      KeyCode_Alt);
-        Bind(project_command_lister,         KeyCode_X,      KeyCode_Alt, KeyCode_Shift);
-        Bind(project_fkey_command,           KeyCode_F1);
-        Bind(project_fkey_command,           KeyCode_F2);
-        Bind(project_fkey_command,           KeyCode_F3);
-        Bind(project_fkey_command,           KeyCode_F4);
-        Bind(project_fkey_command,           KeyCode_F5);
-        Bind(project_fkey_command,           KeyCode_F6);
-        Bind(project_fkey_command,           KeyCode_F7);
-        Bind(project_fkey_command,           KeyCode_F8);
-        Bind(project_fkey_command,           KeyCode_F9);
-        Bind(project_fkey_command,           KeyCode_F10);
-        Bind(project_fkey_command,           KeyCode_F11);
-        Bind(project_fkey_command,           KeyCode_F12);
-        Bind(project_fkey_command,           KeyCode_F13);
-        Bind(project_fkey_command,           KeyCode_F14);
-        Bind(project_fkey_command,           KeyCode_F15);
-        Bind(project_fkey_command,           KeyCode_F16);
+        Bind(long_build_in_build_panel,                KeyCode_M, KeyCode_Alt);
+        Bind(project_command_lister,                   KeyCode_X, KeyCode_Alt, KeyCode_Shift);
+        Bind(project_fkey_command,                     KeyCode_F1);
+        Bind(project_fkey_command,                     KeyCode_F2);
+        Bind(project_fkey_command,                     KeyCode_F3);
+        Bind(project_fkey_command,                     KeyCode_F4);
+        Bind(project_fkey_command,                     KeyCode_F5);
+        Bind(project_fkey_command,                     KeyCode_F6);
+        Bind(project_fkey_command,                     KeyCode_F7);
+        Bind(project_fkey_command,                     KeyCode_F8);
+        Bind(project_fkey_command,                     KeyCode_F9);
+        Bind(project_fkey_command,                     KeyCode_F10);
+        Bind(project_fkey_command,                     KeyCode_F11);
+        Bind(project_fkey_command,                     KeyCode_F12);
+        Bind(project_fkey_command,                     KeyCode_F13);
+        Bind(project_fkey_command,                     KeyCode_F14);
+        Bind(project_fkey_command,                     KeyCode_F15);
+        Bind(project_fkey_command,                     KeyCode_F16);
         
         //- Panel
-        Bind(open_panel_vsplit,              KeyCode_BackwardSlash, KeyCode_Control);
-        Bind(open_panel_hsplit,              KeyCode_Minus,  KeyCode_Control);
-        Bind(close_panel,                    KeyCode_P,      KeyCode_Control, KeyCode_Shift);
-        Bind(long_toggle_compilation_expand, KeyCode_Insert);
-        Bind(long_toggle_panel_expand,       KeyCode_Insert, KeyCode_Control);
-        Bind(long_toggle_panel_expand_big,   KeyCode_Insert, KeyCode_Control, KeyCode_Shift);
+        Bind(open_panel_vsplit,                 KeyCode_BackwardSlash, KeyCode_Control);
+        Bind(open_panel_hsplit,                         KeyCode_Minus, KeyCode_Control);
+        Bind(close_panel,                                   KeyCode_P, KeyCode_Control, KeyCode_Shift);
+        Bind(long_toggle_compilation_expand,           KeyCode_Insert);
+        Bind(long_toggle_panel_expand,                 KeyCode_Insert, KeyCode_Control);
+        Bind(long_toggle_panel_expand_big,             KeyCode_Insert, KeyCode_Control, KeyCode_Shift);
     }
     
     SelectMap(file_id);
@@ -131,56 +131,54 @@ function void Long_Binding_SetupDefault(Mapping* mapping)
         // Shift binding will make notepad-mode unselectable
         
         //- Delete
-        Bind(delete_char,                                    KeyCode_Delete);
-        Bind(long_delete_token_boundary,                     KeyCode_Delete,    KeyCode_Control);
-        Bind(long_delete_alpha_numeric_or_camel_boundary,    KeyCode_Delete,    KeyCode_Alt);
-        Bind(backspace_char,                                 KeyCode_Backspace);
-        Bind(long_backspace_token_boundary,                  KeyCode_Backspace, KeyCode_Control);
-        Bind(long_backspace_alpha_numeric_or_camel_boundary, KeyCode_Backspace, KeyCode_Alt);
+        Bind(delete_char,                           KeyCode_Delete);
+        Bind(backspace_char,                        KeyCode_Backspace);
+        Bind(long_delete_token,                     KeyCode_Delete,    KeyCode_Control);
+        Bind(long_backspace_token,                  KeyCode_Backspace, KeyCode_Control);
+        Bind(long_delete_alpha_numeric_or_camel,    KeyCode_Delete,    KeyCode_Alt);
+        Bind(long_backspace_alpha_numeric_or_camel, KeyCode_Backspace, KeyCode_Alt);
         
         //- Left/Right
-        Bind(move_left,                                      KeyCode_Left);
-        Bind(move_right,                                     KeyCode_Right);
-        Bind(long_move_prev_word,                            KeyCode_Left,  KeyCode_Control);
-        Bind(long_move_next_word,                            KeyCode_Right, KeyCode_Control);
-        Bind(long_move_prev_alpha_numeric_or_camel_boundary, KeyCode_Left,  KeyCode_Alt);
-        Bind(long_move_next_alpha_numeric_or_camel_boundary, KeyCode_Right, KeyCode_Alt);
-        Bind(long_switch_move_side_mode,                     KeyCode_Minus, KeyCode_Alt);
+        Bind(move_left,                             KeyCode_Left);
+        Bind(move_right,                            KeyCode_Right);
+        Bind(long_move_prev_word,                   KeyCode_Left,  KeyCode_Control);
+        Bind(long_move_next_word,                   KeyCode_Right, KeyCode_Control);
+        Bind(long_move_prev_alpha_numeric_or_camel, KeyCode_Left,  KeyCode_Alt);
+        Bind(long_move_next_alpha_numeric_or_camel, KeyCode_Right, KeyCode_Alt);
+        Bind(long_switch_move_side_mode,            KeyCode_Minus, KeyCode_Alt);
         
         //- Up/Down
-        Bind(move_up,                                        KeyCode_Up);
-        Bind(move_down,                                      KeyCode_Down);
-        Bind(move_line_up,                                   KeyCode_Up,   KeyCode_Alt);
-        Bind(move_line_down,                                 KeyCode_Down, KeyCode_Alt);
-        Bind(move_up_to_blank_line_end,                      KeyCode_Up,   KeyCode_Control);
-        Bind(move_down_to_blank_line_end,                    KeyCode_Down, KeyCode_Control);
-        Bind(long_move_up_token_occurrence,                  KeyCode_Up,   KeyCode_Control, KeyCode_Alt);
-        Bind(long_move_down_token_occurrence,                KeyCode_Down, KeyCode_Control, KeyCode_Alt);
+        Bind(move_up,                               KeyCode_Up);
+        Bind(move_down,                             KeyCode_Down);
+        Bind(move_line_up,                          KeyCode_Up,   KeyCode_Alt);
+        Bind(move_line_down,                        KeyCode_Down, KeyCode_Alt);
+        Bind(move_up_to_blank_line_end,             KeyCode_Up,   KeyCode_Control);
+        Bind(move_down_to_blank_line_end,           KeyCode_Down, KeyCode_Control);
+        Bind(long_move_up_token_occurrence,         KeyCode_Up,   KeyCode_Control, KeyCode_Alt);
+        Bind(long_move_down_token_occurrence,       KeyCode_Down, KeyCode_Control, KeyCode_Alt);
         
         //- Alternative Movement
-        Bind(seek_end_of_line,                               KeyCode_End);
-        Bind(f4_home_first_non_whitespace,                   KeyCode_Home);
-        Bind(page_up,                                        KeyCode_PageUp);
-        Bind(page_down,                                      KeyCode_PageDown);
-        Bind(goto_beginning_of_file,                         KeyCode_PageUp,   KeyCode_Control);
-        Bind(goto_end_of_file,                               KeyCode_PageDown, KeyCode_Control);
-        Bind(long_move_to_prev_divider_comment,              KeyCode_PageUp,   KeyCode_Control, KeyCode_Shift);
-        Bind(long_move_to_next_divider_comment,              KeyCode_PageDown, KeyCode_Control, KeyCode_Shift);
-        Bind(long_move_to_prev_function_and_type,            KeyCode_Up,       KeyCode_Control, KeyCode_Shift, KeyCode_Alt);
-        Bind(long_move_to_next_function_and_type,            KeyCode_Down,     KeyCode_Control, KeyCode_Shift, KeyCode_Alt);
+        Bind(seek_end_of_line,                      KeyCode_End);
+        Bind(f4_home_first_non_whitespace,          KeyCode_Home);
+        Bind(page_up,                               KeyCode_PageUp);
+        Bind(page_down,                             KeyCode_PageDown);
+        Bind(goto_beginning_of_file,                KeyCode_PageUp,   KeyCode_Control);
+        Bind(goto_end_of_file,                      KeyCode_PageDown, KeyCode_Control);
+        Bind(long_move_to_prev_divider_comment,     KeyCode_PageUp,   KeyCode_Control, KeyCode_Shift);
+        Bind(long_move_to_next_divider_comment,     KeyCode_PageDown, KeyCode_Control, KeyCode_Shift);
         
         // NOTE(long): Ctrl  => Current Buffer vs All Buffers
         //             Alt   => List vs Search/Query
         //             Shift => Sensitive-String vs Insensitive-Substring
         
         //- Search
-        Bind(long_search,                                    KeyCode_F,      KeyCode_Control);
-        Bind(long_reverse_search,                            KeyCode_R,      KeyCode_Control);
-        Bind(long_search_identifier,                         KeyCode_T,      KeyCode_Control);
-        Bind(goto_line,                                      KeyCode_G,      KeyCode_Control);
-        Bind(long_search_case_sensitive,                     KeyCode_F,      KeyCode_Control, KeyCode_Shift);
-        Bind(long_reverse_search_case_sensitive,             KeyCode_R,      KeyCode_Control, KeyCode_Shift);
-        Bind(long_search_identifier_case_sensitive,          KeyCode_T,      KeyCode_Control, KeyCode_Shift);
+        Bind(long_search,                           KeyCode_F, KeyCode_Control);
+        Bind(long_reverse_search,                   KeyCode_R, KeyCode_Control);
+        Bind(long_search_identifier,                KeyCode_T, KeyCode_Control);
+        Bind(goto_line,                             KeyCode_G, KeyCode_Control);
+        Bind(long_search_case_sensitive,            KeyCode_F, KeyCode_Control, KeyCode_Shift);
+        Bind(long_reverse_search_case_sensitive,    KeyCode_R, KeyCode_Control, KeyCode_Shift);
+        Bind(long_search_identifier_case_sensitive, KeyCode_T, KeyCode_Control, KeyCode_Shift);
         
 #define LIST(name) long_list_all_locations_##name
 #define LIST_SUBSTR(name) long_list_all_substring_locations_##name
@@ -196,88 +194,92 @@ function void Long_Binding_SetupDefault(Mapping* mapping)
 #undef LIST_SUBSTR
         
         //- Mark
-        Bind(set_mark,                                       KeyCode_Space,  KeyCode_Control);
-        Bind(long_cursor_mark_swap,                          KeyCode_Space,  KeyCode_Control, KeyCode_Shift);
-        Bind(long_clean_whitespace_at_cursor,                KeyCode_B,      KeyCode_Control); // @RECONSIDER(long)
+        Bind(set_mark,                          KeyCode_Space, KeyCode_Control);
+        Bind(long_cursor_mark_swap,             KeyCode_Space, KeyCode_Control, KeyCode_Shift);
+        Bind(long_clean_whitespace_at_cursor,       KeyCode_B, KeyCode_Control); // @RECONSIDER(long)
         
         //- Multi cursors
-        Bind(MC_add_at_pos,                           KeyCode_BackwardSlash, KeyCode_Control, KeyCode_Shift);
-        Bind(MC_begin_multi,                                 KeyCode_Return, KeyCode_Alt);
-        Bind(long_mc_begin_multi_block,                      KeyCode_L,      KeyCode_Control, KeyCode_Shift);
-        Bind(long_mc_up_trail,                               KeyCode_Up,     KeyCode_Alt, KeyCode_Shift);
-        Bind(long_mc_down_trail,                             KeyCode_Down,   KeyCode_Alt, KeyCode_Shift);
+        Bind(MC_add_at_pos,             KeyCode_BackwardSlash, KeyCode_Control, KeyCode_Shift);
+        Bind(MC_begin_multi,                   KeyCode_Return, KeyCode_Alt);
+        Bind(long_mc_begin_multi_block,             KeyCode_L, KeyCode_Control, KeyCode_Shift);
+        Bind(long_mc_up_trail,                     KeyCode_Up, KeyCode_Alt, KeyCode_Shift);
+        Bind(long_mc_down_trail,                 KeyCode_Down, KeyCode_Alt, KeyCode_Shift);
+        
+        // NOTE(long): These must be below Alt+Shift
+        Bind(long_move_to_prev_function_and_type,  KeyCode_Up, KeyCode_Control, KeyCode_Shift, KeyCode_Alt);
+        Bind(long_move_to_next_function_and_type,KeyCode_Down, KeyCode_Control, KeyCode_Shift, KeyCode_Alt);
         
         //- Replace
-        Bind(long_replace_in_range,                          KeyCode_A,      KeyCode_Control);
-        Bind(long_query_replace,                             KeyCode_Q,      KeyCode_Control);
-        Bind(long_query_replace_identifier,                  KeyCode_Q,      KeyCode_Control, KeyCode_Shift);
-        Bind(long_query_replace_selection,                   KeyCode_Q,      KeyCode_Alt);
+        Bind(long_replace_in_range,                 KeyCode_A, KeyCode_Control);
+        Bind(long_query_replace,                    KeyCode_Q, KeyCode_Control);
+        Bind(long_query_replace_identifier,         KeyCode_Q, KeyCode_Control, KeyCode_Shift);
+        Bind(long_query_replace_selection,          KeyCode_Q, KeyCode_Alt);
         
         //- Clipboard
-        Bind(long_copy,                                      KeyCode_C,      KeyCode_Control);
-        Bind(cut,                                            KeyCode_X,      KeyCode_Control);
-        Bind(long_copy_line,                                 KeyCode_C,      KeyCode_Control, KeyCode_Shift);
-        Bind(long_cut_line,                                  KeyCode_X,      KeyCode_Control, KeyCode_Shift);
-        Bind(long_paste_and_indent,                          KeyCode_V,      KeyCode_Control);
-        Bind(long_paste_and_replace_range,                   KeyCode_V,      KeyCode_Control, KeyCode_Shift);
-        Bind(long_select_current_line,                       KeyCode_A,      KeyCode_Control, KeyCode_Shift);
+        Bind(long_copy,                             KeyCode_C, KeyCode_Control);
+        Bind(cut,                                   KeyCode_X, KeyCode_Control);
+        Bind(long_copy_line,                        KeyCode_C, KeyCode_Control, KeyCode_Shift);
+        Bind(long_cut_line,                         KeyCode_X, KeyCode_Control, KeyCode_Shift);
+        Bind(long_paste_and_indent,                 KeyCode_V, KeyCode_Control);
+        Bind(long_paste_and_replace_range,          KeyCode_V, KeyCode_Control, KeyCode_Shift);
+        Bind(long_select_current_line,              KeyCode_A, KeyCode_Control, KeyCode_Shift);
         
         //- Modify
-        Bind(duplicate_line,                                 KeyCode_D,      KeyCode_Alt);
-        Bind(long_delete_range,                              KeyCode_D,      KeyCode_Control);
-        Bind(delete_line,                                    KeyCode_D,      KeyCode_Control, KeyCode_Shift);
-        Bind(f4_unindent,                                    KeyCode_Tab,    KeyCode_Shift);
+        Bind(duplicate_line,                        KeyCode_D, KeyCode_Alt);
+        Bind(long_delete_range,                     KeyCode_D, KeyCode_Control);
+        Bind(delete_line,                           KeyCode_D, KeyCode_Control, KeyCode_Shift);
+        Bind(f4_unindent,                         KeyCode_Tab, KeyCode_Shift);
         
         //- View
-        Bind(center_view,                                    KeyCode_E,      KeyCode_Control);
-        Bind(left_adjust_view,                               KeyCode_E,      KeyCode_Control, KeyCode_Shift);
+        Bind(center_view,                           KeyCode_E, KeyCode_Control);
+        Bind(left_adjust_view,                      KeyCode_E, KeyCode_Control, KeyCode_Shift);
         
         //- File
-        Bind(long_kill_buffer,                               KeyCode_K,      KeyCode_Control, KeyCode_Shift);
-        Bind(reopen,                                         KeyCode_O,      KeyCode_Alt,     KeyCode_Shift);
-        Bind(save,                                           KeyCode_S,      KeyCode_Control);
-        Bind(long_redo,                                      KeyCode_Y,      KeyCode_Control);
-        Bind(long_undo,                                      KeyCode_Z,      KeyCode_Control);
-        Bind(long_redo_same_pos,                             KeyCode_Y,      KeyCode_Control, KeyCode_Shift);
-        Bind(long_undo_same_pos,                             KeyCode_Z,      KeyCode_Control, KeyCode_Shift);
-        Bind(view_buffer_other_panel,                        KeyCode_W,      KeyCode_Control, KeyCode_Shift);
+        Bind(long_kill_buffer,                      KeyCode_K, KeyCode_Control, KeyCode_Shift);
+        Bind(reopen,                                KeyCode_O, KeyCode_Alt,     KeyCode_Shift);
+        Bind(save,                                  KeyCode_S, KeyCode_Control);
+        Bind(long_redo,                             KeyCode_Y, KeyCode_Control);
+        Bind(long_undo,                             KeyCode_Z, KeyCode_Control);
+        Bind(long_redo_same_pos,                    KeyCode_Y, KeyCode_Control, KeyCode_Shift);
+        Bind(long_undo_same_pos,                    KeyCode_Z, KeyCode_Control, KeyCode_Shift);
+        Bind(view_buffer_other_panel,               KeyCode_W, KeyCode_Control, KeyCode_Shift);
         
         //- Meta
-        Bind(swap_panels,                                    KeyCode_W,      KeyCode_Control);
-        Bind(if_read_only_goto_position,                     KeyCode_Return);
-        Bind(if_read_only_goto_position_same_panel,          KeyCode_Return, KeyCode_Shift);
-        Bind(long_jump_lister,                               KeyCode_Period, KeyCode_Control, KeyCode_Shift);
-        Bind(long_history_lister,                            KeyCode_H,      KeyCode_Control);
+        Bind(swap_panels,                           KeyCode_W,      KeyCode_Control);
+        Bind(if_read_only_goto_position,            KeyCode_Return);
+        Bind(if_read_only_goto_position_same_panel, KeyCode_Return, KeyCode_Shift);
+        Bind(long_jump_lister,                      KeyCode_Period, KeyCode_Control, KeyCode_Shift);
+        Bind(long_history_lister,                   KeyCode_H,      KeyCode_Control);
         
         //- Index
-        Bind(long_code_peek,                                 KeyCode_Tick,   KeyCode_Control);
-        Bind(long_toggle_pos_context,                        KeyCode_Tick,   KeyCode_Alt);
-        Bind(long_switch_pos_context_option,                 KeyCode_Equal,  KeyCode_Alt);
-        Bind(long_switch_pos_context_draw_position,          KeyCode_Equal,  KeyCode_Alt,     KeyCode_Shift);
-        Bind(long_go_to_definition,                          KeyCode_Return, KeyCode_Control);
-        Bind(long_go_to_definition_same_panel,               KeyCode_Return, KeyCode_Control, KeyCode_Shift);
+        Bind(long_code_peek,                        KeyCode_Tick,   KeyCode_Control);
+        Bind(long_toggle_pos_context,               KeyCode_Tick,   KeyCode_Alt);
+        Bind(long_switch_pos_context_option,        KeyCode_Equal,  KeyCode_Alt);
+        Bind(long_switch_pos_context_draw_position, KeyCode_Equal,  KeyCode_Alt,     KeyCode_Shift);
+        Bind(long_go_to_definition,                 KeyCode_Return, KeyCode_Control);
+        Bind(long_go_to_definition_same_panel,      KeyCode_Return, KeyCode_Control, KeyCode_Shift);
     }
     
     SelectMap(code_id);
     ParentMap(file_id);
     {
         //- Scope
-        Bind(select_prev_scope_absolute,           KeyCode_LeftBracket,  KeyCode_Control);
-        Bind(select_next_scope_absolute,           KeyCode_RightBracket, KeyCode_Control);
-        Bind(long_select_upper_scope,              KeyCode_LeftBracket,  KeyCode_Control, KeyCode_Shift);
-        Bind(long_select_lower_scope,              KeyCode_RightBracket, KeyCode_Control, KeyCode_Shift);
-        Bind(long_select_prev_scope_current_level, KeyCode_LeftBracket,  KeyCode_Control, KeyCode_Alt);
-        Bind(long_select_next_scope_current_level, KeyCode_RightBracket, KeyCode_Control, KeyCode_Alt);
-        Bind(long_select_surrounding_scope,        KeyCode_LeftBracket,  KeyCode_Alt,     KeyCode_Shift);
+        Bind(select_prev_scope_absolute,            KeyCode_LeftBracket,  KeyCode_Control);
+        Bind(select_next_scope_absolute,            KeyCode_RightBracket, KeyCode_Control);
+        Bind(long_select_upper_scope,               KeyCode_LeftBracket,  KeyCode_Control, KeyCode_Shift);
+        Bind(long_select_lower_scope,               KeyCode_RightBracket, KeyCode_Control, KeyCode_Shift);
+        Bind(long_select_prev_scope_current_level,  KeyCode_LeftBracket,  KeyCode_Control, KeyCode_Alt);
+        Bind(long_select_next_scope_current_level,  KeyCode_RightBracket, KeyCode_Control, KeyCode_Alt);
+        Bind(long_select_surrounding_scope,         KeyCode_LeftBracket,  KeyCode_Alt,     KeyCode_Shift);
         
         //- Auto Completion
-        Bind(long_toggle_comment_selection,        KeyCode_Semicolon,    KeyCode_Control);
-        Bind(long_autocomplete,                    KeyCode_Tab);
-        Bind(long_indent_range,                    KeyCode_Tab,          KeyCode_Control);
+        Bind(long_autocomplete,                   KeyCode_Tab);
+        Bind(long_indent_range,                   KeyCode_Tab, KeyCode_Control);
+        Bind(long_toggle_comment_selection, KeyCode_Semicolon, KeyCode_Control);
         
         //- Matching Files
-        Bind(open_matching_file_cpp,               KeyCode_W,            KeyCode_Alt);
-        Bind(long_open_matching_file_same_panel,   KeyCode_W,            KeyCode_Alt,KeyCode_Shift);
+        Bind(open_matching_file_cpp,                KeyCode_W, KeyCode_Alt);
+        Bind(long_open_matching_file_same_panel,    KeyCode_W, KeyCode_Alt,KeyCode_Shift);
     }
 }
 
@@ -310,80 +312,84 @@ function void Long_Binding_MultiCursor()
     //~ NOTE(long): Global
     {
         //- Meta
-        MC_register(long_change_active_panel,       MC_Command_Global);
-        MC_register(long_change_passive_panel,      MC_Command_Global);
-        MC_register(change_active_panel_backwards,  MC_Command_Global);
-        MC_register(project_go_to_root_directory,   MC_Command_Global);
-        MC_register(toggle_virtual_whitespace,      MC_Command_Global);
-        MC_register(theme_lister,                   MC_Command_Global);
+        MC_register(long_change_active_panel,        MC_Command_Global);
+        MC_register(long_change_passive_panel,       MC_Command_Global);
+        MC_register(change_active_panel_backwards,   MC_Command_Global);
+        MC_register(project_go_to_root_directory,    MC_Command_Global);
+        MC_register(theme_lister,                    MC_Command_Global);
         
         //- Macro
-        //MC_register(long_macro_toggle_recording,    MC_Command_Global);
-        //MC_register(keyboard_macro_replay,          MC_Command_Global);
-        //MC_register(long_macro_repeat,              MC_Command_Global);
+#if 0
+        MC_register(long_macro_toggle_recording,     MC_Command_Global);
+        MC_register(keyboard_macro_replay,           MC_Command_Global);
+        MC_register(long_macro_repeat,               MC_Command_Global);
+#endif
         
         //- Toggle UI
-        MC_register(toggle_filebar,                 MC_Command_Global);
-        MC_register(toggle_line_numbers,            MC_Command_Global);
-        MC_register(toggle_fullscreen,              MC_Command_Global);
+        MC_register(toggle_virtual_whitespace,       MC_Command_Global);
+        MC_register(toggle_filebar,                  MC_Command_Global);
+        MC_register(toggle_line_numbers,             MC_Command_Global);
+        MC_register(toggle_fullscreen,               MC_Command_Global);
         
         //- Files
-        MC_register(interactive_new,                MC_Command_Global);
-        MC_register(long_setup_new_project,         MC_Command_Global);
-        MC_register(long_interactive_open_or_new,   MC_Command_Global);
-        MC_register(f4_open_project,                MC_Command_Global);
-        MC_register(long_interactive_kill_buffer,   MC_Command_Global);
-        MC_register(long_interactive_switch_buffer, MC_Command_Global);
-        MC_register(save_all_dirty_buffers,         MC_Command_Global);
-        MC_register(long_recent_files_menu,         MC_Command_Global);
-        MC_register(long_kill_search_buffer,        MC_Command_Global);
-        MC_register(long_switch_to_search_buffer,   MC_Command_Global);
+        MC_register(interactive_new,                 MC_Command_Global);
+        MC_register(long_setup_new_project,          MC_Command_Global);
+        MC_register(long_interactive_open_or_new,    MC_Command_Global);
+        MC_register(f4_open_project,                 MC_Command_Global);
+        MC_register(long_interactive_kill_buffer,    MC_Command_Global);
+        MC_register(long_interactive_switch_buffer,  MC_Command_Global);
+        MC_register(save_all_dirty_buffers,          MC_Command_Global);
+        MC_register(long_recent_files_menu,          MC_Command_Global);
+        MC_register(long_kill_search_buffer,         MC_Command_Global);
+        MC_register(long_switch_to_search_buffer,    MC_Command_Global);
         
         //- Jump
-        //MC_register(goto_next_jump,                 MC_Command_Global);
-        //MC_register(goto_prev_jump,                 MC_Command_Global);
-        //MC_register(goto_first_jump,                MC_Command_Global);
-        //MC_register(long_undo_jump,                 MC_Command_Global);
-        //MC_register(long_redo_jump,                 MC_Command_Global);
-        //MC_register(long_push_new_jump,             MC_Command_Global);
-        MC_register(long_point_lister,              MC_Command_Global);
+#if 0
+        MC_register(goto_next_jump,                  MC_Command_Global);
+        MC_register(goto_prev_jump,                  MC_Command_Global);
+        MC_register(goto_first_jump,                 MC_Command_Global);
+        MC_register(long_undo_jump,                  MC_Command_Global);
+        MC_register(long_redo_jump,                  MC_Command_Global);
+        MC_register(long_push_new_jump,              MC_Command_Global);
+#endif
+        MC_register(long_point_lister,               MC_Command_Global);
         
         //- Search
         MC_register(long_search_for_definition__project_wide, MC_Command_Global);
         MC_register(long_search_for_definition__current_file, MC_Command_Global);
         
         //- Command
-        MC_register(long_execute_any_cli,           MC_Command_Global);
-        MC_register(execute_previous_cli,           MC_Command_Global);
-        MC_register(long_command_lister,            MC_Command_Global);
+        MC_register(long_execute_any_cli,            MC_Command_Global);
+        MC_register(execute_previous_cli,            MC_Command_Global);
+        MC_register(long_command_lister,             MC_Command_Global);
         
         //- Project
-        MC_register(long_build_in_build_panel,      MC_Command_Global);
-        MC_register(project_command_lister,         MC_Command_Global);
-        MC_register(project_fkey_command,           MC_Command_Global);
-        MC_register(project_fkey_command,           MC_Command_Global);
-        MC_register(project_fkey_command,           MC_Command_Global);
-        MC_register(project_fkey_command,           MC_Command_Global);
-        MC_register(project_fkey_command,           MC_Command_Global);
-        MC_register(project_fkey_command,           MC_Command_Global);
-        MC_register(project_fkey_command,           MC_Command_Global);
-        MC_register(project_fkey_command,           MC_Command_Global);
-        MC_register(project_fkey_command,           MC_Command_Global);
-        MC_register(project_fkey_command,           MC_Command_Global);
-        MC_register(project_fkey_command,           MC_Command_Global);
-        MC_register(project_fkey_command,           MC_Command_Global);
-        MC_register(project_fkey_command,           MC_Command_Global);
-        MC_register(project_fkey_command,           MC_Command_Global);
-        MC_register(project_fkey_command,           MC_Command_Global);
-        MC_register(project_fkey_command,           MC_Command_Global);
+        MC_register(long_build_in_build_panel,       MC_Command_Global);
+        MC_register(project_command_lister,          MC_Command_Global);
+        MC_register(project_fkey_command,            MC_Command_Global);
+        MC_register(project_fkey_command,            MC_Command_Global);
+        MC_register(project_fkey_command,            MC_Command_Global);
+        MC_register(project_fkey_command,            MC_Command_Global);
+        MC_register(project_fkey_command,            MC_Command_Global);
+        MC_register(project_fkey_command,            MC_Command_Global);
+        MC_register(project_fkey_command,            MC_Command_Global);
+        MC_register(project_fkey_command,            MC_Command_Global);
+        MC_register(project_fkey_command,            MC_Command_Global);
+        MC_register(project_fkey_command,            MC_Command_Global);
+        MC_register(project_fkey_command,            MC_Command_Global);
+        MC_register(project_fkey_command,            MC_Command_Global);
+        MC_register(project_fkey_command,            MC_Command_Global);
+        MC_register(project_fkey_command,            MC_Command_Global);
+        MC_register(project_fkey_command,            MC_Command_Global);
+        MC_register(project_fkey_command,            MC_Command_Global);
         
         //- Panel
-        MC_register(open_panel_vsplit,              MC_Command_Global);
-        MC_register(open_panel_hsplit,              MC_Command_Global);
-        MC_register(close_panel,                    MC_Command_Global);
-        MC_register(long_toggle_compilation_expand, MC_Command_Global);
-        MC_register(long_toggle_panel_expand,       MC_Command_Global);
-        MC_register(long_toggle_panel_expand_big,   MC_Command_Global);
+        MC_register(open_panel_vsplit,               MC_Command_Global);
+        MC_register(open_panel_hsplit,               MC_Command_Global);
+        MC_register(close_panel,                     MC_Command_Global);
+        MC_register(long_toggle_compilation_expand,  MC_Command_Global);
+        MC_register(long_toggle_panel_expand,        MC_Command_Global);
+        MC_register(long_toggle_panel_expand_big,    MC_Command_Global);
     }
     
     //~ NOTE(long): File
@@ -394,116 +400,124 @@ function void Long_Binding_MultiCursor()
         // Shift binding will make notepad-mode unselectable
         
         //- Delete
-        MC_register(delete_char,                                    MC_Command_Cursor);
-        MC_register(long_delete_token_boundary,                     MC_Command_Cursor);
-        MC_register(long_delete_alpha_numeric_or_camel_boundary,    MC_Command_Cursor);
-        MC_register(backspace_char,                                 MC_Command_Cursor);
-        MC_register(long_backspace_token_boundary,                  MC_Command_Cursor);
-        MC_register(long_backspace_alpha_numeric_or_camel_boundary, MC_Command_Cursor);
+        MC_register(delete_char,                           MC_Command_Cursor);
+        MC_register(long_delete_token,                     MC_Command_Cursor);
+        MC_register(long_delete_alpha_numeric_or_camel,    MC_Command_Cursor);
+        MC_register(backspace_char,                        MC_Command_Cursor);
+        MC_register(long_backspace_token,                  MC_Command_Cursor);
+        MC_register(long_backspace_alpha_numeric_or_camel, MC_Command_Cursor);
         
         //- Left/Right
-        MC_register(move_left,                                      MC_Command_Cursor);
-        MC_register(move_right,                                     MC_Command_Cursor);
-        MC_register(long_move_prev_word,                            MC_Command_Cursor);
-        MC_register(long_move_next_word,                            MC_Command_Cursor);
-        MC_register(long_move_prev_alpha_numeric_or_camel_boundary, MC_Command_Cursor);
-        MC_register(long_move_next_alpha_numeric_or_camel_boundary, MC_Command_Cursor);
-        MC_register(long_switch_move_side_mode,                     MC_Command_Cursor);
+        MC_register(move_left,                             MC_Command_Cursor);
+        MC_register(move_right,                            MC_Command_Cursor);
+        MC_register(long_move_prev_word,                   MC_Command_Cursor);
+        MC_register(long_move_next_word,                   MC_Command_Cursor);
+        MC_register(long_move_prev_alpha_numeric_or_camel, MC_Command_Cursor);
+        MC_register(long_move_next_alpha_numeric_or_camel, MC_Command_Cursor);
+        MC_register(long_switch_move_side_mode,            MC_Command_Cursor);
         
         //- Up/Down
-        MC_register(move_up,                                        MC_Command_Cursor);
-        MC_register(move_down,                                      MC_Command_Cursor);
-        MC_register(move_line_up,                                   MC_Command_Cursor);
-        MC_register(move_line_down,                                 MC_Command_Cursor);
-        MC_register(move_up_to_blank_line_end,                      MC_Command_Cursor);
-        MC_register(move_down_to_blank_line_end,                    MC_Command_Cursor);
-        MC_register(long_move_up_token_occurrence,                  MC_Command_Cursor);
-        MC_register(long_move_down_token_occurrence,                MC_Command_Cursor);
+        MC_register(move_up,                               MC_Command_Cursor);
+        MC_register(move_down,                             MC_Command_Cursor);
+        MC_register(move_line_up,                          MC_Command_Cursor);
+        MC_register(move_line_down,                        MC_Command_Cursor);
+        MC_register(move_up_to_blank_line_end,             MC_Command_Cursor);
+        MC_register(move_down_to_blank_line_end,           MC_Command_Cursor);
+        MC_register(long_move_up_token_occurrence,         MC_Command_Cursor);
+        MC_register(long_move_down_token_occurrence,       MC_Command_Cursor);
         
         //- Alternative Movement
-        MC_register(seek_end_of_line,                               MC_Command_Cursor);
-        MC_register(f4_home_first_non_whitespace,                   MC_Command_Cursor);
-        //MC_register(page_up,                                        MC_Command_Cursor);
-        //MC_register(page_down,                                      MC_Command_Cursor);
-        //MC_register(goto_beginning_of_file,                         MC_Command_Cursor);
-        //MC_register(goto_end_of_file,                               MC_Command_Cursor);
-        //MC_register(long_move_to_prev_divider_comment,              MC_Command_Cursor);
-        //MC_register(long_move_to_next_divider_comment,              MC_Command_Cursor);
-        //MC_register(long_move_to_prev_function_and_type,            MC_Command_Cursor);
-        //MC_register(long_move_to_next_function_and_type,            MC_Command_Cursor);
+        MC_register(seek_end_of_line,                      MC_Command_Cursor);
+        MC_register(f4_home_first_non_whitespace,          MC_Command_Cursor);
+#if 0
+        MC_register(page_up,                               MC_Command_Cursor);
+        MC_register(page_down,                             MC_Command_Cursor);
+        MC_register(goto_beginning_of_file,                MC_Command_Cursor);
+        MC_register(goto_end_of_file,                      MC_Command_Cursor);
+        MC_register(long_move_to_prev_divider_comment,     MC_Command_Cursor);
+        MC_register(long_move_to_next_divider_comment,     MC_Command_Cursor);
+        MC_register(long_move_to_prev_function_and_type,   MC_Command_Cursor);
+        MC_register(long_move_to_next_function_and_type,   MC_Command_Cursor);
+#endif
         
         // Ctrl  => Current Buffer vs All Buffers
         // Alt   => List vs Search/Query
         // Shift => Sensitive-String vs Insensitive-Substring
         
         //- Search
-        //MC_register(long_search,                                    MC_Command_Cursor);
-        //MC_register(long_reverse_search,                            MC_Command_Cursor);
-        //MC_register(long_search_identifier,                         MC_Command_Cursor);
-        //MC_register(goto_line,                                      MC_Command_Cursor);
-        //MC_register(long_search_case_sensitive,                     MC_Command_Cursor);
-        //MC_register(long_reverse_search_case_sensitive,             MC_Command_Cursor);
-        //MC_register(long_search_identifier_case_sensitive,          MC_Command_Cursor);
+#if 0
+        MC_register(long_search,                           MC_Command_Cursor);
+        MC_register(long_reverse_search,                   MC_Command_Cursor);
+        MC_register(long_search_identifier,                MC_Command_Cursor);
+        MC_register(goto_line,                             MC_Command_Cursor);
+        MC_register(long_search_case_sensitive,            MC_Command_Cursor);
+        MC_register(long_reverse_search_case_sensitive,    MC_Command_Cursor);
+        MC_register(long_search_identifier_case_sensitive, MC_Command_Cursor);
         
 #define LIST(name) long_list_all_locations_##name
 #define LIST_SUBSTR(name) long_list_all_substring_locations_##name
-        //MC_register(long_list_all_locations,                                    MC_Command_Cursor);
-        //MC_register(LIST_SUBSTR(case_insensitive),                              MC_Command_Cursor);
-        //MC_register(LIST       (current_buffer),                                MC_Command_Cursor);
-        //MC_register(LIST_SUBSTR(case_insensitive_current_buffer),               MC_Command_Cursor);
-        //MC_register(LIST       (of_identifier),                                 MC_Command_Cursor);
-        //MC_register(LIST_SUBSTR(of_identifier_case_insensitive),                MC_Command_Cursor);
-        //MC_register(LIST       (of_identifier_current_buffer),                  MC_Command_Cursor);
-        //MC_register(LIST_SUBSTR(of_identifier_case_insensitive_current_buffer), MC_Command_Cursor);
+        MC_register(long_list_all_locations,                                    MC_Command_Cursor);
+        MC_register(LIST_SUBSTR(case_insensitive),                              MC_Command_Cursor);
+        MC_register(LIST       (current_buffer),                                MC_Command_Cursor);
+        MC_register(LIST_SUBSTR(case_insensitive_current_buffer),               MC_Command_Cursor);
+        MC_register(LIST       (of_identifier),                                 MC_Command_Cursor);
+        MC_register(LIST_SUBSTR(of_identifier_case_insensitive),                MC_Command_Cursor);
+        MC_register(LIST       (of_identifier_current_buffer),                  MC_Command_Cursor);
+        MC_register(LIST_SUBSTR(of_identifier_case_insensitive_current_buffer), MC_Command_Cursor);
 #undef LIST
 #undef LIST_SUBSTR
+#endif
         
         //- Mark
-        MC_register(set_mark,                        MC_Command_Cursor);
-        MC_register(long_cursor_mark_swap,           MC_Command_Cursor);
-        MC_register(long_clean_whitespace_at_cursor, MC_Command_Cursor);
+        MC_register(set_mark,                              MC_Command_Cursor);
+        MC_register(long_cursor_mark_swap,                 MC_Command_Cursor);
+        MC_register(long_clean_whitespace_at_cursor,       MC_Command_Cursor);
         
         //- Replace
-        //MC_register(replace_in_range,                MC_Command_Cursor);
-        //MC_register(long_query_replace,              MC_Command_Cursor);
-        //MC_register(long_query_replace_identifier,   MC_Command_Cursor);
-        //MC_register(long_query_replace_selection,    MC_Command_Cursor);
+#if 0
+        MC_register(replace_in_range,                      MC_Command_Cursor);
+        MC_register(long_query_replace,                    MC_Command_Cursor);
+        MC_register(long_query_replace_identifier,         MC_Command_Cursor);
+        MC_register(long_query_replace_selection,          MC_Command_Cursor);
+#endif
         
         //- Clipboard
-        MC_register(long_copy,                       MC_Command_CursorCopy);
-        MC_register(cut,                             MC_Command_CursorCopy);
-        MC_register(long_copy_line,                  MC_Command_CursorCopy);
-        MC_register(long_cut_line,                   MC_Command_CursorCopy);
-        MC_register(long_paste_and_indent,           MC_Command_CursorPaste);
-        MC_register(long_paste_and_replace_range,    MC_Command_CursorPaste);
-        MC_register(long_select_current_line,        MC_Command_CursorPaste);
+        MC_register(long_copy,                             MC_Command_CursorCopy);
+        MC_register(cut,                                   MC_Command_CursorCopy);
+        MC_register(long_copy_line,                        MC_Command_CursorCopy);
+        MC_register(long_cut_line,                         MC_Command_CursorCopy);
+        MC_register(long_paste_and_indent,                 MC_Command_CursorPaste);
+        MC_register(long_paste_and_replace_range,          MC_Command_CursorPaste);
+        MC_register(long_select_current_line,              MC_Command_CursorPaste);
         
         //- Modify
-        MC_register(duplicate_line,                  MC_Command_Cursor);
-        MC_register(long_delete_range,               MC_Command_Cursor);
-        MC_register(delete_line,                     MC_Command_Cursor);
-        MC_register(f4_unindent,                     MC_Command_Cursor);
-        MC_register(long_upper_case,                 MC_Command_Cursor);
-        MC_register(long_lower_case,                 MC_Command_Cursor);
+        MC_register(duplicate_line,                        MC_Command_Cursor);
+        MC_register(long_delete_range,                     MC_Command_Cursor);
+        MC_register(delete_line,                           MC_Command_Cursor);
+        MC_register(f4_unindent,                           MC_Command_Cursor);
+        MC_register(long_upper_case,                       MC_Command_Cursor);
+        MC_register(long_lower_case,                       MC_Command_Cursor);
         
         //- View
-        MC_register(center_view,                     MC_Command_Global);
-        MC_register(left_adjust_view,                MC_Command_Global);
+        MC_register(center_view,                           MC_Command_Global);
+        MC_register(left_adjust_view,                      MC_Command_Global);
         
         //- File
-        MC_register(long_kill_buffer,                MC_Command_Global);
-        MC_register(reopen,                          MC_Command_Global);
-        MC_register(save,                            MC_Command_Global);
-        MC_register(long_redo,                       MC_Command_Global);
-        MC_register(long_undo,                       MC_Command_Global);
-        MC_register(long_redo_same_pos,              MC_Command_Global);
-        MC_register(long_undo_same_pos,              MC_Command_Global);
-        MC_register(view_buffer_other_panel,         MC_Command_Global);
+        MC_register(long_kill_buffer,                      MC_Command_Global);
+        MC_register(reopen,                                MC_Command_Global);
+        MC_register(save,                                  MC_Command_Global);
+        MC_register(long_redo,                             MC_Command_Global);
+        MC_register(long_undo,                             MC_Command_Global);
+        MC_register(long_redo_same_pos,                    MC_Command_Global);
+        MC_register(long_undo_same_pos,                    MC_Command_Global);
+        MC_register(view_buffer_other_panel,               MC_Command_Global);
         
         //- Meta
-        //MC_register(swap_panels,                           MC_Command_Global);
-        //MC_register(if_read_only_goto_position,            MC_Command_Global);
-        //MC_register(if_read_only_goto_position_same_panel, MC_Command_Global);
+#if 0
+        MC_register(swap_panels,                           MC_Command_Global);
+        MC_register(if_read_only_goto_position,            MC_Command_Global);
+        MC_register(if_read_only_goto_position_same_panel, MC_Command_Global);
+#endif
         MC_register(long_jump_lister,                      MC_Command_Global);
         MC_register(long_history_lister,                   MC_Command_Global);
         
@@ -512,29 +526,31 @@ function void Long_Binding_MultiCursor()
         MC_register(long_toggle_pos_context,               MC_Command_Global);
         MC_register(long_switch_pos_context_option,        MC_Command_Global);
         MC_register(long_switch_pos_context_draw_position, MC_Command_Global);
-        //MC_register(long_go_to_definition,                 MC_Command_Cursor);
-        //MC_register(long_go_to_definition_same_panel,      MC_Command_Cursor);
+#if 0
+        MC_register(long_go_to_definition,                 MC_Command_Cursor);
+        MC_register(long_go_to_definition_same_panel,      MC_Command_Cursor);
+#endif
     }
     
     //~ NOTE(long): Code
     {
         //- Scope
-        MC_register(select_prev_scope_absolute,           MC_Command_Cursor);
-        MC_register(select_next_scope_absolute,           MC_Command_Cursor);
-        MC_register(long_select_upper_scope,              MC_Command_Cursor);
-        MC_register(long_select_lower_scope,              MC_Command_Cursor);
-        MC_register(long_select_prev_scope_current_level, MC_Command_Cursor);
-        MC_register(long_select_next_scope_current_level, MC_Command_Cursor);
-        MC_register(long_select_surrounding_scope,        MC_Command_Cursor);
+        MC_register(select_prev_scope_absolute,            MC_Command_Cursor);
+        MC_register(select_next_scope_absolute,            MC_Command_Cursor);
+        MC_register(long_select_upper_scope,               MC_Command_Cursor);
+        MC_register(long_select_lower_scope,               MC_Command_Cursor);
+        MC_register(long_select_prev_scope_current_level,  MC_Command_Cursor);
+        MC_register(long_select_next_scope_current_level,  MC_Command_Cursor);
+        MC_register(long_select_surrounding_scope,         MC_Command_Cursor);
         
         //- Auto Completion
-        MC_register(long_toggle_comment_selection,        MC_Command_Cursor);
-        MC_register(long_autocomplete,                    MC_Command_Cursor);
-        MC_register(long_indent_range,                    MC_Command_Cursor);
+        MC_register(long_toggle_comment_selection,         MC_Command_Cursor);
+        MC_register(long_autocomplete,                     MC_Command_Cursor);
+        MC_register(long_indent_range,                     MC_Command_Cursor);
         
         //- Matching Files
-        MC_register(open_matching_file_cpp,               MC_Command_Global);
-        MC_register(long_open_matching_file_same_panel,   MC_Command_Global);
+        MC_register(open_matching_file_cpp,                MC_Command_Global);
+        MC_register(long_open_matching_file_same_panel,    MC_Command_Global);
     }
 }
 

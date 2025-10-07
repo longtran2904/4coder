@@ -244,7 +244,7 @@ F4_Brace_RenderLines(Application_Links *app, Buffer_ID buffer, View_ID view,
             line_number_rect.x1 += 4;
         }
         
-        float x_offset = view_get_screen_rect(app, view).x0 + 7 -
+        float x_offset = view_get_screen_rect(app, view).x0 + 4 -
             view_get_buffer_scroll(app, view).position.pixel_shift.x +
             (line_number_rect.x1 - line_number_rect.x0);
         float x_position = 0.f;

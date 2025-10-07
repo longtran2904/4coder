@@ -178,8 +178,8 @@ get_indentation_array(Application_Links *app, Arena *arena, Buffer_ID buffer, Ra
     i64 anchor_line = clamp_bot(1, lines.first - 1);
     Token *anchor_token = find_anchor_token(app, buffer, tokens, anchor_line);
     if (anchor_token != 0 &&
-        anchor_token >= tokens->tokens &&
-        anchor_token < tokens->tokens + tokens->count){
+            anchor_token >= tokens->tokens &&
+            anchor_token < tokens->tokens + tokens->count){
         i64 line = get_line_number_from_pos(app, buffer, anchor_token->pos);
         line = clamp_top(line, lines.first);
         
@@ -200,7 +200,7 @@ get_indentation_array(Application_Links *app, Arena *arena, Buffer_ID buffer, Ra
             Token *token = token_it_read(&token_it);
             
             if (line_cache.where_token_starts == 0 ||
-                token->pos >= line_cache.one_past_last_pos){
+                    token->pos >= line_cache.one_past_last_pos){
                 ProfileScope(app, "get line number");
                 line_cache.where_token_starts = get_line_number_from_pos(app, buffer, token->pos);
                 line_cache.one_past_last_pos = get_line_end_pos(app, buffer, line_cache.where_token_starts);
@@ -270,17 +270,17 @@ get_indentation_array(Application_Links *app, Arena *arena, Buffer_ID buffer, Ra
                             sll_stack_pop(nest);
                             indent__free_nest(&nest_alloc, n);
                         }
-                        ignore_unfinished_statement = true;
                         
                         following_indent = 0;
                         if (nest != 0){
                             following_indent = nest->indent;
                         }
+                        //ignore_unfinished_statement = true;
                     }break;
                 }
                 
                 if (token->sub_kind == TokenCppKind_BlockComment ||
-                    token->sub_kind == TokenCppKind_LiteralStringRaw){
+                        token->sub_kind == TokenCppKind_LiteralStringRaw){
                     ignore_unfinished_statement = true;
                 }
                 

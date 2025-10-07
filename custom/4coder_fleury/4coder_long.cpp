@@ -5,74 +5,130 @@
 
 //~ @readme Tran Thanh Long's 4coder Custom Layer
 
-// In general, I really want to structure my code into a bunch of isolated drop-in files without changing
-// any code from the base and fleury's layer. But it would mean that I need to copy a lot of functions to
-// modify them slightly (I did do some of it, search for all the COPYPASTA comments). There are also multiple
-// bugs in the original layers that I fixed. That's why a lot of code still depends on these modified files:
-
-//- @long_index_files
-
-// @important
-// 4coder_fleury_index.h: Add additional fields for types and enums
-// 4coder_fleury_index.cpp:
-// - F4_Index_InsertNote: I was using the built-in profiler in 4coder and noticed something weird in this
-//   function. It does some alloc, hash lookups, and string comparisons, but most of the time was spent on
-//   this seemingly innocent line:
-//
-//     for (F4_Index_Note *note = list_tail; note; list_tail = note, note = note->next);
-//
-//   This line tries to find the linked list's tail note, and then later append a new note to it.
-//   But there was no reason to do so, you can insert the note at the start of the list because the order here
-//   doesn't matter. So just remove this, and you improve the speed quite a lot.
-//
-// - F4_Index_ParseCtx_Inc: Handle the SkipComment flag
-// - F4_Index_ClearFile: Reset the file->references to zero
-
-// 4coder_code_index.cpp: generic_parse_statement, generic_parse_paren, layout_index_x_shift
-
-// 4coder_fleury_colors.cpp:
-// - Add Token_Array to ColorCtx
-// - Call Long_Index_LookupBestNote rather than F4_Index_LookupNote in F4_GetColor
-
-// 4coder_fleury_lang.h: Add more fields to F4_Language_PosContextData
-
-// @optional
-// 4coder_fleury_lang_list.h: Add C# to the language list
-// 4coder_fleury_lang_cpp.cpp: Modify the F4_CPP_PosContext hook to work with my new position-context system
-// (I should just write a new cpp parser at some point)
-
-//- @4coder_lister_base
-// The entire Lister system is a drop-in file, to use it just call Long_Lister_Run rather than run_lister.
-// Most of the default commands call run_lister so "upgrading" all those commands to the new system requires
-// a lot of work. I choose the simplest way of #define run_lister to Long_Lister_Run.
+// I aim to structure my code as a set of isolated, drop-in files without modifying the base layer
+// This often means copying and slightly adjusting existing functions (see COPYPASTA comments)
+// The only modified file is 4coder_code_index.cpp (see @long_index_intro for more info)
+// The same goes for Fleury’s layer — I only rely on and extend the language/index system
+// Everything else is optional and provided as-is (@f4_optional_intro for more details)
 
 //~ @features 4coder Long Feature/Option List
 
+//- @long_render_intro
+
+// - File Bars: Uses the global font and includes Ryan's "progress bar" idea
+//   Displays file metadata (name, id, EOL mode, etc) at the start and cursor position at the end
+
+// - Line Margin: Displays either absolute line numbers or relative offsets from the current line
+//   Toggle visibility or switch mode with toggle_line_numbers and long_toggle_line_offset
+
+// - Error Annotations: Inspired by qol_draw_compile_errors and F4_RenderErrorAnnotations
+//   Highlights lines with errors in red and displays the message at the end of the line
+//   Can also show config, binding, and project errors
+
+// - Hex Colors: Highlight any 8-digit with a color interpreted from its value
+//   Very helpful when changing the theme colors (open any theme file and see)
+
+// - Digit Grouping: Colors every 2 (bin), 3 (decimal), or 4 (hex) digits alternately
+//   Applies to numeric prefixes and postfixes as well
+
+// - Highlight: There are currently 3 separate highlight systems:
+//   - List: for highlighting a runtime list of ranges (push via Long_Highlight_Push)
+//   - Range: for highlighting between the cursor and mark (notepad-style, isearch, query, etc.)
+//   - Multi-Cursor: for highlighting all entries in the cursor list
+// => I should probably merge these 3 into one system
+
+// - Whitespace Highlight: Render whitespaces as grey circles
+//   Could be done via draw_rectangle with roundness, but small circles look bad in 4coder
+//   Instead, a font-dependent dot character is drawn at the correct size to fake the circle
+//   Toggle per-view with toggle_show_whitespace, or globally with long_toggle_whitespace_all
+
+// - Brace Rendering: Consits of 3 subsystems, inspired by 4coder_fleury_brace:
+//   - Lines: thin vertical lines connecting the cursor’s surrounding open and close braces
+//   - Annotation: small text after a close brace showing the code before the matching open brace
+//   - Highlight: colors each surrounding brace pair differently
+// - Paren Rendering: Only has paren highlighting out of the three brace features
+
+// - Divider Comments: A smarter version of F4_RenderDividerComments
+//   Renders the dividing line only up to the visible screen edge
+
+// - Token Occurrence Highlight: Similar to Ryan's Cursor Identifier Highlight
+//   A modified version of F4_RenderRangeHighlight, inlined directly into Long_Render_Buffer
+
+// - Cursor Rendering: Supports two cursor styles:
+//   - Original: The mark is visible and must be moved manually
+//   - Notepad-like: The mark is hidden and stops snapping to the cursor when holding Shift
+//   Both styles smoothly interpolate the cursor/mark and include a glow effect
+//   In Original mode, a thin vertical line is drawn between the cursor and mark
+
+//- @long_hud_intro
+
+//- @f4_optional_files Calculator/Ploting/Recent-Files
+
+//- @long_hot_reload
+
+// Long_SaveFile: new SaveFile hook that updates the buffer’s saved state
+// - Theme
+// - Config
+// - Bindings
+// - Project
+
+//- @long_auto_indent
+
 //- @long_point_stack_intro
 
-// 4coder provides a very basic point stack framework where commands can push new points to a single global stack.
-// Commands that push are jump_to_definition(_at_cursor) and f4_search_for_definition__xxx.
-// The only command that pops is jump_to_last_point.
+// 4coder provides a basic framework that uses a single global point stack
+// This layer implements a completely new and separate system:
+// - Instead of a single global stack, each view now has its own stack
+// - You can iterate over all points or access a point by index
+// - Each stack also tracks a current point that can be used for traversal
 
-// This layer implements a completely new and separate framework that is used in most new jump/goto commands
-// - Rather than a single global stack, each view now has its own stack.
-// - You can iterate over all the points or get a point at a specific index.
-// - Each stack also has a current, top, and bottom point that you can read and modify.
-
-// Some notable commands:
-// - long_undo/redo_jump: jumps to the current point or the prev/next point if already there
-// - long_push_new_jump: pushes the current position to the stack if the current point isn't already it
+// Notable commands:
+// - long_undo/redo_jump: jumps to the current point or the previous/next one if already there
+// - long_push_new_jump: pushes the current position if it isn’t already the current point
 
 //- @long_history_intro
 
-// 4coder never reset the dirty state of a buffer, except when saving it.
-// This has been changed so that if you undo/redo a buffer to a saved state,
-// It will set the buffer's dirty state to up-to-date
+// By default, 4coder only reset a buffer’s dirty state on save
+// Now, undoing/redoing back to the saved state also clears the dirty flag
 
-// Some notable commands:
-// - Long_SaveFile: This is the new SaveFile hook that changes the current saved state for the buffer
-// - long_undo/redo(_all_buffers): the same as their counterpart, but use the new history system
-// - long_undo/redo_same_pos: undo/redo but doesn't change the cursor and camera position
+// Notable commands:
+// - long_undo/redo(_all_buffers): same as the originals, but use the new history system
+// - long_undo/redo_same_pos: undo/redo without changing the cursor or camera position
+
+//- @long_search_intro
+
+// All new search, query, and list commands use an improved query system that supports basic actions
+// such as copy-paste, clear all, center view, and integrates better with the multi-cursor system
+
+// Notable Functions:
+// - Long_ISearch: same as isearch, but supports case-sensitive searches
+// - Long_Query_Replace: same as query_replace, but can move to the next or previous match
+// - Long_ListAllLocations: similar to list_all_locations__generic, but:
+//   - Can limit the search to the current buffer
+//   - Remembers the buffer/position before the search, allowing a jump back when aborted
+//   - Uses the new Multi-Select system (see @long_multi_select_intro for more info)
+
+//- @long_multi_select_intro
+
+// Long_SearchBuffer_MultiSelect is a makeshift function for implementing a multi-cursor-like system.
+// It works by rendering the jump buffer with a custom render function (Long_Highlight_DrawList) that
+// will draw a notepad-like cursor at each sticky jump location and have a custom navigation code to
+// move the highlighted range around.
+
+// Up/Down will move to the prev/next location and hold down shift while doing so to select multiple locations
+// Left/Right to change the current selection size, and move all the cursors around
+// Esc will undo all the changes and jump back to the old position, while Enter will commit all the edits
+// Shift+Esc still keeps the current position and exits back to the normal jump highlighting code
+
+// This is a quick and dirty way for stuff to work, so one of the main weaknesses is that you can't run any
+// custom commands, which means you can't use basic navigation like move_up/down, copy/cut/paste, mark
+// highlighting, etc. Each cursor can't be moved in arbitrary ways or has its own mark, and any new commands
+// you want must be implemented in the Long_SearchBuffer_MultiSelect function.
+
+// A better way to implement this is to parse the *keyboard* buffer like the macro system and store each cursor
+// and mark position in a marker array. If you don't need cursors to be in multiple buffers, and ok with a
+// notepad-like design for each cursor (meaning you can't have arbitrary mark position), then this's probably
+// the best way to do it.
 
 //- @long_index_intro
 
@@ -122,119 +178,52 @@
 // energy in the future, I'll write a more detailed comment about the way this C# parser works and how
 // I think about parsing now.
 
-//- @long_search_intro
-
-// All the new search, query, and list commands now use an improved query bar input handler:
-// - Ctrl+E to center the view
-// - Ctrl+V to append content from the clipboard to the bar's string
-// - Ctrl+Backspace now deletes all the contents inside the query bar
-// - Esc will abort and jump back to the old position before querying started
-// - Shift+Esc will abort but don't reset the current position
-//   (The Multi-Select system will return to the normal jump's highlight system)
-
-// The current way I implement the new query bar is by copy-paste the same code, over and over again.
-// The better way is to have a Long_QueryBar_HandleDefaultInput function that will handle all the basic
-// input and return unhandled input to the caller.
-
-// - Long_ISearch: Same as isearch, but with the ability to handle case-sensitive string
-// - Long_Query_Replace: Same thing as Long_ISearch, but for query_replace
-//   The user can now seek the next and previous match, and choose which one to replace
-//   Should probably merge this with Long_ISearch
-// - Long_ListAllLocations: list_all_locations__generic but can localize the search to the current buffer
-//   It also remembers the current buffer and position before the search, so it can jump back when aborting
-//   It also uses the new Multi-Select system, read @long_multi_select_intro for more info
-// - Long_ListAllLines_InRange: Lists all the lines in the current buffer that satisfy a predicate function
-//   It also uses the Multi-Select system like Long_ListAllLocations
-//   I implemented this as a replacement for Alt+Shift in Visual Studio, but it's not as good as I wanted
-//   because the Multi-Select system is still very basic
-
 //- @long_lister_intro
 
-// In general, I think the API design of 4coder is good but has several weaknesses. You can see some of
-// them in the default lister wrapper API. In the future, I may write a more detailed comments about this.
-// For now, here's a short list of all the improved features:
-// - Long_Lister_Render:
-//   - Show the number of items and the current index in the query bar
-//   - Each item can have an optional header that is its location
-//   - Each entry can now have a tooltip (document for commands, code peek for notes, etc)
-// - Long_Lister_GetFilter:
-//   - Filter tags (inclusive and exclusive): Originally, I added this feature so that I don't need
-//     specific commands to list all functions or types, but this has become more useful than I thought
-//     because now you can search for keybindings in the command lister and unique file path in the buffer
-//     lister because those are just tags.
-//   - Filter header (only inclusive right now)
-// - Long_Lister_HandleKeyStroke:
-//   - Ctrl+C to copy from and Ctrl+V to paste to the query bar
-//   - Ctrl+Tick for toggling the current item's tooltip
-//   - Alt+Tick for switching between different tooltip modes
-// - Custom handlers:
-//   - The default lister layer has multiple callback functions called handlers. I added multiple custom
-//     handlers that work with the new filtered tags. Most of the new handlers are just the original but
-//     call Long_Lister_FilterList rather than lister_update_filtered_list.
-//   - Long_Lister_Backspace adds the ability to delete the entire text field with Ctrl+Backspace
+// In general, I think 4coder’s API design is good but has several weaknesses
+// Many of them can be seen in the default lister wrapper API
+// The new lister system improves the UI, allows items to have headers and tooltips,
+// adds new filtering options, and handles basic commands (e.g. copy, paste, clear all, etc.)
+
+// Notable listers:
+// - long_history_lister: lists all edits to the buffer; allows undo/redo to the selected entry
+// - long_point_lister: lists all the current view's stored points; jumps to the selected one
+// - long_jump_lister: same as view_jump_list_with_lister, but uses the new lister
+// - long_theme_lister: same as theme_lister, but supports hot theme reloading
 
 // @important
-// The new lister uses an internal data type (Long_Lister_Data) which is added by using Long_Lister_AddItem.
-// The function will always append the extra data right after the allocated item and assign the user_data
-// field to it (which means `node->user_data == node + 1`). If your custom code uses the same strategy
-// then there will be conflict so keep it in mind.
+// The entire Lister system is a drop-in file -> just call Long_Lister_Run instead of run_lister
+// Most default commands use run_lister, so upgrading them is a bit of work
+// I took the simpler approach: #define run_lister as Long_Lister_Run
 
-// Fixed bugs:
-// - Overdraw bug: https://github.com/4coder-community/4cc/commit/dc692dc0d4b4a125475573ebfcc07cfd60a85bb7
-// - Render the wrong file bar: lister_render calls draw_file_bar rather than F4_DrawFileBar
+// The new lister uses an internal data type (Long_Lister_Data), added via Long_Lister_AddItem
+// This function appends the extra data right after the allocated item and points user_data to itself
+// i.e. node->user_data == node + 1
+// If your custom code uses the same layout strategy, it will conflict, so keep that in mind
 
 // Index note tags (defined in Long_Note_PushTag)
-// - declaration, constant, comment tag, TODO
+// - Main tags: type, namespace, declaration, constant, comment tag, TODO
 // - Function tags: function, operator, lambda, constructor, getter, setter, [forward]
-// - Type tags: type, namespace
 // - Type optional tags: [forward], [union], [generic]
 // - Declaration optional tags: [argument], [global], [local], [field], [property]
 
-// Some notable listers:
-// - long_history_lister: List all the edits to the buffer, undo or redo the selected entry
-// - long_point_lister: List all the stored points in the current view's stack, jump to the selected one
-// - long_jump_lister: view_jump_list_with_lister but uses the new lister
-// - long_theme_lister: theme_lister but uses the new lister and hot theme reloading
-// - long_interactive_switch_buffer: the default one but uses the new lister and pushes new points to the stack
-
 //- @long_move_intro
 
-// These commands use fleury's index or 4coder's code index layer to move to the next target
-// - long_move_to_next/prev_function_and_type: moves to the next/prev function or type in the current buffer
-//   It uses Long_Filter_FunctionAndType to filter out lambda functions and generic argument
-// - long_move_up/down_token_occurrence: uses F4_Boundary_CursorToken from jack (link at the function)
+// Move commands:
+// - long_move_up/down_token_occurrence: copies Jack’s F4_Boundary_CursorToken
+// - long_move_next/prev_alpha_numeric_or_camel_boundary: like the defaults, but better case handling
+// - long_move_next/prev_word: similar to the default commands, but better with comments/strings
+// - long_move_to_next/prev_function_and_type: uses F4_Index to scan for named functions/types
+// - long_move_to_next/prev_divider_comment: simplified version of _F4_Boundary_DividerComment
 
-// These commands move around by scanning for the surrounding scope like 4coder_scope_commands
-// - long_select_prev/next_scope_current_level: if a scope is already selected, find its prev/next sibling.
-//   Otherwise, find the first scope that starts before the cursor.
-// - long_select_upper_scope: selects the upper/parent scope (this's also called the surrounding scope).
-//   It's the same as select_surrounding_scope, just with a different name to match other scope commands.
-// - long_select_lower_scope: finds the first scope that starts inside the current selected or surrounding scope.
-//   I should change this so that it finds the nearest child scope instead of the first one.
-// - long_select_surrounding_scope: selects the surrounding scope. If a scope is already selected,
-//   switch between having the cursor and mark outside or inside that scope.
-
-//- @long_multi_select_intro
-
-// Long_SearchBuffer_MultiSelect is a makeshift function for implementing a multi-cursor-like system.
-// It works by rendering the jump buffer with a custom render function (Long_Highlight_DrawList) that
-// will draw a notepad-like cursor at each sticky jump location and have a custom navigation code to
-// move the highlighted range around.
-
-// Up/Down will move to the prev/next location and hold down shift while doing so to select multiple locations
-// Left/Right to change the current selection size, and move all the cursors around
-// Esc will undo all the changes and jump back to the old position, while Enter will commit all the edits
-// Shift+Esc still keeps the current position and exits back to the normal jump highlighting code
-
-// This is a quick and dirty way for stuff to work, so one of the main weaknesses is that you can't run any
-// custom commands, which means you can't use basic navigation like move_up/down, copy/cut/paste, mark
-// highlighting, etc. Each cursor can't be moved in arbitrary ways or has its own mark, and any new commands
-// you want must be implemented in the Long_SearchBuffer_MultiSelect function.
-
-// A better way to implement this is to parse the *keyboard* buffer like the macro system and store each cursor
-// and mark position in a marker array. If you don't need cursors to be in multiple buffers, and ok with a
-// notepad-like design for each cursor (meaning you can't have arbitrary mark position), then this's probably
-// the best way to do it.
+// Scope commands:
+// - long_select_prev/next_scope_current_level: If a scope is selected, jump to its prev/next sibling
+//   Otherwise, select the first scope before the cursor
+// - long_select_upper_scope: selects the parent/surrounding scope
+//   (same as select_surrounding_scope, renamed for consistency)
+// - long_select_lower_scope: selects the first scope inside the current one
+// - long_select_surrounding_scope: selects the surrounding scope
+//   If a scope is already selected, toggles between inclusive and exclusive selection
 
 //- @long_commands
 
@@ -248,14 +237,10 @@
 // - long_select_current_line: This will move the cursor to the end of the current line and the mark to the
 //   first non-whitespace character on the current line or the end of the previous line if it's already there.
 
-// - long_reload_all_themes_default_folder: I added this command while customizing my theme file.
-//   It will clear all the loaded themes and reload all the files in the default theme folder.
-//   Then it will try to find the theme that was being used and select it. It'll do it by calling
-//   Long_UpdateCurrentTheme in the theme lister and on startup.
-
 // - long_load_project: I modified this command to work with the new reference library concept.
 //   Each project file can now contain an array of reference paths (set inside the reference_paths variable)
 //   When this command runs, it will recursively load all files in those paths as read-only and unimportant
+
 
 //~ TODO INDEX
 
@@ -326,7 +311,6 @@
 // [ ] Move to the next/prev divider comment's line rather than position
 // [ ] The cursor doesn't get snapped into view when overlaps with the file bar
 // [ ] Fix incorrect pos-context rect after modifying string
-// [X] Fix suffix color for alt digit groups
 
 //~ @CONSIDER LISTER
 
@@ -345,7 +329,8 @@
 // [ ] Exit lister with sub lister for dirty buffers
 
 //~ @CONSIDER FPS HUD
-// [ ] History Depth
+// [ ] More detailed stats
+// [ ] Pause-Resume
 // [ ] Position (Top-Left, Top-Right, Bot-Left, Bot-Right)
 
 //~ @CONSIDER NEW SYSTEM
@@ -386,7 +371,7 @@
 #define LONG_INDEX_INDENT_STATEMENT 1
 #define LONG_INDEX_INLINE 1
 #define LONG_INDEX_INSERT_QUEUE 1
-#define LONG_INDEX_INDENT_PAREN 0
+#define LONG_INDEX_INDENT_PAREN 1
 
 #define LONG_LISTER_OVERLOAD 1
 

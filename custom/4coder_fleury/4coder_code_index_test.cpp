@@ -1,9 +1,9 @@
-define A \
-bla \
-foo \
-bar \
-baz \
-\
+#define AAA \
+    bla \
+    foo \
+    bar \
+    baz \
+    \
 
 [MyAttribute]
 void main()
@@ -25,12 +25,12 @@ void main()
     
     a[i] = a + b;
     a[i] =
-        a + b;
+            a + b;
     a[i]
         = a + b;
     
     a[i] = a +
-        b
+            b
     ;
     
     if (false)
