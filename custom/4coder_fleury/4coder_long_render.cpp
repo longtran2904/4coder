@@ -1684,7 +1684,7 @@ function void Long_Render_BraceAnnotation(Long_Render_Context* ctx, i64 pos, Col
                     break;
                 
                 b32 is_atom = (token->kind == TokenBaseKind_LiteralInteger || token->kind == TokenBaseKind_LiteralFloat ||
-                                   token->kind == TokenBaseKind_LiteralString  || token->kind == TokenBaseKind_Identifier);
+                               token->kind == TokenBaseKind_LiteralString  || token->kind == TokenBaseKind_Identifier);
                 if (is_atom || token->kind == TokenBaseKind_Keyword        || token->kind == TokenBaseKind_Comment)
                 {
                     if (start_token)

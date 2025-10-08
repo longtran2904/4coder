@@ -2545,6 +2545,7 @@ function void Long_Query_ReplaceRange(Application_Links* app, View_ID view, Rang
         
         i64 pos = range.min - 1;
         i64 new_pos = 0;
+        u32 match_count = 0;
         seek_string_forward(app, buffer, pos, range.end, replace, &new_pos);
         
         i64 shift = replace_range_shift(replace.size, with.size);
@@ -2552,12 +2553,16 @@ function void Long_Query_ReplaceRange(Application_Links* app, View_ID view, Rang
         {
             buffer_replace_range(app, buffer, Ii64_size(new_pos, replace.size), with);
             Long_Render_FadeHighlight(app, buffer, Ii64_size(new_pos, with.size ? with.size : replace.size));
+            match_count++;
             
             range.end += shift;
             pos = new_pos + (i32)with.size - 1;
             seek_string_forward(app, buffer, pos, range.end, replace, &new_pos);
         }
         
+        String8 buffer_name = push_buffer_base_name(app, scratch, buffer);
+        Long_Print_Messagef(app, "\n<%.*s>: Replaced '%.*s' in %u %s\n", string_expand(buffer_name),
+                            string_expand(replace), match_count, match_count > 1 ? "matches" : "match");
         history_group_end(history);
     }
 }
@@ -2594,6 +2599,8 @@ CUSTOM_DOC("Queries the user for a needle and string. Replaces all occurences of
     Batch_Edit* head = 0;
     Batch_Edit* tail = 0;
     Buffer_ID buffer = 0;
+    u32 buffer_count = 0;
+    u32  match_count = 0;
     
     for (String_Match* match = matches.first; match; match = match->next)
     {
@@ -2604,22 +2611,23 @@ CUSTOM_DOC("Queries the user for a needle and string. Replaces all occurences of
                 buffer_batch_edit(app, buffer, head);
                 head = tail = 0;
             }
+            
             buffer = match->buffer;
+            buffer_count++;
         }
         
         Batch_Edit* edit = push_array_zero(scratch, Batch_Edit, 1);
         edit->edit.text = with_str;
         edit->edit.range = match->range;
-        
-        // NOTE(long): Even though the doc says:
-        // "the user should make no assumptions about the order in which individual edits are applied,
-        // and should instead treat the operation as applying all replacements atomically"
-        // In practice, the edit list must be in ascending order
         sll_queue_push(head, tail, edit);
+        match_count++;
     }
     
     if (tail)
         buffer_batch_edit(app, buffer, head);
+    
+    Long_Print_Messagef(app, "\n<long_replace_all_buffers>: Replaced '%.*s' in %u match(es) across %u file(s)\n",
+                        string_expand(replace_str), match_count, buffer_count);
     global_history_edit_group_end(app);
 }
 

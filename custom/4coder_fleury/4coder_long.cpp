@@ -349,8 +349,6 @@
 
 //~ TODO BUGS
 // [ ] Fix undo/redo_all_buffers right after saving bug
-// [X] undo/redo in MC mode
-// [X] Move to the next/prev divider comment's line rather than position
 // [ ] The current saved history gets overwritten by merging with the next modification
 // [ ] The cursor doesn't get snapped into view when overlaps with the file bar
 // [ ] Fix incorrect pos-context rect after modifying string
@@ -404,7 +402,6 @@
 // [ ] Quick open folder
 //     [ ] 4coder source code
 //     [ ] Reference
-// [X] Replace all buffers
 
 //- MISC
 // [ ] Move range selection up and down
