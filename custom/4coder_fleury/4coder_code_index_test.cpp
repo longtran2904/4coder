@@ -121,7 +121,7 @@ void main()
     
     // NOTE(long): I could make code inside paren indent correctly,
     // but it would be more complicated and I would have to modify the layout_index_x_shift function.
-    // Define LONG_INDEX_INDENT_PAREN if you want to try it.
+    // Define LONG_INDENT_PAREN if you want to try it.
     {
         (
          a =

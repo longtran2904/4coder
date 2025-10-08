@@ -1022,9 +1022,6 @@ function F4_Index_Note* Long_Index_LookupBestNote(Application_Links* app, Buffer
     
     Long_Index_ParseSelection(app, scratch, &it, buffer, &names, use_first);
     
-    Buffer_Cursor debug_cursor = buffer_compute_cursor(app, buffer, seek_pos(range.min));
-    String8 debug_filename = push_buffer_base_name(app, scratch, buffer);
-    
     F4_Index_File* file = F4_Index_LookupFile(app, buffer);
     F4_Index_Note* scope_note = Long_Index_LookupSurroundingNote(file, range.min);
     
@@ -1635,7 +1632,7 @@ function void Long_Index_DrawCodePeek(Long_Render_Context* ctx)
 //~ NOTE(long): Indent Functions
 
 // @COPYPASTA(long): generic_parse_statement
-function Code_Index_Nest* Long_Index_ParseGenericStatement(Code_Index_File* index, Generic_Parse_State* state)
+function Code_Index_Nest* Long_Index_ParseStmnt(Code_Index_File* index, Generic_Parse_State* state)
 {
     generic_parse_skip_soft_tokens(index, state);
     Token* token = token_it_read(&state->it);

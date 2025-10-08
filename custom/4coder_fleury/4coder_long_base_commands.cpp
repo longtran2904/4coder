@@ -1379,7 +1379,8 @@ function void Long_Matches_Print(Application_Links* app, String8Array match_patt
                                  String_Match_Flag must_not_have_flags, Buffer_ID out_buffer_id, Buffer_ID current_buffer)
 {
     Scratch_Block scratch(app);
-    String_Match_List matches = Long_Matches_Find(app, scratch, match_patterns, must_have_flags, must_not_have_flags, current_buffer);
+    String_Match_List matches = Long_Matches_Find(app, scratch, match_patterns,
+                                                  must_have_flags, must_not_have_flags, current_buffer);
     string_match_list_filter_remove_buffer(&matches, out_buffer_id);
     string_match_list_filter_remove_buffer_predicate(app, &matches, Long_Buffer_NoSearch);
     print_string_match_list_to_buffer(app, out_buffer_id, matches);
@@ -2569,6 +2570,59 @@ CUSTOM_DOC("Queries the user for a needle and string. Replaces all occurences of
     Long_Query_ReplaceRange(app, view, range);
 }
 
+CUSTOM_COMMAND_SIG(long_replace_all_buffers)
+CUSTOM_DOC("Queries the user for a needle and string. Replaces all occurences of needle with string in all editable buffers.")
+{
+    Scratch_Block scratch(app);
+    Query_Bar_Group group(app);
+    
+    String8 replace_str = Long_Query_String(app, scratch, "Replace: ", {});
+    if (!replace_str.size)
+        return;
+    
+    String8 with_str = Long_Query_String(app, scratch, "With: ", {});
+    if (!with_str.str)
+        return;
+    
+    if (string_match(replace_str, with_str))
+        return;
+    
+    global_history_edit_group_begin(app);
+    String_Match_List matches = find_all_matches_all_buffers(app, scratch, replace_str, StringMatch_CaseSensitive, 0);
+    string_match_list_filter_remove_buffer_predicate(app, &matches, buffer_has_name_with_star);
+    
+    Batch_Edit* head = 0;
+    Batch_Edit* tail = 0;
+    Buffer_ID buffer = 0;
+    
+    for (String_Match* match = matches.first; match; match = match->next)
+    {
+        if (buffer != match->buffer)
+        {
+            if (buffer)
+            {
+                buffer_batch_edit(app, buffer, head);
+                head = tail = 0;
+            }
+            buffer = match->buffer;
+        }
+        
+        Batch_Edit* edit = push_array_zero(scratch, Batch_Edit, 1);
+        edit->edit.text = with_str;
+        edit->edit.range = match->range;
+        
+        // NOTE(long): Even though the doc says:
+        // "the user should make no assumptions about the order in which individual edits are applied,
+        // and should instead treat the operation as applying all replacements atomically"
+        // In practice, the edit list must be in ascending order
+        sll_queue_push(head, tail, edit);
+    }
+    
+    if (tail)
+        buffer_batch_edit(app, buffer, head);
+    global_history_edit_group_end(app);
+}
+
 //~ NOTE(long): Index Commands
 
 //- NOTE(long): Code Peeking
@@ -2604,7 +2658,7 @@ function i64 Long_Boundary_ANUD(Application_Links* app, Buffer_ID buffer, Side s
     return boundary_predicate(app, buffer, side, direction, pos, &long_predicate_alpha_numeric_underscore_dot);
 }
 
-function void Long_GoToDefinition(Application_Links* app, b32 handle_jump_location, b32 same_panel)
+function void Long_Jump_Definition(Application_Links* app, b32 handle_jump_location, b32 same_panel)
 {
     View_ID view = get_active_view(app, Access_Always);
     Buffer_ID buffer = view_get_buffer(app, view, Access_Always);
@@ -2706,13 +2760,13 @@ function void Long_GoToDefinition(Application_Links* app, b32 handle_jump_locati
 CUSTOM_COMMAND_SIG(long_go_to_definition)
 CUSTOM_DOC("Goes to the jump location at the cursor or the definition of the identifier under the cursor.")
 {
-    Long_GoToDefinition(app, 1, 0);
+    Long_Jump_Definition(app, 1, 0);
 }
 
 CUSTOM_COMMAND_SIG(long_go_to_definition_same_panel)
 CUSTOM_DOC("Goes to the jump location at the cursor or the definition of the identifier under the cursor in the same panel.")
 {
-    Long_GoToDefinition(app, 1, 1);
+    Long_Jump_Definition(app, 1, 1);
 }
 
 //- NOTE(long): Lister
@@ -3716,6 +3770,7 @@ function i64 Long_Boundary_DividerComment(Application_Links* app, Buffer_ID buff
 {
     Scratch_Block scratch(app);
     i64 result = pos;
+    i64 current_line = get_line_number_from_pos(app, buffer, pos);
     
     String8 signifier = S8Lit("//~");
     b32 (*inc)(Token_Iterator_Array*) = token_it_inc_non_whitespace;
@@ -3723,7 +3778,6 @@ function i64 Long_Boundary_DividerComment(Application_Links* app, Buffer_ID buff
         inc = token_it_dec_non_whitespace;
     
     Token_Array tokens = get_token_array_from_buffer(app, buffer);
-    
     if (tokens.tokens != 0)
     {
         Token_Iterator_Array it = token_iterator_pos(0, &tokens, pos);
@@ -3735,8 +3789,9 @@ function i64 Long_Boundary_DividerComment(Application_Links* app, Buffer_ID buff
             {
                 String8 lexeme = push_buffer_range(app, scratch, buffer, Ii64(token));
                 String8 substr = string_substring(lexeme, Ii64(0, signifier.size));
+                i64 line = get_line_number_from_pos(app, buffer, token->pos);
                 
-                if (lexeme.size >= signifier.size && string_match(substr, signifier))
+                if (lexeme.size >= signifier.size && string_match(substr, signifier) && line != current_line)
                 {
                     result = token->pos;
                     break;

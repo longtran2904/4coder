@@ -164,6 +164,7 @@ keys_file =
     
     // NOTE(rjf): Replace
     { "long_replace_in_range",                 "A", "Control"          },
+    { "long_replace_all_buffers",              "A", "Control", "Shift" },
     { "long_query_replace",                    "Q", "Control"          },
     { "long_query_replace_identifier",         "Q", "Control", "Shift" },
     { "long_query_replace_selection",          "Q", "Alt"              },
@@ -175,7 +176,6 @@ keys_file =
     { "long_cut_line",                         "X", "Control", "Shift" },
     { "long_paste_and_indent",                 "V", "Control"          },
     { "long_paste_and_replace_range",          "V", "Control", "Shift" },
-    { "long_select_current_line",              "A", "Control", "Shift" },
     
     // NOTE(long): Modify
     { "duplicate_line",                        "D",     "Alt"          },

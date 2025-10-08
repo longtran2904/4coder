@@ -22,7 +22,8 @@
 // - Line Margin: Displays either absolute line numbers or relative offsets from the current line
 //   Toggle visibility or switch mode with toggle_line_numbers and long_toggle_line_offset
 //
-// - Cursor-Mark Highlight:
+// - Cursor-Mark Highlight: Renders a thin vertical line connecting the cursor and mark
+//   Long_Highlight_CursorMark draws the line to the left of the text layout
 
 // @buffer_render (Long_Render_Buffer)
 // - Error Annotations: Inspired by qol_draw_compile_errors and F4_RenderErrorAnnotations
@@ -90,23 +91,31 @@
 // - 4coder_fleury_calc
 // - 4coder_fleury_plot
 // - 4coder_fleury_recent_files
+//
+// Useful Fleury base commands (see @f4_base_commands in 4coder_long_base_commands.cpp):
+// - f4_open_project
+// - f4_home_first_non_whitespace
+// - f4_unindent
 
 //- @long_hot_reload
 
-// Long_SaveFile: new SaveFile hook that updates the buffer’s saved state
-// - Theme
-// - Config
-// - Bindings
-// - Project
+// Long_SaveFile: A custom SaveFile hook that updates the buffer's saved/dirty state
+// Additionally, it hot-reloads content based on the saved file's name:
+// - theme-xxx.4coder: Updates the corresponding color table according to the theme name
+// - config.4coder: Calls Long_Config_ApplyFromData to update config settings
+// - project.4coder: Calls Long_Prj_Parse to update project settings
+// - bindings.4coder: Calls Long_Binding_LoadData to update all command key bindings
+// Any syntax errors in these files will be displayed (see @buffer_render for details)
+// The new updated value will be printed to *messages*
 
 //- @long_auto_indent (4coder_code_index.cpp)
 
-// LONG_INDEX_INDENT_STATEMENT: #define generic_parse_statement as Long_Index_ParseGenericStatement
+// LONG_INDENT_STMNT: #define generic_parse_statement as Long_Index_ParseStmnt
 // - Indents control-flow statements that can take a single statement (e.g. if, else, for)
 // - Properly indents C# [Attributes]
 // - Properly indents Metadesk statements
-
-// LONG_INDEX_INDENT_PAREN: By default, 4coder stops indenting inside parentheses
+//
+// LONG_INDENT_PAREN: By default, 4coder stops indenting inside parentheses
 // Set this macro to true to enable it (see 4coder_code_index_test.cpp for examples)
 
 //- @long_point_stack_intro
@@ -116,7 +125,7 @@
 // - Instead of a single global stack, each view now has its own stack
 // - You can iterate over all points or access a point by index
 // - Each stack also tracks a current point that can be used for traversal
-
+//
 // Notable commands:
 // - long_undo/redo_jump: jumps to the current point or the previous/next one if already there
 // - long_push_new_jump: pushes the current position if it isn’t already the current point
@@ -125,7 +134,7 @@
 
 // By default, 4coder only reset a buffer’s dirty state on save
 // Now, undoing/redoing back to the saved state also clears the dirty flag
-
+//
 // Notable commands:
 // - long_undo/redo(_all_buffers): same as the originals, but use the new history system
 // - long_undo/redo_same_pos: undo/redo without changing the cursor or camera position
@@ -134,7 +143,7 @@
 
 // All new search, query, and list commands use an improved system that supports basic actions
 // such as copy-paste, clear all, center view, and integrates better with the multi-cursor system
-
+//
 // Notable Functions:
 // - Long_ISearch: same as isearch, but supports case-sensitive searches
 // - Long_Query_Replace: same as query_replace, but can move to the next or previous match
@@ -149,7 +158,10 @@
 
 // I previously had a makeshift function to handle basic navigation and typing
 // Later, I switched to BYP's excellent 4coder_multi_cursor plugin (see the file for more info)
-
+// One thing I used to have with my previous function was the ability to replace across buffers
+// This is harder to implement because BYP's MC plugin doesn't work across buffers
+// Maybe adding a smooth transition to long_replace_all_buffers would be enough
+//
 // Notable commands:
 // - Long_MC_DrawHighlights: Renders all cursors
 // - Long_MC_ListAllLocations: Searches for a query and adds a new cursor for each match
@@ -168,7 +180,7 @@
 //   It resolves name collisions and can search the inheritance tree or imported namespaces
 //   It understands that 'this' means search the base type, while 'new' is for constructors, etc
 //   All the index commands and render functions use this, including but not limited to:
-//   Long_Index_IndentBuffer, Long_GoToDefinition, Long_Index_DrawPosContext, and Long_Syntax_Highlight
+//   Long_Index_IndentBuffer, Long_Jump_Definition, and Long_Syntax_Highlight
 //
 // - The C# Parser: A complete and powerful parser that can handle:
 //   - using directives and types, including classes, structs, enums, and tuples
@@ -203,7 +215,7 @@
 // Many of them can be seen in the default lister wrapper API
 // The new lister system improves the UI, allows items to have headers and tooltips,
 // adds new filtering options, and handles basic commands (e.g. copy, paste, clear all, etc.)
-
+//
 // Notable listers:
 // - long_history_lister: lists all edits to the buffer; allows undo/redo to the selected entry
 // - long_point_lister: lists all the current view's stored points; jumps to the selected one
@@ -214,12 +226,12 @@
 // The entire Lister system is a drop-in file -> just call Long_Lister_Run instead of run_lister
 // Most default commands use run_lister, so upgrading them is a bit of work
 // I took the simpler approach: #define run_lister as Long_Lister_Run
-
+//
 // The new lister uses an internal data type (Long_Lister_Data), added via Long_Lister_AddItem
-// This function appends the extra data right after the allocated item and points user_data to itself
+// It appends the extra data right after the allocated item and points user_data to itself
 // i.e. node->user_data == node + 1
 // If your custom code uses the same layout strategy, it will conflict, so keep that in mind
-
+//
 // Index note tags (defined in Long_Note_PushTag)
 // - Main tags: type, namespace, declaration, constant, comment tag, TODO
 // - Function tags: function, operator, lambda, constructor, getter, setter, [forward]
@@ -234,7 +246,7 @@
 // - long_move_next/prev_word: similar to the default commands, but better with comments/strings
 // - long_move_to_next/prev_function_and_type: uses F4_Index to scan for named functions/types
 // - long_move_to_next/prev_divider_comment: simplified version of _F4_Boundary_DividerComment
-
+//
 // Scope commands:
 // - long_select_prev/next_scope_current_level: If a scope is selected, jump to its sibling
 //   Otherwise, select the first scope before the cursor
@@ -267,6 +279,8 @@
 //
 // - long_paste_and_replace_range: This is my favorite command
 //   Combines deleting the selected range and pasting into a single operation
+//
+// - long_autocomplete: Like f4_autocomplete_or_indent, but skips current input when in MC mode
 //
 // - long_toggle_comment_selection: Performs VS-style (un)commenting on the selected range
 //   Comments each line with single-line comments, ignoring blank lines
@@ -309,7 +323,6 @@
 // [ ] Compress jump highlight and error highlight into one
 // [ ] Change the margin style
 // [ ] Slider
-// [X] Long_Render_Context helper
 
 //- Line Wrap/Overflow
 // [ ] Weird wrap postion
@@ -332,14 +345,13 @@
 // [ ] Handle special commands (re: commented bindings in Long_Binding_MultiCursor)
 //     [ ] Jupming commands
 //     [ ] Query bar commands
-//     [X] Lister commands
 //     [ ] Others
 
 //~ TODO BUGS
 // [ ] Fix undo/redo_all_buffers right after saving bug
-// [ ] undo/redo in MC mode
+// [X] undo/redo in MC mode
+// [X] Move to the next/prev divider comment's line rather than position
 // [ ] The current saved history gets overwritten by merging with the next modification
-// [ ] Move to the next/prev divider comment's line rather than position
 // [ ] The cursor doesn't get snapped into view when overlaps with the file bar
 // [ ] Fix incorrect pos-context rect after modifying string
 
@@ -384,12 +396,15 @@
 // [ ] Hot-reload multi-cursor bindings
 // [ ] Custom commands for each reloadable file
 
-//- Quick Buffer
-// [ ] Config
-// [ ] Project
-// [ ] Bindings
-// [ ] 4coder folder
-// [ ] Reference folders
+//- Buffer
+// [ ] Quick open file
+//     [ ] bindings.4coder
+//     [ ]  project.4coder
+//     [ ]   config.4coder
+// [ ] Quick open folder
+//     [ ] 4coder source code
+//     [ ] Reference
+// [X] Replace all buffers
 
 //- MISC
 // [ ] Move range selection up and down
@@ -399,10 +414,10 @@
 // [ ] Greedy lookup the binding commands
 
 //~ NOTE(long): @long_macros
-#define LONG_INDEX_INDENT_STATEMENT 1
+#define LONG_INDENT_STMNT 1
 #define LONG_INDEX_INLINE 1
 #define LONG_INDEX_INSERT_QUEUE 1
-#define LONG_INDEX_INDENT_PAREN 0
+#define LONG_INDENT_PAREN 0
 
 #define LONG_LISTER_OVERLOAD 1
 
