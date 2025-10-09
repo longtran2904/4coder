@@ -1,1 +1,0 @@
-@start D:\Programs\raddebugger\build\raddbg.exe

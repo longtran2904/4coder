@@ -8,6 +8,7 @@ keys_global =
     { "change_active_panel_backwards",     "Comma", "Control", "Shift" },
     { "project_go_to_root_directory",          "H", "Alt"              },
     { "toggle_virtual_whitespace",         "Equal", "Control"          },
+    { "toggle_show_whitespace",            "Equal", "Control",   "Alt" },
     { "long_theme_lister",                     "H", "Control", "Shift" },
     { "MC_end_multi",                     "Escape"                     },
     
