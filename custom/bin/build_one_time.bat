@@ -1,10 +1,9 @@
 @echo off
 
-REM usage: <script> <target> [binary-output-path [mode]]
+REM usage: <script> <target> [binary-output-path]
 REM  src-file : a relative path to the target of a unity-build for a one time executable
 REM  binary-output-path : a relative path where the generator.exe will be written, 
 REM                       assumed to be "." if unset
-REM  mode : if set to "release" builds with optimizations
 
 set location=%cd%
 set me="%~dp0"
@@ -24,15 +23,10 @@ if NOT "%target:~1,1%" == ":" (set full_target="%cd%\%target%")
 set dst=%2
 if "%dst%" == "" (set dst=".")
 
-set debug=/Zi
-set release=/O2 /Zi
-set mode=%debug%
-if "%3" == "release" (set mode=%release%)
-
 set opts=/W4 /wd4310 /wd4100 /wd4201 /wd4505 /wd4996 /wd4127 /wd4510 /wd4512 /wd4610 /wd4457 /wd4146 /WX
-set opts=%opts% /GR- /nologo /FC
+set opts=%opts% /GR- /nologo /FC /INCREMENTAL:NO
 set opts=%opts% /I%custom_root%
-set opts=%opts% %mode%
+set opts=%opts% /O2
 
 pushd %dst%
 call cl /I"%custom_root%" %opts% %full_target% /Feone_time
