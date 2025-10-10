@@ -1723,7 +1723,7 @@ function Code_Index_Nest* Long_Index_ParseStmnt(Code_Index_File* index, Generic_
             code_index_push_nest(&result->nest_list, nest);
             
             // NOTE(long): After a parenthetical group we consider ourselves immediately transitioning into a statement
-            nest = generic_parse_statement(index, state);
+            nest = Long_Index_ParseStmnt(index, state);
             nest->parent = result;
             code_index_push_nest(&result->nest_list, nest);
             

@@ -505,10 +505,6 @@ lister_user_data_at_p(Application_Links *app, View_ID view, Lister *lister, Vec2
     return(result);
 }
 
-#if LONG_LISTER_OVERLOAD
-function Lister_Result Long_Lister_Run(Application_Links* app, Lister* lister, b32 auto_select_first);
-function Lister_Result run_lister(Application_Links *app, Lister *lister) { return Long_Lister_Run(app, lister, 1); }
-#else
 function Lister_Result
 run_lister(Application_Links *app, Lister *lister){
     lister->filter_restore_point = begin_temp(lister->arena);
@@ -730,7 +726,9 @@ run_lister(Application_Links *app, Lister *lister){
     
     return(lister->out);
 }
-#endif
+
+function Lister_Result Long_Lister_Run(Application_Links* app, Lister* lister, b32 auto_select_first);
+#define run_lister Long_Lister_Run
 
 function Lister_Prealloced_String
 lister_prealloced(String_Const_u8 string){

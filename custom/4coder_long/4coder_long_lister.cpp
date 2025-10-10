@@ -690,12 +690,6 @@ function Lister_Result Long_Lister_Run(Application_Links* app, Lister* lister, b
     Mapping* mapping = 0;
     Command_Map* map = Long_Mapping_GetMap(app, view, &mapping);
     
-    // TODO(long):
-    //View_Context ctx = view_current_context(app, view);
-    //ctx.render_caller = Long_Lister_Render;
-    //ctx.hides_buffer = true;
-    //View_Context_Block ctx_block(app, view, &ctx);
-    
     if (!auto_select_first)
     {
         lister->item_index = -1;

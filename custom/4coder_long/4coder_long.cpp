@@ -73,11 +73,7 @@
 //   Entries are pushed via F4_Language_PosContext_PushData (originally Ryan's idea)
 //   Multiple configurable options => see @long_index_intro for details
 //
-// - Lister: An improved version of the default lister_render using the new lister system
-//   - Each item can include a header, tooltip, and optional preview
-//     (e.g. code peek for the index lister, docs for the command lister)
-//   - Only renders visible items while displaying the total count and current index
-//   - Occupies a portion of the current panel rather than filling it
+// - Lister: see @long_lister_intro for more info
 //
 // - FPS: Displays stats (FPS, frame time, frame index, etc) in the top-right corner
 //   Tracks the last 10 frames (configurable with fps_history_depth)
@@ -217,6 +213,12 @@
 // Many of them can be seen in the default lister wrapper API
 // The new lister system improves the UI, allows items to have headers and tooltips,
 // adds new filtering options, and handles basic commands (e.g. copy, paste, clear all, etc.)
+//
+// Long_Lister_Render: An improved version of the default lister_render
+// - Each item can include a header, tooltip, and optional preview
+//   (e.g. code peek for the index lister, docs for the command lister)
+// - Only renders visible items while displaying the total count and current index
+// - Occupies a portion of the current panel rather than filling it
 //
 // Notable listers:
 // - long_history_lister: lists all edits to the buffer; allows undo/redo to the selected entry
@@ -417,8 +419,6 @@
 #define LONG_INDEX_INLINE 1
 #define LONG_INDEX_INSERT_QUEUE 1
 #define LONG_INDENT_PAREN 0
-
-#define LONG_LISTER_OVERLOAD 1
 
 #define LONG_ENABLE_INDEX_PROFILE 0
 #define LONG_ENABLE_PROFILE 0

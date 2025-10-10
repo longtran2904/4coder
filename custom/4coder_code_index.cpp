@@ -463,16 +463,8 @@ generic_parse_scope(Code_Index_File *index, Generic_Parse_State *state);
 function Code_Index_Nest*
 generic_parse_paren(Code_Index_File *index, Generic_Parse_State *state);
 
-function Code_Index_Nest* Long_Index_ParseStmnt(Code_Index_File* index, Generic_Parse_State *state);
-
 function Code_Index_Nest*
 generic_parse_statement(Code_Index_File *index, Generic_Parse_State *state){
-#if LONG_INDENT_STMNT
-    Code_Index_Nest* _result = Long_Index_ParseStmnt(index, state);
-    if (_result)
-        return _result;
-#endif
-    
     Token *token = token_it_read(&state->it);
     Code_Index_Nest *result = push_array_zero(state->arena, Code_Index_Nest, 1);
     result->kind = CodeIndexNest_Statement;
@@ -527,6 +519,11 @@ generic_parse_statement(Code_Index_File *index, Generic_Parse_State *state){
     
     return(result);
 }
+
+#if LONG_INDENT_STMNT
+function Code_Index_Nest* Long_Index_ParseStmnt(Code_Index_File* index, Generic_Parse_State *state);
+#define generic_parse_statement Long_Index_ParseStmnt
+#endif
 
 function Code_Index_Nest*
 generic_parse_preprocessor(Code_Index_File *index, Generic_Parse_State *state){
@@ -885,14 +882,12 @@ layout_index_x_shift(Application_Links *app, Layout_Reflex *reflex, Code_Index_N
             case CodeIndexNest_Statement:
             {
                 result = layout_index_x_shift(app, reflex, nest->parent, pos, regular_indent, unresolved_dependence);
-                if (nest->open.min < pos && nest->open.max <= pos && (!nest->is_closed || pos < nest->close.min))
-                {
 #if LONG_INDENT_PAREN
-                    if (!nest->parent || nest->parent->kind != CodeIndexNest_Paren || nest->nest_array.ptrs)
+                if (!nest->parent || nest->parent->kind != CodeIndexNest_Paren || nest->nest_array.ptrs)
 #endif
-                    {
-                        result += regular_indent;
-                    }
+                if (nest->open.min < pos && nest->open.max <= pos &&
+                    (!nest->is_closed || pos < nest->close.min)){
+                    result += regular_indent;
                 }
             }break;
             
