@@ -87,10 +87,12 @@
 
 //- @f4_optional_intro
 
-// Optional Fleury systems that I found useful:
-// - 4coder_fleury_calc
-// - 4coder_fleury_plot
-// - 4coder_fleury_recent_files
+// Optional Fleury systems that can be useful:
+//   - 4coder_fleury_calc
+//   - 4coder_fleury_plot
+//   - 4coder_fleury_recent_files
+// You can omit these files if you don’t plan to use them
+// Any code that depends on them will be compiled out automatically
 //
 // Useful Fleury base commands (see @f4_base_commands in 4coder_long_base_commands.cpp):
 // - f4_open_project
@@ -492,10 +494,8 @@
 #include "4coder_fleury_lang.h"
 #include "4coder_fleury_index.h"
 #include "4coder_fleury_colors.h"
-#include "4coder_fleury_render_helpers.h"
 
 //~ NOTE(long): @f4_optional_headers
-#include "4coder_fleury_recent_files.h"
 #include "4coder_fleury_plot.h"
 #include "4coder_fleury_calc.h"
 
@@ -595,10 +595,8 @@
 #include "4coder_fleury_lang.cpp"
 #include "4coder_fleury_index.cpp"
 #include "4coder_fleury_colors.cpp"
-#include "4coder_fleury_render_helpers.cpp"
 
 //~ NOTE(long): @f4_optional_src
-#include "4coder_fleury_recent_files.cpp"
 #include "4coder_fleury_plot.cpp"
 #include "4coder_fleury_calc.cpp"
 

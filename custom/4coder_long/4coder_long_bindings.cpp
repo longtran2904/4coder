@@ -71,7 +71,6 @@ function void Long_Binding_SetupDefault(Mapping* mapping)
         Bind(long_interactive_kill_buffer,             KeyCode_K, KeyCode_Control);
         Bind(long_interactive_switch_buffer,           KeyCode_I, KeyCode_Control);
         Bind(save_all_dirty_buffers,                   KeyCode_S, KeyCode_Control, KeyCode_Shift);
-        Bind(long_recent_files_menu,                   KeyCode_V, KeyCode_Alt);
         Bind(long_kill_search_buffer,                  KeyCode_K, KeyCode_Control, KeyCode_Alt);
         Bind(long_switch_to_search_buffer,             KeyCode_I, KeyCode_Control, KeyCode_Alt);
         
@@ -339,7 +338,6 @@ function void Long_Binding_MultiCursor()
         MC_register(long_interactive_kill_buffer,    MC_Command_Global);
         MC_register(long_interactive_switch_buffer,  MC_Command_Global);
         MC_register(save_all_dirty_buffers,          MC_Command_Global);
-        MC_register(long_recent_files_menu,          MC_Command_Global);
         MC_register(long_kill_search_buffer,         MC_Command_Global);
         MC_register(long_switch_to_search_buffer,    MC_Command_Global);
         

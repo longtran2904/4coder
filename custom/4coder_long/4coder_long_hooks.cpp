@@ -239,7 +239,6 @@ function void Long_Tick(Application_Links* app, Frame_Info frame)
 #ifdef FCODER_FLEURY_CALC_H
     F4_CLC_Tick(frame);
 #endif
-    F4_UpdateFlashes(app, frame);
     
     // NOTE(rjf): Default tick stuff from the 4th dimension:
     default_tick(app, frame);

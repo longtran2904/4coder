@@ -35,15 +35,15 @@ commands =
     .build =
     {
         .out = "*compilation*", .footer_panel = true, .save_dirty_files = true,
-        .win = "pushd 4coder_fleury & build.bat",
-        .linux = "pushd 4coder_fleury & build_linux.sh",
-        .mac = "pushd 4coder_fleury & build_mac.sh",
+        .win = "pushd 4coder_long & build.bat",
+        .linux = "pushd 4coder_long & build_linux.sh",
+        .mac = "pushd 4coder_long & build_mac.sh",
     },
     
     .build_lexers =
     {
         .out = "*compilation*", .footer_panel = true, .save_dirty_files = true,
-        .win = "pushd 4coder_fleury & build_lexers.bat",
+        .win = "pushd 4coder_long & build_lexers.bat",
     },
 };
 

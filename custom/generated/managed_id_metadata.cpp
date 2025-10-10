@@ -88,5 +88,4 @@ buffer_lex_task = managed_id_declare(app, string_u8_litexpr("attachment"), strin
 buffer_wrap_lines = managed_id_declare(app, string_u8_litexpr("attachment"), string_u8_litexpr("buffer_wrap_lines"));
 sticky_jump_marker_handle = managed_id_declare(app, string_u8_litexpr("attachment"), string_u8_litexpr("sticky_jump_marker_handle"));
 attachment_tokens = managed_id_declare(app, string_u8_litexpr("attachment"), string_u8_litexpr("attachment_tokens"));
-f4_recentfiles_viewstate = managed_id_declare(app, string_u8_litexpr("attachment"), string_u8_litexpr("f4_recentfiles_viewstate"));
 }
