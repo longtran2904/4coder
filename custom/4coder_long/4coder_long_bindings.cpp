@@ -513,9 +513,9 @@ function void Long_Binding_MultiCursor()
         //- Meta
 #if 0
         MC_register(swap_panels,                           MC_Command_Global);
-        MC_register(if_read_only_goto_position,            MC_Command_Global);
         MC_register(if_read_only_goto_position_same_panel, MC_Command_Global);
 #endif
+        MC_register(long_if_read_only_goto_position,       MC_Command_Global);
         MC_register(long_jump_lister,                      MC_Command_Global);
         MC_register(long_history_lister,                   MC_Command_Global);
         

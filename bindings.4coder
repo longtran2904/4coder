@@ -200,7 +200,7 @@ keys_file =
     // @CONSIDER(long): Should I bind undo/redo_all_buffers
     
     // NOTE(rjf): Meta
-    { "if_read_only_goto_position",            "Return"                     },
+    { "long_if_read_only_goto_position",       "Return"                     },
     { "if_read_only_goto_position_same_panel", "Return", "Shift"            },
     { "long_jump_lister",                      "Period", "Control", "Shift" },
     { "long_history_lister",                   "H",      "Control"          },

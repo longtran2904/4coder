@@ -1859,6 +1859,24 @@ CUSTOM_DOC("[MC] begins multi-cursor using cursor-mark block-rect")
     }
 }
 
+// @COPYPASTA(long): if_read_only_goto_position
+CUSTOM_COMMAND_SIG(long_if_read_only_goto_position)
+CUSTOM_DOC("If the buffer in the active view is writable, inserts a character, otherwise performs goto_jump_at_cursor if the editor isn't in multi-cursor mode.")
+{
+    View_ID view = get_active_view(app, Access_ReadVisible);
+    Buffer_ID buffer = view_get_buffer(app, view, Access_ReadWriteVisible);
+    if (!buffer)
+    {
+        buffer = view_get_buffer(app, view, Access_ReadVisible);
+        if (buffer && !mc_context.active)
+        {
+            goto_jump_at_cursor(app);
+            lock_jump_buffer(app, buffer);
+        }
+    }
+    else leave_current_input_unhandled(app);
+}
+
 //~ NOTE(long): Query Commands
 
 function Query_Bar* Long_Query_StartBar(Application_Links* app, Arena* arena, char* prompt, String8 string)
